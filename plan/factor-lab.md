@@ -40,11 +40,12 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `factor_lab.py` | **The reference.** Parses the source files, defines every calculation, holds each experiment's record (`EXPERIMENTS`), and builds `lab_data.js`. |
 | `lab_engine.js` | The same arithmetic for the browser. Must reproduce the Python on the published data at the paper's settings and away from them - including each experiment's comparison with its paper (`compare`, `compareCrashes`, `compareFactors`, `compareSize`, `compareSort`, `compareSplit`, `compareCombo`, `compareReplication`, `compareDouble`) and a research note's pre-registered rule (`criterionResult`), from which the page fills "Against the paper". |
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
+| `lab_data_<key>.js` | **Generated** by the same build: the six heaviest series (`factor_lab.LAZY_KEYS`: `jkp`, `sorts`, `size`, `double`, `split`, `quintiles`), one file each, which `lab.html` loads only when an experiment that reads one is opened (its `PARTS`). Content is the payload's, unchanged - `load_published()` puts it back together. A new kind that reads one of them gets a `PARTS` entry, or it renders with the series missing (`test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own`). See "The first paint". |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
 | `data/lab/jkp/` | Jensen, Kelly & Pedersen's Global Factor Data (experiment 15): 310 files, **gitignored**, re-downloadable (`--fetch`, `fetch_jkp`), never committed. **CC BY-NC 4.0 - non-commercial only**; the page carries the attribution the licence asks for (`attribution_jkp`). |
 | `data/lab/osap/` | Open Source Asset Pricing's files for the sorts whose `SORTS` entry says `source: "osap"` (2026-10-20). Same rules; `--fetch` downloads them too, and Google Drive's "Quota exceeded" means retry later. |
-| `tests/test_factor_lab.py` | 71 tests (counted 2026-10-20, after experiment 4b; recount rather than trust it): the arithmetic, the parity (including every row of every comparison with the paper, `E.compare*`, to 1e-9), the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
+| `tests/test_factor_lab.py` | 77 tests (counted 2026-10-26, after the first-paint split; recount rather than trust it): the arithmetic, the parity (including every row of every comparison with the paper, `E.compare*`, to 1e-9), the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, the first-paint budget and the per-experiment parts, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -242,7 +243,7 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
 - **Tuesday (product)** owns the interface backlog below.
 - The context-layer item keeps its place on the other days; this does not displace it.
 - **First Friday of each month:** `python factor_lab.py --fetch --build`, look at the page, commit
-  `lab_data.js`. The verdict count can move when the library is rebuilt; say so in the log if it does.
+  `lab_data.js` and the `lab_data_<key>.js` parts. The verdict count can move when the library is rebuilt; say so in the log if it does.
 
 ## Interface backlog
 
@@ -255,7 +256,61 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   with a "Copy a link to this scene" button. A setting a link cannot mean is ignored.
 - ~~A way into the lab from the dashboard~~ - done 2026-10-12: the footer and the search palette
   (Ctrl/Cmd+K), plus the link in the methodology. The header's design is closed; leave it.
-- A light look at whether the first paint needs the fonts it waits for.
+- A light look at whether the first paint needs the fonts it waits for. (2026-10-26: it does not wait
+  for them - the static header paints at 0.3-0.4 s on the phone profile below, before the font
+  arrives, because the font is `display=swap`.)
+- ~~Measure the first paint~~ - done 2026-10-26, and it was slow; see "The first paint".
+
+## The first paint (measured 2026-10-26)
+
+OWNER_FOCUS 2026-10-20 item 7 asked for it to be measured, and the JKP series moved out if it was slow.
+It was. **Before:** one `lab_data.js`, 3.15 MB, **1.18-1.22 MB gzipped** as Pages serves it, all of it
+fetched before the menu and the overview could render. **Threshold judged by:** Lighthouse's mobile
+profile (4x CPU, 150 ms, 1.6 Mbit/s - "slow 4G"), on which it calls a page *interactive* fast at
+3.8 s or less. The download alone is 6.1 s on that profile, by arithmetic, before any script runs.
+
+Measured with Playwright + Chromium against a local server that gzips as Pages does (cache off,
+median of 3 loads, run twice; the live site was measured too, but this machine's own connection
+made those 7-26 s and too noisy to compare):
+
+| | Before | After |
+|---|---|---|
+| `lab_data.js`, gzipped | 1,180 KB | **100 KB** |
+| Phone profile: menu and overview on screen | **6.2-6.4 s** | **0.95 s** |
+| Phone profile: first paint (the static header) | 0.29-0.34 s | 0.34-0.36 s |
+| Desktop, unthrottled: overview on screen | 0.10-0.18 s | 0.06 s |
+| Script cost (V8 `EvaluateScript` of `lab_data.js`, phone profile) | 9-11 ms | 2-3 ms |
+| Phone profile: opening "153 factors" from the overview, first time | 0.5 s | **4.0-5.2 s** (fetches 710 KB) |
+
+**What was slow was the bytes, not the script.** V8 streams and parses the file off the main
+thread while it downloads; evaluating it costs about 10 ms even at 4x CPU. So the fix is to move
+bytes off the first screen, and nothing about the arithmetic changed.
+
+Where the bytes were (gzipped): `jkp` 710 KB (60%), `sorts` 212 KB, `size` 51 KB, `double` 39 KB,
+`split` 35 KB, `experiments` 35 KB, `quintiles` 28 KB, `market` 28 KB, `momentum` 22 KB, `factors`
+9 KB, the rest about 8 KB. The first screen reads only `experiments`, `after_the_paper`,
+`scorecard`, the attributions and `momentum.months`; the six series no first screen reads are now
+their own files. `momentum`, `market` and `factors` stay in `lab_data.js` because the first two
+experiments and the five-factor one read them, and together they are 59 KB.
+
+**The trade, stated:** the first time a reader opens an experiment whose series moved, its file
+is fetched then - on the phone profile 0.5 s for `size`, `split`, `quintiles` or `double`, 1.4 s
+for the eight sorts, and 4-5 s for the 153 factors, with "Loading this experiment's data..." on
+screen meanwhile. A reader who never opens the 153 factors never downloads them.
+
+**Identity:** every figure is unchanged. The object reassembled from the new files deep-equals the
+old `lab_data.js`'s - in Python (`==` and a sorted-key serialisation, 3,153,295 bytes both) and in
+node, running the files in one window in the page's order (`assert.deepStrictEqual`); the build
+with the published `built` date reproduces the committed files; and the page's rendered text of
+every experiment, at 1440 and 375 px, is identical before and after.
+`tests/test_factor_lab.py` keeps it so: lab_data.js stays under a **200 KB gzipped budget**
+(`FIRST_PAINT_BUDGET_GZ`, 1 s of the phone profile), the committed files are exactly what
+`write()` produces, the parts run in node give back the whole payload, and in a browser the
+overview loads no part while each experiment, opened fresh, loads exactly its own.
+
+**Publish paths:** none change. The lab is built by sessions (`python factor_lab.py --build`) and
+merged with the code; `scripts/data-run.ps1` never builds or stages a lab file, and neither
+runner's payload gate names `lab_data.js` - the lab's parse check is `tests/test_factor_lab.py`.
 
 ## Open, for the owner
 
@@ -269,6 +324,11 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
 
 ## Progress (update each session)
 
+- **2026-10-26 (night, owner-run agent) - the first paint, measured and fixed.** OWNER_FOCUS
+  2026-10-20 item 7. 1.18 MB gzipped stood between a phone and the menu (6.2-6.4 s on Lighthouse's
+  mobile profile); the six heaviest series moved to `lab_data_<key>.js`, loaded per experiment, and
+  the menu now arrives at 0.95 s. Every figure byte-identical (proof in "The first paint");
+  `ASSET_VERSION` 27; three new tests (77 in the module).
 - **2026-10-20 (evening) - experiment 17: Piotroski (2000), on Open Source Asset Pricing.** The
   "Free data to evaluate" row for OSAP was checked (terms in the table above; full account in
   `research/2026-10-20-lab-osap.md` section 2): free, no account, code GPL-2.0, no stated data

@@ -228,8 +228,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=26"></script>
-<script src="lab_engine.js?v=26"></script>
+<script src="lab_data.js?v=27"></script>
+<script src="lab_engine.js?v=27"></script>
 <script>
 (function () {
     'use strict';
@@ -1316,6 +1316,27 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
 
     // ------------------------------------------------------------------ the page
     const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted, 'split': bigAndSmall, 'combo': together, 'replication': replication, 'double': doubleSort };
+    // The series each kind reads that lab_data.js leaves out (factor_lab.LAZY_KEYS). Each is in its
+    // own file, lab_data_<key>.js, fetched the first time an experiment that reads it is opened, so
+    // the menu and the overview wait for none of them (measured 2026-10-26, plan/factor-lab.md).
+    // The same ?v= as the lab_data.js tag, so a part never meets a page from another release.
+    const PARTS = { 'size': () => ['size'], 'sort': () => ['sorts'], 'split': X => [(X.split || {}).data || 'split'],
+        'combo': () => ['split'], 'replication': () => ['jkp'], 'double': () => ['double'] };
+    const dataTag = document.querySelector('script[src^="lab_data.js"]');
+    const VERSION = dataTag ? dataTag.getAttribute('src').split('?')[1] || '' : '';
+    const pending = {};
+    function part(key) {
+        if (key in D) return Promise.resolve();
+        return pending[key] || (pending[key] = new Promise((ok, fail) => {
+            const s = document.createElement('script');
+            s.src = 'lab_data_' + key + '.js' + (VERSION ? '?' + VERSION : '');
+            s.onload = () => key in D ? ok() : fail(new Error(key));
+            s.onerror = () => { delete pending[key]; s.remove(); fail(new Error(key)); };
+            document.head.appendChild(s);
+        }));
+    }
+    const missing = X => (PARTS[X.kind] ? PARTS[X.kind](X) : []).filter(k => !(k in D));
+    let showing = 0;                                     // a later show() supersedes one still loading
     const tabs = document.getElementById('tabs');
     // The experiments grouped by what they test, so the menu reads as a map rather than a wall of
     // fourteen chips (investor pass, 2026-10-15). The number of each is on its own page.
@@ -1325,8 +1346,17 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         GROUPS.map(g => { const xs = D.experiments.filter(x => (x.group || 'More') === g);
             return xs.length ? `<div class="tg"><span class="tg-l">${esc(g)}</span>${xs.map(x => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}">${esc(x.tab || x.title)}</a>`).join('')}</div>` : ''; }).join('');
     function show() {
-        const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id);
+        const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id), token = ++showing;
         sceneHash = location.hash;
+        const need = i < 0 ? [] : missing(D.experiments[i]);
+        if (need.length) {
+            current = { id: null, settings: () => ({}), result: () => null, redraw: () => {} };     // nothing on screen yet
+            root.innerHTML = '<p class="fine" role="status">Loading this experiment’s data…</p>';
+            tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === scene.id ? 'page' : 'false'));
+            Promise.all(need.map(part)).then(() => { if (token === showing) show(); },
+                () => { if (token === showing) root.innerHTML = '<p class="warn">This experiment’s data did not load. Check the connection and reload the page.</p>'; });
+            return;
+        }
         root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';
         if (i < 0) {
             current = overview(root.firstChild);

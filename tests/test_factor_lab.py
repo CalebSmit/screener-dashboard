@@ -37,6 +37,14 @@ from stock_summary import advice_terms_in  # noqa: E402
 NODE = shutil.which("node")
 PAGE = ROOT / "lab.html"
 ENGINE = ROOT / "lab_engine.js"
+# How the node scripts below read the published data (argv[3] is lab_data.js): with every part the
+# page loads on demand (factor_lab.LAZY_KEYS) put back, the whole payload - as load_published() is.
+NODE_LOAD = (
+    "const D = (() => { const fs = require('fs'), path = require('path');\n"
+    "  const read = f => { const t = fs.readFileSync(f, 'utf8'); return JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); };\n"
+    "  const d = read(process.argv[3]);\n"
+    f"  for (const k of {json.dumps(list(fl.LAZY_KEYS))}) if (!(k in d)) d[k] = read(path.join(path.dirname(process.argv[3]), 'lab_data_' + k + '.js'));\n"
+    "  return d; })();\n")
 
 
 @pytest.fixture(scope="module")
@@ -503,8 +511,7 @@ def test_the_browser_engine_reproduces_the_reference(published, tmp_path):
     script = tmp_path / "run.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "const out = JSON.parse(process.argv[4]).map(o => { const r = E.run(D.momentum, o);\n"
         "  return { n: r.months.length, first: r.months[0], plain: r.plain_stats, managed: r.managed_stats,\n"
         "           weights: r.weight_stats, grow: E.growth(r.managed).pop(), fall: E.deepestFall(r.plain) }; });\n"
@@ -539,8 +546,7 @@ def test_the_browser_measures_the_factors_as_the_reference_does(published, tmp_p
     script = tmp_path / "factors.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.factorRun(D.factors, D.factor_keys, o);\n"
         "  return { n: r.months.length, stats: r.stats, corr: r.corr, spanned: r.spanned }; })));\n",
         encoding="utf-8")
@@ -570,8 +576,7 @@ def test_the_browser_measures_the_size_groups_as_the_reference_does(published, t
     script = tmp_path / "size.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.sizeRun(D.size, o);\n"
         "  return { n: r.months.length, deciles: r.deciles, small_big: r.small_big, nine_ten: r.nine_ten, eight_ten: r.eight_ten }; })));\n",
         encoding="utf-8")
@@ -594,8 +599,7 @@ def test_the_browser_measures_a_sort_as_the_reference_does(published, tmp_path):
     script = tmp_path / "sort.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "const out = {};\n"
         "Object.keys(D.sorts).forEach(name => { out[name] = JSON.parse(process.argv[4]).map(o => { const r = E.sortRun(D.sorts[name], o);\n"
         "  return { n: r.months.length, groups: r.groups, spread: r.spread }; }); });\n"
@@ -619,8 +623,7 @@ def test_the_browser_measures_the_halves_as_the_reference_does(published, tmp_pa
     script = tmp_path / "split.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "const one = data => JSON.parse(process.argv[4]).map(o => { const r = E.splitRun(data, o);\n"
         "  return { n: r.months.length, factors: r.factors }; });\n"
         "console.log(JSON.stringify({ split: one(D.split), quintiles: one(D.quintiles) }));\n", encoding="utf-8")
@@ -652,8 +655,7 @@ def test_the_browser_sorts_the_months_as_the_reference_does(published, tmp_path)
     script = tmp_path / "crash.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.crashRun(D.momentum, D.market, o);\n"
         "  return { n: r.months.length, state: r.state.join(''), cells: r.cells, rest: r.rest_mean, all: r.all_mean }; })));\n",
         encoding="utf-8")
@@ -677,6 +679,9 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
         assert part in html, part
     v = f"?v={fl.ASSET_VERSION}"                                    # one version on both, so they travel together
     assert re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js" + v, "lab_engine.js" + v]
+    # the parts loaded on demand carry the same version, read off the lab_data.js tag, never a second number
+    assert "'lab_data_' + key + '.js' + (VERSION ? '?' + VERSION : '')" in html
+    assert "document.querySelector('script[src^=\"lab_data.js\"]')" in html
     assert 'name="viewport"' in html and "E.run(M, S)" in html and "E.crashRun(M, MK, S)" in html
     assert "E.factorRun(F, KEYS, S)" in html and "E.sizeRun(Z, S)" in html and "E.sortRun(Z, S)" in html
     assert "E.splitRun(Z, S)" in html and "E.comboRun(Z, F, S)" in html and "E.jkpRun(J, " in html
@@ -1027,6 +1032,92 @@ def test_the_front_page_lists_every_experiment_and_opens_them():
                 assert page.evaluate("window.LAB_STATE().result.cells.length") == 4
                 assert errors == []
                 page.close()
+        finally:
+            browser.close()
+
+
+# --------------------------------------------------------------------------- the first paint
+# Measured 2026-10-26 (plan/factor-lab.md, "The first paint"): with every series inside lab_data.js
+# the page fetched 1.18 MB gzipped before its menu appeared - 6.4 s on a phone profile (4x CPU,
+# 150 ms, 1.6 Mbit/s), where Lighthouse calls 3.8 s to interactive fast. The heavy series now sit in
+# lab_data_<key>.js and load when an experiment that reads them is opened. The budget is 1 s of that
+# profile's bandwidth: about twice today's file, room for many more experiments' records, and well
+# short of what one series moved back would add (the smallest, quintiles, is 28 KB; jkp is 710 KB).
+FIRST_PAINT_BUDGET_GZ = 200_000
+
+
+def _parts_for(exp: dict) -> list[str]:
+    """What each kind of experiment reads that lab_data.js leaves out - lab.html's PARTS, restated."""
+    return {"size": ["size"], "sort": ["sorts"], "split": [(exp.get("split") or {}).get("data", "split")],
+            "combo": ["split"], "replication": ["jkp"], "double": ["double"]}.get(exp["kind"], [])
+
+
+def test_the_first_screen_waits_for_none_of_the_heavy_series(published, tmp_path):
+    import gzip
+    first = fl._parse_js_object(fl.OUT)
+    assert not set(first) & set(fl.LAZY_KEYS)
+    assert set(first) | set(fl.LAZY_KEYS) == set(published)                  # nothing lost in the split
+    assert len(gzip.compress(fl.OUT.read_bytes(), 9)) < FIRST_PAINT_BUDGET_GZ
+    # the committed files are exactly what the build's writer produces from the published content
+    fl.write(published, tmp_path / fl.OUT.name)
+    for path in [fl.OUT] + [fl.part_path(k) for k in fl.LAZY_KEYS]:
+        assert (tmp_path / path.name).read_bytes() == path.read_bytes(), path.name
+        assert path.read_text(encoding="utf-8").startswith(
+            "window.LAB_DATA = " if path == fl.OUT else f"window.LAB_DATA.{path.stem[len('lab_data_'):]} = ")
+    # every part is read by some experiment, and the page names each one the build writes
+    assert {k for x in published["experiments"] for k in _parts_for(x)} == set(fl.LAZY_KEYS)
+    parts_js = PAGE.read_text(encoding="utf-8").split("const PARTS = ", 1)[1].split("};", 1)[0]
+    for kind in {x["kind"] for x in fl.EXPERIMENTS if _parts_for(x)}:
+        assert f"'{kind}':" in parts_js, kind
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_parts_run_as_the_page_runs_them_and_rebuild_the_payload(published, tmp_path):
+    """lab_data.js and then every part, executed in one window as a browser would, give the whole
+    published payload: the split moved bytes, not figures."""
+    script = tmp_path / "parts.js"
+    script.write_text(
+        "const fs = require('fs'), vm = require('vm');\n"
+        "const w = {}; w.window = w; const c = vm.createContext(w);\n"
+        "process.argv.slice(2).forEach(f => vm.runInContext(fs.readFileSync(f, 'utf8'), c, { filename: f }));\n"
+        "process.stdout.write(JSON.stringify(w.LAB_DATA));\n", encoding="utf-8")
+    files = [fl.OUT] + [fl.part_path(k) for k in fl.LAZY_KEYS]
+    for f in files:
+        assert subprocess.run([NODE, "--check", str(f)], capture_output=True).returncode == 0, f.name
+    res = subprocess.run([NODE, str(script)] + [str(f) for f in files], capture_output=True, timeout=120)
+    assert res.returncode == 0, res.stderr.decode("utf-8", "replace")
+    assert json.loads(res.stdout.decode("utf-8")) == published
+
+
+def test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own():
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    lazy = json.dumps(list(fl.LAZY_KEYS))
+    loaded = f"{lazy}.filter(k => k in window.LAB_DATA)"
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw, width=375)
+        try:
+            page.goto(PAGE.as_uri(), wait_until="load", timeout=60000)
+            page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'overview'", timeout=30000)
+            assert page.evaluate(loaded) == []
+            assert page.evaluate("document.querySelectorAll('script[src^=\"lab_data_\"]').length") == 0
+            page.close()
+            for exp in fl.EXPERIMENTS:            # a fresh page each, so no earlier experiment's part stands in
+                page = browser.new_page(viewport={"width": 375, "height": 900})
+                page.on("pageerror", lambda e: errors.append(str(e)))
+                _goto(page, exp["id"])
+                assert sorted(page.evaluate(loaded)) == sorted(_parts_for(exp)), exp["id"]
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True, exp["id"]
+                assert page.evaluate("document.querySelectorAll('#lab svg').length") > 0, exp["id"]
+                page.close()
+            # opened from the menu, a part arrives after the click and the experiment follows it
+            page = browser.new_page(viewport={"width": 375, "height": 900})
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            _goto(page, "overview")
+            page.click("#tabs a[data-id='replication-crisis']")
+            page.wait_for_function("window.LAB_STATE().id === 'replication-crisis'", timeout=30000)
+            assert page.evaluate(loaded) == ["jkp"]
+            assert "99 of 119" in page.inner_text("#x-read")
+            assert errors == []
         finally:
             browser.close()
 
@@ -1383,8 +1474,7 @@ def test_the_browser_measures_value_and_momentum_together_as_the_reference_does(
     script = tmp_path / "combo.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.comboRun(D.split, D.factors, o);\n"
         "  return { n: r.months.length, value: r.value, momentum: r.momentum, combo: r.combo, corr: r.corr, corr_resid: r.corr_resid }; })));\n",
         encoding="utf-8")
@@ -1690,8 +1780,7 @@ def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(
     script = tmp_path / "against.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "const rows = X => { const R = X.reference;\n"
         "  if (X.kind === 'risk-managed') return E.compare(R, E.run(D.momentum, R), D.tolerances, D.stat_labels);\n"
         "  if (X.kind === 'crashes') return E.compareCrashes(D.momentum, D.market, R);\n"
@@ -1803,8 +1892,7 @@ def test_the_browser_counts_the_factors_as_the_reference_does(published, tmp_pat
     script = tmp_path / "jkp.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "const out = JSON.parse(process.argv[4]).map(o => E.jkpRun(D.jkp, o));\n"
         "console.log(JSON.stringify({ out: out, outside: E.jkpOutside(D.jkp, '202012') }));\n", encoding="utf-8")
     res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(JKP_SETTINGS)],
@@ -1889,8 +1977,7 @@ def test_the_browser_measures_size_inside_profitability_as_the_reference_does(pu
     script = tmp_path / "double.js"
     script.write_text(
         "const E = require(process.argv[2]);\n"
-        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
-        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        + NODE_LOAD +
         "const X = D.experiments.find(e => e.id === 'size-given-profitability');\n"
         "console.log(JSON.stringify({ runs: JSON.parse(process.argv[4]).map(o => E.doubleRun(D.double, o)),\n"
         "  criterion: E.criterionResult(D.double, X.criterion) }));\n", encoding="utf-8")
