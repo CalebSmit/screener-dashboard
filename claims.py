@@ -1058,8 +1058,12 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_the_excess_t_is_the_daily_mean_over_its_standard_error",
             "tests/test_track_record_claims.py::test_the_periods_are_not_called_monthly_and_their_count_is_set_against_chance",
             "tests/test_track_record_claims.py::test_the_years_to_two_are_counted_in_years_of_252_trading_days",
+            "tests/test_page_fourth_pass.py::test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure",
         ),
         caveat=(
+            "Since 2026-10-27 the page's Track record tile repeats the same figure under the headline return "
+            "('Too short to tell skill from luck: N standard errors, where two is the usual bar') whenever it is "
+            "below two; the check asserts the tile and the panel print the same number. "
             "Fixed 2026-10-19: until then the panel set no figure against chance. The t treats daily differences as independent; Lo (2002) shows serial "
             "correlation changes the standard error, so the figure is a guide to scale, not a test "
             "result. The years figure extrapolates the lead seen so far, which makes it the most "
