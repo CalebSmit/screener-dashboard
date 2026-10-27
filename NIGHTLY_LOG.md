@@ -16188,3 +16188,50 @@ them. Both degrade to a correct shorter sentence, tested in its own right
 - The generalisable lesson, for whoever next adds a surface: **a badge written into a container
   that does not exist cannot fail visibly**, which is why this one survived for months and why the
   fix is a test asserting the function is gone rather than a test asserting it renders.
+
+### Same day, fifth owner pass - "as many improvements as possible" (`good/2026-10-27-owner-5`)
+
+Owner: *"make as many improvements as possible before that next session. Be creative and find
+improvements across all tools and dashboards."* Four agents in separate worktrees, one surface each,
+each told to audit at 375 and 1280 px before changing anything; the coordinator read the live site
+independently and sent the page agent five findings, reviewed every branch, merged, regenerated the
+page and ran the gates on the combined tree. **Presentation and access only: payload byte-identical,
+no weight, metric, threshold or scored sentence moved; `METHODOLOGY_CHANGELOG.md` untouched.**
+
+- **Page** (`tests/test_page_fourth_pass.py`, 20): phone rankings 50 at a time with "Show the next
+  50 / all 498" (filters, sort, stepping and deep links still see all 498); measured phone height
+  44,339 -> 8,834 px. The four residuals in `plan/ui-elevation.md` done. One roving tab stop for the
+  table (was ~500). A real defect found on the way: below 1180 px the spacer rows spanned 15 columns
+  with 14 shown, so the table grew an empty column and at 768 px the company name was 0 px wide.
+  Trap badges under the name on a phone; flags column 80 px on desktop so names stop truncating;
+  the Menu pill steps aside while scrolling. The Track record tile now prints the panel's own
+  standard-error reading ("too short to tell skill from luck: 0.7 standard errors") - registered
+  under the existing claim `context.track_luck` with a check that tile and panel agree.
+- **Stock sheet** (`tests/test_drilldown_reading.py`, 49): headings, focus-moving tabs, stepping that
+  keeps focus and announces the stock, tab-strip overflow cues, "What it measures" for 38 metrics
+  (`METRIC_PLAIN`; tested to carry no digit, computing verb or advice term, so they are definitions,
+  not claims), phone labels on the workings figures, a keyboard research toggle, print the sheet.
+  The coordinator checked every definition against `factor_engine.py` and corrected three
+  (sustainable growth assumes leverage held constant, not no new borrowing; analyst surprise is a
+  median over recent quarters; max drawdown is the past year). **How it adds up's labels** read
+  "Very Weak" for a Risk score of 21 and would read "Strong" for a small company's Size score; they
+  now describe the score - High / Above mid / Below mid / Low.
+- **Factor Lab and research page** (`tests/test_lab_reading_and_access.py`, 18; `test_research_page`
+  +2): bar charts readable by tap and keyboard, "%" on axes, a failed lazy part keeps the experiment
+  and offers Try again, compact phone overview cards, the hero's figures as rows on a phone, a status
+  region for Copy a link, a contents list and print styles on the research page. `lab_engine.js` and
+  the lab data untouched. `tests/test_overfitting.py` now anchors on the section's `<h2>` (the new
+  contents list names it first) - same assertions.
+- **Bot** (screener-bot `7f4328f`, 613 passed, both rehearsals exit 0, CI green): one-row masthead,
+  honest first-mark state, keyboard ladder, legible heat map without moving the locked colour, ops
+  strip counting only due days, and ROADMAP 3.7's health ledger (`bot/health.py`; read only by the
+  report and dashboard, no line says "pass" while the gates are an unsigned draft).
+
+Gates on the combined tree: suite **3,402 passed, 1 skipped**; `rehearse_publish.py` PASSED; dry run
+OK; `node --check` on both payloads and `lab_engine.js`; tree clean.
+
+**Left, recorded in `plan/ui-elevation.md` item 7 and `plan/factor-lab.md`:** Factor analytics' sector
+table on a phone, the Diagnostics chevron, the bare Delta header, an unscored category tile that cannot
+say why (needs a per-category reason in the payload), and the lab overview's three long tables. The bot
+agent noted the draft go-live gate U1's worked example disagrees with its own formula (-20% at 1 year,
+not 2) - the owner should correct the example when he signs the gates.

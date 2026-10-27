@@ -1058,8 +1058,12 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_the_excess_t_is_the_daily_mean_over_its_standard_error",
             "tests/test_track_record_claims.py::test_the_periods_are_not_called_monthly_and_their_count_is_set_against_chance",
             "tests/test_track_record_claims.py::test_the_years_to_two_are_counted_in_years_of_252_trading_days",
+            "tests/test_page_fourth_pass.py::test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure",
         ),
         caveat=(
+            "Since 2026-10-27 the page's Track record tile repeats the same figure under the headline return "
+            "('Too short to tell skill from luck: N standard errors, where two is the usual bar') whenever it is "
+            "below two; the check asserts the tile and the panel print the same number. "
             "Fixed 2026-10-19: until then the panel set no figure against chance. The t treats daily differences as independent; Lo (2002) shows serial "
             "correlation changes the standard error, so the figure is a guide to scale, not a test "
             "result. The years figure extrapolates the lead seen so far, which makes it the most "
@@ -1353,7 +1357,8 @@ CLAIMS: tuple[Claim, ...] = (
         surface=DRILLDOWN,
         asserts=(
             "The 'What the columns mean' key above the ranking, the line under the stock sheet's "
-            "scores and the guide's first statement say which way each category score runs: a "
+            "scores, the line opening each category of the sheet's workings and the guide's first "
+            "statement say which way each category score runs: a "
             "higher Valuation score is a lower price against cash flow, earnings and sales, a "
             "higher Risk score a calmer price, a higher Size score a smaller company than its "
             "sector peers (the largest in each sector near 0), a higher Investment score slower "
@@ -1368,6 +1373,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_the_sheet_says_which_way_the_scores_run",
             "tests/test_club_readiness.py::test_the_engine_gives_the_largest_company_in_a_sector_the_lowest_size_score",
             "tests/test_club_readiness.py::test_the_median_composite_the_key_quotes_is_the_median_not_the_mean",
+            "tests/test_drilldown_reading.py::test_the_page_carries_the_words_it_shows",
+            "tests/test_drilldown_reading.py::test_plain_words_in_the_workings",
         ),
     ),
     Claim(

@@ -102,14 +102,79 @@ The "Last updated" line left the bar (the hero and footer state the same time) a
 shows its icon and shortcut at every desktop width. Before: links clipped at 1024, 1152, 1536, 1680
 and 1920 px. `tests/test_header_nav_fit.py` (9) opens the page at seven widths.
 
+### Same day, fourth pass - the Factor Lab and the research page, read as a student would
+
+Audited at 375 and 1280 px, several experiments of every kind, settings changed, by pointer, touch
+and keyboard. Presentation and access only: no figure, sentence about a computation, data file or
+`lab_engine.js` changed.
+
+| Page | What changed | Where |
+|---|---|---|
+| Factor Lab | bar charts read by tap and keyboard like the line charts (one `readable()` helper); a line chart's label ends on its last month; a failed lazy part keeps the experiment and offers Try again; the tab title names the experiment and opening one moves focus to its heading; the experiment list answers the arrow keys; 44 px controls on a phone; equations wrap; the no-effect line on its own line; a key to the meters; each verdict links to "What it means for the screener"; a way on at the foot; `<noscript>`; print as ink on paper | `lab.html`; `tests/test_lab_reading_and_access.py` (13) |
+| Factor Lab, follow-up | phone overview cards fold to title + meter with "What it found" (cards 6,990 -> 3,894 px at 375); "%" on every bar chart's y axis; "Copy a link" confirms in a status region; the hero's figures as rows on a phone | `lab.html`; `tests/test_lab_reading_and_access.py` (18 in all) |
+| Has it been tested? | every section has an id; an "On this page" list read off the sections the generator emitted; the foot links back to the answer, the lab and the rankings; 44 px nav, contents and summary on a phone; print as ink on paper | `research_page.py` (`with_contents`); `tests/test_research_page.py` (+2) |
+
+### Same day, night - the drilldown pass (owner-run)
+
+The stock sheet audited as a student would use it - EXPE (#1), JPM (bank), VICI (REIT), ED (utility),
+FDXF (three categories unscored), WMB (#490) - at 375 and 1280 px, by keyboard and by heading. Eight
+changes, all presentation; payload byte-identical; `tests/test_drilldown_reading.py` (49). What was
+wrong, and what it is now (detail in `plan/dashboard-inventory.md`, "The drilldown pass"):
+
+1. **Only one heading in the sheet** (the ticker). Eleven section titles and the eight workings
+   categories are now real `h3`/`h4`, a button inside a heading; the dialog is named ticker + company.
+2. **A tab only scrolled.** It now moves focus to the section it names; the lit tab is `aria-current`.
+3. **Ten tabs did not fit an 880 px sheet** - Peers and Data sat past the edge unannounced. Arrows at
+   the edge (mouse) and a fade (touch).
+4. **Next / Previous threw focus to Close**, so a second Enter closed the sheet; and a screen reader
+   heard only "2 of 498". Focus stays on the control; a status line names the stock and its rank.
+5. **No plain-English meaning for 38 metrics** ("EV/EBITDA", "Beneish M-Score", "12-1M Return"). Each
+   metric card opens with "What it measures" (definitional only - tested: no digit, no computing verb,
+   no advice term), and each category with the score key's own "A higher ... score means" line.
+6. **The research under each context reading** opened only by clicking a paragraph - no keyboard, no
+   cue. A "Read the research" button now, kept in step with the paragraph's own click.
+7. **On a phone the workings' figures had no labels** ("2.51 ● 27 60%" - which is the percentile?).
+   "27 pctile · 60% weight · 16.30 pts", drawn by CSS; Calculation is a 44 px target.
+8. **Printing with a sheet open printed the page behind it.** It now prints the sheet - every section
+   open, light ink, no controls - and puts the sheet back afterwards (Ctrl+P or the toolbar's icon).
+
+Seen and not changed: an unscored category tile says "Not scored: no data" without naming the reason
+(a new listing or a price series the run rejected) - the reason is not in the payload per category, so
+saying it needs a payload field; the "Strong / Weak" words in How it adds up read "Very Weak" for a low
+Risk score, which is a volatile price, not a weak company - worth a wording decision by the owner. **Decided the same night (coordinator):** the four
+words now describe the score, not the company - High / Above mid / Below mid / Low.
+
+### Same day, fourth pass - the page outside the sheet (owner-run, 2026-10-27)
+
+Presentation only (payload byte-identical; `scripts/rebuild_page.py`). Opened at 375, 768, 1024, 1280 and
+1920 px and read; every item below was a screenshot before it was a fix. `tests/test_page_fourth_pass.py`
+(20, browser) asserts each as behaviour.
+
+| What was wrong | What changed |
+|---|---|
+| Residuals 1-4 below | done - see the list |
+| Phone rankings rendered all 498 cards: a 46,600 px page, footer at the end | 50 at a time, "Show the next 50" / "Show all 498" (`PHONE_STEP`, `shownRows`, `#table-more` in `_js_table`); filters, search, sort, the sheet's stepping and deep links read the full list; a new filter or sort starts from the top. Page 11,100 px |
+| The table was ~500 tab stops between the filters and the footer | one roving tab stop (`rovingT`, `syncRoving`); arrows / Page / Home / End inside, as before; `aria-describedby="universe-keys"` says so |
+| Below 1180 px the spacer rows spanned 15 columns when 14 were shown, so the fixed-layout table grew an empty 16th column that took the company name's width; at 768 px (iPad upright) the company column was 0 px and Inv / Flags were cut off with no way to scroll | spacers span the shown columns (`visibleCols`); columns tighten 761-1300 px; at <= 900 px the name leaves the row (the ticker carries it as a tooltip); 761-768 px no longer stacks the filters in a right-aligned column |
+| Desktop: "Valero Energy Corpo..." beside a 108 px flags column blank on 87% of rows | flags 80 px (header "Flags"), composite 100, rank 46; the rare stock with both flags stacks them |
+| Phone: a trap flag halved the company name ("Delta Air ...") | the flag sits under the name; two flags fit |
+| Phone Menu pill sat over a card's composite on every screen, and over the footer | steps aside while scrolling down, back on the way up and at the end (`.tuck`, `initMobileNav`); footer leaves 96 px |
+| Track record tile showed "+13.8%" from 8 months with no word on what that can show | "Too short to tell skill from luck: 0.7 standard errors, where two is the usual bar" whenever the panel's t is below two - the panel's own figure, claim `context.track_luck` (new check) |
+| My holdings' remove button: 15x17 px, read aloud as "times" | `aria-label="Remove T from your list"`, 32 px (44 px on touch); Concentration's chevron stays beside its label on a phone |
+| The dot picture's axis had no name | "Composite score, 0-100 - higher ranks higher" under it |
+
 ### Left for a later pass (owner-run; nightly sessions do not take design work)
 
-1. Phone Reporting soon hides the "Last quarter" and "Insiders" columns - decide whether phone
-   readers should see them.
-2. Phone Weighting select clips "Balanced (published)".
-3. Phone Side-by-side puts the third stock in a sideways scroll.
-4. The dot picture is not keyboard-focusable (the table stays the keyboard route; it has an
-   `aria-label` summary).
+1. ~~Phone Reporting soon hides the "Last quarter" and "Insiders" columns~~ **DONE 2026-10-27 (fourth
+   pass).** Below 640 px the two figures ride under the company name (`.rp-m`), labelled "Last quarter
+   vs estimate" and "Insiders"; the columns stay off so the row still fits.
+2. ~~Phone Weighting select clips "Balanced (published)"~~ **DONE** - Weighting and Sort by take the
+   full row on a phone; the short controls pair up above them (`grid-auto-flow: dense`).
+3. ~~Phone Side-by-side puts the third stock in a sideways scroll~~ **DONE** - below 480 px each
+   category's name is a caption row above its scores, so two, three or four stocks share the width.
+4. ~~The dot picture is not keyboard-focusable~~ **DONE** - a slider over the companies in score order
+   (`distKey`): focus lands on the published #1, arrows step one dot, Page keys ten, Home / End the
+   ends, Enter opens the sheet; the tooltip follows and `aria-valuetext` names the stock.
 5. ~~`renderFlagsWarnings()` writes to a `#modal-flags` element that does not exist~~ **DONE
    2026-10-27 (13:00 session).** All eleven badges audited against the live page: seven were
    already covered elsewhere, three became Data-provenance sentences with registered claims
@@ -118,6 +183,11 @@ and 1920 px. `tests/test_header_nav_fit.py` (9) opens the page at seven widths.
    methodology page false, corrected in the generator (`overview.no_financial_sector_flag`). The
    dead function is gone. The item was right that thresholds had to be registered first; they are.
    `tests/test_dead_badges.py` (18), `plan/dashboard-inventory.md`, NIGHTLY_LOG.md 2026-10-27.
-6. Bot: the "Against what you could hold instead" header wraps to four lines on a phone; the
+6. ~~Bot residuals~~ **DONE 2026-10-27 (owner-run evening, screener-bot `7f4328f`)** - all four, plus the
+   health ledger (ROADMAP 3.7); see the bot's SESSION_LOG.md. Was: the "Against what you could hold instead" header wraps to four lines on a phone; the
    one-mark empty chart is a large dashed box; ladder labels are not keyboard-reachable; white on
    the map's full gain tile is 4.42:1 (the colour is locked in `DESIGN.md`).
+7. Seen in the fourth pass, not fixed: Factor analytics' sector table on a phone shows two score columns
+   at a time behind a fade (it scrolls; a transposed phone layout would read better); Diagnostics' tile
+   header wraps its chevron under the title on a phone; the table's Delta header is a bare symbol (its
+   tooltip and "What the columns mean" explain it).

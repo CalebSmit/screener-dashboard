@@ -699,6 +699,25 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-27 (evening) - "Make as many improvements as possible before that next session":
+  DONE (owner-run).** Four passes in parallel, each audited at phone and desktop widths before and
+  after, all presentation and access - no number, rank, weight or scored sentence changed (payload
+  byte-identical). **Dashboard page:** the phone rankings show 50 at a time (page 44,300 -> 8,800 px),
+  the four phone residuals fixed (Reporting soon's two hidden figures, the clipped Weighting select,
+  Side-by-side without sideways scroll, a keyboard-usable dot picture), the table is one tab stop,
+  a tablet-width layout bug that hid the company column fixed, trap badges no longer halve names,
+  the Menu pill steps aside, and the Track record tile says plainly that 8 months is too short to
+  tell skill from luck. **Stock sheet:** real headings, tabs that move focus, stepping that keeps
+  focus, a plain-English "What it measures" for 38 metrics (checked against the engine), labelled
+  figures on a phone, a research toggle, and printing the sheet alone; How it adds up now labels
+  scores High / Above mid / Below mid / Low instead of Strong / Weak (a low Risk score is a volatile
+  price, not a weak company). **Factor Lab and research page:** charts readable by tap and keyboard,
+  units on axes, a retry when a data part fails, compact phone cards, contents list, print styles.
+  **Trading bot (screener-bot `7f4328f`, CI green):** one-row masthead, an honest first-mark state,
+  keyboard-reachable ladder, legible heat map, an ops strip that counts only due days, and ROADMAP
+  3.7's go-live health ledger (measurement only). Detail: `plan/ui-elevation.md`, NIGHTLY_LOG.md
+  2026-10-27 (owner-run evening), the bot's SESSION_LOG.md.
+
 - **2026-10-27 - Ideas from TradingAgents: DONE (owner-run).** Owner: *"look into this repo to see if
   you can steal any ideas from it"*, then *"Yes make all changes necessary."* The review is
   `research/2026-10-27-tradingagents-ideas.md` (its own results are not evidence; no AI opinion enters

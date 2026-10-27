@@ -90,7 +90,8 @@ def test_the_page_prints_the_ledger_s_reading_all_three_ways():
     r = O.check(reg, latest)
     assert r and {"all", "recent", "without"} <= set(r)
     page = rp.PAGE.read_text(encoding="utf-8")
-    sec = page[page.index("If you had kept the best backtest"):]
+    # the section itself, by its heading: since 2026-10-27 the page's contents list names it first
+    sec = page[page.index("<h2>If you had kept the best backtest"):]
     sec = sec[:sec.index("</section>")]
     for key in ("all", "recent", "without"):
         assert f'<div class="v">{r[key]["pbo"]:.2f}</div>' in sec, key

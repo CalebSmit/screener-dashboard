@@ -136,6 +136,32 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
   Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
 
+## The page, fourth pass, 2026-10-27 (owner-run) - `plan/ui-elevation.md`, `tests/test_page_fourth_pass.py`
+
+Presentation only. What a later session must know before touching these:
+- **Phone rankings are paged**: below 760 px the table shows `PHONE_STEP` (50) rows of `tableState.filtered`,
+  then `#table-more` ("Show the next 50" / "Show all N"). `shownRows()` is the count the window renders and
+  `aria-rowcount` reports; `sortTable` resets it (so every filter, sort and Weighting change does);
+  `focusTableRow` extends it when the arrow keys walk past it. **`tableState.filtered` is still the full
+  list** - the sheet's stepping, deep links and the analytics links read it. Desktop is unchanged.
+- **The table is one tab stop** (roving tabindex, `rovingT` / `syncRoving` in `_js_table`): the focused row,
+  or the first rendered row when that one scrolled out of the window, has `tabindex=0`; the rest `-1`.
+- **Spacer rows span the shown columns** (`visibleCols`, recomputed per render and forcing a re-render when it
+  changes). Spanning all fifteen while Sector is hidden (< 1180 px) gave the fixed-layout table a phantom
+  column. **761-1300 px** carries tighter column widths; **<= 900 px** hides the company column (the ticker
+  cell's `title` names it).
+- **The dot picture is a keyboard slider** (`#dist-plot`, `role="slider"`, `tabindex=0`): `DIST.order` is the
+  dots left to right, `DIST.ki` the current one, `distKey` / `distSetAria` / `distText`. A pointer click sets
+  `DIST.ki` too. `.dist-foot` names the axis and, on keyboard focus only, the keys.
+- **Reporting soon on a phone** puts Last quarter and Insiders under the name (`.rp-m`, below 640 px).
+- **Side by side below 480 px** is a grid per row with the category name as a caption row (`--n` columns).
+- **Phone filters**: Weighting and Sort by span the row.
+- **Phone Menu pill** tucks (`.tuck`) while scrolling down; `hidden` still means "header in view".
+- **Track record tile**: `.kpi-caveat` under the sub-line when `D.track.excess.t` is below two (claim
+  `context.track_luck`).
+- **My holdings**: `.holding-remove` has an `aria-label` and a 32 / 44 px target.
+- Desktop table header "Trap flags" is now **"Flags"** (tooltip unchanged).
+
 ## The UI elevation, the page, 2026-10-27 (owner-run) - `plan/ui-elevation.md`
 
 Presentation only (payload byte-identical; `scripts/rebuild_page.py`). The page's own layer is
@@ -368,7 +394,7 @@ refused. `cavs` is a general per-stock, per-metric slot: a new one needs a claim
 `plan/ui-elevation.md`. Presentation only; every rule is scoped to `#stock-modal` and emitted
 last. `tests/test_drilldown_presentation.py` (10, browser).
 - **Masthead:** the identity block is `display: contents`, so ticker, sector, tools and close share
-  the top line and the company name (display serif) gets the full width. Figures: **Rank, then
+  the top line and the company name (Inter 600, the headline voice) gets the full width. Figures: **Rank, then
   Composite with a strip of every published composite** (`compDistHtml`, 40 bins of
   `stock_detail[*].composite`, this one's bin and a line in the accent, a tick at
   `kpis.median_composite`), then Last price (shown on phones again). **Trap chips** (`#modal-chips`,
@@ -380,7 +406,7 @@ last. `tests/test_drilldown_presentation.py` (10, browser).
 - **Score tiles** are a fingerprint: the heat token as the wash, text in ink, a tick at 50 on each bar.
   Tiles, How-it-adds-up rows and the workings' category headers are `role="button"` and work from
   Enter/Space.
-- **Why it ranks here:** section titles in the display serif; the lead sentence as the hero
+- **Why it ranks here:** section titles in the headline voice (Inter 600); the lead sentence as the hero
   statement; on wide screens each group label spans its sentences in a left column (`grid-row:
   span N`). `figEmph()` sets figures with a decimal point, %, $ or an ordinal in ink - it wraps
   characters of the escaped sentence and never changes one (a test renders all ~500 summaries and
@@ -407,6 +433,46 @@ last. `tests/test_drilldown_presentation.py` (10, browser).
   financial-sector caveat, was deleted from the payload: `Financial_Sector_Caveat` is set only by
   `factor_engine`'s own legacy end-to-end path, so it published `false` for all 498 on every run.
   Do not re-create a container-less badge sink; a badge that cannot render also cannot fail.
+
+### The drilldown pass, 2026-10-27 night (owner-run) - `tests/test_drilldown_reading.py` (49)
+
+Presentation only; payload byte-identical. What a later session must know before touching these:
+- **Headings.** Every sheet section title is a real heading: `h3.summary-title` (`#summary-title`),
+  `h3.case-title`, `h3.about-title`, and each collapsible header sits inside `<h3 class="collapsible-h">`
+  (a button inside a heading - a heading *inside* `role="button"` is flattened and was unreachable by
+  heading). The workings' eight categories are `<h4 class="cat-detail-h">` around the header; the name
+  is `span.cat-detail-name` (was an `h3` inside the button). Their headers carry `aria-expanded` /
+  `aria-controls` (`cat-body-<cat>`), kept true by `syncWorkingsAria` + an observer; the toggle is
+  `closest('.cat-detail-section')`. `syncSectionAria` (shared, `generate_html`) also finds a header
+  inside `.collapsible-h`. The dialog is named by `modal-ticker modal-company` ("JPM JPMorgan Chase & Co.").
+- **Tabs move focus.** `goToModal` is wrapped (`_js_drilldown`): after the jump, focus lands on the
+  section's header button or heading (`sheetFocusTarget`; tabindex -1 added to a heading). The lit tab
+  carries `aria-current="location"`.
+- **The strip says it overflows.** JS wraps `.modal-nav` in `.mnav-wrap` with two arrow buttons
+  (`.mnav-l` / `.mnav-r`, `tabindex=-1`, shown by `more-l` / `more-r` on the wrapper); on a touch screen
+  the arrows are hidden and the strip's edge fades instead. Ten tabs overflowed an 880px sheet at 1280
+  (Peers and Data off the edge, nothing said so).
+- **Stepping** keeps focus on the toolbar control that stepped (it jumped to Close, so a second Enter
+  closed the sheet); at the end of the list focus moves to the other arrow. `#modal-announce`
+  (`role=status`, polite) says "MU, Micron Technology, Inc. Rank 2 of 498. 2 of 498 in this list." -
+  `#mt-pos` is no longer a live region (it said only "2 of 498").
+- **Plain words in the workings.** Each category opens with "A higher <Category> score means ..." -
+  the score key's own line (`CAT_MEANS` = `SCORE_KEY`, claim `dashboard.score_key`). Each metric card
+  opens with **What it measures** (`.wk-plain`) from `generate_dashboard.METRIC_PLAIN`, also the metric
+  name's tooltip. Those lines are **definitional only** - the test fails on a digit, a computing verb
+  or an advice term; a line that says how a number is computed belongs in `metric_lineage` and needs a
+  claim. A new metric needs a `METRIC_PLAIN` line or the suite fails.
+- **The research under a context reading** (`.ctx-why`, clamped to three lines) has a real button after
+  it, "Read the research" / "Show less" (`.ctx-why-more`, `aria-expanded`, `aria-controls`), added by
+  `enhanceWhy` after `renderContext` (wrapped). The paragraph's own click still works and moves the
+  button with it (`syncWhyMore`, called from `_js_context`'s listener).
+- **Phone workings** label their figures (the column heads are hidden below 760px) with CSS `::after`:
+  "27 pctile", "60% weight", "16.30 pts" - text content unchanged. On a coarse pointer the Calculation
+  control and the research toggle are 44px.
+- **Print.** Ctrl+P with a sheet open, or the toolbar's print icon (`#mt-print`, `printSheet()`, hidden
+  on phones), prints the sheet alone: light tokens, every collapsed section open, research unclamped, no
+  tabs/tools. `preparePrint` / `restorePrint` on `beforeprint` / `afterprint` (`html.print-sheet`); the
+  sheet is put back exactly as it was. The page's own print rules still hide every overlay otherwise.
 
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 
