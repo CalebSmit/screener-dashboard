@@ -1113,7 +1113,12 @@ def test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own():
             page = browser.new_page(viewport={"width": 375, "height": 900})
             page.on("pageerror", lambda e: errors.append(str(e)))
             _goto(page, "overview")
+            # on a phone the menu is one picker that opens the list (2026-10-27, plan/ui-elevation.md);
+            # choosing from it closes it again
+            page.click("#picker")
+            assert page.evaluate("document.getElementById('picker').getAttribute('aria-expanded')") == "true"
             page.click("#tabs a[data-id='replication-crisis']")
+            assert page.evaluate("document.getElementById('picker').getAttribute('aria-expanded')") == "false"
             page.wait_for_function("window.LAB_STATE().id === 'replication-crisis'", timeout=30000)
             assert page.evaluate(loaded) == ["jkp"]
             assert "99 of 119" in page.inner_text("#x-read")

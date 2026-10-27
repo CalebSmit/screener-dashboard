@@ -17,8 +17,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 /* Tokens are the dashboard's (plan/dashboard-design-system.md): neutrals carry the page,
    one accent carries interaction, colour otherwise appears only where it means something. */
@@ -32,117 +32,228 @@
     --radius: 8px;
     --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+    /* plan/ui-elevation.md: the display serif is for page titles, section titles and hero statements
+       only - never a label, control, table or figure; the hairline is the top edge of a raised card */
+    --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    --hairline-hi: inset 0 1px 0 rgba(255,255,255,.04);
+    --rest: #6b6a64;                     /* a chart's other series and bars: 3:1 on the card, never the accent */
+    --bar-h: 60px;
+    --t-fast: 140ms;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg-deep); color: var(--text-secondary); font-family: var(--font-body);
-       font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+       font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11'; }
 a { color: var(--accent-text); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 72px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 72px; }
 @media (min-width: 720px) { .wrap { padding: 0 32px 96px; } }
 
-.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 56px;
-       border-bottom: 1px solid var(--border); }
-.mark { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); font-weight: 600; letter-spacing: -.01em; text-decoration: none; }
+/* The site bar, as the dashboard's: sticky, its surface a full-bleed translucent band under a hairline. */
+.bar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 16px; height: var(--bar-h); }
+.bar::before { content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%);
+               background: color-mix(in srgb, var(--bg-deep) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+               border-bottom: 1px solid var(--border); }
+.mark { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; }
+.mark:hover { text-decoration: none; }
 .bmk { width: 24px; height: 24px; flex: none; }
 .bm-bg { fill: var(--bg-elevated); stroke: var(--border-bright); } .bm-1 { fill: var(--accent); opacity: .5; } .bm-2 { fill: var(--accent); opacity: .75; } .bm-3 { fill: var(--accent); }
-.bar nav { display: flex; gap: 4px; font-size: 13.5px; flex-wrap: wrap; }
-.bar nav a { color: var(--text-secondary); padding: 6px 10px; border-radius: 8px; }
-.bar nav a:hover { color: var(--text-primary); background: var(--bg-card); }
-.bar nav a[aria-current=page] { color: var(--text-primary); background: var(--bg-elevated); }
-@media (max-width: 600px) { .bar { height: auto; min-height: 56px; flex-wrap: wrap; padding: 10px 0 8px; gap: 6px; } .bar nav { margin-left: -10px; } }
+.bar nav { display: flex; gap: 2px; font-size: 13.5px; flex-wrap: wrap; }
+.bar nav a { color: var(--text-secondary); padding: 7px 12px; border-radius: 8px; transition: color var(--t-fast), background var(--t-fast); }
+.bar nav a:hover { color: var(--text-primary); background: var(--bg-card); text-decoration: none; }
+.bar nav a[aria-current=page] { color: var(--text-primary); background: var(--bg-elevated); box-shadow: inset 0 0 0 1px var(--border-bright); }
+@media (max-width: 719px) { .bar { position: static; height: auto; min-height: 56px; flex-wrap: wrap; padding: 10px 0 8px; gap: 4px; }
+    .bar nav { margin-left: -12px; } .bar nav a { padding: 10px 12px; } }
 
-.lede { padding: 40px 0 8px; max-width: 68ch; }
+.lede { padding: 56px 0 12px; max-width: 70ch; }
+/* the lab in three figures beside the title, as the dashboard's hero carries its own: the same
+   counts the front page states, drawn from the same record */
+@media (min-width: 1080px) { .hero { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 56px; align-items: end; } }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 12px 0 0; border: 1px solid var(--border); border-radius: 14px;
+        background: var(--bg-card); box-shadow: var(--hairline-hi); overflow: hidden; }
+.kpis[hidden] { display: none; }
+.kpi { padding: 14px 14px 16px; border-left: 1px solid var(--border); min-width: 0; }
+.kpi:first-child { border-left: 0; }
+.kpi .v { color: var(--text-primary); font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.kpi .v small { font-size: 14px; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.kpi .k { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--text-muted); }
+@media (max-width: 719px) { .kpi .v small { display: block; margin-top: 2px; font-size: 12px; } }
+.kpi .pb { position: relative; height: 4px; margin-top: 10px; border-radius: 2px; background: var(--border-bright); overflow: hidden; }
+.kpi .pb i { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+@media (min-width: 720px) { .kpi { padding: 18px 20px 20px; } .kpi .v { font-size: 30px; } .kpi .k { font-size: 12.5px; } }
+@media (min-width: 1080px) { .kpis { grid-template-columns: 1fr; margin-bottom: 22px; } .kpi { border-left: 0; border-top: 1px solid var(--border); }
+    .kpi:first-child { border-top: 0; } }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
-h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw, 40px); line-height: 1.12;
-     font-weight: 700; letter-spacing: -.025em; }
-.lede p { margin: 0 0 10px; font-size: 16px; }
+.lede .eyebrow { color: var(--accent-text); }
+h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto;
+     font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; font-weight: 500; letter-spacing: -.015em; text-wrap: balance; }
+.lede p { margin: 0 0 12px; font-size: 17px; line-height: 1.6; max-width: 62ch; }
+.lede p.fine { font-size: 13.5px; margin-top: 16px; }
 .fine { font-size: 13px; color: var(--text-muted); }
+@media (max-width: 719px) { .lede { padding-top: 28px; } .lede p { font-size: 16px; } }
 
-.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
-.tabs a { display: block; padding: 9px 14px; border: 1px solid var(--border-bright); border-radius: 10px; color: var(--text-secondary);
-          font-size: 14.5px; font-weight: 500; line-height: 1.3; transition: background .12s, border-color .12s, color .12s; }
-.tabs a span { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+/* ---- the experiment index (2026-10-27). One list, two presentations: on a wide screen a quiet
+   sticky column beside the experiment, each entry numbered with a small true meter of its figures
+   matched; on a phone and a tablet a single picker that opens the same list. Grouped by what each
+   experiment tests, as the menu has been since 2026-10-15. */
+.lab-grid { display: block; margin-top: 32px; }
+.lab-main { min-width: 0; }
+.index { position: sticky; top: 0; z-index: 20; margin: 0 -16px; padding: 8px 16px; }
+.index::before { content: ''; position: absolute; z-index: -1; inset: 0; background: color-mix(in srgb, var(--bg-deep) 90%, transparent);
+                 -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+@media (min-width: 720px) { .index { top: var(--bar-h); margin: 0 -32px; padding: 10px 32px; } }
+.picker { appearance: none; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 14px;
+          border: 1px solid var(--border-bright); border-radius: 12px; background: var(--bg-card); box-shadow: var(--hairline-hi);
+          color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--t-fast); }
+.picker:hover { border-color: var(--text-muted); }
+.picker-k { flex: none; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.picker-v { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker svg { flex: none; width: 16px; height: 16px; stroke: var(--text-muted); fill: none; stroke-width: 1.8; transition: transform var(--t-fast); }
+.picker[aria-expanded="true"] svg { transform: rotate(180deg); }
+.tabs { display: none; }
+.tabs.open { display: block; position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); max-height: min(70vh, 560px); overflow-y: auto;
+             padding: 6px; border: 1px solid var(--border-bright); border-radius: 14px; background: var(--bg-elevated);
+             box-shadow: var(--hairline-hi), 0 16px 48px rgba(0,0,0,.5); overscroll-behavior: contain; }
+@media (min-width: 720px) { .tabs.open { left: 32px; right: auto; width: 420px; } }
+.tabs a { display: grid; grid-template-columns: 1.6em minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 40px; padding: 7px 10px;
+          border-radius: 8px; color: var(--text-secondary); font-size: 14px; line-height: 1.3; transition: background var(--t-fast), color var(--t-fast); }
 .tabs a:hover { background: var(--bg-card-hover); color: var(--text-primary); text-decoration: none; }
-.tabs a[aria-current="page"] { background: var(--accent-glow); border-color: var(--accent); color: var(--text-primary); }
-/* grouped menu (2026-10-15): each group a labelled run of quiet chips */
-.tabs { gap: 10px 22px; align-items: center; }
-.tabs .tg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.tabs .tg-l { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-right: 4px; }
-.tabs a { padding: 6px 12px; font-size: 13.5px; border-radius: 999px; }
-@media (max-width: 599px) { .tabs .tg { flex-wrap: nowrap; flex: none; } }
-/* On a phone the experiments are one row you swipe, not a stack that pushes the page down. */
-@media (max-width: 599px) { .tabs { flex-wrap: nowrap; overflow-x: auto; margin-left: -16px; margin-right: -16px; padding: 0 16px 6px;
-    scrollbar-width: none; scroll-snap-type: x proximity; } .tabs::-webkit-scrollbar { display: none; }
-    .tabs a { flex: none; white-space: nowrap; scroll-snap-align: start; } }
-.exp { margin-top: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); }
-.cards { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.tabs a[aria-current="page"] { background: var(--accent-glow); color: var(--text-primary); box-shadow: inset 2px 0 0 var(--accent); }
+.tabs .ix-n { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; text-align: right; }
+.tabs .ix-ov { grid-template-columns: minmax(0, 1fr) auto; font-weight: 600; color: var(--text-primary); }
+.tabs .ix-ov .ix-c { font-size: 12px; font-weight: 400; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.tabs .tg-l { display: block; margin: 14px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+/* the entry's meter: figures matched out of the experiment's total, the same proportion its card shows */
+.ixm { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ixm i { position: relative; display: block; width: 22px; height: 4px; border-radius: 2px; background: var(--border-bright); overflow: hidden; }
+.ixm i::after { content: ''; position: absolute; inset: 0 auto 0 0; width: calc(var(--r) * 100%); background: var(--accent); }
+.ixm.miss i::after { background: var(--amber); }
+@media (min-width: 1080px) {
+    .lab-grid { display: grid; grid-template-columns: 256px minmax(0, 1fr); gap: 36px; align-items: start; }
+    .index { top: calc(var(--bar-h) + 20px); margin: 0; padding: 0; max-height: calc(100vh - var(--bar-h) - 40px); overflow-y: auto;
+             scrollbar-width: thin; scrollbar-color: var(--border-bright) transparent; }
+    .index::before, .picker { display: none; }
+    .tabs, .tabs.open { display: block; position: static; width: auto; max-height: none; overflow: visible; padding: 0; border: 0; background: none; box-shadow: none; }
+    .tabs a { min-height: 32px; padding: 5px 8px; font-size: 13.5px; }
+    .tabs .tg-l { margin: 14px 8px 2px; }
+}
+.exp { border: 1px solid var(--border); border-radius: 16px; background: var(--bg-card); box-shadow: var(--hairline-hi); }
+/* on a phone the experiment runs edge to edge: a card inside a card inside a margin left a 270px column */
+@media (max-width: 719px) { .exp { margin: 0 -16px; border-radius: 0; border-left: 0; border-right: 0; } .lab-grid { margin-top: 20px; }
+    .exp .controls { padding: 14px; } .cards .card { padding: 16px; } .exp .verdict { padding: 14px; } }
+.cards { display: grid; gap: 14px; grid-template-columns: 1fr; }
 @media (min-width: 720px) { .cards { grid-template-columns: 1fr 1fr; } }
-.card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border: 1px solid var(--border-bright); border-radius: 14px;
-        background: var(--bg-elevated); color: var(--text-secondary); transition: border-color .12s, background .12s; }
-.card:hover { border-color: var(--accent); background: var(--bg-card-hover); text-decoration: none; }
-.card strong { color: var(--text-primary); font-size: 17px; line-height: 1.25; letter-spacing: -.01em; }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px 20px; border: 1px solid var(--border-bright); border-radius: 14px;
+        background: var(--bg-elevated); box-shadow: var(--hairline-hi); color: var(--text-secondary);
+        transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast); }
+.card:hover { border-color: var(--text-muted); background: var(--bg-card-hover); text-decoration: none; }
+.card:active { transform: translateY(1px); }
+.card strong { color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto; font-size: 21px; font-weight: 500;
+               line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; }
 .card .cite { font-size: 13px; }
-.card .take { font-size: 14px; line-height: 1.5; }
-.chip { align-self: flex-start; margin: 4px 0; padding: 3px 10px; border: 1px solid var(--border-bright); border-radius: 999px;
-        font-size: 12.5px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.chip.part { border-color: rgba(250,178,25,.5); }
-.chip.miss { border-color: var(--amber); color: var(--amber); }
+.card .take { font-size: 14px; line-height: 1.55; }
+/* The verdict as a small true chart: one cell per figure the paper reports, filled where the rerun
+   lands within its tolerance, outlined in amber where it does not; the tick under the cells is how
+   many a result of no effect at all would match. */
+.meter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 10px 0 2px; }
+.card .meter { margin-top: 12px; }
+.card .take { margin-top: 6px; }
+.meter svg { display: block; flex: none; max-width: 100%; overflow: visible; }
+.meter .m-in { fill: var(--accent); } .meter .m-out { fill: none; stroke: var(--amber); stroke-width: 1; }
+.meter .m-null { stroke: var(--text-primary); stroke-width: 1.5; }
+.meter .m-l { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.meter .m-l b { color: var(--text-primary); font-weight: 600; }
+.nl { display: inline-block; width: 1.5px; height: 10px; margin: 0 7px 0 1px; vertical-align: -1px; background: var(--text-primary); }
 #t-after td:first-child a { color: var(--text-primary); }
+#t-after td { vertical-align: middle; }
+#t-after td:nth-child(2), #t-after td:nth-child(3) { white-space: nowrap; }
+.dcol { width: 88px; padding-left: 16px !important; }
+.drift { display: block; width: 72px; height: 14px; margin-left: auto; overflow: visible; }
+.drift .d-z { stroke: var(--text-muted); stroke-width: 1; } .drift .d-l { stroke: var(--border-bright); stroke-width: 2; }
+.drift .d-a { fill: var(--rest); } .drift .d-b { fill: var(--accent-text); }
+.key-mini { white-space: nowrap; letter-spacing: .04em; } .key-mini i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+.key-mini .ka { background: var(--rest); } .key-mini .kb { background: var(--accent-text); }
+@media (max-width: 719px) { .dcol { display: none; } }
+.where a { color: var(--accent-text); white-space: nowrap; }
+/* a category's weight drawn under its figure, on a scale to 25% of the score */
+.wbar { display: block; width: 72px; height: 4px; margin-top: 6px; border-radius: 2px; background: var(--border-bright); overflow: hidden; }
+.wbar i { display: block; height: 100%; background: var(--text-secondary); }
+@media (max-width: 719px) { .reset { min-height: 40px; } }
 #t-map td, #t-score td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
 #t-map th, #t-score th { text-align: left; }
 #t-map td:first-child, #t-score td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
 @media (max-width: 599px) { #t-map, #t-map tbody, #t-map tr, #t-map td, #t-score, #t-score tbody, #t-score tr, #t-score td { display: block; } #t-map thead, #t-score thead { display: none; }
     #t-map tr, #t-score tr { padding: 12px 0; border-bottom: 1px solid var(--border); } #t-map td, #t-score td { border: 0; padding: 2px 0; }
     #t-score td:nth-child(3) { margin-top: 8px; } #t-score td:nth-child(3)::before { content: 'Left open: '; color: var(--text-primary); font-weight: 600; } }
-.exp > section { padding: 22px 18px; border-top: 1px solid var(--border); }
+.exp > section { padding: 24px 18px; border-top: 1px solid var(--border); }
 .exp > section:first-child { border-top: 0; }
-@media (min-width: 720px) { .exp > section { padding: 28px 32px; } }
-h2 { margin: 6px 0 4px; color: var(--text-primary); font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; }
+@media (min-width: 720px) { .exp > section { padding: 36px 40px; } }
+/* Section titles are the display serif; a sub-heading inside a section (no id) stays Inter. */
+h2 { margin: 8px 0 6px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto;
+     font-size: clamp(28px, 3vw, 38px); line-height: 1.1; font-weight: 500; letter-spacing: -.015em; text-wrap: balance; }
 h3 { margin: 0 0 10px; color: var(--text-primary); font-size: 15px; font-weight: 600; }
+h3[id] { margin-bottom: 14px; font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(22px, 2.2vw, 26px);
+         line-height: 1.15; font-weight: 500; letter-spacing: -.01em; }
+h3:not([id]) { margin-top: 32px !important; }
 .cite { margin: 0; font-size: 14px; color: var(--text-muted); }
-.claim { margin: 18px 0 0; max-width: 72ch; color: var(--text-primary); font-size: 16px; line-height: 1.6; }
-.verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 18px; padding: 12px 14px;
-           border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-elevated); font-size: 14px; }
+.claim { margin: 18px 0 0; max-width: 68ch; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto;
+         font-size: 19px; line-height: 1.5; font-weight: 400; }
+@media (max-width: 719px) { .claim { font-size: 18px; } }
+.verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 22px; padding: 16px 18px;
+           border: 1px solid var(--border-bright); border-radius: 12px; background: var(--bg-elevated); box-shadow: var(--hairline-hi); font-size: 14px; }
+.verdict .meter { flex-basis: 100%; margin: 0 0 6px; }
 .verdict strong { color: var(--text-primary); font-weight: 600; }
 .verdict .out { color: var(--amber); }
+.verdict > a { white-space: nowrap; }
 .null { color: var(--text-muted); font-size: 13px; }
 
-.controls { display: grid; gap: 16px; }
-.ctl-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+/* The controls sit in one quiet panel, so the reader sees where the settings end and the result begins. */
+.controls { display: grid; gap: 20px; padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-deep); }
+@media (min-width: 720px) { .controls { padding: 20px 22px; } }
+.ctl-label { display: block; margin-bottom: 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .07em;
              text-transform: uppercase; color: var(--text-muted); }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg button { appearance: none; background: transparent; border: 1px solid var(--border-bright); border-radius: 999px;
-              color: var(--text-secondary); font: inherit; font-size: 13.5px; padding: 6px 12px; cursor: pointer;
-              transition: background .12s, color .12s, border-color .12s; }
+              color: var(--text-secondary); font: inherit; font-size: 13.5px; line-height: 1.3; padding: 7px 13px; cursor: pointer;
+              transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast); }
 .seg button:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-.seg button[aria-pressed="true"] { background: var(--accent-glow); border-color: var(--accent); color: var(--accent-text); }
-.row2 { display: grid; gap: 16px; }
-@media (min-width: 720px) { .row2 { grid-template-columns: 1fr 1fr; gap: 24px; } }
-.range { display: flex; align-items: center; gap: 12px; }
-.range input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
-.range output { min-width: 3.2em; text-align: right; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
-.years { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13.5px; }
-select { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-bright); border-radius: 6px;
-         font: inherit; font-size: 13.5px; padding: 5px 8px; font-variant-numeric: tabular-nums; }
-.reset { appearance: none; background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; font-size: 13.5px; cursor: pointer; }
-.reset:hover { text-decoration: underline; }
+.seg button[aria-pressed="true"] { background: var(--accent-glow); border-color: var(--accent); color: var(--text-primary); }
+@media (max-width: 719px) { .seg button { min-height: 40px; } }
+.row2 { display: grid; gap: 20px; }
+@media (min-width: 720px) { .row2 { grid-template-columns: 1fr 1fr; gap: 28px; } }
+.range { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.range input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; height: 28px; }
+.range output { min-width: 3.6em; padding: 3px 8px; border-radius: 6px; background: var(--bg-elevated); text-align: right; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.years { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13.5px; }
+select { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-bright); border-radius: 8px;
+         font: inherit; font-size: 13.5px; padding: 6px 10px; min-height: 36px; font-variant-numeric: tabular-nums; cursor: pointer; }
+select:hover { border-color: var(--text-muted); }
+@media (max-width: 719px) { select { min-height: 40px; } }
+.reset { appearance: none; background: none; border: 0; padding: 4px 0; color: var(--accent-text); font: inherit; font-size: 13.5px; cursor: pointer; min-height: 32px; }
+.reset:hover { text-decoration: underline; text-underline-offset: 3px; }
 .reset[hidden] { display: none; }
 
-.read { margin: 22px 0 0; max-width: 76ch; color: var(--text-primary); font-size: 15.5px; }
-.key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 22px 0 6px; font-size: 13px; }
-.key i { display: inline-block; width: 18px; height: 2px; margin-right: 7px; vertical-align: middle; }
-.key .a i { background: var(--accent); } .key .b i { background: var(--text-muted); }
+/* The reading of the result: the one passage the controls change, set as the section's statement. */
+.read { margin: 24px 0 0; max-width: 72ch; padding-left: 16px; border-left: 2px solid var(--accent); color: var(--text-primary); font-size: 16px; line-height: 1.65; }
+.read strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 28px 0 4px; font-size: 13px; color: var(--text-secondary); }
+.key i { display: inline-block; width: 18px; height: 2px; margin-right: 8px; vertical-align: middle; border-radius: 1px; }
+.key .a i { height: 2.5px; background: var(--accent); } .key .b i { background: var(--rest); }
 .key .c i { height: 10px; width: 14px; background: var(--amber-dim); border: 1px solid rgba(250,178,25,.45); border-radius: 2px; }
-.chart .band { fill: rgba(250,178,25,.16); }
-.chart .cursor { stroke: var(--text-muted); stroke-width: 1; pointer-events: none; }
+/* a key above a bar chart shows a bar's swatch, not a line's */
+.key:has(~ #ch-bars) i { width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
+.chart .band { fill: rgba(250,178,25,.13); }
+.chart .cursor { stroke: var(--text-secondary); stroke-width: 1; stroke-dasharray: 2 3; pointer-events: none; }
+.chart .pt { stroke: var(--bg-card); stroke-width: 2; pointer-events: none; }
+.chart .pt-a { fill: var(--accent-text); } .chart .pt-b { fill: var(--text-secondary); }
 /* not .bar: the page's top bar owns that name, and its height would be applied to these */
-.chart .col { fill: var(--border-bright); } .chart .col-a { fill: var(--accent); }
-.chart text.val { fill: var(--text-secondary); font-size: 11px; }
-.chart svg { touch-action: pan-y; cursor: crosshair; }
-.chart-read { margin: 6px 0 0; min-height: 1.6em; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.chart .col { fill: var(--rest); } .chart .col-a { fill: var(--accent); }
+.chart text.val { fill: var(--text-secondary); font-size: 11px; font-weight: 500; }
+.chart svg { touch-action: pan-y; cursor: crosshair; border-radius: 4px; }
+.chart svg:focus-visible { outline-offset: 6px; }
+.chart-read { margin: 8px 0 0; min-height: 1.6em; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.chart-read.on { color: var(--text-primary); }
 .actions { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .where { display: block; font-size: 12px; color: var(--text-muted); }
 .muted { color: var(--text-muted); }
@@ -154,24 +265,32 @@ tr.focus td:first-child { color: var(--text-primary); font-weight: 600; box-shad
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart text { font-family: var(--font-body); font-size: 11.5px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
 .chart .grid { stroke: var(--border); stroke-width: 1; }
-.chart .ref { stroke: var(--border-bright); stroke-width: 1; stroke-dasharray: 3 4; }
-.chart .plain { fill: none; stroke: var(--text-muted); stroke-width: 1.4; }
-.chart .managed { fill: none; stroke: var(--accent); stroke-width: 1.7; }
+.chart .axis { stroke: var(--border-bright); stroke-width: 1; }
+.chart .ref { stroke: var(--text-muted); stroke-opacity: .55; stroke-width: 1; stroke-dasharray: 3 4; }
+.chart .plain { fill: none; stroke: var(--rest); stroke-width: 1.3; stroke-linejoin: round; }
+.chart .managed { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .chart .dash { fill: none; stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 5 4; }
 .key .d i { background: repeating-linear-gradient(90deg, var(--text-muted) 0 5px, transparent 5px 9px); }
-.chart-title { margin: 20px 0 2px; font-size: 13px; color: var(--text-secondary); }
+.chart-title { margin: 22px 0 8px; font-size: 13px; color: var(--text-secondary); }
 .chart-title strong { color: var(--text-primary); font-weight: 600; }
 
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 6px; text-align: right; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 th:first-child, td:first-child { text-align: left; padding-left: 0; }
 th:last-child, td:last-child { padding-right: 0; }
-thead th { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+thead th { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); vertical-align: bottom;
+           border-bottom-color: var(--border-bright); }
 tbody td { color: var(--text-primary); }
 tbody td:first-child { color: var(--text-secondary); }
-tr.group td { padding-top: 18px; color: var(--text-primary); font-weight: 600; border-bottom-color: var(--border-bright); }
-td.ok { color: var(--text-secondary); }
-td.out { color: var(--amber); font-weight: 600; }
+@media (hover: hover) { tbody tr:hover td { background: rgba(255,255,255,.02); } }
+tr.group td { padding-top: 20px; color: var(--text-primary); font-weight: 600; border-bottom-color: var(--border-bright); }
+td.ok { color: var(--text-secondary); white-space: nowrap; }
+td.out { color: var(--amber); font-weight: 600; white-space: nowrap; }
+/* a comparison row's verdict, drawn: the tolerance as a band around zero, the difference as a mark on it */
+.gauge { display: inline-block; width: 48px; height: 12px; margin-right: 10px; vertical-align: -2px; overflow: visible; }
+.gauge .g-band { fill: rgba(255,255,255,.13); } .gauge .g-zero { stroke: var(--text-secondary); stroke-width: 1; }
+.gauge .g-d { stroke-width: 2.5; stroke-linecap: round; } .ok .gauge .g-d { stroke: var(--accent-text); } .out .gauge .g-d { stroke: var(--amber); }
+@media (max-width: 599px) { .gauge { display: none; } }
 .tablewrap { overflow-x: auto; }
 @media (max-width: 599px) { .tol { display: none; } #t-ref th, #t-ref td { padding-left: 3px; padding-right: 3px; font-size: 13px; }
     #t-ref thead th { font-size: 11px; letter-spacing: .02em; } #t-ref td:first-child { overflow-wrap: anywhere; } }
@@ -181,29 +300,52 @@ td.out { color: var(--amber); font-weight: 600; }
 @media (max-width: 599px) { #t-live th, #t-live td, #t-sides th, #t-sides td, #t-grid th, #t-grid td { padding-left: 3px; padding-right: 3px; }
     #t-live th:first-child, #t-live td:first-child, #t-sides th:first-child, #t-sides td:first-child, #t-grid th:first-child, #t-grid td:first-child { padding-left: 0; }
     #t-live thead th, #t-sides thead th, #t-grid thead th { font-size: 11px; letter-spacing: .02em; } #t-grid td { font-size: 13px; } }
-.note { margin: 12px 0 0; font-size: 13px; color: var(--text-muted); max-width: 76ch; }
+.note { margin: 12px 0 0; font-size: 13px; line-height: 1.55; color: var(--text-muted); max-width: 76ch; }
 .warn { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--amber); border-radius: var(--radius); background: var(--amber-dim);
         color: var(--text-primary); font-size: 14px; }
 .warn[hidden] { display: none; }
+/* while an experiment's series arrives: its title is already on screen, the rest holds its place */
+.loading { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--text-secondary); font-size: 14px; }
+.loading::before { content: ''; flex: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-bright); border-top-color: var(--accent);
+                   animation: spin .8s linear infinite; }
+.skel { height: 220px; margin-top: 20px; border-radius: 12px; background: linear-gradient(90deg, var(--bg-elevated) 0%, #282827 50%, var(--bg-elevated) 100%);
+        background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+.skel.s2 { height: 120px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .loading::before, .skel { animation: none; } * { transition-duration: 0s !important; } }
 
 dl.cond { display: grid; grid-template-columns: 1fr; gap: 2px 20px; margin: 0; }
-dl.cond dt { color: var(--text-primary); font-weight: 600; font-size: 14px; margin-top: 10px; }
+dl.cond dt { color: var(--text-primary); font-weight: 600; font-size: 14px; margin-top: 12px; }
 dl.cond dd { margin: 0; font-size: 14.5px; }
-@media (min-width: 720px) { dl.cond { grid-template-columns: 150px 1fr; } dl.cond dt { margin-top: 0; padding: 6px 0; }
-    dl.cond dd { padding: 6px 0; } }
+@media (min-width: 720px) { dl.cond { grid-template-columns: 170px 1fr; gap: 0 24px; } dl.cond dt { margin-top: 0; padding: 10px 0; border-top: 1px solid var(--border); }
+    dl.cond dd { padding: 10px 0; border-top: 1px solid var(--border); } dl.cond dt:first-of-type, dl.cond dd:first-of-type { border-top: 0; } }
 ul.open { margin: 0; padding-left: 18px; }
 ul.open li { margin-bottom: 8px; font-size: 14.5px; max-width: 76ch; }
-.eq { margin: 0 0 8px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-deep);
+ul.open li::marker { color: var(--text-muted); }
+.eq { margin: 0 0 8px; padding: 13px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-deep);
       color: var(--text-primary); font-size: 14.5px; overflow-x: auto; white-space: nowrap; }
 .eq small { color: var(--text-muted); font-size: 12.5px; white-space: normal; display: block; margin-top: 4px; }
 details { margin-top: 14px; }
-summary { cursor: pointer; color: var(--accent-text); font-size: 14px; }
+summary { cursor: pointer; color: var(--accent-text); font-size: 14px; padding: 4px 0; }
+summary:hover { color: var(--text-primary); }
 pre { margin: 12px 0 0; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-deep);
       color: var(--text-secondary); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; overflow-x: auto; }
-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); max-width: 80ch; }
+footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); max-width: 80ch; }
 footer p { margin: 0 0 8px; }
-.next { margin-top: 28px; font-size: 14.5px; max-width: 72ch; }
-h3[id^="x-"] { scroll-margin-top: 16px; }
+.next { margin-top: 28px; font-size: 14px; max-width: 72ch; color: var(--text-muted); }
+/* stepping through the experiments at the foot of each - the one-handed way on along a phone */
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.pager a { display: flex; flex-direction: column; gap: 2px; min-height: 64px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px;
+           background: var(--bg-card); box-shadow: var(--hairline-hi); color: var(--text-primary); font-size: 14.5px; font-weight: 500; line-height: 1.3;
+           transition: border-color var(--t-fast), background var(--t-fast); }
+.pager a:hover { border-color: var(--text-muted); background: var(--bg-card-hover); text-decoration: none; }
+.pager a span { font-size: 11.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); }
+.pager a.nx { grid-column: 2; text-align: right; }
+/* a heading the page scrolls to lands below the sticky bars, never under them */
+h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
+@media (min-width: 720px) { h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: calc(var(--bar-h) + 88px); } }
+@media (min-width: 1080px) { h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: calc(var(--bar-h) + 24px); } }
 </style>
 </head>
 <body>
@@ -213,17 +355,28 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html">Has it been tested?</a><a href="lab.html" aria-current="page">Factor Lab</a></nav>
     </div>
 
-    <header class="lede">
+    <header class="hero">
+        <div class="lede">
         <div class="eyebrow">Research you can rerun</div>
         <h1>The research behind the screener, rerun.</h1>
         <p>The screener's methodology rests on published studies. This page takes them one at a time, reproduces each one's headline result from data anyone can download, and shows how far the reproduction lands from the paper.</p>
         <p>Then it hands you the controls. Change the period or the settings and the result is recalculated in your browser.</p>
         <p class="fine">A teaching tool, not investment advice. These are paper portfolios that hold some stocks and short others, with no trading costs.</p>
+        </div>
+        <aside class="kpis" id="kpis" aria-label="The lab so far" hidden></aside>
     </header>
 
-    <nav class="tabs" id="tabs" aria-label="Experiments"></nav>
-    <main id="lab"><p class="fine">Loading the experiment…</p></main>
-    <p class="next">Experiments are added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Some of the studies the screener cites cannot be rerun on free data; those will be listed here too, with what it would take.</p>
+    <div class="lab-grid" id="lab-grid">
+        <div class="index" id="index">
+            <button type="button" class="picker" id="picker" aria-expanded="false" aria-controls="tabs"><span class="picker-k">Experiments</span><span class="picker-v" id="picker-v">Overview</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+            <nav class="tabs" id="tabs" aria-label="Experiments"></nav>
+        </div>
+        <div class="lab-main">
+            <main id="lab"><p class="fine">Loading the experiment…</p></main>
+            <nav class="pager" id="pager" aria-label="Step through the experiments" hidden></nav>
+            <p class="next">Experiments are added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Some of the studies the screener cites cannot be rerun on free data; those will be listed here too, with what it would take.</p>
+        </div>
+    </div>
 
     <footer id="foot"></footer>
 </div>
@@ -241,6 +394,17 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     const f2 = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
     const sf2 = v => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(2);
     const mon = k => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+k.slice(4) - 1] + ' ' + k.slice(0, 4);
+    // the hero's three figures: the overview's own counts, from the same record
+    (() => {
+        const kp = document.getElementById('kpis'); if (!kp) return;
+        const tot = D.experiments.reduce((a, x) => a + x.result.total, 0), win = D.experiments.reduce((a, x) => a + x.result.within, 0);
+        const dir = D.after_the_paper.filter(r => r.weaker !== null), wk = dir.filter(r => r.weaker).length;
+        const kpi = (v, k, bar) => `<div class="kpi"><div class="v">${v}</div>${bar === undefined ? '' : `<div class="pb" aria-hidden="true"><i style="width:${(bar * 100).toFixed(1)}%"></i></div>`}<div class="k">${k}</div></div>`;
+        kp.innerHTML = kpi(D.experiments.length, 'experiments so far, each a published study rerun') +
+            kpi(`${win}<small> of ${tot}</small>`, 'figures land within tolerances written into the build', win / tot) +
+            kpi(`${wk}<small> of ${dir.length}</small>`, 'results that claim a direction were weaker once their paper’s sample ended');
+        kp.hidden = false;
+    })();
     const years = []; for (let y = +FIRST.slice(0, 4); y <= +LAST.slice(0, 4); y++) years.push(y);
     const yopts = years.map(y => `<option value="${y}">${y}</option>`).join('');
     const seg = (id, label, items) => `<div><span class="ctl-label" id="l-${id}">${label}</span><div class="seg" role="group" aria-labelledby="l-${id}" id="c-${id}">${items}</div></div>`;
@@ -253,6 +417,20 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     // computed by the build from the record (factor_lab.null_rows). Printed beside every verdict, so
     // a tolerance too wide to tell a replication from nothing cannot pass unnoticed.
     const nullLine = r => `A result of no effect at all would match ${r.null_within ? r.null_within : 'none'} of these ${r.total}.`;
+    // The verdict drawn (2026-10-27): one cell per figure the paper reports, the matched ones filled
+    // first, the misses outlined in amber, and a tick after the cell a result of no effect at all would
+    // reach. The same three numbers the sentence beside it prints - never a fourth.
+    function meter(r, big) {
+        const w = big ? (r.total > 16 ? 12 : 16) : (r.total > 16 ? 8 : 11), h = big ? 14 : 10, g = big ? 3 : 2, k = r.null_within || 0;
+        const W = r.total * (w + g) - g;
+        let s = `<svg viewBox="-2 -4 ${W + 4} ${h + 8}" width="${W + 4}" height="${h + 8}" aria-hidden="true" focusable="false">`;
+        for (let i = 0; i < r.total; i++) s += i < r.within
+            ? `<rect class="m-in" x="${i * (w + g)}" y="0" width="${w}" height="${h}" rx="2"/>`
+            : `<rect class="m-out" x="${i * (w + g) + .5}" y=".5" width="${w - 1}" height="${h - 1}" rx="2"/>`;
+        const kx = k ? k * (w + g) - g / 2 : -1;
+        return s + `<line class="m-null" x1="${kx}" x2="${kx}" y1="-3" y2="${h + 3}"/></svg>`;
+    }
+    const verdictClass = r => r.within === r.total ? '' : r.within * 2 < r.total ? ' miss' : ' part';
     function head(X, n, verdictExtra) {
         const r = X.result, out = r.total - r.within;
         const verdict = out === 0
@@ -262,9 +440,9 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <div class="eyebrow">Experiment ${n} · ${esc(X.topic)}</div>
             <h2 id="x-title">${esc(X.title)}</h2>
             <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. ${X.paper.doi ? `<a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a>` : `<a href="${esc(X.paper.url)}" rel="noopener">${esc(X.paper.url.replace(/^https?:\/\//, ""))}</a>`}</p>
-            <h3 style="margin-top:22px">The claim being tested</h3>
+            <h3 style="margin-top:28px">The claim being tested</h3>
             <p class="claim" style="margin-top:0">${esc(X.claim)}</p>
-            <div class="verdict"><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''} <span class="null">${nullLine(r)}</span></span><a href="#x-against">See every figure</a></div>
+            <div class="verdict"><div class="meter">${meter(r, true)}</div><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''} <span class="null"><i class="nl" aria-hidden="true"></i>${nullLine(r)}</span></span><a href="#x-against">See every figure</a></div>
         </section>`;
     }
     function tail(X, method) {
@@ -296,9 +474,14 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         for (let d = Math.max(2, places); d <= 12; d++) { const t = a.toFixed(d); if ((+t <= r.tolerance) === r.within) return sign + t; }
         return sign + String(a);
     }
+    // The row's verdict drawn beside its word: the tolerance as a band around zero (the middle half
+    // of the mark), the difference as a tick on it, held at the edge when it lies beyond twice the band.
+    const gauge = r => { const x = 20 + Math.max(-2, Math.min(2, r.tolerance ? r.diff / r.tolerance : 0)) * 10;
+        return `<svg class="gauge" viewBox="0 0 40 10" aria-hidden="true" focusable="false"><rect class="g-band" x="10" y="1" width="20" height="8" rx="1.5"/>` +
+            `<line class="g-zero" x1="20" x2="20" y1="0" y2="10"/><line class="g-d" x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="1.5" y2="8.5"/></svg>`; };
     const refRow = r => `<tr><td>${esc(r.label)}${r.where ? ` <span class="where">${esc(r.where)}</span>` : ''}</td>` +
         `<td>${r.count ? r.paper : f2(r.paper)}</td><td>${r.count ? Math.round(r.here) : f2(r.here)}</td><td>${diffText(r)}</td>` +
-        `<td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
+        `<td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${gauge(r)}${r.within ? 'within' : 'outside'}</td></tr>`;
     // "Against the paper" is filled from this page's own arithmetic (E.compare*), so a row whose
     // figure or verdict leaves the build's is counted into the layout's warning.
     const rowDrift = (now, res0) => Math.abs(now.length - res0.rows.length) + now.filter((r, i) =>
@@ -327,7 +510,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         return '$' + v.toFixed(2);
     }
     function draw(el, months, series, opt) {
-        const W = Math.max(280, el.clientWidth || 600), H = opt.height, L = 46, R = 10, T = 8, B = 22;
+        // a phone gets a shorter frame: the full height on a 343px column made every line chart a tall strip
+        const W = Math.max(280, el.clientWidth || 600), H = W < 520 ? Math.round(opt.height * .8) : opt.height, L = 46, R = 10, T = 8, B = 22;
         const n = months.length, x = i => L + (n > 1 ? i / (n - 1) : 0) * (W - L - R);
         let lo = Infinity, hi = -Infinity;
         series.forEach(s => s.v.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }));
@@ -352,9 +536,12 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         }
         opt.ticks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
         (opt.refs || []).forEach(v => { if (v > lo && v < hi) s += `<line class="ref" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`; });
-        yearTicks(months, W < 520 ? 4 : 8).forEach(t => { s += `<text x="${x(t[0]).toFixed(1)}" y="${H - 5}" text-anchor="middle">${t[1]}</text>`; });
+        s += `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+        yearTicks(months, W < 520 ? 4 : 8).forEach(t => { s += `<line class="axis" x1="${x(t[0]).toFixed(1)}" x2="${x(t[0]).toFixed(1)}" y1="${H - B}" y2="${H - B + 4}"/><text x="${x(t[0]).toFixed(1)}" y="${H - 5}" text-anchor="middle">${t[1]}</text>`; });
         series.forEach(se => { let d = ''; se.v.forEach((v, i) => { d += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }); s += `<path class="${se.cls}" d="${d}"/>`; });
         s += `<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H - B}" style="visibility:hidden"/>`;
+        // a point on each line at the month being read, so the sentence under the chart has a place on it
+        series.forEach(se => { s += `<circle class="pt ${se.cls === 'managed' ? 'pt-a' : 'pt-b'}" r="${se.cls === 'managed' ? 4 : 3}" cx="0" cy="0" style="visibility:hidden"/>`; });
         // Readable by keyboard as well as by pointer (2026-10-16): the chart takes focus, and the
         // arrow keys, Home and End move the cursor one month at a time; the sentence under the chart
         // is a polite live region, so a screen reader speaks each month as it is reached.
@@ -371,10 +558,12 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         const idle = 'Point at the chart to read any month.';
         out.textContent = idle;
         if (!opt.read) return;
-        const svg = el.firstChild, cur = svg.querySelector('.cursor');
+        const svg = el.firstChild, cur = svg.querySelector('.cursor'), pts = svg.querySelectorAll('.pt');
         let at = -1;
-        const show = i => { at = i; cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible'; out.textContent = opt.read(i); };
-        const hide = () => { at = -1; cur.style.visibility = 'hidden'; out.textContent = idle; };
+        const show = i => { at = i; cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible'; out.textContent = opt.read(i);
+            out.classList.add('on');
+            series.forEach((se, j) => { const p = pts[j]; if (!p) return; p.setAttribute('cx', x(i).toFixed(1)); p.setAttribute('cy', y(se.v[i]).toFixed(1)); p.style.visibility = 'visible'; }); };
+        const hide = () => { at = -1; cur.style.visibility = 'hidden'; out.textContent = idle; out.classList.remove('on'); pts.forEach(p => { p.style.visibility = 'hidden'; }); };
         svg.addEventListener('pointermove', ev => {
             const r = svg.getBoundingClientRect();
             show(Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left) * (W / r.width) - L) / (W - L - R) * (n - 1)))));
@@ -742,6 +931,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             s += `<text x="${cx.toFixed(1)}" y="${H - 18}" text-anchor="middle">${i + 1}</text>`;
         });
         const ends = opt.ends || ['smallest', 'largest'];
+        s += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
         s += `<text x="${L}" y="${H - 3}" text-anchor="start">${esc(ends[0])}</text><text x="${W - R}" y="${H - 3}" text-anchor="end">${esc(ends[1])}</text>`;
         el.innerHTML = s + '</svg>';
     }
@@ -916,6 +1106,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             if (many) s += `<text x="${(mid + 4).toFixed(1)}" y="${(H - B + 14).toFixed(1)}" text-anchor="end" transform="rotate(-40 ${(mid + 4).toFixed(1)} ${(H - B + 14).toFixed(1)})">${esc(r.name)}</text>`;
             else s += `<text x="${mid.toFixed(1)}" y="${H - 12}" text-anchor="middle">${esc(W < 520 && r.name.length > 9 ? r.name.slice(0, 6) + '.' : r.name)}</text>`;
         });
+        s += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
         el.innerHTML = s + '</svg>';
     }
     function bigAndSmall(X, n, mount, init) {
@@ -1090,10 +1281,17 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <span class="eyebrow">Experiment ${i + 1} · ${esc(x.topic)}</span>
             <strong>${esc(x.title)}</strong>
             <span class="cite">${esc(x.paper.authors)} (${x.paper.year})</span>
-            <span class="chip${x.result.within === x.result.total ? '' : x.result.within * 2 < x.result.total ? ' miss' : ' part'}">${x.result.within} of ${x.result.total} figures match the paper</span>
-            <span class="null">${nullLine(x.result)}</span>
+            <span class="meter${verdictClass(x.result)}">${meter(x.result)}<span class="m-l"><b>${x.result.within} of ${x.result.total}</b> figures match the paper</span></span>
+            <span class="null"><i class="nl" aria-hidden="true"></i>${nullLine(x.result)}</span>
             <span class="take">${esc(x.takeaway)}</span></a>`;
-        const link = id => `<a href="#${esc(id)}">${byId[id].n}. ${esc(byId[id].x.title)}</a>`;
+        const link = id => `<a href="#${esc(id)}" title="${esc(byId[id].x.title)}">${byId[id].n}. ${esc(byId[id].x.tab || byId[id].x.title)}</a>`;
+        // In the paper's sample and since, drawn on the row's own scale: the paper's years in grey, the
+        // years since in the accent, zero marked - so "weaker afterwards" reads as the dot moving in.
+        const slope = r => { const a = r.inside.value, b = r.after.value;
+            if (a === null || b === null) return '';
+            const m = Math.max(Math.abs(a), Math.abs(b)) || 1, X = v => (36 + v / m * 30).toFixed(1);
+            return `<svg class="drift" viewBox="0 0 72 14" aria-hidden="true" focusable="false"><line class="d-z" x1="36" x2="36" y1="1" y2="13"/>` +
+                `<line class="d-l" x1="${X(a)}" x2="${X(b)}" y1="7" y2="7"/><circle class="d-a" cx="${X(a)}" cy="7" r="3.5"/><circle class="d-b" cx="${X(b)}" cy="7" r="3.5"/></svg>`; };
         const afterCell = (r, c) => c.value === null ? '–' :
             (r.unit === 'pct' ? sf2(c.value) + '%' : f2(c.value)) + (c.t === null ? '' : ' <span class="muted">(' + f2(c.t) + ')</span>') +
             '<span class="where">' + c.months + ' months</span>';
@@ -1108,8 +1306,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         <section aria-labelledby="o-after">
             <h3 id="o-after">In the paper's sample, and after it</h3>
             <p style="margin:0 0 12px;max-width:72ch">${afterLine}</p>
-            <div class="tablewrap"><table id="t-after"><thead><tr><th scope="col">Result</th><th scope="col">In the paper's sample</th><th scope="col">Since</th></tr></thead><tbody>
-            ${D.after_the_paper.map(r => `<tr><td><a href="#${esc(r.experiment)}">${esc(r.label)}</a></td><td>${afterCell(r, r.inside)}</td><td>${afterCell(r, r.after)}</td></tr>`).join('')}
+            <div class="tablewrap"><table id="t-after"><thead><tr><th scope="col">Result</th><th scope="col">In the paper's sample</th><th scope="col">Since</th><th scope="col" class="dcol"><span class="key-mini"><i class="ka"></i>in · <i class="kb"></i>since</span></th></tr></thead><tbody>
+            ${D.after_the_paper.map(r => `<tr><td><a href="#${esc(r.experiment)}">${esc(r.label)}</a></td><td>${afterCell(r, r.inside)}</td><td>${afterCell(r, r.after)}</td><td class="dcol">${slope(r)}</td></tr>`).join('')}
             </tbody></table></div>
             <p class="note">“Since” runs from the month after each paper's sample to the latest month in the data. The figure in brackets is the t-statistic where one applies; beyond about 2 either way is the usual bar. Short periods prove little: read the months beside each figure.</p>
         </section>
@@ -1117,7 +1315,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="o-score">What this means for the screener's weights</h3>
             <p style="margin:0 0 12px;max-width:72ch">The lab does not set the screener's weights, and none has changed because of it. A weight changes only through a written argument from published research and from how practitioners build screens, recorded in the methodology's changelog. The lab's part is to check that research: does it rerun, has it held since, and does it hold among large companies, which are all the screener ranks. This is where each category stands.</p>
             <div class="tablewrap"><table id="t-score"><thead><tr><th scope="col">Category</th><th scope="col">Measured in the lab</th><th scope="col">What that leaves open</th></tr></thead><tbody>
-            ${D.scorecard.map(c => `<tr><td>${esc(c.category)}<span class="where">${c.weight}% of the score</span></td><td>${esc(c.measured)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.open)}</td></tr>`).join('')}
+            ${D.scorecard.map(c => `<tr><td>${esc(c.category)}<span class="where">${c.weight}% of the score</span><span class="wbar" aria-hidden="true"><i style="width:${Math.min(100, c.weight / 25 * 100).toFixed(1)}%"></i></span></td><td>${esc(c.measured)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.open)}</td></tr>`).join('')}
             </tbody></table></div>
             <p class="note">“Big companies” are the larger half of New York Stock Exchange companies by market value. The factors are measured on value-weighted portfolios that go long one group and short another; the screener ranks companies and shorts nothing, so these are evidence about the traits, not a forecast of its results.</p>
         </section>
@@ -1342,17 +1540,54 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     // fourteen chips (investor pass, 2026-10-15). The number of each is on its own page.
     const GROUPS = ['Momentum', 'Value', 'Quality', 'Investment', 'Risk', 'Across the factors'];
     D.experiments.forEach(x => { if (GROUPS.indexOf(x.group || 'More') < 0) GROUPS.push(x.group || 'More'); });
-    tabs.innerHTML = '<div class="tg tg-start"><a href="#overview" data-id="overview">Overview</a></div>' +
+    // Each entry carries its number (the experiment's place in the record) and a small meter of its
+    // figures matched, the proportion its card on the front page draws in full.
+    const entry = (x, n) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span class="ix-n">${n}</span><span class="ix-t">${esc(x.tab || x.title)}</span>` +
+        `<span class="ixm${verdictClass(x.result)}" title="${x.result.within} of ${x.result.total} figures match the paper"><i style="--r:${(x.result.within / x.result.total).toFixed(3)}"></i>${x.result.within}/${x.result.total}</span></a>`;
+    tabs.innerHTML = `<div class="tg tg-start"><a href="#overview" data-id="overview" class="ix-ov"><span>Overview</span><span class="ix-c">${D.experiments.length} experiments</span></a></div>` +
         GROUPS.map(g => { const xs = D.experiments.filter(x => (x.group || 'More') === g);
-            return xs.length ? `<div class="tg"><span class="tg-l">${esc(g)}</span>${xs.map(x => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}">${esc(x.tab || x.title)}</a>`).join('')}</div>` : ''; }).join('');
+            return xs.length ? `<div class="tg"><span class="tg-l">${esc(g)}</span>${xs.map(x => entry(x, D.experiments.indexOf(x) + 1)).join('')}</div>` : ''; }).join('');
+    // On a phone or a tablet the same list opens from one picker; choosing an entry, Escape, or a tap
+    // outside closes it, and focus goes back to the picker.
+    const picker = document.getElementById('picker'), pickerV = document.getElementById('picker-v'), pager = document.getElementById('pager');
+    const setOpen = open => { tabs.classList.toggle('open', open); picker.setAttribute('aria-expanded', String(open)); };
+    picker.addEventListener('click', () => { const open = !tabs.classList.contains('open'); setOpen(open);
+        if (open) { const cur = tabs.querySelector('a[aria-current="page"]') || tabs.querySelector('a'); cur.focus({ preventScroll: true });
+            tabs.scrollTop = Math.max(0, cur.offsetTop - tabs.clientHeight / 2); } });
+    tabs.addEventListener('click', e => { if (e.target.closest('a') && tabs.classList.contains('open') && getComputedStyle(picker).display !== 'none') setOpen(false); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && tabs.classList.contains('open') && getComputedStyle(picker).display !== 'none') { setOpen(false); picker.focus(); } });
+    document.addEventListener('pointerdown', e => { if (tabs.classList.contains('open') && !e.target.closest('#index')) setOpen(false); });
+    document.getElementById('index').addEventListener('focusout', e => {           // tabbing out of the open list closes it
+        if (tabs.classList.contains('open') && e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setOpen(false); });
+    function mark(id) {
+        tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === id ? 'page' : 'false'));
+        const i = D.experiments.findIndex(x => x.id === id);
+        pickerV.textContent = i < 0 ? 'Overview' : (i + 1) + ' · ' + (D.experiments[i].tab || D.experiments[i].title);
+        // the entry on screen stays in view in the column, without moving the page
+        const here = tabs.querySelector('a[data-id="' + id + '"]'), box = document.getElementById('index');
+        if (here && box.scrollHeight > box.clientHeight) {
+            const top = here.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop, bottom = top + here.offsetHeight;
+            if (top < box.scrollTop || bottom > box.scrollTop + box.clientHeight) box.scrollTop = Math.max(0, top - box.clientHeight / 2);
+        }
+        // the neighbours, at the foot of every experiment
+        if (i < 0) { pager.hidden = true; pager.innerHTML = ''; return; }
+        const prev = D.experiments[i - 1], next = D.experiments[i + 1];
+        pager.innerHTML = (prev ? `<a href="#${esc(prev.id)}" class="pv"><span>← Experiment ${i}</span>${esc(prev.tab || prev.title)}</a>` : `<a href="#overview" class="pv"><span>← All experiments</span>Overview</a>`) +
+            (next ? `<a href="#${esc(next.id)}" class="nx"><span>Experiment ${i + 2} →</span>${esc(next.tab || next.title)}</a>` : `<a href="#overview" class="nx"><span>All experiments →</span>Overview</a>`);
+        pager.hidden = false;
+    }
     function show() {
         const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id), token = ++showing;
         sceneHash = location.hash;
         const need = i < 0 ? [] : missing(D.experiments[i]);
         if (need.length) {
             current = { id: null, settings: () => ({}), result: () => null, redraw: () => {} };     // nothing on screen yet
-            root.innerHTML = '<p class="fine" role="status">Loading this experiment’s data…</p>';
-            tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === scene.id ? 'page' : 'false'));
+            // its title, paper and verdict are in lab_data.js already, so they go up at once; the
+            // run and the comparison hold their place until the series arrives
+            const X0 = D.experiments[i];
+            root.innerHTML = '<article class="exp" aria-busy="true">' + head(X0, i + 1, '') +
+                '<section><p class="loading" role="status">Loading this experiment’s data…</p><div class="skel"></div><div class="skel s2"></div></section></article>';
+            mark(scene.id); pager.hidden = true;
             Promise.all(need.map(part)).then(() => { if (token === showing) show(); },
                 () => { if (token === showing) root.innerHTML = '<p class="warn">This experiment’s data did not load. Check the connection and reload the page.</p>'; });
             return;
@@ -1360,13 +1595,12 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';
         if (i < 0) {
             current = overview(root.firstChild);
-            tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === 'overview' ? 'page' : 'false'));
+            mark('overview');
             return;
         }
         const X = D.experiments[i];
         current = KINDS[X.kind](X, i + 1, root.firstChild, scene.p);
-        const here = tabs.querySelector('a[data-id="' + X.id + '"]');
-        if (here) tabs.scrollLeft = Math.max(0, here.offsetLeft - tabs.offsetLeft - 16);      // keep it in view in the phone's row
+        mark(X.id);
         const reset = document.getElementById('c-reset');
         if (reset) {
             const copy = document.createElement('button'), label = 'Copy a link to this scene';
@@ -1402,8 +1636,14 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             try { if (sceneHash) history.replaceState(null, '', sceneHash); } catch (e) { /* the scene still works */ }
             return;                                                      // and the address goes back to the scene
         }
-        show(); window.scrollTo(0, tabs.offsetTop - 12);
+        show(); toGrid();
     });
+    // a new scene opens at its top, just under whichever bars are sticky at this width
+    function toGrid() {
+        const bar = document.querySelector('.bar'), grid = document.getElementById('lab-grid');
+        const above = getComputedStyle(bar).position === 'sticky' ? bar.offsetHeight : 0;
+        window.scrollTo(0, Math.max(0, grid.getBoundingClientRect().top + window.scrollY - above - 12));
+    }
     let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => current && current.redraw(), 120); });
     document.getElementById('foot').innerHTML =
         `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
@@ -1428,6 +1668,9 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         .observe(document.body, { childList: true, subtree: true });
     typeset(document.body);
     show();
+    // A link to one experiment (the methodology's, a shared scene) opens on that experiment rather
+    // than on the introduction above it; the overview and a bare address still open at the top.
+    if (D.experiments.some(x => x.id === parseScene().id)) toGrid();
 })();
 </script>
 </body>
