@@ -1,5 +1,5 @@
 {
- "as_of": "2026-10-26",
+ "as_of": "2026-10-27",
  "source": "FRED, Federal Reserve Bank of St. Louis (fred.stlouisfed.org)",
  "series": {
   "DGS10": {
@@ -7,11 +7,11 @@
    "label": "10-year Treasury yield",
    "unit": "%",
    "freq": "daily",
-   "last": 4.96,
-   "date": "2026-10-22",
-   "chg_1m": 0.0,
+   "last": 5.0,
+   "date": "2026-10-23",
+   "chg_1m": -0.11,
    "chg_1y": 0.99,
-   "pct_10y": 98.9,
+   "pct_10y": 99.1,
    "min_10y": 0.52,
    "max_10y": 5.31,
    "median_10y": 2.87,
@@ -172,7 +172,7 @@
     5.28,
     5.24,
     5.09,
-    4.96
+    5.0
    ],
    "spark_d": [
     "2023-10-27",
@@ -331,7 +331,7 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-22"
+    "2026-10-23"
    ]
   },
   "DGS2": {
@@ -339,11 +339,11 @@
    "label": "2-year Treasury yield",
    "unit": "%",
    "freq": "daily",
-   "last": 4.65,
-   "date": "2026-10-22",
-   "chg_1m": -0.06,
-   "chg_1y": 1.2,
-   "pct_10y": 90.6,
+   "last": 4.69,
+   "date": "2026-10-23",
+   "chg_1m": -0.16,
+   "chg_1y": 1.21,
+   "pct_10y": 91.4,
    "min_10y": 0.09,
    "max_10y": 5.19,
    "median_10y": 2.57,
@@ -504,7 +504,7 @@
     4.83,
     4.8,
     4.74,
-    4.65
+    4.69
    ],
    "spark_d": [
     "2023-10-27",
@@ -663,7 +663,7 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-22"
+    "2026-10-23"
    ]
   },
   "T10Y3M": {
@@ -672,9 +672,9 @@
    "unit": "pp",
    "freq": "daily",
    "last": 0.78,
-   "date": "2026-10-23",
-   "chg_1m": -0.14,
-   "chg_1y": 0.72,
+   "date": "2026-10-26",
+   "chg_1m": -0.15,
+   "chg_1y": 0.69,
    "pct_10y": 60.6,
    "min_10y": -1.89,
    "max_10y": 2.27,
@@ -836,6 +836,7 @@
     1.09,
     0.99,
     0.83,
+    0.78,
     0.78
    ],
    "spark_d": [
@@ -995,7 +996,8 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-23"
+    "2026-10-23",
+    "2026-10-26"
    ]
   },
   "T10Y2Y": {
@@ -1003,11 +1005,11 @@
    "label": "10-year minus 2-year yield",
    "unit": "pp",
    "freq": "daily",
-   "last": 0.31,
-   "date": "2026-10-23",
-   "chg_1m": 0.05,
+   "last": 0.32,
+   "date": "2026-10-26",
+   "chg_1m": -0.04,
    "chg_1y": -0.22,
-   "pct_10y": 45.9,
+   "pct_10y": 46.6,
    "min_10y": -1.08,
    "max_10y": 1.59,
    "median_10y": 0.38,
@@ -1168,7 +1170,8 @@
     0.45,
     0.44,
     0.35,
-    0.31
+    0.31,
+    0.32
    ],
    "spark_d": [
     "2023-10-27",
@@ -1327,7 +1330,8 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-23"
+    "2026-10-23",
+    "2026-10-26"
    ]
   },
   "BAA10Y": {
@@ -1335,11 +1339,11 @@
    "label": "Corporate credit spread (Baa over 10-year)",
    "unit": "pp",
    "freq": "daily",
-   "last": 1.46,
-   "date": "2026-10-22",
-   "chg_1m": 0.04,
-   "chg_1y": -0.23,
-   "pct_10y": 4.0,
+   "last": 1.47,
+   "date": "2026-10-23",
+   "chg_1m": 0.08,
+   "chg_1y": -0.19,
+   "pct_10y": 5.0,
    "min_10y": 1.36,
    "max_10y": 4.31,
    "median_10y": 1.94,
@@ -1500,7 +1504,7 @@
     1.47,
     1.45,
     1.46,
-    1.46
+    1.47
    ],
    "spark_d": [
     "2023-10-27",
@@ -1659,7 +1663,7 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-22"
+    "2026-10-23"
    ]
   },
   "VIXCLS": {
@@ -1667,11 +1671,11 @@
    "label": "VIX (expected S&P 500 volatility)",
    "unit": "",
    "freq": "daily",
-   "last": 19.03,
-   "date": "2026-10-22",
-   "chg_1m": 4.82,
-   "chg_1y": 0.43,
-   "pct_10y": 63.8,
+   "last": 19.45,
+   "date": "2026-10-23",
+   "chg_1m": 4.27,
+   "chg_1y": 2.15,
+   "pct_10y": 66.2,
    "min_10y": 9.14,
    "max_10y": 82.69,
    "median_10y": 16.95,
@@ -1832,7 +1836,7 @@
     15.31,
     14.84,
     19.99,
-    19.03
+    19.45
    ],
    "spark_d": [
     "2023-10-27",
@@ -1991,7 +1995,7 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-22"
+    "2026-10-23"
    ]
   },
   "DFF": {
@@ -2000,7 +2004,7 @@
    "unit": "%",
    "freq": "daily",
    "last": 3.88,
-   "date": "2026-10-22",
+   "date": "2026-10-23",
    "chg_1m": 0.0,
    "chg_1y": -0.23,
    "pct_10y": 70.2,
@@ -2323,7 +2327,7 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-22"
+    "2026-10-23"
    ]
   },
   "UNRATE": {
@@ -2848,13 +2852,13 @@
    "k": "credit",
    "state": "tight",
    "title": "Credit spreads",
-   "text": "Lower-grade corporate bonds yield 1.46pp over Treasuries, higher than 4% of the last ten years. A wider spread is partly compensation for expected defaults and partly the premium lenders charge above that; Gilchrist & Zakrajsek (2012) find it is the second part that has predicted economic activity. Wide spreads have coincided with stress for indebted companies."
+   "text": "Lower-grade corporate bonds yield 1.47pp over Treasuries, higher than 5% of the last ten years. A wider spread is partly compensation for expected defaults and partly the premium lenders charge above that; Gilchrist & Zakrajsek (2012) find it is the second part that has predicted economic activity. Wide spreads have coincided with stress for indebted companies."
   },
   {
    "k": "vol",
    "state": "normal",
    "title": "Volatility",
-   "text": "The VIX is 19.0, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016). This screener cuts momentum's weight in their panic state, when the index is down over two years and volatile, and never raises it."
+   "text": "The VIX is 19.4, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016). This screener cuts momentum's weight in their panic state, when the index is down over two years and volatile, and never raises it."
   },
   {
    "k": "inflation",
