@@ -1551,6 +1551,8 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
     tabs.addEventListener('click', e => { if (e.target.closest('a') && tabs.classList.contains('open') && getComputedStyle(picker).display !== 'none') setOpen(false); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && tabs.classList.contains('open') && getComputedStyle(picker).display !== 'none') { setOpen(false); picker.focus(); } });
     document.addEventListener('pointerdown', e => { if (tabs.classList.contains('open') && !e.target.closest('#index')) setOpen(false); });
+    document.getElementById('index').addEventListener('focusout', e => {           // tabbing out of the open list closes it
+        if (tabs.classList.contains('open') && e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setOpen(false); });
     function mark(id) {
         tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === id ? 'page' : 'false'));
         const i = D.experiments.findIndex(x => x.id === id);
