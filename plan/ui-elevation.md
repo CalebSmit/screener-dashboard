@@ -102,6 +102,17 @@ The "Last updated" line left the bar (the hero and footer state the same time) a
 shows its icon and shortcut at every desktop width. Before: links clipped at 1024, 1152, 1536, 1680
 and 1920 px. `tests/test_header_nav_fit.py` (9) opens the page at seven widths.
 
+### Same day, fourth pass - the Factor Lab and the research page, read as a student would
+
+Audited at 375 and 1280 px, several experiments of every kind, settings changed, by pointer, touch
+and keyboard. Presentation and access only: no figure, sentence about a computation, data file or
+`lab_engine.js` changed.
+
+| Page | What changed | Where |
+|---|---|---|
+| Factor Lab | bar charts read by tap and keyboard like the line charts (one `readable()` helper); a line chart's label ends on its last month; a failed lazy part keeps the experiment and offers Try again; the tab title names the experiment and opening one moves focus to its heading; the experiment list answers the arrow keys; 44 px controls on a phone; equations wrap; the no-effect line on its own line; a key to the meters; each verdict links to "What it means for the screener"; a way on at the foot; `<noscript>`; print as ink on paper | `lab.html`; `tests/test_lab_reading_and_access.py` (13) |
+| Has it been tested? | every section has an id; an "On this page" list read off the sections the generator emitted; the foot links back to the answer, the lab and the rankings; 44 px nav, contents and summary on a phone; print as ink on paper | `research_page.py` (`with_contents`); `tests/test_research_page.py` (+2) |
+
 ### Left for a later pass (owner-run; nightly sessions do not take design work)
 
 1. Phone Reporting soon hides the "Last quarter" and "Insiders" columns - decide whether phone

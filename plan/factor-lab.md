@@ -260,6 +260,24 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   for them - the static header paints at 0.3-0.4 s on the phone profile below, before the font
   arrives, because the font is `display=swap`.)
 - ~~Measure the first paint~~ - done 2026-10-26, and it was slow; see "The first paint".
+- ~~Read the bar charts on a phone and by keyboard~~ - done 2026-10-27 (owner-run, second design
+  pass): every chart now goes through one `readable()` helper in `lab.html` - point, tap (the reading
+  stays after the finger lifts) or focus it and use the arrows, Home and End; the bar being read is
+  outlined. At 375 px eight of the size effect's ten bars had printed no figure. A line chart's label
+  ends on its last month's reading.
+- ~~A failed lazy part~~ - done 2026-10-27: the experiment's title and verdict stay, an alert says what
+  did not load, and "Try again" refetches (`part()` already forgot a failed request).
+- ~~Navigation for keyboard and screen-reader users~~ - done 2026-10-27: the tab title names the
+  experiment; opening one from the index, pager or a card moves focus to its heading (not on first
+  load); the experiment list answers Up/Down/Home/End and ArrowDown on the picker opens it.
+- Also 2026-10-27: 44 px controls on a phone, equations wrap, the no-effect line on its own line, a
+  key to the meters on the overview, a link from each verdict to "What it means for the screener",
+  a way on at the foot, a `<noscript>` note, and a print stylesheet. `tests/test_lab_reading_and_access.py`.
+  `lab_engine.js` and the data were not touched, so `ASSET_VERSION` did not move.
+- Still open: the overview is ~19,000 px on a phone (seventeen full cards in one column) - a compact
+  phone card, or the index as the overview's first screen, is the next thing worth trying; the bar
+  charts' axes carry no unit on the axis itself (the title says "%"); "Copy a link" announces its
+  "Link copied" only by changing its own label.
 
 ## The first paint (measured 2026-10-26)
 
