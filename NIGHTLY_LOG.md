@@ -16281,3 +16281,15 @@ sentence moved; `METHODOLOGY_CHANGELOG.md` untouched.**
 
 Gates on the combined tree: suite **3,452 passed, 1 skipped**; `rehearse_publish.py` PASSED; dry run
 OK; `node --check` both payloads and `lab_engine.js`; `rebuild_page.py --check` clean; tree clean.
+
+**Two unexplained full-suite failures, recorded rather than retried away.** Of six full runs on this
+tree, two failed one or two tests each and four were clean: once
+`test_page_round_two.py::test_methodology_cross_references_land_on_their_heading` and
+`test_loop_mutual_exclusion.py::test_exactly_one_of_several_simultaneous_starts_wins` together
+(the first failure's name was not captured). Neither reproduced alone (3 runs) or under a 10-worker
+browser load (2 runs). The new test's only timing dependence was a smooth scroll it had to wait out,
+so the cross-reference handler now honours `prefers-reduced-motion` (an access fix in its own right),
+that test runs with reduced motion, and a new test pins smooth-by-default and instant-on-request from
+the call itself. The mutual-exclusion test is older and untouched tonight (no runner script changed);
+**if it fails at a 06:00 baseline, that is the load-sensitive start race, not tonight's work** - read
+its message before anything else.

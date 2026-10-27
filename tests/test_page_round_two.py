@@ -52,10 +52,12 @@ def browser():
         b.close()
 
 
-def _open(browser, width=1280, height=900, touch=False):
+def _open(browser, width=1280, height=900, touch=False, reduced_motion=None):
     opts = {"viewport": {"width": width, "height": height}}
     if touch:
         opts.update(is_mobile=True, has_touch=True)
+    if reduced_motion:
+        opts["reduced_motion"] = reduced_motion
     ctx = browser.new_context(**opts)
     page = ctx.new_page()
     errors: list[str] = []
@@ -323,7 +325,10 @@ def test_rank_change_column_is_named_in_words_and_fits(browser, width):
 def test_methodology_cross_references_land_on_their_heading(browser):
     """Generic over the text: every in-page link the methodology writes names a heading that exists,
     and following one scrolls the dialog to that heading and moves focus to it."""
-    ctx, page, _ = _open(browser, 375, 812, touch=True)
+    # Run with reduced motion so the jump is immediate: the smooth scroll's timing under a loaded
+    # parallel suite is not what this test is about (two unexplained full-suite failures, 2026-10-27).
+    # The smooth path is pinned separately below.
+    ctx, page, _ = _open(browser, 375, 812, touch=True, reduced_motion="reduce")
     try:
         page.evaluate("openMethodology()")
         page.wait_for_function("document.querySelectorAll('#methodology-modal .methodology-body h2').length > 3", timeout=WAIT)
@@ -349,6 +354,27 @@ def test_methodology_cross_references_land_on_their_heading(browser):
         assert page.evaluate("document.getElementById('methodology-modal').style.display") == "flex"
     finally:
         ctx.close()
+
+
+def test_a_cross_reference_scrolls_smoothly_unless_the_reader_asked_for_less_motion(browser):
+    """The handler asks for a smooth scroll by default and an immediate one under
+    prefers-reduced-motion; read from the call itself, so no animation timing is involved."""
+    for motion, want in (("no-preference", "smooth"), ("reduce", "auto")):
+        ctx, page, _ = _open(browser, 1280, 900, reduced_motion=motion)
+        try:
+            page.evaluate("openMethodology()")
+            page.wait_for_function("document.querySelectorAll('#methodology-modal .methodology-body h2').length > 3", timeout=WAIT)
+            got = page.evaluate("""() => {
+                const calls = [];
+                const orig = Element.prototype.scrollIntoView;
+                Element.prototype.scrollIntoView = function (o) { calls.push(o && o.behavior); };
+                const a = document.querySelector('#methodology-modal .methodology-body a[href^="#"]:not([data-m])');
+                a.click();
+                Element.prototype.scrollIntoView = orig;
+                return calls; }""")
+            assert got == [want], (motion, got)
+        finally:
+            ctx.close()
 
 
 def test_slugs_match_the_usual_markdown_rule(browser):

@@ -4560,7 +4560,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (!el) return;
         e.preventDefault();
         if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
-        el.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        // A reader who asked for less motion gets the jump at once (2026-10-27).
+        const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        el.scrollIntoView({{ behavior: still ? 'auto' : 'smooth', block: 'start' }});
         el.focus({{ preventScroll: true }});
     }}
     function openMethodology() {{
