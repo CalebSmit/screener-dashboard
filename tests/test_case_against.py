@@ -352,7 +352,15 @@ def test_each_line_opens_the_section_that_shows_it(page, cases):
         page.evaluate("t => openStockDetail(t)", t)
         assert page.evaluate("UX.current") == t
         page.click(f'#modal-case .case-item[data-k="{k}"]')
-        page.wait_for_timeout(900)
+        # wait for the smooth scroll to settle rather than a fixed 900 ms, which a loaded parallel
+        # suite overran (2026-10-27); the assertions below are unchanged
+        try:
+            page.wait_for_function("""id => { const el = document.getElementById(id), b = el && el.closest('.modal-body');
+                if (!b || el.classList.contains('collapsed')) return false;
+                const top = el.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                return top >= -4 && top <= 0.6 * b.clientHeight; }""", arg=target, timeout=8000)
+        except Exception:  # noqa: BLE001 - the assertions below report what was seen
+            pass
         top, collapsed, height = page.evaluate("""id => { const el = document.getElementById(id);
             const b = el.closest('.modal-body');
             return [el.getBoundingClientRect().top - b.getBoundingClientRect().top, el.classList.contains('collapsed'),
