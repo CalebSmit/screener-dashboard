@@ -241,6 +241,8 @@ select:hover { border-color: var(--text-muted); }
 .key i { display: inline-block; width: 18px; height: 2px; margin-right: 8px; vertical-align: middle; border-radius: 1px; }
 .key .a i { height: 2.5px; background: var(--accent); } .key .b i { background: var(--rest); }
 .key .c i { height: 10px; width: 14px; background: var(--amber-dim); border: 1px solid rgba(250,178,25,.45); border-radius: 2px; }
+/* a key above a bar chart shows a bar's swatch, not a line's */
+.key:has(~ #ch-bars) i { width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
 .chart .band { fill: rgba(250,178,25,.13); }
 .chart .cursor { stroke: var(--text-secondary); stroke-width: 1; stroke-dasharray: 2 3; pointer-events: none; }
 .chart .pt { stroke: var(--bg-card); stroke-width: 2; pointer-events: none; }

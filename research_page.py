@@ -555,8 +555,8 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
         f'<tr><td>{r["label"]}<div class="src">{html.escape(r["source"])}</div>'
         + (f'<div class="src">How it is built here: {html.escape(r["e"]["construction_note"])}</div>'
            if r["e"].get("construction_note") else "")
-        + f'</td><td class="num">{num(r["h"]["mean"])} <span class="t">({r["h"]["t"]:+.1f})</span></td>'
-        f'<td class="num">{num(r["p"]["mean"])} <span class="t">({r["p"]["t"]:+.1f})</span></td></tr>'
+        + f'</td><td class="num" data-l="Mid-2023&ndash;2026 (t)">{num(r["h"]["mean"])} <span class="t">({r["h"]["t"]:+.1f})</span></td>'
+        f'<td class="num" data-l="2012&ndash;2019 (t)">{num(r["p"]["mean"])} <span class="t">({r["p"]["t"]:+.1f})</span></td></tr>'
         for r in sorted(rows, key=lambda r: label(r["id"])))
 
     size_html = size_paragraph(rows[0], size_coverage_relation(latest, coverage), bar_p) \
@@ -576,11 +576,11 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
             return (f'{pct(st["mean"])} <span class="t">(t {st["t"]:+.2f})</span>'
                     f'<div class="t">95%: {pct(st["mean"] - q * st["se"])} to {pct(st["mean"] + q * st["se"])}</div>')
         brows = "".join(
-            f'<tr><td class="per">{SHORT[k]}</td><td class="num">{pct(b[k]["ret"]["mean"])}</td>'
-            f'<td class="num">{_ex(b[k]["excess"])}</td>'
-            f'<td class="num">{pct(b[k]["worst_month"])}</td>'
-            f'<td class="num">{pct(b[k]["max_drawdown"])}</td>'
-            f'<td class="num">{b[k]["turnover_a_year"] * 100:.0f}%</td></tr>'
+            f'<tr><td class="per">{SHORT[k]}</td><td class="num" data-l="Return a month">{pct(b[k]["ret"]["mean"])}</td>'
+            f'<td class="num ex" data-l="Against the average scored stock">{_ex(b[k]["excess"])}</td>'
+            f'<td class="num" data-l="Worst month">{pct(b[k]["worst_month"])}</td>'
+            f'<td class="num" data-l="Deepest fall">{pct(b[k]["max_drawdown"])}</td>'
+            f'<td class="num" data-l="Turnover a year">{b[k]["turnover_a_year"] * 100:.0f}%</td></tr>'
             for k, lab in periods if k in b)
         cov_line = ""
         mc = (coverage or {}).get("months") or {}
@@ -601,11 +601,11 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
                 and srow.get("data_hash") == latest[ev["id"]].get("data_hash"):
             s = srow["summary"]
             srows = "".join(
-                f'<tr><td class="per">{SHORT[k]}</td><td class="num">{pct(s[k]["ret"]["mean"])}</td>'
-                f'<td class="num">{_ex(s[k]["excess"])}</td>'
-                f'<td class="num">{pct(s[k]["worst_month"])}</td>'
-                f'<td class="num">{pct(s[k]["max_drawdown"])}</td>'
-                f'<td class="num">{s[k]["turnover_a_year"] * 100:.0f}%</td></tr>'
+                f'<tr><td class="per">{SHORT[k]}</td><td class="num" data-l="Return a month">{pct(s[k]["ret"]["mean"])}</td>'
+                f'<td class="num ex" data-l="Against the average scored stock">{_ex(s[k]["excess"])}</td>'
+                f'<td class="num" data-l="Worst month">{pct(s[k]["worst_month"])}</td>'
+                f'<td class="num" data-l="Deepest fall">{pct(s[k]["max_drawdown"])}</td>'
+                f'<td class="num" data-l="Turnover a year">{s[k]["turnover_a_year"] * 100:.0f}%</td></tr>'
                 for k, lab in periods if k in s)
             # Page prose, not the registry's text verbatim, for two reasons that are both rules:
             # the registered entry uses the word the no-advice guard bans (``BANNED_TERMS``), and
@@ -801,7 +801,17 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
 .foot .num {{ white-space: normal; overflow-wrap: anywhere; }}
 @media (prefers-reduced-motion: reduce) {{ * {{ transition-duration: 0s !important; }} }}
 .foot {{ margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }}
+.src {{ overflow-wrap: anywhere; }}
 @media (max-width: 599px) {{
+  table.alts thead, table.bot thead {{ display: none; }}
+  table.alts, table.alts tbody, table.alts tr, table.bot, table.bot tbody, table.bot tr {{ display: block; }}
+  table.alts tr, table.bot tr {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }}
+  table.alts td, table.bot td {{ display: block; padding: 0; border: 0; text-align: left; }}
+  table.alts td:first-child, table.bot td.per {{ grid-column: 1 / -1; }}
+  table.bot td.per {{ color: var(--text-primary); font-weight: 600; }}
+  table.bot td {{ order: 2; }} table.bot td.per {{ order: 0; }} table.bot td.ex {{ grid-column: 1 / -1; order: 1; }}
+  table.alts td[data-l]::before, table.bot td[data-l]::before {{ content: attr(data-l); display: block; margin-bottom: 2px; font-size: 11px; font-weight: 600;
+      letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); white-space: normal; }}
   td .t {{ display: block; }}
   .bot td.num {{ white-space: normal; }}
   .dot-row, .axis {{ grid-template-columns: minmax(0, 1fr) 6.2em; }}
@@ -856,7 +866,7 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
     </div>
     {size_html}
     <details><summary>Every alternative, both periods</summary>
-      <div class="tw"><table>
+      <div class="tw"><table class="alts">
         <thead><tr><th>Alternative</th><th class="num">Mid-2023&ndash;2026 (t)</th><th class="num">2012&ndash;2019 (t)</th></tr></thead>
         <tbody>{table}</tbody>
       </table></div>
