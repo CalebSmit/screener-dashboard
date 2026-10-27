@@ -312,6 +312,41 @@ industrial business only. `sec_crosscheck.lease_book` / `lease_capex_note`,
 `research/2026-10-14-capex-definition.md` section 5 - the proposal to change the metric was
 refused. `cavs` is a general per-stock, per-metric slot: a new one needs a claim and its own test.
 
+## The stock sheet, UI elevation (2026-10-27) - `_js_drilldown()` / `_css_drilldown()`
+
+`plan/ui-elevation.md`. Presentation only; every rule is scoped to `#stock-modal` and emitted
+last. `tests/test_drilldown_presentation.py` (10, browser).
+- **Masthead:** the identity block is `display: contents`, so ticker, sector, tools and close share
+  the top line and the company name (display serif) gets the full width. Figures: **Rank, then
+  Composite with a strip of every published composite** (`compDistHtml`, 40 bins of
+  `stock_detail[*].composite`, this one's bin and a line in the accent, a tick at
+  `kpis.median_composite`), then Last price (shown on phones again). **Trap chips** (`#modal-chips`,
+  "Value trap" / "Growth trap" from `s.vt` / `s.gt`, the table's words). The header **folds** once
+  the body scrolls past 140px (`.is-compact`; back at the top it opens); on a phone the folded
+  header drops the name, tools, chips and price.
+- **Tabs** are an underline strip; the lit tab is kept in view (`tabFollow`), and at the end of the
+  sheet the last section's tab lights (`modalSpy`, it used to stay on Peers).
+- **Score tiles** are a fingerprint: the heat token as the wash, text in ink, a tick at 50 on each bar.
+  Tiles, How-it-adds-up rows and the workings' category headers are `role="button"` and work from
+  Enter/Space.
+- **Why it ranks here:** section titles in the display serif; the lead sentence as the hero
+  statement; on wide screens each group label spans its sentences in a left column (`grid-row:
+  span N`). `figEmph()` sets figures with a decimal point, %, $ or an ordinal in ink - it wraps
+  characters of the escaped sentence and never changes one (a test renders all ~500 summaries and
+  compares them to the payload's text).
+- **How it adds up:** a receipt - hairline rows, a double rule, and the total track is a **stacked
+  bar of each category's points** (`.ct-seg`, widths from `s.contrib`).
+- **Charts:** one language - the accent is this stock (weekly close, the five-year yield line, the
+  rank line), the 50-day average is dashed ink, the 200-day and medians grey; strokes do not scale.
+  The rank-history band label takes its own line below 560px (it overprinted both dates at 375px).
+- **Phone:** the sheet's header drags down to close (`sheetDrag`, from the header only, past 96px;
+  a grabber is drawn); tabs and buttons are 40-44px on a touch screen; price targets sit in a
+  2-column grid. Stepping between stocks fades the body for 160 ms (Web Animations, skipped under
+  reduced motion).
+- Not changed: `renderFlagsWarnings()` writes to `#modal-flags`, which does not exist, so its trap /
+  Beneish / channel-stuffing badges have never rendered; the trap chips above cover the trap flags.
+  Wiring the rest would publish sentences with thresholds that are not in `claims.py`.
+
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 
 It wraps `openStockDetail` and `closeModal` rather than copying them, so every way of opening a

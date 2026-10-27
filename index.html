@@ -3738,6 +3738,10 @@
             content: ''; position: absolute; left: calc(14px + (100% - 28px) * .5); bottom: 8px; width: 1px; height: 9px;
             background: var(--text-secondary); opacity: .75;
         }
+        /* a category with no score: no wash, no bar, no median tick - an outline, not a zero */
+        #stock-modal .modal-score-card.is-na { background: none; border-style: dashed; border-color: var(--border-bright); box-shadow: none; }
+        #stock-modal .modal-score-card.is-na::before, #stock-modal .modal-score-card.is-na::after { display: none; }
+        #stock-modal .modal-score-card.is-na .modal-score-val { color: var(--text-muted); }
         #stock-modal .msr-note { margin-top: 4px; }
 
         /* ---- section titles in the display serif ---- */
@@ -6978,7 +6982,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             // out of the most it could add, which is its weight. It was "18.9 pts (22% wt)".
             const ptsText = weight === null ? 'Not scored: no data' : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
-            scoreHtml += `<div class="modal-score-card" style="--v:${sv.toFixed(3)}" onclick="openWorkings('${c}')" role="button" tabindex="0" title="Show how this score is built">
+            scoreHtml += `<div class="modal-score-card${weight === null ? ' is-na' : ''}" style="--v:${sv.toFixed(3)}" onclick="openWorkings('${c}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="modal-score-label">${CAT_LABELS[c]}</div>
                 <div class="modal-score-val">${fmt(score,'score')}</div>
                 <div class="modal-score-sub">${ptsText}</div>
