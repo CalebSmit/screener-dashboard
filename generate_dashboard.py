@@ -11086,6 +11086,16 @@ def _css_page() -> str:
         .hero-sub { color: var(--text-secondary); }
         @media (max-width: 760px) { .hero-title { font-size: 36px; } }
 
+        /* the wordmark and the dialogs' titles are headlines too */
+        .dashboard-header .brand h1, .footer-name, #meth-title, #cmp-title {
+            font-family: var(--font-display); font-weight: 500; letter-spacing: -.01em; font-optical-sizing: auto; }
+        .dashboard-header .brand h1 { font-size: 20px; }
+        .footer-name { font-size: 17px; }
+        #meth-title, #cmp-title { font-size: clamp(24px, 2.4vw, 30px); line-height: 1.15; }
+        /* the methodology reads as a document: its section heads in the reading serif, its body in Inter */
+        .methodology-body h2 { font-family: var(--font-display); font-weight: 500; font-size: 24px; letter-spacing: -.01em; line-height: 1.2; }
+        @media (max-width: 760px) { .dashboard-header .brand h1 { font-size: 18px; } }
+
         /* ---- DEPTH THROUGH LIGHT: raised surfaces carry a 1px highlight on their top edge ---- */
         .kpi-row, .top5-card, .sec-grid > .collapsible-section, .table-section, .filters-bar, .dist-plot { box-shadow: var(--hairline-hi); }
         .kpi-row { background: linear-gradient(var(--bg-card), var(--bg-card)); }
@@ -11218,6 +11228,15 @@ def _css_page() -> str:
         /* ---- THE VIEWS ---- */
         /* Track record: the figures share one row where they fit, instead of five and an orphan */
         @media (min-width: 761px) { .tr-kpis { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); } }
+        /* Market backdrop: the five readings flow in columns, so a short reading does not stretch beside a
+           long one and the last row leaves no hole */
+        @media (min-width: 761px) {
+            .mk-readings { display: block; columns: 3 320px; column-gap: 12px; }
+            .mk-reading { break-inside: avoid; margin-bottom: 12px; }
+        }
+        .mk-card, .mk-reading, .tr-kpis, .chart-container, .dq-kpi-card { box-shadow: var(--hairline-hi); }
+        /* the comparison tray sat on top of the open Methodology dialog, over its text */
+        body:has(#methodology-modal:not([style*="none"])) .cmp-tray { display: none; }
         /* the footer as a colophon */
         .dashboard-footer { padding: 32px 16px 40px; }
         .footer-disclaimer { max-width: 68ch; line-height: 1.6; }
@@ -11306,7 +11325,12 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     if raw_ts:
         try:
             dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
-            data_timestamp = dt.strftime("%Y-%m-%d %H:%M UTC")
+            # start_time is written in the machine's local time with no offset; the label said "UTC"
+            # beside it (02:00 CDT printed as "02:00 UTC"). Read a naive time as local and convert,
+            # so the static label (what a reader without JavaScript sees) is true.
+            if dt.tzinfo is None:
+                dt = dt.astimezone()
+            data_timestamp = dt.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
         except ValueError:
             data_timestamp = raw_ts
     else:
