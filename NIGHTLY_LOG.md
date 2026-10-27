@@ -16035,3 +16035,156 @@ drilldown. No code changed.
   `tests/test_bot_payload_contract.py`.
 - **Two flaky browser tests fixed** (fixed waits a loaded parallel suite overran; the rehearsal failed
   once on one). Assertions unchanged. Suite **3295 passed, 1 skipped**; rehearsal PASSED.
+
+## 2026-10-27 (13:00 midday session) - QUEUE. The eleven badges that lived in dead code: four said nothing, one of them a false sentence on a top-25 stock, and one a false claim on the public methodology page
+
+**Health (rule 8, all five):** last code session ran? **yes** - 06:00 today, "Run complete:
+shipped to main", tag `good/2026-10-27`; five owner-run passes merged after it. Data loop
+published? **yes** - 02:00 today, "Data loop complete", **HEALTH: PASS**, 498 scored, live at
+02:20, claims gate 1,576 passed in 65 s `[parallel, -n auto]`. Evidence base at `1m` = **38 rows,
+newest 2026-09-25 (32 days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**,
+unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 15 days**) -
+not advanced; the next non-retrospective Friday is 2026-11-06 and experiment 18 is a Friday's work.
+**Tests:** before **3295 passed, 1 skipped**; after **3313 passed, 1 skipped** (+18, the new
+module). `scripts/rehearse_publish.py` **PASSED**.
+**Owner queue / rotation:** no proposal was waiting (`open_proposals()` returns `[]`). The 06:00
+session's **Next** was the EDGAR daily-form-index build, whose own evidence bar is two weeks of
+shadow runs - it cannot be finished end to end today, and the prompt asks for one item finished.
+I took instead the item this morning's owner-run session flagged as available to a session
+(`plan/ui-elevation.md` item 5), which is also what the 2026-10-15 session called **"the single
+most valuable next thing"** and which had then sat for **12 days**. Nothing deferred for a loop or
+a gate; nothing an earlier session decided today was reversed.
+
+### Did
+
+**The defect hunt the 2026-10-15 session left open.** That session found
+`generate_dashboard.renderFlagsWarnings` dead - nothing called it, and its container
+`#modal-flags` was never written into the page, so that morning's quarterly-rejection badge could
+never have appeared. It rehomed the two provenance sentences and left the **other eleven badges**
+with the note that one session should check each against the live page and either rehome it or
+delete it. This is that session.
+
+Measured on the 2026-10-27 published run, 498 stocks
+(`research/measurements/2026-10-27-dead-badge-audit.py`, reproducible at any commit):
+
+| Badge | Stocks | Reaches the reader? |
+|---|---|---|
+| value trap | 46 | yes - table flag column, `summary`, "The case against" |
+| growth trap | 66 | yes - same |
+| Beneish | 43 | yes - `summary`, "The case against" |
+| channel stuffing | 14 | yes - `summary`, "The case against" |
+| stale financials | 28 | yes - Filing Age badge, `summary`, "The case against" |
+| EPS basis mismatch | 100 | yes - provenance badge, data-quality KPIs |
+| bank-like | 46 | yes - the ROE/ROIC column label, methodology page |
+| **LTM 3-of-4 annualised** | **4** | **no - and the panel said the opposite** |
+| **enterprise value substituted** | **18** | **no** |
+| **beta overlap under 80%** | **1** | **no** |
+| **financial-sector caveat** | **0** | **no - dead at source, with a false claim on the public page** |
+
+**1. A false sentence on the live site, one of the four stocks at rank 22.** The Data provenance
+panel picks its lead on `fl.ltm_rolled || fl.q_rejected`. **CCL, EFX, TRV (rank 22) and V** have
+both false and `data_source == "quarterly"`, so the page told readers their "income and cash-flow
+figures are **the sum of the last four reported quarters**" while the engine had summed **three**
+and scaled by 4/3. That is the same defect the 2026-10-15 session fixed for the other two
+constructions - the third route simply had no sentence, because its badge was in the dead
+function. TRV is inside the top 25, the set `signals.json` publishes to the bot.
+
+**2. A substituted scoring input, 18 stocks, never disclosed per stock.** Where the source's
+enterprise value is more than 10% (25% for financials) from market value + debt - cash, the engine
+**replaces it** and scores EV/EBITDA, EV/Sales and free-cash-flow yield on its own sum. The rule
+is on the methodology page and in the EV/EBITDA row's caveat; no stock's page said it had fired
+*there*, so a reader checking the enterprise value in the workings against the provider's own
+figure found two numbers and nothing to explain them. The rejected figure is now published
+(`_ev_api`, display-only) so both appear and the 10% rule is checkable from the page.
+
+**3. An unexplained gap, 1 stock.** FDXF's beta is not computed at all (42% of its trading days
+overlap the index, against the engine's 80% bar), so the row said "no data" with no reason.
+
+**4. A flag no run has ever set, and a false claim on the public methodology page.**
+`Financial_Sector_Caveat` is written by `factor_engine.add_financial_sector_caveat` - which only
+that module's **own legacy end-to-end path** calls, not `run_screener.py`'s pipeline. It is absent
+from `05_final_scored.parquet` (verified on the published run), so the payload published
+`fin_caveat: false` for all 498 stocks on every run, and the Excel column is empty too. Meanwhile
+`SCREENER_OVERVIEW.md` said, and has been serving to the public: *"All financial-sector stocks
+receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial
+companies require additional scrutiny regardless of classification."* **Zero did.** The field is
+deleted rather than wired - see "Tried and rejected" - and the paragraph corrected **in the
+generator**, with the file regenerated (rule 10).
+
+**What shipped:** three sentences in `renderProvenance`, which the drilldown does call; the dead
+field and the dead function deleted; the methodology paragraph corrected. Claims
+`drilldown.ltm_annualized`, `drilldown.ev_substituted`, `drilldown.beta_overlap`,
+`overview.no_financial_sector_flag`. `tests/test_dead_badges.py`, **18 tests**, browser-rendered
+against *the generator's own page* - and in the data loop's publish gate by derivation from
+`checked_by`, without anyone adding it to a list.
+
+**Looked at the page**, which is the half of this a test cannot do, on the page regenerated from
+today's run with this code (the committed `index.html` is the 02:00 run's and predates it).
+TRV's panel now opens "Income and cash-flow figures cover the last twelve months, built for this
+company as described below" and then names the construction - **4 lines at 1440 px, 8 at 375 px,
+no clipping, no horizontal overflow at either width**, in the same dimmed "limit" style as the
+roll-forward and filing-check sentences beside it. **A wording defect I could only see by reading
+it:** the EV sentence ended "The wider limit applies to financial companies, whose debt includes
+customer deposits" on **every** stock - so AES, a utility told it was 10% over, was then told
+about a limit that is not its own. The clause is now on the 25% branch only and says what it is
+instead of; checked live on both (AES/SMCI/KDP at 10% with no clause, APO/KKR/IVZ at 25% with it).
+Shots in `logs/design/prov2-*.png`.
+
+**Two things the next full run completes.** The regeneration showed TRV reading "these figures are
+the three quarters summed" rather than naming the lines, and the EV sentence without its two
+figures - because `_ltm_annualized_labels` and `_ev_api` are new and today's stored run predates
+them. Both degrade to a correct shorter sentence, tested in its own right
+(`test_the_annualised_sentence_works_without_labels`,
+`test_the_substituted_figure_survives_a_missing_counterpart`); the 02:00 run fills them in.
+
+### Evidence / research
+
+- **Four documented, reproducible defects** - the admissible kind (CLAUDE.md, "a documented
+  failure"). Each is a statement the live site makes, or fails to make, measured against what the
+  engine did: `research/measurements/2026-10-27-dead-badge-audit.py` prints the eleven counts, the
+  four stocks the lead sentence misdescribed with their ranks, and the absence of
+  `Financial_Sector_Caveat` from the scored frame.
+- **No literature is needed and none is cited.** Nothing here changes a weight, a metric, a
+  threshold or what a number means; all four are the page telling the truth about arithmetic the
+  engine already does. No backtest or IC figure is used anywhere (rules 4 and 5).
+- The bars the new sentences quote are asserted **against the engine's own constants**, so a
+  change to either side fails the suite: `_overlap_ratio >= 0.80`, and the 10%/25% EV tolerance.
+- The beta sentence's bar is probed **at** 80.0 as well as either side of it - the 2026-10-25
+  mutation pass's lesson that a test probing 0.001 on both sides and never at the point is blind
+  to the one difference that separates `>` from `>=`.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or input moved; `METHODOLOGY_CHANGELOG.md` untouched.
+  The one public-page correction is about a flag that never existed, not about how anything scores.
+
+### Tried and rejected
+
+- **Wiring `add_financial_sector_caveat` into the pipeline** instead of deleting the field - the
+  other way to make the methodology sentence true. Rejected on measurement: `fin_caveat` would
+  then be true for exactly the 46 stocks `is_bank` is already true for (`fin_caveat & !is_bank` is
+  **0**, because `_is_bank_like` defaults to the bank set for any unseen Financials sub-industry),
+  so it would add a second badge saying "look closely at this financial" beside one that already
+  changes the stock's weight tables. A duplicate flag is a worse answer than no flag, and the page
+  is clearer saying which set a stock was scored on. A test fails if the column ever does reach
+  the scored output, because the corrected paragraph would then itself be out of date.
+- **Taking the 06:00 session's Next** (EDGAR's daily form index). Sound work and still the right
+  next build, but its own evidence bar is two weeks of shadow runs agreeing with the per-company
+  scan, so no session can finish it today; starting it would have left a half-built fetch path.
+- **Fixing `renderProvenance`'s dead early return**, found while reading it:
+  `s.metric_count === null && s.metric_count === undefined` can never be true, so the guard never
+  fires. Left alone deliberately - repairing it would *remove* the panel from any stock with no
+  metric count, a visible change to the page with no defect behind it. Recorded here so the next
+  reader does not take it for live code.
+
+### Next
+
+- **The 06:00 session's Next stands: EDGAR's daily form index for the Form 4 refresh**
+  (~566 requests -> ~2, ~87 s -> ~2 s, 92 MB/day less downloaded). Its bar is two weeks of shadow
+  runs, so **start the shadow run first** and build on it later; take the saving as ~85 s, not the
+  ~5 min the note's own line claims.
+- Read tomorrow's 02:00 page for the two sentences only a full run can complete: TRV should name
+  its annualised lines, and the 18 EV stocks should print both figures.
+- The generalisable lesson, for whoever next adds a surface: **a badge written into a container
+  that does not exist cannot fail visibly**, which is why this one survived for months and why the
+  fix is a test asserting the function is gone rather than a test asserting it renders.
