@@ -16004,3 +16004,15 @@ and the labelled search took the room. Replaced with one rule set - the links th
 rest move in order into a "More" menu (keyboard and Escape work), re-measured on resize and font
 load. `tests/test_header_nav_fit.py` (9 tests: seven widths, a live resize, the menu). Presentation
 only; payload byte-identical.
+
+### Same day, owner request - ideas from TradingAgents (`research/2026-10-27-tradingagents-ideas.md`)
+
+The owner asked what the screener and the bot could take from `TauricResearch/TradingAgents` (an LLM
+multi-agent trading framework). Its evidence is not usable (three stocks, one quarter of 2024, Sharpe
+5.6-8.2, models trained after the window), so nothing proposes an LLM signal. What it does have is the
+discipline of scoring a decision from the first close after it could be acted on - and checking that
+here found **a live defect with a date on it**: `improvement_engine.compute_forward_returns` enters a
+snapshot at the nearest close in either direction, so a holiday run enters at the close its ranking was
+built from. Labor Day escaped by luck; **2026-11-26 and 2026-12-25 will not**. Three OPEN proposals in
+the note: that fix (before Thanksgiving), a swap ledger for the bot, and a "case against" block in the
+drilldown. No code changed.
