@@ -43,7 +43,7 @@ The dashboard's own short guide walks the same path.
 5. **Read the context.** "Before you decide" shows the price trend, options,
    insider trades and the market backdrop beside the score. None of it enters
    the score.
-6. **Compare and follow.** Compare puts two stocks side by side. My holdings
+6. **Compare and follow.** Compare puts up to four stocks side by side. My holdings
    keeps the names you follow, in your own browser (no purchase price is asked
    for), and shows where each ranks on every run.
 

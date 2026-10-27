@@ -764,7 +764,7 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
 1. **Start with the ranking.** Its key, "What the columns mean", says which way each score runs.
 2. **Open a stock.** "Why it ranks here" gives the reasons in a few sentences, and "The workings" shows the arithmetic behind each one.
 3. **Read the flags and the context.** "Before you decide" shows the price trend, options, insider trades and the market backdrop beside the score. None of it enters the score.
-4. **Compare and follow.** Compare puts two stocks side by side. My holdings keeps the names you follow, in your own browser, and shows where each ranks on every run.
+4. **Compare and follow.** Compare puts up to four stocks side by side. My holdings keeps the names you follow, in your own browser, and shows where each ranks on every run.
 5. **Read the limits** at the end of this page before leaning on any number.
 
 ### What it cannot do
