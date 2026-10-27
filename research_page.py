@@ -394,6 +394,49 @@ def headline_figure(summary: dict) -> str:
   </figure>"""
 
 
+def excess_figure(b: dict, s: dict | None, periods: list, t_critical, stop_pct=None) -> str:
+    """The trading rule's gap against the average scored stock, drawn (2026-10-27): each period's
+    monthly average with the 95% interval the tables print beside it, for the rule and, where its
+    ledger row is comparable, the rule with the stop-loss. Positions only - the interval is the one
+    ``_ex`` prints, from the same Student's t."""
+    arms = [("the rule", b, "fp-a")] + ([(f"with the {stop_pct:.0f}% stop", s, "fp-c")] if s else [])
+    spans = []
+    for _, d, _ in arms:
+        for k, _ in periods:
+            if k in d:
+                st = d[k]["excess"]
+                q = t_critical(0.05, st["n"] - 1)
+                spans += [st["mean"] - q * st["se"], st["mean"] + q * st["se"]]
+    if not spans:
+        return ""
+    lim = max(0.005, math.ceil(max(abs(v) for v in spans) * 200) / 200)      # to the next 0.5% a month
+    pos = lambda v: max(0.0, min(100.0, (v + lim) / (2 * lim) * 100))      # noqa: E731
+    rows = []
+    for k, lab in periods:
+        cells = []
+        for name, d, kind in arms:
+            if k not in d:
+                continue
+            st = d[k]["excess"]
+            q = t_critical(0.05, st["n"] - 1)
+            lo, hi = st["mean"] - q * st["se"], st["mean"] + q * st["se"]
+            cells.append(f'<div class="fp-row {kind}"><div class="fp-name">{SHORT[k] if kind == "fp-a" else ""}'
+                         f'<span>{name}</span></div><div class="fp-track"><span class="fp-zero"></span>'
+                         f'<span class="fp-ci" style="left:{pos(lo):.2f}%;width:{pos(hi) - pos(lo):.2f}%"></span>'
+                         f'<span class="fp-dot" style="left:{pos(st["mean"]):.2f}%"></span></div>'
+                         f'<div class="fp-val"><span class="num">{pct(st["mean"])}</span>'
+                         f'<span class="fp-iv num">{pct(lo)} to {pct(hi)}</span></div></div>')
+        rows.append('<div class="fp-group">' + "".join(cells) + "</div>")
+    ticks = "".join(f"<span>{t}</span>" for t in (pct(-lim, 1), pct(-lim / 2, 2), "0", pct(lim / 2, 2), pct(lim, 1)))
+    return f"""
+    <figure class="fp fp-ex" role="img" aria-label="The trading rule's monthly return against the average scored stock, with its 95% interval, period by period{', with and without the stop-loss' if s else ''}. The figures are in the tables above.">
+      <figcaption><strong>Against the average scored stock</strong>, a month, with its 95% interval</figcaption>
+      {''.join(rows)}
+      <div class="fp-axis"><div></div><div class="fp-ticks">{ticks}</div><div></div></div>
+      <div class="legend"><span><i class="lg-dot"></i>the rule</span>{'<span><i class="lg-dot2"></i>with the stop</span>' if s else ''}<span><i class="lg-ci"></i>95% interval</span><span><i class="lg-zero"></i>the average scored stock</span></div>
+    </figure>"""
+
+
 def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list) -> str:
     """The page, from the registry, the latest ledger row per id, the engine's page summary,
     the engine's ``detectable(se, n)`` and the registered evaluations."""
@@ -578,6 +621,7 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
       <thead><tr><th>Period</th><th class="num">Return a month</th><th class="num">Against the average scored stock</th><th class="num">Worst month</th><th class="num">Deepest fall</th><th class="num">Turnover a year</th></tr></thead>
       <tbody>{srows}</tbody>
     </table></div>
+    {excess_figure(b, s, periods, X.t_critical, sev['rule']['stop_loss_pct'])}
     {stop_verdict(b, s, periods)}"""
         bot_html = f"""
   <section>
@@ -587,7 +631,7 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
       <thead><tr><th>Period</th><th class="num">Return a month</th><th class="num">Against the average scored stock</th><th class="num">Worst month</th><th class="num">Deepest fall</th><th class="num">Turnover a year</th></tr></thead>
       <tbody>{brows}</tbody>
     </table></div>
-    <p>{bot_sentence(b, periods, X.p_value)} Read any live record of the ranking next to an equal-weight fund.</p>{stop_html}
+    <p>{bot_sentence(b, periods, X.p_value)} Read any live record of the ranking next to an equal-weight fund.</p>{stop_html or excess_figure(b, None, periods, X.t_critical)}
   </section>"""
 
     return f"""<!DOCTYPE html>
@@ -696,6 +740,8 @@ strong {{ color: var(--text-primary); }}
 .fp-val {{ text-align: right; font-size: 15px; font-weight: 600; color: var(--text-primary); }}
 .fp-iv {{ display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); }}
 .fp-sep {{ margin: 10px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }}
+.fp-group + .fp-group {{ margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }}
+.fp-ex {{ margin: 18px 0 14px; }}
 .fp-sep:not(:first-of-type) {{ margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }}
 .fp-axis {{ margin-top: 6px; }}
 .fp-ticks {{ display: flex; justify-content: space-between; font: 11.5px var(--font-body); font-variant-numeric: tabular-nums; color: var(--text-muted); }}
