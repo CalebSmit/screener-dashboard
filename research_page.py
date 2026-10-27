@@ -711,7 +711,7 @@ strong {{ color: var(--text-primary); }}
 .answer {{ display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; max-width: none; }}
 .answer li {{ padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--hairline-hi); }}
 .answer li:first-child {{ font-size: 16px; line-height: 1.65; border-color: var(--border-bright); }}
-.answer li:first-child strong:first-child {{ display: block; margin-bottom: 4px; font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(24px, 2.6vw, 30px);
+.answer li:first-child > strong:first-child {{ display: block; margin-bottom: 4px; font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(24px, 2.6vw, 30px);
     font-weight: 500; line-height: 1.15; letter-spacing: -.01em; }}
 @media (min-width: 720px) {{ .answer {{ grid-template-columns: 1fr 1fr; }} .answer li:first-child {{ grid-column: 1 / -1; }} }}
 .terms {{ max-width: 76ch; margin: 12px 0 0; line-height: 1.55; }}
@@ -742,6 +742,8 @@ strong {{ color: var(--text-primary); }}
 .fp-sep {{ margin: 10px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }}
 .fp-group + .fp-group {{ margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }}
 .fp-ex {{ margin: 18px 0 14px; }}
+/* inside the headline card the figure is the card's lower half, not a card of its own */
+.answer .fp {{ margin: 20px 0 0; padding: 18px 0 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: none; box-shadow: none; font-size: 15px; }}
 .fp-sep:not(:first-of-type) {{ margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }}
 .fp-axis {{ margin-top: 6px; }}
 .fp-ticks {{ display: flex; justify-content: space-between; font: 11.5px var(--font-body); font-variant-numeric: tabular-nums; color: var(--text-muted); }}
@@ -822,11 +824,10 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
   </header>
 
   <ul class="answer">
-    <li>{headline}</li>
+    <li>{headline}{headline_figure(summary)}</li>
     <li><strong>No alternative did better.</strong> {"None" if summary['better'] == 0 else summary['better']} of the {summary['alternatives']} alternative weightings cleared the bar set before the test, in either period.</li>
     <li>{control_li}</li>
   </ul>
-{headline_figure(summary)}
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
 
   <section>

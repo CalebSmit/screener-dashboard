@@ -75,7 +75,7 @@ strong { color: var(--text-primary); }
 .answer { display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; max-width: none; }
 .answer li { padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--hairline-hi); }
 .answer li:first-child { font-size: 16px; line-height: 1.65; border-color: var(--border-bright); }
-.answer li:first-child strong:first-child { display: block; margin-bottom: 4px; font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(24px, 2.6vw, 30px);
+.answer li:first-child > strong:first-child { display: block; margin-bottom: 4px; font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(24px, 2.6vw, 30px);
     font-weight: 500; line-height: 1.15; letter-spacing: -.01em; }
 @media (min-width: 720px) { .answer { grid-template-columns: 1fr 1fr; } .answer li:first-child { grid-column: 1 / -1; } }
 .terms { max-width: 76ch; margin: 12px 0 0; line-height: 1.55; }
@@ -106,6 +106,8 @@ strong { color: var(--text-primary); }
 .fp-sep { margin: 10px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 .fp-group + .fp-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
 .fp-ex { margin: 18px 0 14px; }
+/* inside the headline card the figure is the card's lower half, not a card of its own */
+.answer .fp { margin: 20px 0 0; padding: 18px 0 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: none; box-shadow: none; font-size: 15px; }
 .fp-sep:not(:first-of-type) { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 .fp-axis { margin-top: 6px; }
 .fp-ticks { display: flex; justify-content: space-between; font: 11.5px var(--font-body); font-variant-numeric: tabular-nums; color: var(--text-muted); }
@@ -186,11 +188,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
   </header>
 
   <ul class="answer">
-    <li><strong>Not measurably.</strong> The ranking's average monthly rank correlation with the next month's return was <span class="num">&minus;0.002</span> over 2012&ndash;2019 (95% interval <span class="num">&minus;0.022 to +0.018</span>) and <span class="num">0.000</span> over 2020&ndash;2026 (95% interval <span class="num">&minus;0.028 to +0.027</span>). Pooled over all <span class="num">176</span> months it was <span class="num">&minus;0.001</span> (95% interval <span class="num">&minus;0.018 to +0.015</span>). Every interval includes zero. The pooled record could reliably detect an average of about <span class="num">0.032</span> at a t-statistic of 3, and no smaller.</li>
-    <li><strong>No alternative did better.</strong> None of the 27 alternative weightings cleared the bar set before the test, in either period.</li>
-    <li><strong>The test can see a signal when there is one.</strong> Fed the filings as they stand today for every past month &mdash; information nobody had at the time &mdash; the same test puts that ranking <span class="num">+0.051</span> of rank correlation a month ahead of the real one over <span class="num">80</span> months (t <span class="num">+5.6</span>), against the <span class="num">+0.037</span> it could reliably detect. So the flat results above are a finding about the ranking, not a test that cannot see anything.</li>
-  </ul>
-
+    <li><strong>Not measurably.</strong> The ranking's average monthly rank correlation with the next month's return was <span class="num">&minus;0.002</span> over 2012&ndash;2019 (95% interval <span class="num">&minus;0.022 to +0.018</span>) and <span class="num">0.000</span> over 2020&ndash;2026 (95% interval <span class="num">&minus;0.028 to +0.027</span>). Pooled over all <span class="num">176</span> months it was <span class="num">&minus;0.001</span> (95% interval <span class="num">&minus;0.018 to +0.015</span>). Every interval includes zero. The pooled record could reliably detect an average of about <span class="num">0.032</span> at a t-statistic of 3, and no smaller.
   <figure class="fp" role="img" aria-label="Average monthly rank correlation with the next month&#x27;s return. 2012 to 2019: -0.002, 95% interval -0.022 to +0.018; 2020 to 2026: 0.000, 95% interval -0.028 to +0.027; All months, pooled: -0.001, 95% interval -0.018 to +0.015; the ranking fed today&#x27;s filings: +0.051 ahead of the real one.">
     <figcaption><strong>The ranking&rsquo;s average monthly rank correlation</strong> with the next month&rsquo;s return, and its 95% interval</figcaption>
     <div class="fp-sep"><span>The ranking</span></div>
@@ -203,7 +201,10 @@ code { font-family: var(--font-mono); font-size: .9em; }
       <span><i class="lg-band"></i>smallest the test could reliably detect</span>
       <span><i class="lg-zero"></i>no relation</span>
     </div>
-  </figure>
+  </figure></li>
+    <li><strong>No alternative did better.</strong> None of the 27 alternative weightings cleared the bar set before the test, in either period.</li>
+    <li><strong>The test can see a signal when there is one.</strong> Fed the filings as they stand today for every past month &mdash; information nobody had at the time &mdash; the same test puts that ranking <span class="num">+0.051</span> of rank correlation a month ahead of the real one over <span class="num">80</span> months (t <span class="num">+5.6</span>), against the <span class="num">+0.037</span> it could reliably detect. So the flat results above are a finding about the ranking, not a test that cannot see anything.</li>
+  </ul>
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
 
   <section>

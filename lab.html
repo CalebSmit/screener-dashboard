@@ -176,6 +176,10 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
 .key-mini .ka { background: var(--rest); } .key-mini .kb { background: var(--accent-text); }
 @media (max-width: 719px) { .dcol { display: none; } }
 .where a { color: var(--accent-text); white-space: nowrap; }
+/* a category's weight drawn under its figure, on a scale to 25% of the score */
+.wbar { display: block; width: 72px; height: 4px; margin-top: 6px; border-radius: 2px; background: var(--border-bright); overflow: hidden; }
+.wbar i { display: block; height: 100%; background: var(--text-secondary); }
+@media (max-width: 719px) { .reset { min-height: 40px; } }
 #t-map td, #t-score td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
 #t-map th, #t-score th { text-align: left; }
 #t-map td:first-child, #t-score td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
@@ -1309,7 +1313,7 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             <h3 id="o-score">What this means for the screener's weights</h3>
             <p style="margin:0 0 12px;max-width:72ch">The lab does not set the screener's weights, and none has changed because of it. A weight changes only through a written argument from published research and from how practitioners build screens, recorded in the methodology's changelog. The lab's part is to check that research: does it rerun, has it held since, and does it hold among large companies, which are all the screener ranks. This is where each category stands.</p>
             <div class="tablewrap"><table id="t-score"><thead><tr><th scope="col">Category</th><th scope="col">Measured in the lab</th><th scope="col">What that leaves open</th></tr></thead><tbody>
-            ${D.scorecard.map(c => `<tr><td>${esc(c.category)}<span class="where">${c.weight}% of the score</span></td><td>${esc(c.measured)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.open)}</td></tr>`).join('')}
+            ${D.scorecard.map(c => `<tr><td>${esc(c.category)}<span class="where">${c.weight}% of the score</span><span class="wbar" aria-hidden="true"><i style="width:${Math.min(100, c.weight / 25 * 100).toFixed(1)}%"></i></span></td><td>${esc(c.measured)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.open)}</td></tr>`).join('')}
             </tbody></table></div>
             <p class="note">“Big companies” are the larger half of New York Stock Exchange companies by market value. The factors are measured on value-weighted portfolios that go long one group and short another; the screener ranks companies and shorts nothing, so these are evidence about the traits, not a forecast of its results.</p>
         </section>
