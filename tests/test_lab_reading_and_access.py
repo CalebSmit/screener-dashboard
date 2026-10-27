@@ -216,7 +216,7 @@ def test_the_experiment_list_answers_the_arrow_keys(browser):
 
 
 TARGETS = (".bar nav a, #picker, .controls button, .controls select, .controls input[type=range], "
-           ".verdict > a, .exp summary, .pager a, .warn .retry")
+           ".verdict > a, .exp summary, .pager a, .warn .retry, .next-nav a")
 
 
 def test_on_a_phone_every_control_is_at_least_44_px_tall(browser):
@@ -280,3 +280,48 @@ def test_a_printed_experiment_is_ink_on_paper_without_its_controls(browser):
         assert errors == []
     finally:
         ctx.close()
+
+
+def test_the_verdict_leads_to_what_it_means_for_the_screener(browser):
+    """A student reading a verdict asks what it means for the screener; the answer was the fourth
+    section down. The verdict now links to it, and the link keeps the experiment and its address."""
+    ctx, page, errors = _page(browser, width=1200)
+    try:
+        for x in fl.EXPERIMENTS[:4]:
+            _goto(page, x["id"])
+            page.click(".verdict a[href='#x-scr']")
+            page.wait_for_function("Math.abs(document.getElementById('x-scr').getBoundingClientRect().top) < 300", timeout=WAIT)
+            assert page.evaluate("window.LAB_STATE().id") == x["id"]
+            assert page.evaluate("location.hash") == "#" + x["id"]
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_the_overview_keys_its_meters_and_the_foot_leads_on(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "overview")
+        key = page.inner_text(".meter-key")
+        for words in ("within its tolerance", "outside it", "no effect at all would match"):
+            assert words in key, words
+        hrefs = page.evaluate("[...document.querySelectorAll('#foot .next-nav a')].map(a => a.getAttribute('href'))")
+        assert hrefs == ["#overview", "research.html", "index.html"]
+        assert all((ROOT / h).exists() for h in hrefs[1:])
+        # a count such as "17 of 19" stays on one line on a phone, and no table slides sideways for it
+        _goto(page, "replication-crisis")
+        tall = page.evaluate("""[...document.querySelectorAll('#t-live tbody td:nth-child(2)')]
+            .filter(td => { const r = document.createRange(); r.selectNodeContents(td);
+                return new Set([...r.getClientRects()].map(x => Math.round(x.top))).size > 1; }).length""")
+        assert tall == 0
+        assert page.evaluate("[...document.querySelectorAll('.tablewrap')].every(w => w.scrollWidth <= w.clientWidth)")
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_without_javascript_the_page_says_why_and_where_to_go():
+    """It used to say "Loading the experiment..." for ever."""
+    html = PAGE.read_text(encoding="utf-8")
+    ns = html[html.index("<noscript><p"):html.index("</noscript>", html.index("<noscript><p"))]
+    assert "needs JavaScript" in ns and 'href="research.html"' in ns

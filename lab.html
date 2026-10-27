@@ -354,6 +354,16 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
 .verdict .null { display: block; margin-top: 6px; }
 /* a heading that takes focus when an experiment opens is a place to start reading, not a control */
 h2[tabindex="-1"]:focus { outline: none; }
+/* the overview's key to the verdict meters: what a filled cell, an outlined one and the tick mean */
+.meter-key { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: -6px 0 18px; font-size: 12.5px; color: var(--text-muted); }
+.meter-key span { display: inline-flex; align-items: center; gap: 8px; }
+.meter-key svg { overflow: visible; } .meter-key .m-in { fill: var(--accent); } .meter-key .m-out { fill: none; stroke: var(--amber); stroke-width: 1; }
+.meter-key .nl { margin: 0; }
+.next-nav { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 16px; font-size: 13.5px; }
+@media (max-width: 719px) { .next-nav a { display: inline-flex; align-items: center; min-height: 44px; } }
+@media print { .next-nav { display: none; } }
+/* a count such as "17 of 19" is one figure: it does not break across lines */
+#t-live td:nth-child(2) { white-space: nowrap; }
 /* a bar being read: outlined in ink, so the sentence under the chart has a place on it */
 .chart rect.hit { stroke: var(--text-primary); stroke-width: 1.5; }
 /* a part that did not arrive: what happened, and a way to try again without losing the page */
@@ -409,7 +419,7 @@ h2[tabindex="-1"]:focus { outline: none; }
             <nav class="tabs" id="tabs" aria-label="Experiments"></nav>
         </div>
         <div class="lab-main">
-            <main id="lab"><p class="fine">Loading the experiment…</p></main>
+            <main id="lab"><p class="fine">Loading the experiment…</p><noscript><p class="warn">The Factor Lab reruns each study in your browser, so it needs JavaScript. <a href="research.html">Has it been tested?</a> is the same project's research as a plain page.</p></noscript></main>
             <nav class="pager" id="pager" aria-label="Step through the experiments" hidden></nav>
             <p class="next">Experiments are added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Some of the studies the screener cites cannot be rerun on free data; those will be listed here too, with what it would take.</p>
         </div>
@@ -479,7 +489,7 @@ h2[tabindex="-1"]:focus { outline: none; }
             <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. ${X.paper.doi ? `<a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a>` : `<a href="${esc(X.paper.url)}" rel="noopener">${esc(X.paper.url.replace(/^https?:\/\//, ""))}</a>`}</p>
             <h3 style="margin-top:28px">The claim being tested</h3>
             <p class="claim" style="margin-top:0">${esc(X.claim)}</p>
-            <div class="verdict"><div class="meter">${meter(r, true)}</div><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''} <span class="null"><i class="nl" aria-hidden="true"></i>${nullLine(r)}</span></span><a href="#x-against">See every figure</a></div>
+            <div class="verdict"><div class="meter">${meter(r, true)}</div><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''} <span class="null"><i class="nl" aria-hidden="true"></i>${nullLine(r)}</span></span><a href="#x-against">See every figure</a><a href="#x-scr">What it means for the screener</a></div>
         </section>`;
     }
     function tail(X, method) {
@@ -1358,6 +1368,9 @@ h2[tabindex="-1"]:focus { outline: none; }
         <section aria-labelledby="o-exp">
             <h2 id="o-exp">${D.experiments.length} experiments so far</h2>
             <p style="margin:6px 0 18px;max-width:72ch">Each one reruns a published study on public data and reports every figure beside the paper's. Across all of them, <strong>${within} of ${total} figures</strong> land within tolerances written into the build. The rest are published as misses.</p>
+            <p class="meter-key"><span><svg viewBox="0 0 11 10" width="11" height="10" aria-hidden="true" focusable="false"><rect class="m-in" width="11" height="10" rx="2"/></svg>a figure within its tolerance</span>
+                <span><svg viewBox="0 0 11 10" width="11" height="10" aria-hidden="true" focusable="false"><rect class="m-out" x=".5" y=".5" width="10" height="9" rx="2"/></svg>a figure outside it</span>
+                <span><i class="nl" aria-hidden="true"></i>how many a result of no effect at all would match</span></p>
             <div class="cards">${D.experiments.map(card).join('')}</div>
         </section>
         <section aria-labelledby="o-after">
@@ -1746,7 +1759,9 @@ h2[tabindex="-1"]:focus { outline: none; }
         `<p>${esc(D.attribution_jkp.text)} <a href="${esc(D.attribution_jkp.url)}" rel="noopener">Open the library</a> · <a href="${esc(D.attribution_jkp.licence)}" rel="noopener license">the licence</a>. ${esc(D.attribution_jkp.note)}</p>` +
         (D.attribution.others || []).map(o => `<p>${esc(o.text)} <a href="${esc(o.url)}" rel="noopener">Open the data page</a>. ${esc(o.note)}</p>`).join('') +
         `<p>${esc(D.attribution.vintage)} Built ${esc(D.built)}; monthly returns run to ${mon(LAST)}.</p>` +
-        `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and each “After the paper” period shows how a result held once its sample ended.</p>`;
+        `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and each “After the paper” period shows how a result held once its sample ended.</p>` +
+        // the way on from the foot of the page: on a phone the site bar does not follow the reader down
+        `<nav class="next-nav" aria-label="Elsewhere on the site"><a href="#overview">All experiments</a><a href="research.html">Has it been tested? The screener on its own history</a><a href="index.html">The rankings</a></nav>`;
     // One typographic pass over what the lab draws (2026-10-16), as the methodology page has: the experiment
     // copy writes a dash as a spaced hyphen; it publishes as a spaced en dash, and as a true minus inside a
     // formula's parentheses. Code is left alone. Display only - the data and its tests are unchanged.
