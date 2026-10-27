@@ -57,7 +57,9 @@ def test_the_drilldown_reads_in_the_order_its_jump_links_promise(html):
     nav = nav[:nav.index("</nav>")]
     targets = re.findall(r'goToModal\(\'([a-z-]+)\'\)', nav)
     # the investor pass (2026-10-15) puts the eight-score profile before the reasons: the shape first
-    assert targets[:4] == ["modal-score-row", "modal-summary", "section-contribution", "section-categories"]
+    # 'The case against' (owner, 2026-10-27) follows the case for, before the arithmetic
+    assert targets[:5] == ["modal-score-row", "modal-summary", "modal-case", "section-contribution",
+                           "section-categories"]
     body = html[html.index('<div class="modal-body">'):html.index("<!-- Methodology Modal -->")]
     positions = [body.index('id="%s"' % t) for t in targets]
     assert positions == sorted(positions), list(zip(targets, positions))

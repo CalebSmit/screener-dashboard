@@ -91,7 +91,11 @@ deciding, read the strongest case **against** as carefully as the case for. The 
 "Why it ranks here" (the case for) and pieces of the case against scattered across "Read with care",
 "Before you decide", the trap flags, input churn and the filing check.
 
-**Proposal status: OPEN** - one "The case against" block at the top of the drilldown that only
+**Proposal status: DECIDED 2026-10-27** - accepted by the owner ("Yes make all changes necessary") and
+built the same day: claim `drilldown.case_against`, `tests/test_case_against.py`, described in
+`plan/dashboard-inventory.md`. "The review window" was read as Reporting soon's 14 days (the configured
+review cadence is quarterly, which would hold nearly every report), and "analyst targets below the price"
+as the mean target below it (the summary's own sentence). The proposal as written: one "The case against" block at the top of the drilldown that only
 **collects** what the page already publishes for that stock: its weakest weighted categories, any trap
 or caveat flag, insider net selling, price below its 200-day average, an earnings date inside the
 review window, analyst targets below the price, and inputs that disagree with the company's filing.
