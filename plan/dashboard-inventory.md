@@ -323,7 +323,7 @@ Last owner-run pass, on top of everything below:
 | Section | Contents |
 |---|---|
 | **Top bar** | Sticky, full-width: product name, data date, jump links to every section (`goToSection()` opens a collapsed one first; **scroll-spy lights the one you are in**), a **Search stocks** button (the palette, below), Methodology. **The Refresh Data button is gone** - it opened an `EventSource` to `localhost:7720` and could only ever work on the owner's machine (`refresh_server.py` still exists for local use) |
-| **First-visit guide** (pass 2) | Three numbered sentences (eight scores per stock / one composite / every number is checkable) and "Not investment advice". Dismissed once per browser (`screener_ux_guide_done`); reopened from the palette |
+| **First-visit guide** (pass 2; rewritten 2026-10-27, round 2 docs pass) | A first visit's path in three steps, one per column of the existing grid: **Start with the ranking** (the composite, the eight sector-relative scores, which way they run, and the key), **Open a stock** (Why it ranks here, The workings, a trap flag changes neither score nor rank), **Compare and follow** (the sheet's Compare and Holdings buttons, My holdings, and a link into Methodology's summary). Dismissed once per browser (`screener_ux_guide_done`); reopened from the palette. `tests/test_overview_reading_order.py::test_the_guide_walks_a_first_visitor_from_the_ranking_to_one_stock_to_following_it` holds the order, the names it uses and its length (under 140 words) |
 | **Stat strip** | One bar, four cells: universe, value-trap flags, growth-trap flags, **metric coverage** (average, on the applicable basis) |
 | **Top 5 Stocks** | Five cards in a grid (three across below 1100px, stacked on a phone): rank and sector, ticker and composite, the eight categories as a 4x2 aligned strip. Reads `table_data` directly, excluding trap-flagged names |
 | **Full Universe Rankings** | The workhorse. Scrolls **with the page**; header row sticky below the top bar; **windowed rows** (only what is on screen plus a margin is in the DOM; `renderWindow()`, fixed `--row-h`); score cells tinted by value; designed filters (search with `/` shortcut, sector, trap flags, composite minimum, clear); flags as words, blank when none; phone: each row is a 96px card and a "Sort by" select replaces the header. **Section order is pinned by tests: Top 5, What Changed, then this** |
@@ -331,7 +331,7 @@ Last owner-run pass, on top of everything below:
 | **What Changed** | Five movers each way, "Show all N" for the rest; footnote behind "How to read this". The collapsed header previews "N up, M down materially since <date>" |
 | **Factor Analytics** | **Where each sector scores** - a sector x category matrix (median or average, one hue, shading relative within each column; the old bar chart was flat at ~50 for every sector) and **Trap Rate by Sector as HTML bars** (pass 2; rate and "n of N" printed on each row - the Chart.js canvas clipped sector names, and **Chart.js is no longer loaded at all**). **A matrix row or a trap bar filters the rankings table** to that sector (and flag) and scrolls to it |
 | **Defensibility & Diagnostics** | Same two analyses; the correlation heatmap is one hue by magnitude with pairs above 0.7 outlined; status colour is only a dot. Its **Metric Coverage** card is the mean of each stock's published `cov.n / cov.of` (`generate_dashboard.average_weighted_coverage`, claim `drilldown.avg_metric_coverage`, payload flag `data_quality.coverage_basis: "weighted"`); until 2026-10-16 it averaged a legacy 18-metric list (95.5% against the engine's 98.9%) |
-| **Methodology** | Reading surface: contents rail built from its own headings, ~72-character measure |
+| **Methodology** | Reading surface: contents rail built from its own headings, ~72-character measure. **Opens on a summary since 2026-10-27**: the Overview's first sub-sections are *If you read nothing else*, *How to use it* and *What it cannot do* (pointing into the Limitations by number), then *What it measures* and *In seven steps* (moved from the end, where it published as one run-on paragraph); the second `h2` is a glossary, **Words this page uses**. The Limitations open with the three to read first. `tests/test_overview_reading_order.py` (claims `overview.at_a_glance_flags`, `overview.at_a_glance_tested`, `overview.glossary`) |
 
 The **stock drilldown** (`openStockDetail`) is a **side sheet** (a bottom sheet on a phone) with a
 fixed identity header (ticker, company, sector, rank, composite), a **toolbar** (previous / "N of M" /
@@ -902,13 +902,15 @@ all four ship gates green.
 
 ## The Methodology section is roughly half the file
 
-It embeds a full document: What Is This, Where Does the Data Come From, all 8
-factor categories with weights, Bank-Specific Scoring, a 6-step score
-calculation walkthrough, Piotroski Conditional Weighting, Data Quality
-Safeguards, Value/Growth Trap Detection, Portfolio Construction, What Gets
-Output (all 6 Excel sheets), Factor-Exposure Diagnostics, Reproducibility,
-Defensibility & Transparency Features, Key Design Decisions, Limitations,
-Quick Start, Summary.
+It embeds a full document (headings as of 2026-10-27): Overview (If you read
+nothing else, How to use it, What it cannot do, What it measures, In seven
+steps), Words this page uses (a glossary), Data sources, all 8 factor
+categories with weights, Bank-specific scoring, How the score is calculated
+(six steps), Piotroski conditional weighting, Data quality safeguards,
+Value-trap and Growth-trap detection, Portfolio construction, Outputs (the
+workbook's sheets), Factor-exposure diagnostics, Reproducibility,
+Defensibility and transparency, Design decisions, Limitations, Running it
+yourself. The closing "Summary" moved into the Overview on 2026-10-27.
 
 This is **an asset for the investment-club audience and the main reason the
 tool is defensible** - do not delete it.

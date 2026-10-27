@@ -4486,13 +4486,14 @@
             <p class="dist-foot"><span class="dist-x">Composite score, 0&ndash;100 &middot; higher ranks higher</span><span class="dist-kbd" aria-hidden="true">&larr; &rarr; move between companies &middot; Enter opens one</span></p>
         </section>
 
-        <!-- First-visit guide: three sentences on how to read the page. Dismissed once,
-             per browser; reopened from the search palette. -->
+        <!-- First-visit guide: a first-time visitor's path in three steps - the ranking, one stock,
+             then comparing and following (round 2 docs pass, 2026-10-27). Dismissed once, per
+             browser; reopened from the search palette. Methodology opens on the same path. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
-                <li><span class="guide-n">1</span><div><strong>Eight scores.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against sector peers. The sector median sits near 50, and a higher score adds more to the composite on all eight, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
-                <li><span class="guide-n">2</span><div><strong>One composite.</strong> A weighted sum of the eight scores. The Weighting menu above the table re-ranks the list with a Value, Growth or Momentum tilt.</div></li>
-                <li><span class="guide-n">3</span><div><strong>Fully traceable.</strong> Open any stock to follow each score back to its inputs, formulas and sector peers.</div></li>
+                <li><span class="guide-n">1</span><div><strong>Start with the ranking.</strong> S&amp;P 500 companies sorted by a composite score from 0 to 100, built from eight category scores. Each compares a company with its sector, where about 50 is the median, and higher always adds more, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
+                <li><span class="guide-n">2</span><div><strong>Open a stock.</strong> Select a row. Why it ranks here gives the reasons, and The workings shows each figure, its sector percentile, its weight and its points. A trap flag is a prompt to read on and changes neither the score nor the rank.</div></li>
+                <li><span class="guide-n">3</span><div><strong>Compare and follow.</strong> In a stock&rsquo;s sheet, Compare sets it beside another, and Holdings adds it to My holdings to follow run to run, saved in this browser. <a href="#" onclick="openMethodology();return false">Methodology</a> starts with a short summary and the screener&rsquo;s limits.</div></li>
             </ol>
             <div class="guide-foot">
                 <span></span>
@@ -4979,9 +4980,69 @@
 <p><strong>What the screener measures, how it scores and ranks the S&amp;P 500, and why each choice was made.</strong></p>
 <hr />
 <h2>Overview</h2>
-<p>The screener scores every company in the S&amp;P 500 (about 500 stocks) on up to 31 financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.</p>
+<h3>If you read nothing else</h3>
+<ul>
+<li><strong>What it is.</strong> About 500 companies in the S&amp;P 500 each get 8 category scores – Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment – and one composite score from 0 to 100. The ranking sorts by the composite.</li>
+<li><strong>Every score compares a company with its own sector.</strong> A utility is measured against other utilities and a bank against other financial companies, and about 50 is the middle of the sector. On all 8, a higher score adds more to the composite: a high Risk score means a calmer price, and a high Size score a smaller company than its sector peers.</li>
+<li><strong>The composite is points out of 100, and it is not a percentile.</strong> A composite of 70 is 70 points, and it does not mean the stock beats 70% of the others.</li>
+<li><strong>A trap flag is a prompt to read the detail.</strong> A value trap scores high on Valuation but is weak on at least two of Quality, Momentum and Revisions; a growth trap scores high on Growth but is weak on Quality or Revisions. A flag changes neither the score nor the rank.</li>
+<li><strong>It has not been shown to predict returns.</strong> Rerun on 176 months of 2012-2026 history, rebuilt from the filings as they stood each month (the rebuild lacks the analyst inputs and the companies that have since left the index), the ranking did no better than chance at putting the next month's returns in order, and no alternative weighting tested beside it did better. Limitation 3 gives the numbers, and the <a href="https://calebsmit.github.io/screener-dashboard/research.html">"Has it been tested?"</a> page has the whole test. Treat the ranking as a structured place to start research, never as a forecast.</li>
+<li><strong>Every number can be checked.</strong> Open any stock on the dashboard and "The workings" rebuilds its score from the company's own figures: each metric's value, its sector percentile, the weight it carried and the points it added.</li>
+</ul>
+<h3>How to use it</h3>
+<ol>
+<li><strong>Start with the ranking.</strong> Its key, "What the columns mean", says which way each score runs.</li>
+<li><strong>Open a stock.</strong> "Why it ranks here" gives the reasons in a few sentences, and "The workings" shows the arithmetic behind each one.</li>
+<li><strong>Read the flags and the context.</strong> "Before you decide" shows the price trend, options, insider trades and the market backdrop beside the score. None of it enters the score.</li>
+<li><strong>Compare and follow.</strong> Compare puts two stocks side by side. My holdings keeps the names you follow, in your own browser, and shows where each ranks on every run.</li>
+<li><strong>Read the limits</strong> at the end of this page before leaning on any number.</li>
+</ol>
+<h3>What it cannot do</h3>
+<ul>
+<li><strong>Tell you what to own, or how much.</strong> The dashboard ranks and explains; it shows no portfolio and no position sizes (Limitation 10).</li>
+<li><strong>Promise a return.</strong> See the line on testing above, and Limitation 3.</li>
+<li><strong>Compare sectors with each other.</strong> A high Valuation score means low-priced for its sector. It says nothing about whether the sector itself is low-priced.</li>
+<li><strong>See past its data.</strong> Prices, statements and estimates come free from Yahoo Finance (Limitation 1), analysts' estimate history reaches back only 90 days (Limitation 5), and only S&amp;P 500 companies are ranked.</li>
+<li><strong>Rely on the recent record of its factors.</strong> Several of the published effects it leans on have earned little since 2014 (Limitation 11).</li>
+</ul>
+<h3>What it measures</h3>
+<p>The 8 category scores are built from up to 31 financial metrics.</p>
 <p>No stock is scored on all 31. Most use 27 general metrics; banks, insurers and credit companies draw on a separate set of 4 bank-specific ones in place of the general metrics that do not fit them, so a bank-like stock is scored on 24, and a financial company outside the bank set on 26 (it is never given the Beneish score). In all the screener computes 46 metrics: the 31 that carry weight (27 general and 4 bank-specific) and 15 candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.</p>
 <p>No single number describes a company well: a low price can reflect a declining business or high risk. Scoring valuation, quality, growth, momentum, risk, revisions, size, investment separately favours companies that are strong on several of them at once.</p>
+<h3>In seven steps</h3>
+<p>The screener answers one question: <strong>how does each S&amp;P 500 company compare with its sector peers on valuation, quality, growth, momentum, risk, revisions, size, investment, taken together?</strong></p>
+<p>It does this in seven steps:</p>
+<ol>
+<li>Pull financial data for about 500 stocks from Yahoo Finance.</li>
+<li>Compute up to 31 metrics across 8 categories (27 general and 4 bank-specific, by company type).</li>
+<li>Rank each metric within its sector, so a bank is compared with other financial companies and a utility with other utilities.</li>
+<li>Weight and combine the ranks into a 0-100 composite, with bank-specific weights for banks, insurers and other bank-like financials, and conditional Piotroski weighting.</li>
+<li>Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).</li>
+<li>For the model portfolio in the Excel workbook only, apply a liquidity filter (the ranking itself has none).</li>
+<li>Report how stable the ranking is when the weights shift.</li>
+</ol>
+<p>Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.</p>
+<hr />
+<h2>Words this page uses</h2>
+<p>In the order the page builds them up.</p>
+<ul>
+<li><strong>Sector percentile</strong> – where a company's value on one metric places it among the companies in its own sector, from 0 to 100. It is turned round for metrics where lower is better, such as a price multiple or volatility, so a higher percentile always means better on that metric. This is what <em>sector-relative</em> means here; a sector with too few values to rank is ranked across the whole index instead (Step 3).</li>
+<li><strong>Category score</strong> – one of the 8 scores, from 0 to 100: the weighted average of the sector percentiles of that category's metrics (Step 4).</li>
+<li><strong>Composite</strong> – the weighted sum of the 8 category scores, from 0 to 100, and the number the ranking sorts by (Step 5).</li>
+<li><strong>Points</strong> – what one category adds to the composite: its score times its weight. A Valuation score of 60 at a 22% weight adds 13.2 points.</li>
+<li><strong>Rank</strong> – a stock's place when the composites are sorted from highest to lowest; 1 is the highest.</li>
+<li><strong>Coverage</strong> – the share of the metrics that carry weight in a stock's score for which it has a value. Low coverage trims the composite slightly, and very low coverage leaves a stock out of the ranking ("Data quality safeguards").</li>
+<li><strong>Trap flag</strong> – a warning that a stock's high score on one category comes with weak scores on others that may explain it: a value trap or a growth trap ("Value-trap detection", "Growth-trap detection"). It changes neither the score nor the rank.</li>
+<li><strong>Bank-like stock</strong> – a bank, insurer or other financial company whose liabilities, such as deposits or insurance float, are part of its business. It is scored on its own Valuation and Quality metrics ("Bank-specific scoring").</li>
+<li><strong>LTM and MRQ</strong> – the last twelve months (the four most recent quarters added together) and the most recent quarter (the latest balance sheet).</li>
+<li><strong>Enterprise value (EV)</strong> – the market value of the shares plus debt minus cash: roughly what the whole business would cost to buy.</li>
+<li><strong>Factor and premium</strong> – a factor is a trait many stocks share, such as being low-priced or profitable. Its premium is the extra return that stocks with the trait earned over stocks without it in a published study.</li>
+<li><strong>Backtest</strong> – running a method on past data as if it had been used at the time.</li>
+<li><strong>Look-ahead bias</strong> – a backtest using information that was not yet public on the date it stands for, which can make a method look better than it could have been.</li>
+<li><strong>Survivorship bias</strong> – a backtest that leaves out the companies that have since failed or left the index, which usually flatters it as well.</li>
+<li><strong>Rank correlation and IC</strong> – a rank correlation runs from −1 to +1: at +1 a ranking would have put the next period's returns in exact order, and at 0 it said nothing about them. The information coefficient (IC) is that correlation between a ranking and the returns that followed it.</li>
+<li><strong>Percentage point and basis point</strong> – a percentage point is the difference between two percentages (5% to 7% is 2 percentage points); a basis point is a hundredth of a percentage point.</li>
+</ul>
 <hr />
 <h2>Data sources</h2>
 <p>All data is pulled from <strong>Yahoo Finance</strong> via the <code>yfinance</code> Python library. For each stock, the screener fetches:</p>
@@ -5488,19 +5549,23 @@ research use by the owner.</p>
 <p>Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 ranking when that category's weight is moved 5 percentage points up and down. Jaccard similarity measures how stable the ranking is – higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (&lt;0.70).</p>
 <h3>Sheet 6: Factor Correlation (when available)</h3>
 <p>Spearman rank correlation matrix of the sector-relative percentiles of every metric in the registry, across the universe – metric against metric, not category against category. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate overlapping metrics. Useful for understanding the effective number of independent signals.</p>
-<p>Additional outputs:
-- <strong>Parquet cache</strong> (<code>cache/factor_scores_&lt;hash&gt;_&lt;date&gt;.parquet</code>) – the scored dataset (every column except the internal ones whose names begin with an underscore) for programmatic access, tagged with a config hash for reproducibility.
-- <strong>Data quality log</strong> (<code>validation/data_quality_log.csv</code>) – every data issue encountered during the run.
-- <strong>Run artifacts</strong> (<code>runs/&lt;run_id&gt;/</code>) – raw fetch data, scored data, and config snapshot for each run, enabling full reproducibility via <code>RunContext</code>.</p>
+<p>Additional outputs:</p>
+<ul>
+<li><strong>Parquet cache</strong> (<code>cache/factor_scores_&lt;hash&gt;_&lt;date&gt;.parquet</code>) – the scored dataset (every column except the internal ones whose names begin with an underscore) for programmatic access, tagged with a config hash for reproducibility.</li>
+<li><strong>Data quality log</strong> (<code>validation/data_quality_log.csv</code>) – every data issue encountered during the run.</li>
+<li><strong>Run artifacts</strong> (<code>runs/&lt;run_id&gt;/</code>) – raw fetch data, scored data, and config snapshot for each run, enabling full reproducibility via <code>RunContext</code>.</li>
+</ul>
 <hr />
 <h2>Factor-exposure diagnostics</h2>
 <p>A standalone script (<code>factor_exposure.py</code>) is available for analyzing how much of the portfolio's returns are explained by known academic risk factors. It runs a Fama-French 5-factor + Momentum (UMD) regression:</p>
 <pre><code>Portfolio_ExcessReturn ~ Mkt-RF + SMB + HML + RMW + CMA + UMD
 </code></pre>
-<p>This tells you:
-- <strong>Alpha</strong> – returns not explained by any known factor (genuine stock selection skill)
-- <strong>Factor betas</strong> – how much the portfolio tilts toward market risk, size, value, profitability, investment, and momentum
-- <strong>R-squared</strong> – what fraction of portfolio return variation is explained by the factors</p>
+<p>This tells you:</p>
+<ul>
+<li><strong>Alpha</strong> – returns not explained by any known factor (genuine stock selection skill)</li>
+<li><strong>Factor betas</strong> – how much the portfolio tilts toward market risk, size, value, profitability, investment, and momentum</li>
+<li><strong>R-squared</strong> – what fraction of portfolio return variation is explained by the factors</li>
+</ul>
 <p>Usage:</p>
 <pre><code class="language-bash">python factor_exposure.py
 python factor_exposure.py --start 2024-01-01 --end 2025-12-31
@@ -5636,6 +5701,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 </table>
 <hr />
 <h2>Limitations</h2>
+<p>Read these before leaning on any number. If you read only three, read 3 (whether the ranking predicts returns), 10 (what the tool is for) and 11 (how the factors behind it have done lately).</p>
 <ol>
 <li><strong>Data source:</strong> All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade – individual fields go missing for individual companies, and the screener drops the affected metric rather than guessing at it.</li>
 </ol>
@@ -5691,18 +5757,6 @@ py run_screener.py --no-portfolio
 # Run factor-exposure diagnostics on the latest portfolio
 py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 </code></pre>
-<hr />
-<h2>Summary</h2>
-<p>The screener answers one question: <strong>how does each S&amp;P 500 company compare with its sector peers on valuation, quality, growth, momentum, risk, revisions, size, investment, taken together?</strong></p>
-<p>It does this in seven steps:
-1. Pull financial data for about 500 stocks from Yahoo Finance.
-2. Compute up to 31 metrics across 8 categories (27 general and 4 bank-specific, by company type).
-3. Rank each metric within its sector, so a bank is compared with banks.
-4. Weight and combine the ranks into a 0-100 composite, with bank-specific weights for banks, insurers and other bank-like financials, and conditional Piotroski weighting.
-5. Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).
-6. For the model portfolio in the Excel workbook only, apply a liquidity filter (the ranking itself has none).
-7. Report how stable the ranking is when the weights shift.</p>
-<p>Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.</p>
                 </template>
             </div>
         </div>
