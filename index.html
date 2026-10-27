@@ -3837,6 +3837,45 @@
         @media (prefers-reduced-motion: reduce) {
             .sec-grid > .collapsible-section .section-chevron { transition: none; }
         }
+
+        /* ---- THE HEADER, one rule set for every width (owner, 2026-10-27: tab names were cut off on the
+           right). Every section link is shown in full or listed under "More" (_js_page measures); nothing
+           is clipped, scrolled or faded. The "Last updated" line left the bar - the hero states the same
+           time and the footer repeats it - and the search shows its icon and shortcut, so the bar's
+           contents are the same at every desktop width. ---- */
+        .dashboard-header .run-info { display: none; }
+        .nav-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 2px; flex: 1 1 auto; min-width: 0; }
+        .dashboard-header .nav-wrap .header-nav { order: 0; flex: 0 1 auto; min-width: 0; margin-left: 0; overflow: hidden;
+            -webkit-mask-image: none; mask-image: none; }
+        .header-nav a.nav-hidden { display: none; }
+        .nav-more { position: relative; flex: none; }
+        .nav-more[hidden] { display: none; }
+        .nav-more-btn { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 8px 0 10px; border: 0;
+            border-radius: var(--radius); background: transparent; color: var(--text-secondary); font: 500 13px var(--font-body);
+            cursor: pointer; white-space: nowrap; transition: color var(--t-fast) ease-out, background var(--t-fast) ease-out; }
+        .nav-more-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round;
+            stroke-linejoin: round; transition: transform var(--t-fast) ease-out; }
+        .nav-more-btn:hover, .nav-more-btn[aria-expanded="true"], .nav-more-btn.active { color: var(--text-primary); background: var(--bg-elevated); }
+        .nav-more-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+        .nav-more-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .nav-more-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; min-width: 184px; padding: 6px;
+            background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: 10px;
+            box-shadow: var(--hairline-hi), var(--shadow-overlay); display: grid; gap: 2px; }
+        .nav-more-menu[hidden] { display: none; }
+        .nav-more-menu a { display: flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 6px;
+            color: var(--text-secondary); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+        .nav-more-menu a:hover, .nav-more-menu a:focus-visible { color: var(--text-primary); background: var(--bg-elevated); outline: none; }
+        .nav-more-menu a.active { color: var(--text-primary); }
+        @media (min-width: 761px) {
+            .dashboard-header .cmdk-btn-text { display: none; }
+            .dashboard-header .header-right { flex: none; }
+        }
+        @media (max-width: 760px) {
+            .dashboard-header .nav-wrap { grid-column: 1 / -1; justify-content: flex-start; margin-left: -10px; }
+            .nav-more-btn { min-height: 40px; }
+            .nav-more-menu a { min-height: 44px; font-size: 15px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .nav-more-btn svg { transition: none; } }
     
 
         /* =====================================================================
@@ -4125,6 +4164,7 @@
                 </a>
                 <span class="run-info" id="run-info"></span>
             </div>
+            <div class="nav-wrap">
             <nav class="header-nav" aria-label="Sections">
                 <a href="#sec-top5" onclick="goToSection('sec-top5');return false">Leaders</a>
                 <a href="#sec-universe" onclick="goToSection('sec-universe');return false">Rankings</a>
@@ -4136,6 +4176,11 @@
                 <a href="#sec-analytics" onclick="goToSection('sec-analytics');return false">Analytics</a>
                 <a href="#sec-defensibility" onclick="goToSection('sec-defensibility');return false">Diagnostics</a>
             </nav>
+            <div class="nav-more" id="nav-more" hidden>
+                <button type="button" class="nav-more-btn" id="nav-more-btn" aria-haspopup="true" aria-expanded="false" aria-controls="nav-more-menu">More<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+                <div class="nav-more-menu" id="nav-more-menu" role="menu" aria-label="More sections" hidden></div>
+            </div>
+            </div>
             <div class="header-right">
                 <button class="cmdk-btn" type="button" onclick="openPalette()" aria-label="Search stocks and sections" aria-keyshortcuts="Control+K Meta+K">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
@@ -10058,6 +10103,80 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const _usm = updateSectionMeta;
             updateSectionMeta = function() { const out = _usm.apply(this, arguments); safeTileViz(); return out; };
         }
+    })();
+
+    // =====================================================================
+    // THE HEADER'S SECTION LINKS: every one is either shown in full or listed under "More" (owner,
+    // 2026-10-27: "the heading tab names are cutoff on the right"). The links that fit stay in the
+    // bar in their order; the rest move, in order, into the menu. Re-measured whenever the bar's width,
+    // the fonts or a link's visibility changes. The original links stay in the DOM (scroll-spy and the
+    // phone menu read them); the menu holds copies that call the same goToSection.
+    // =====================================================================
+    (function () {
+        const nav = document.querySelector('.header-nav'), wrap = document.getElementById('nav-more');
+        const btn = document.getElementById('nav-more-btn'), menu = document.getElementById('nav-more-menu');
+        if (!nav || !wrap || !btn || !menu) return;
+        const links = () => [...nav.querySelectorAll(':scope > a')].filter(a => a.style.display !== 'none');
+        function close(focusBtn) {
+            if (menu.hidden) return;
+            menu.hidden = true; btn.setAttribute('aria-expanded', 'false');
+            if (focusBtn) btn.focus();
+        }
+        function syncActive() {
+            btn.classList.toggle('active', !!nav.querySelector(':scope > a.nav-hidden.active'));
+            menu.querySelectorAll('a').forEach(m => {
+                const src = nav.querySelector(':scope > a[href="' + m.getAttribute('href') + '"]');
+                m.classList.toggle('active', !!(src && src.classList.contains('active')));
+            });
+        }
+        let fitting = false;
+        function fit() {
+            if (fitting) return; fitting = true;
+            const all = links();
+            all.forEach(a => a.classList.remove('nav-hidden'));
+            wrap.hidden = true;
+            const over = () => nav.scrollWidth > nav.clientWidth + 1;
+            if (over()) {
+                wrap.hidden = false;
+                for (let i = all.length - 1; i >= 0 && over(); i--) all[i].classList.add('nav-hidden');
+            }
+            const hidden = all.filter(a => a.classList.contains('nav-hidden'));
+            menu.innerHTML = '';
+            hidden.forEach(a => {
+                const m = document.createElement('a');
+                m.href = a.getAttribute('href'); m.textContent = a.textContent; m.setAttribute('role', 'menuitem');
+                m.addEventListener('click', e => { e.preventDefault(); close(false); goToSection(m.getAttribute('href').slice(1)); });
+                menu.appendChild(m);
+            });
+            if (!hidden.length) { wrap.hidden = true; close(false); }
+            nav.classList.toggle('has-more', hidden.length > 0);
+            syncActive();
+            fitting = false;
+        }
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const open = menu.hidden;
+            menu.hidden = !open; btn.setAttribute('aria-expanded', String(open));
+            if (open) { const f = menu.querySelector('a'); if (f) f.focus(); }
+        });
+        menu.addEventListener('keydown', e => {
+            const items = [...menu.querySelectorAll('a')], i = items.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown') { e.preventDefault(); (items[i + 1] || items[0]).focus(); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); (items[i - 1] || items[items.length - 1]).focus(); }
+            else if (e.key === 'Escape') { e.preventDefault(); close(true); }
+            else if (e.key === 'Tab') close(false);
+        });
+        document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(false); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') close(false); });
+        let q = 0;
+        const queue = () => { cancelAnimationFrame(q); q = requestAnimationFrame(fit); };
+        if (window.ResizeObserver) { const ro = new ResizeObserver(queue); [document.querySelector('.dashboard-header'), document.querySelector('.nav-wrap'), document.querySelector('.header-right')].forEach(el => el && ro.observe(el)); }
+        else window.addEventListener('resize', queue);
+        new MutationObserver(queue).observe(nav, { subtree: true, attributes: true, attributeFilter: ['style'] });
+        new MutationObserver(syncActive).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(queue);
+        window.addEventListener('load', queue);
+        fit();
     })();
 
 

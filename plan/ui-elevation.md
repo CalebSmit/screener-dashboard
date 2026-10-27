@@ -94,6 +94,14 @@ across `generate_dashboard.py`, `lab.html` and `research_page.py` - is now Inter
 the ticker's own style, and the two long lead sentences (the drilldown's first "Why it ranks here"
 line, the lab's claim) are Inter 400. Presentation only; payload byte-identical.
 
+### Same day, third pass - the header
+
+**Header, 2026-10-27 (owner):** every section link is shown in full or listed, in order, under a
+"More" menu (`_js_page`, priority-plus; re-measured on resize, font load and link visibility).
+The "Last updated" line left the bar (the hero and footer state the same time) and the search
+shows its icon and shortcut at every desktop width. Before: links clipped at 1024, 1152, 1536, 1680
+and 1920 px. `tests/test_header_nav_fit.py` (9) opens the page at seven widths.
+
 ### Left for a later pass (owner-run; nightly sessions do not take design work)
 
 1. Phone Reporting soon hides the "Last quarter" and "Insiders" columns - decide whether phone
