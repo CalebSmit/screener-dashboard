@@ -60,13 +60,30 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .bmk { width: 24px; height: 24px; flex: none; }
 .bm-bg { fill: var(--bg-elevated); stroke: var(--border-bright); } .bm-1 { fill: var(--accent); opacity: .5; } .bm-2 { fill: var(--accent); opacity: .75; } .bm-3 { fill: var(--accent); }
 .bar nav { display: flex; gap: 2px; font-size: 13.5px; flex-wrap: wrap; }
-.bar nav a { color: var(--text-secondary); padding: 7px 12px; border-radius: 999px; transition: color var(--t-fast), background var(--t-fast); }
+.bar nav a { color: var(--text-secondary); padding: 7px 12px; border-radius: 8px; transition: color var(--t-fast), background var(--t-fast); }
 .bar nav a:hover { color: var(--text-primary); background: var(--bg-card); text-decoration: none; }
 .bar nav a[aria-current=page] { color: var(--text-primary); background: var(--bg-elevated); box-shadow: inset 0 0 0 1px var(--border-bright); }
 @media (max-width: 719px) { .bar { position: static; height: auto; min-height: 56px; flex-wrap: wrap; padding: 10px 0 8px; gap: 4px; }
     .bar nav { margin-left: -12px; } .bar nav a { padding: 10px 12px; } }
 
 .lede { padding: 56px 0 12px; max-width: 70ch; }
+/* the lab in three figures beside the title, as the dashboard's hero carries its own: the same
+   counts the front page states, drawn from the same record */
+@media (min-width: 1080px) { .hero { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 56px; align-items: end; } }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 12px 0 0; border: 1px solid var(--border); border-radius: 14px;
+        background: var(--bg-card); box-shadow: var(--hairline-hi); overflow: hidden; }
+.kpis[hidden] { display: none; }
+.kpi { padding: 14px 14px 16px; border-left: 1px solid var(--border); min-width: 0; }
+.kpi:first-child { border-left: 0; }
+.kpi .v { color: var(--text-primary); font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.kpi .v small { font-size: 14px; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.kpi .k { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--text-muted); }
+@media (max-width: 719px) { .kpi .v small { display: block; margin-top: 2px; font-size: 12px; } }
+.kpi .pb { position: relative; height: 4px; margin-top: 10px; border-radius: 2px; background: var(--border-bright); overflow: hidden; }
+.kpi .pb i { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+@media (min-width: 720px) { .kpi { padding: 18px 20px 20px; } .kpi .v { font-size: 30px; } .kpi .k { font-size: 12.5px; } }
+@media (min-width: 1080px) { .kpis { grid-template-columns: 1fr; margin-bottom: 22px; } .kpi { border-left: 0; border-top: 1px solid var(--border); }
+    .kpi:first-child { border-top: 0; } }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 .lede .eyebrow { color: var(--accent-text); }
 h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto;
@@ -149,6 +166,16 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
 .meter .m-l b { color: var(--text-primary); font-weight: 600; }
 .nl { display: inline-block; width: 1.5px; height: 10px; margin: 0 7px 0 1px; vertical-align: -1px; background: var(--text-primary); }
 #t-after td:first-child a { color: var(--text-primary); }
+#t-after td { vertical-align: middle; }
+#t-after td:nth-child(2), #t-after td:nth-child(3) { white-space: nowrap; }
+.dcol { width: 88px; padding-left: 16px !important; }
+.drift { display: block; width: 72px; height: 14px; margin-left: auto; overflow: visible; }
+.drift .d-z { stroke: var(--text-muted); stroke-width: 1; } .drift .d-l { stroke: var(--border-bright); stroke-width: 2; }
+.drift .d-a { fill: var(--rest); } .drift .d-b { fill: var(--accent-text); }
+.key-mini { white-space: nowrap; letter-spacing: .04em; } .key-mini i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+.key-mini .ka { background: var(--rest); } .key-mini .kb { background: var(--accent-text); }
+@media (max-width: 719px) { .dcol { display: none; } }
+.where a { color: var(--accent-text); white-space: nowrap; }
 #t-map td, #t-score td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
 #t-map th, #t-score th { text-align: left; }
 #t-map td:first-child, #t-score td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
@@ -322,12 +349,15 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html">Has it been tested?</a><a href="lab.html" aria-current="page">Factor Lab</a></nav>
     </div>
 
-    <header class="lede">
+    <header class="hero">
+        <div class="lede">
         <div class="eyebrow">Research you can rerun</div>
         <h1>The research behind the screener, rerun.</h1>
         <p>The screener's methodology rests on published studies. This page takes them one at a time, reproduces each one's headline result from data anyone can download, and shows how far the reproduction lands from the paper.</p>
         <p>Then it hands you the controls. Change the period or the settings and the result is recalculated in your browser.</p>
         <p class="fine">A teaching tool, not investment advice. These are paper portfolios that hold some stocks and short others, with no trading costs.</p>
+        </div>
+        <aside class="kpis" id="kpis" aria-label="The lab so far" hidden></aside>
     </header>
 
     <div class="lab-grid" id="lab-grid">
@@ -358,6 +388,17 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
     const f2 = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
     const sf2 = v => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(2);
     const mon = k => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+k.slice(4) - 1] + ' ' + k.slice(0, 4);
+    // the hero's three figures: the overview's own counts, from the same record
+    (() => {
+        const kp = document.getElementById('kpis'); if (!kp) return;
+        const tot = D.experiments.reduce((a, x) => a + x.result.total, 0), win = D.experiments.reduce((a, x) => a + x.result.within, 0);
+        const dir = D.after_the_paper.filter(r => r.weaker !== null), wk = dir.filter(r => r.weaker).length;
+        const kpi = (v, k, bar) => `<div class="kpi"><div class="v">${v}</div>${bar === undefined ? '' : `<div class="pb" aria-hidden="true"><i style="width:${(bar * 100).toFixed(1)}%"></i></div>`}<div class="k">${k}</div></div>`;
+        kp.innerHTML = kpi(D.experiments.length, 'experiments so far, each a published study rerun') +
+            kpi(`${win}<small> of ${tot}</small>`, 'figures land within tolerances written into the build', win / tot) +
+            kpi(`${wk}<small> of ${dir.length}</small>`, 'results that claim a direction were weaker once their paper’s sample ended');
+        kp.hidden = false;
+    })();
     const years = []; for (let y = +FIRST.slice(0, 4); y <= +LAST.slice(0, 4); y++) years.push(y);
     const yopts = years.map(y => `<option value="${y}">${y}</option>`).join('');
     const seg = (id, label, items) => `<div><span class="ctl-label" id="l-${id}">${label}</span><div class="seg" role="group" aria-labelledby="l-${id}" id="c-${id}">${items}</div></div>`;
@@ -1236,7 +1277,14 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             <span class="meter${verdictClass(x.result)}">${meter(x.result)}<span class="m-l"><b>${x.result.within} of ${x.result.total}</b> figures match the paper</span></span>
             <span class="null"><i class="nl" aria-hidden="true"></i>${nullLine(x.result)}</span>
             <span class="take">${esc(x.takeaway)}</span></a>`;
-        const link = id => `<a href="#${esc(id)}">${byId[id].n}. ${esc(byId[id].x.title)}</a>`;
+        const link = id => `<a href="#${esc(id)}" title="${esc(byId[id].x.title)}">${byId[id].n}. ${esc(byId[id].x.tab || byId[id].x.title)}</a>`;
+        // In the paper's sample and since, drawn on the row's own scale: the paper's years in grey, the
+        // years since in the accent, zero marked - so "weaker afterwards" reads as the dot moving in.
+        const slope = r => { const a = r.inside.value, b = r.after.value;
+            if (a === null || b === null) return '';
+            const m = Math.max(Math.abs(a), Math.abs(b)) || 1, X = v => (36 + v / m * 30).toFixed(1);
+            return `<svg class="drift" viewBox="0 0 72 14" aria-hidden="true" focusable="false"><line class="d-z" x1="36" x2="36" y1="1" y2="13"/>` +
+                `<line class="d-l" x1="${X(a)}" x2="${X(b)}" y1="7" y2="7"/><circle class="d-a" cx="${X(a)}" cy="7" r="3.5"/><circle class="d-b" cx="${X(b)}" cy="7" r="3.5"/></svg>`; };
         const afterCell = (r, c) => c.value === null ? '–' :
             (r.unit === 'pct' ? sf2(c.value) + '%' : f2(c.value)) + (c.t === null ? '' : ' <span class="muted">(' + f2(c.t) + ')</span>') +
             '<span class="where">' + c.months + ' months</span>';
@@ -1251,8 +1299,8 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         <section aria-labelledby="o-after">
             <h3 id="o-after">In the paper's sample, and after it</h3>
             <p style="margin:0 0 12px;max-width:72ch">${afterLine}</p>
-            <div class="tablewrap"><table id="t-after"><thead><tr><th scope="col">Result</th><th scope="col">In the paper's sample</th><th scope="col">Since</th></tr></thead><tbody>
-            ${D.after_the_paper.map(r => `<tr><td><a href="#${esc(r.experiment)}">${esc(r.label)}</a></td><td>${afterCell(r, r.inside)}</td><td>${afterCell(r, r.after)}</td></tr>`).join('')}
+            <div class="tablewrap"><table id="t-after"><thead><tr><th scope="col">Result</th><th scope="col">In the paper's sample</th><th scope="col">Since</th><th scope="col" class="dcol"><span class="key-mini"><i class="ka"></i>in · <i class="kb"></i>since</span></th></tr></thead><tbody>
+            ${D.after_the_paper.map(r => `<tr><td><a href="#${esc(r.experiment)}">${esc(r.label)}</a></td><td>${afterCell(r, r.inside)}</td><td>${afterCell(r, r.after)}</td><td class="dcol">${slope(r)}</td></tr>`).join('')}
             </tbody></table></div>
             <p class="note">“Since” runs from the month after each paper's sample to the latest month in the data. The figure in brackets is the t-statistic where one applies; beyond about 2 either way is the usual bar. Short periods prove little: read the months beside each figure.</p>
         </section>
@@ -1509,7 +1557,7 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         // the entry on screen stays in view in the column, without moving the page
         const here = tabs.querySelector('a[data-id="' + id + '"]'), box = document.getElementById('index');
         if (here && box.scrollHeight > box.clientHeight) {
-            const top = here.offsetTop - box.offsetTop, bottom = top + here.offsetHeight;
+            const top = here.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop, bottom = top + here.offsetHeight;
             if (top < box.scrollTop || bottom > box.scrollTop + box.clientHeight) box.scrollTop = Math.max(0, top - box.clientHeight / 2);
         }
         // the neighbours, at the foot of every experiment

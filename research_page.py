@@ -644,7 +644,7 @@ a:hover {{ text-decoration: underline; text-underline-offset: 3px; }}
 .bmk {{ width: 24px; height: 24px; flex: none; }}
 .bm-bg {{ fill: var(--bg-elevated); stroke: var(--border-bright); }} .bm-1 {{ fill: var(--accent); opacity: .5; }} .bm-2 {{ fill: var(--accent); opacity: .75; }} .bm-3 {{ fill: var(--accent); }}
 .bar nav {{ display: flex; gap: 2px; font-size: 13.5px; flex-wrap: wrap; }}
-.bar nav a {{ color: var(--text-secondary); padding: 7px 12px; border-radius: 999px; transition: color var(--t-fast), background var(--t-fast); }}
+.bar nav a {{ color: var(--text-secondary); padding: 7px 12px; border-radius: 8px; transition: color var(--t-fast), background var(--t-fast); }}
 .bar nav a:hover {{ color: var(--text-primary); background: var(--bg-card); text-decoration: none; }}
 .bar nav a[aria-current=page] {{ color: var(--text-primary); background: var(--bg-elevated); box-shadow: inset 0 0 0 1px var(--border-bright); }}
 @media (max-width: 719px) {{ .bar {{ position: static; height: auto; min-height: 56px; flex-wrap: wrap; padding: 10px 0 8px; gap: 4px; }}
@@ -751,6 +751,7 @@ details summary:hover {{ color: var(--text-primary); }}
 ul {{ padding-left: 20px; max-width: 72ch; }} li::marker {{ color: var(--text-muted); }}
 code {{ font-family: var(--font-mono); font-size: .9em; }}
 .foot .num {{ white-space: normal; overflow-wrap: anywhere; }}
+@media (prefers-reduced-motion: reduce) {{ * {{ transition-duration: 0s !important; }} }}
 .foot {{ margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }}
 @media (max-width: 599px) {{
   td .t {{ display: block; }}
