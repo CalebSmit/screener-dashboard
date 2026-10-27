@@ -246,7 +246,67 @@ Presentation only (payload byte-identical; `scripts/rebuild_page.py`). Opened at
    health ledger (ROADMAP 3.7); see the bot's SESSION_LOG.md. Was: the "Against what you could hold instead" header wraps to four lines on a phone; the
    one-mark empty chart is a large dashed box; ladder labels are not keyboard-reachable; white on
    the map's full gain tile is 4.42:1 (the colour is locked in `DESIGN.md`).
-7. Seen in the fourth pass, not fixed: Factor analytics' sector table on a phone shows two score columns
+7. ~~Seen in the fourth pass, not fixed: Factor analytics' sector table on a phone shows two score columns
    at a time behind a fade (it scrolls; a transposed phone layout would read better); Diagnostics' tile
    header wraps its chevron under the title on a phone; the table's Delta header is a bare symbol (its
-   tooltip and "What the columns mean" explain it).
+   tooltip and "What the columns mean" explain it).~~ **DONE 2026-10-27 (round two)** - all three; see below.
+
+### Round two - 2026-10-27, owner-run: what nobody had measured
+
+Owner: *"Keep finding improvements please!"* Measured first, then fixed. Presentation only: payload
+byte-identical (`scripts/rebuild_page.py`); `tests/test_page_round_two.py` (18, browser) asserts each item
+as behaviour. The audit and timing scripts are not shipped and the suite never touches the network.
+
+**1. Accessibility, by axe-core 4.10.2** at 375 and 1280 px: the page as loaded, the page with every
+section open, the stock sheet on EXPE, JPM and FDXF (every section and six Calculation rows open), the
+Methodology dialog, Side by side, search and the shortcuts sheet (plus the phone menu).
+
+| Finding (unique nodes) | Impact | Before | After | Fix |
+|---|---|---|---|---|
+| No `main` landmark; every section outside a landmark (`landmark-one-main`, `region`) | moderate | 1 + ~1,500 | 0 | `<main id="main" class="page-main">` around the hero..rankings; the >= 1200 px grid moved onto it |
+| Rankings column headers 4.16:1 (muted ink on the 8% white lift) | serious | 13 | 0 | the header takes `--bg-elevated` (4.7:1), the raised-surface token |
+| Links in sentences told apart by hue only (`link-in-text-block`) | serious | 3 | 1 | underlined at 45% ink, full on hover; the one left is in the guide, which another pass owns |
+| Scrolling boxes a keyboard cannot reach (`scrollable-region-focusable`) | serious | 7 | 0 | methodology formulas wrap (`pre-wrap`; the source text is one line still); the correlation grid is a named, focusable region |
+| Empty table headers (sheet's peer table, Side by side) | minor | 2 | 0 | screen-reader text: "Open", "Measure" |
+
+Summed over the 20 scans: **serious 67 -> 7, moderate 6,293 -> 0, minor 7 -> 0** (the 7 are the one guide
+link, met in seven scans). The stock sheet itself had none before or after - the drilldown pass held.
+
+**2. Speed on a phone** - Playwright, 375 px, `Emulation.setCPUThrottlingRate` 4x, median of five runs.
+The machine was shared with three other agents' suites, so wall-clock times move by +-30% run to run;
+the work counts (elements restyled, layout objects) come from Chrome's trace and do not.
+
+| Measure | Before | After |
+|---|---|---|
+| Fast scroll through the 498 cards (600 px a step): p95 frame | 167 ms | 100 ms |
+| Reading-pace scroll (200 px a step): p95 frame / frames over 50 ms | 183 ms / 60 of ~150 | 50 ms / 13 |
+| Same 40 fast steps: elements restyled / layout objects | 40,574 / 79,914 | 12,797 / 17,968 |
+| Time to usable (rows on screen) / long tasks at load | ~1.6-2.5 s / 6 | unchanged within noise |
+| Open a stock sheet: first / later | ~520 ms / ~230 ms | unchanged |
+| Re-sort / filter the table | ~150 / ~130 ms | unchanged (desktop budget 250 ms still met) |
+
+The worst was scrolling: `renderWindow` rebuilt all ~37 windowed rows on every row scrolled, ~40 ms of
+style and ~55 ms of layout a frame at 4x - every wheel step a long task. `shiftWindow` now keeps the rows
+that stay and adds or drops only those entering or leaving; it hands back to the full rebuild whenever the
+DOM is not exactly the previous window (sort, filter, resize, row height or column count changed).
+Measured and **not** changed: the load's biggest task (~530 ms at 4x) is the full relayout when Inter
+arrives and swaps in (3,200 objects); deferring the header-fit and scroll-spy reads to the first frame was
+tried and measured no saving, so it was reverted. Avoiding the swap means `font-display: optional` or a
+preload of Google's versioned font files - a typography decision, left for the owner. The first sheet open
+is a cold layout of ~1,300 objects (331 ms against 75 ms the second time); not fixed.
+
+**3. The item-7 leftovers.** The sector table on a phone is one card a sector - name, stock count and
+composite, then the eight factor scores four to a line, each labelled (`data-l`; the same figures as the
+desktop table, a test compares them); nothing scrolls. Diagnostics' chevron sits on its title's line, as on
+every other tile (it was a line lower at 375 and 1280). The rank-change column is headed **Move**, with
+"Move ▲ ▼" in What the columns mean; the column is 56 px (52 at 761-1300) with tighter padding so the word
+and its sort arrow fit.
+
+**4. The methodology's cross-references** (coordinator item): "[bank-specific scoring](#bank-specific-scoring)"
+changed the address bar and nothing else, because the markdown renders without heading ids. A click on any
+in-page link is matched to the heading whose slug it names (`methodSlug`, the usual markdown rule) - generic
+over the headings, so new sections need nothing - and the dialog scrolls there and focuses it. A test fails
+if any cross-reference names a heading that does not exist.
+
+Seen, not changed: the guide's "What each column means" link (guide owned elsewhere tonight); an unscored
+category tile still says "Not scored: no data" without a reason (optional item 4, not attempted).

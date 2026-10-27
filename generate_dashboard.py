@@ -1813,7 +1813,7 @@ def score_key_html(cfg: dict | None = None) -> str:
                         <dl class="sk-list">
                             <div><dt><b>Composite</b></dt><dd>The weighted sum of the eight scores, from 0 to 100, and the number the ranking sorts by.<span id="sk-median"></span> Open a stock to see its exact rank and how its points add up.</dd></div>
                             {cats}
-                            <div id="sk-delta-row"><dt><b>&#9650; &#9660;</b></dt><dd id="sk-delta">The change in rank since an earlier run.</dd></div>
+                            <div id="sk-delta-row"><dt><b>Move</b> &#9650; &#9660;</dt><dd id="sk-delta">The change in rank since an earlier run.</dd></div>
                             <div id="key-traps"><dt><b>Value trap</b></dt><dd>In the top {r['v_top']}% of Valuation scores and in the {floors(r['v_floors'])} on at least two of Quality, Momentum and Revisions: priced low, with weaknesses that may explain the price.</dd></div>
                             <div><dt><b>Growth trap</b></dt><dd>In the top {r['g_top']}% of Growth scores, with Quality or Revisions in the {floors(r['g_floors'])}.</dd></div>
                         </dl>
@@ -1915,6 +1915,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
         </header>
 
+        <!-- The page's one main landmark (round two, 2026-10-27): axe found every section outside a
+             landmark (landmark-one-main, region - 1,498 nodes with the sections open). The header,
+             the dialogs and the footer stay outside it. -->
+        <main id="main" class="page-main">
         <!-- Page title -->
         <section class="hero" aria-labelledby="hero-title">
             <div class="hero-text">
@@ -2139,7 +2143,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="chart-container" style="flex:1">
                         <h3 class="chart-title">Are the factors independent?</h3>
                         <p class="chart-desc">Spearman rank correlations between the eight factor scores. Shading deepens with the correlation; pairs above 0.7 are outlined because they largely measure the same thing.</p>
-                        <div id="correlation-heatmap"></div>
+                        <div id="correlation-heatmap" role="region" aria-label="Factor correlations - scrolls sideways on a narrow screen" tabindex="0"></div>
                     </div>
                 </div>
             </div>
@@ -2220,7 +2224,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <table class="data-table" id="universe-table" aria-label="Full universe rankings" aria-describedby="universe-keys" aria-rowcount="-1">
                         <thead><tr>
                             <th data-sort="Rank">Rank</th>
-                            <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the run about a month earlier, the window What changed uses. Positive means the stock moved up the table.">&Delta;</th>
+                            <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the run about a month earlier, the window What changed uses. Positive means the stock moved up the table.">Move</th>
                             <th data-sort="Ticker">Ticker</th>
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
@@ -2245,6 +2249,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 </div>
             </div>
         </section>
+        </main>
 
         <!-- Stock Detail Modal -->
         <div class="modal-overlay" id="stock-modal" style="display:none" onclick="if(event.target===this)closeModal()">
@@ -2818,12 +2823,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             cols.forEach(c => {{
                 const d = (dist[c[0]] || {{}})[s];
                 const v = d ? d[stat] : null;
-                if (v === null || v === undefined) {{ h += '<td class="num sm sm-na">&mdash;</td>'; return; }}
+                // data-l names the column on a phone, where each sector is a card (round two, 2026-10-27)
+                const cls = 'num sm' + (c[0] === 'Composite' ? ' sm-comp' : '');
+                if (v === null || v === undefined) {{ h += '<td class="' + cls + ' sm-na" data-l="' + c[1] + '">&mdash;</td>'; return; }}
                 const [lo, hi] = span[c[0]];
                 const t = hi > lo ? (v - lo) / (hi - lo) : 0.5;
-                h += '<td class="num sm" style="--t:' + t.toFixed(3) + '">' + v.toFixed(1) + '</td>';
+                h += '<td class="' + cls + '" data-l="' + c[1] + '" style="--t:' + t.toFixed(3) + '">' + v.toFixed(1) + '</td>';
             }});
-            h += '<td class="num sm-n">' + (comp[s] ? comp[s].count : '') + '</td></tr>';
+            h += '<td class="num sm-n" data-l="Stocks">' + (comp[s] ? comp[s].count : '') + '</td></tr>';
         }});
         host.innerHTML = h + '</tbody></table>';
     }}
@@ -2958,7 +2965,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 const parts = Object.keys(CL).filter(k => w[k] > 0).map(k => CL[k] + ' ' + (Math.round(w[k] * 100) / 100));
                 note.innerHTML = '<strong>Ranked with the ' + escapeHtml(meta.name) + ' weighting</strong> - ' + escapeHtml(parts.join(', ')) +
                     (P.regime && P.regime !== 'NORMAL' ? ' (momentum cut for the market&rsquo;s panic state, as the published ranking is this run)' : '') +
-                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the &Delta; column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\\'filter-profile\\').value=\\'balanced\\';setProfile(\\'balanced\\')">Back to published</button>';
+                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the Move column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\\'filter-profile\\').value=\\'balanced\\';setProfile(\\'balanced\\')">Back to published</button>';
                 note.hidden = false;
             }} else {{
                 note.hidden = true;
@@ -4288,7 +4295,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <th>D/E</th>
                 <th>Div Yield</th>
                 <th>FCF Yield</th>
-                <th class="peer-th-action"></th>
+                <th class="peer-th-action"><span class="sr-only">Open</span></th>
             </tr></thead><tbody>`;
 
         allRows.forEach(r => {{
@@ -4527,6 +4534,34 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const body = document.querySelector('#methodology-modal .methodology-body');
         const src = document.getElementById('methodology-src');
         if (body && src && !body.firstChild) body.appendChild(src.content.cloneNode(true));
+        if (body && !body.dataset.anchors) {{
+            body.dataset.anchors = '1';
+            body.addEventListener('click', methodAnchorClick);
+        }}
+    }}
+
+    // The methodology's own cross-references - "[bank-specific scoring](#bank-specific-scoring)" - are
+    // written as the usual heading slugs, but the markdown renders without heading ids, so a click only
+    // changed the address bar (round two, 2026-10-27). A click on any in-page link is matched to the
+    // heading whose slug it names, whatever the headings are, and the dialog scrolls there.
+    function methodSlug(t) {{
+        return String(t || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase()
+            .replace(/[^\\w\\s-]/g, '').replace(/[\\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+    }}
+    function methodAnchorClick(e) {{
+        const a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a || a.dataset.m) return;
+        let frag = a.getAttribute('href').slice(1);
+        try {{ frag = decodeURIComponent(frag); }} catch (err) {{}}
+        const want = methodSlug(frag);
+        if (!want) return;
+        const body = e.currentTarget;
+        const el = [...body.querySelectorAll('h1, h2, h3, h4, h5, h6')].find(h => h.id === frag || methodSlug(h.textContent) === want);
+        if (!el) return;
+        e.preventDefault();
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+        el.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        el.focus({{ preventScroll: true }});
     }}
     function openMethodology() {{
         hydrateMethodology();
@@ -5482,6 +5517,7 @@ def _js_table() -> str:
     // footer; the arrow keys, Page keys, Home and End already walk the rows (focusTableRow).
     let rovingT = null;
     let winCols = 0;
+    let winTotal = -1, winH = 0;
     function visibleCols(table) {
         const cells = table.tHead.rows[0].cells;
         let n = 0;
@@ -5777,6 +5813,38 @@ def _js_table() -> str:
             '<button type="button" class="filter-clear" onclick="clearFilters()">Clear filters</button></div></td></tr>';
     }
 
+    // A scroll moves the window a few rows, so only the rows entering or leaving it change: rows that
+    // stay keep their DOM, and the browser styles and lays out the new ones only. Rebuilding all ~37
+    // rows on every scrolled row cost ~40 ms of style and ~55 ms of layout a frame on a 4x-throttled
+    // phone - every wheel step a long task, p95 frame 183 ms (round two, 2026-10-27,
+    // plan/ui-elevation.md). Returns false - and the caller rebuilds as before - whenever the DOM is
+    // not exactly the previous window, so a sort, a filter or a resize never takes this path.
+    function shiftWindow(tbody, prev, a, b, total, H, cols) {
+        if (prev.a < 0 || a >= prev.b || b <= prev.a) return false;
+        const rows = tableState.filtered;
+        const live = tbody.querySelectorAll(':scope > tr[data-t]');
+        if (live.length !== prev.b - prev.a) return false;
+        if (live.length && (live[0].dataset.t !== rows[prev.a].Ticker || live[live.length - 1].dataset.t !== rows[prev.b - 1].Ticker)) return false;
+        let top = tbody.firstElementChild, bot = tbody.lastElementChild;
+        if (!(top && top.classList.contains('vt-spacer'))) top = null;
+        if (!(bot && bot.classList.contains('vt-spacer') && bot !== top)) bot = null;
+        if ((prev.a > 0) !== !!top || (prev.b < total) !== !!bot) return false;
+        for (let i = prev.a; i < Math.min(a, prev.b); i++) live[i - prev.a].remove();
+        for (let i = Math.max(b, prev.a); i < prev.b; i++) live[i - prev.a].remove();
+        let head = '', tail = '';
+        for (let i = a; i < Math.min(prev.a, b); i++) head += universeRowHtml(rows[i], i);
+        for (let i = Math.max(prev.b, a); i < b; i++) tail += universeRowHtml(rows[i], i);
+        const spacer = (h) => '<tr class="vt-spacer" aria-hidden="true"><td colspan="' + cols + '" style="height:' + h + 'px"></td></tr>';
+        if (head) { if (top) top.insertAdjacentHTML('afterend', head); else tbody.insertAdjacentHTML('afterbegin', head); }
+        if (tail) { if (bot) bot.insertAdjacentHTML('beforebegin', tail); else tbody.insertAdjacentHTML('beforeend', tail); }
+        if (a > 0) { if (top) top.firstElementChild.style.height = (a * H) + 'px'; else tbody.insertAdjacentHTML('afterbegin', spacer(a * H)); }
+        else if (top) top.remove();
+        if (b < total) { if (bot) bot.firstElementChild.style.height = ((total - b) * H) + 'px'; else tbody.insertAdjacentHTML('beforeend', spacer((total - b) * H)); }
+        else if (bot) bot.remove();
+        syncRoving(tbody);
+        return true;
+    }
+
     function queueWindow() {
         if (winQueued) return;
         winQueued = true;
@@ -5798,15 +5866,20 @@ def _js_table() -> str:
         if (total === 0) {
             tbody.innerHTML = emptyRowsHtml(cols);
             winRange = { a: 0, b: 0 };
+            winTotal = 0;
             return;
         }
         const H = rowHeight();
+        if (H !== winH) { winH = H; force = true; }
         const headH = table.tHead.offsetHeight;
         const above = Math.max(0, -(table.getBoundingClientRect().top + headH));
         const a = Math.max(0, Math.floor(above / H) - WIN_OVERSCAN);
         const b = Math.min(total, Math.floor((above + window.innerHeight) / H) + WIN_OVERSCAN + 1);
         if (!force && a === winRange.a && b === winRange.b) return;
+        const prev = winRange;
         winRange = { a: a, b: b };
+        if (!force && total === winTotal && shiftWindow(tbody, prev, a, b, total, H, cols)) return;
+        winTotal = total;
 
         const focused = document.activeElement && document.activeElement.closest
             ? document.activeElement.closest('#universe-tbody tr[data-t]') : null;
@@ -7215,6 +7288,10 @@ def _css() -> str:
             padding: 16px 20px;
             margin: 14px 0 18px;
             overflow-x: auto;
+            /* formulas wrap rather than scroll sideways: a scrolling box with nothing focusable in it cannot
+               be read by keyboard (axe scrollable-region-focusable: 2 at 1280px, 6 at 375px, round two) */
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
         .methodology-body pre code {
             background: none;
@@ -8781,7 +8858,7 @@ def _js_ux() -> str:
         const ts = UX.compare.slice().sort((a, b) => D.stock_detail[a].rank - D.stock_detail[b].rank);
         const S = ts.map(t => D.stock_detail[t]);
         const best = vals => { const v = vals.filter(x => x !== null && x !== undefined); return v.length > 1 ? Math.max(...v) : null; };
-        const head = '<tr><th></th>' + ts.map((t, i) =>
+        const head = '<tr><th><span class="sr-only">Measure</span></th>' + ts.map((t, i) =>
             '<th><button type="button" class="cmp-head" onclick="closeCompare();openStockDetail(\'' + t + '\')">' +
             '<span class="cmp-t">' + escapeHtml(t) + '</span><span class="cmp-n">' + escapeHtml(S[i].company) + '</span>' +
             '<span class="cmp-sec">' + escapeHtml(S[i].sector) + '</span></button></th>').join('') + '</tr>';
@@ -10653,6 +10730,12 @@ def _css_investor() -> str:
         .sec-grid .collapsible-section:not(.collapsed) .sec-blurb { display: none; }
         .sec-grid .collapsible-section:not(.collapsed) .section-header { border-bottom: 1px solid var(--border); }
         .sec-grid .defensibility-header-left { flex: 1 1 0; min-width: 0; }
+        /* Diagnostics' header holds its title and three badges in one block, so a centred chevron sat beside
+           the badges, a line below the title, unlike every other tile (round two, 2026-10-27). It rides the
+           title's line: half the title's line box less half its own 18px. */
+        .sec-grid #sec-defensibility > .section-header { align-items: flex-start; }
+        .sec-grid #sec-defensibility > .section-header > .section-chevron { margin-top: calc((21px * 1.2 - 18px) / 2); }
+        .sec-grid #sec-defensibility:not(.collapsed) > .section-header > .section-chevron { margin-top: calc((clamp(22px, 2.2vw, 28px) * 1.15 - 18px) / 2); }
 
         /* ---- THE RANKINGS: the composite leads, the eight scores speak quietly ----
            A blue wash behind 4,000 cells competed with the one column that ranks. Each score's ink now
@@ -10699,10 +10782,10 @@ def _css_investor() -> str:
         /* a wide screen: the statement on the left, the four figures beside it as a 2x2, so the right half
            of the first screen is not empty and the leaders rise by the height of a row */
         @media (min-width: 1200px) {
-            .dashboard-container { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 540px); column-gap: 56px; }
-            .dashboard-container > * { grid-column: 1 / -1; min-width: 0; }
-            .dashboard-container > .hero { grid-column: 1; grid-row: 2; }
-            .dashboard-container > .kpi-row { grid-column: 2; grid-row: 2; align-self: end; margin: 0 0 28px;
+            .dashboard-container, .page-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 540px); column-gap: 56px; }
+            .dashboard-container > *, .page-main > * { grid-column: 1 / -1; min-width: 0; }
+            .page-main > .hero { grid-column: 1; grid-row: 1; }
+            .page-main > .kpi-row { grid-column: 2; grid-row: 1; align-self: end; margin: 0 0 28px;
                 grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .kpi-row .kpi-card:nth-child(3) { border-left: 0; }
             .kpi-row .kpi-card:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
@@ -10797,8 +10880,11 @@ def _css_investor() -> str:
         .dq-kpi-card { border-radius: 14px; }
         /* links that fell back to the browser's dark-scheme violet (the track record's note, the insider
            filing dates in Before you decide) */
-        .tr-caveats a, #modal-context a:not([class]) { color: var(--accent-text); text-decoration: none; }
-        .tr-caveats a:hover, #modal-context a:not([class]):hover { text-decoration: underline; text-underline-offset: 2px; }
+        /* A link inside a sentence is underlined, not told apart by hue alone: the accent against body ink
+           is 1.1-2.0:1, under the 3:1 WCAG 1.4.1 asks of colour alone (axe link-in-text-block, round two) */
+        .tr-caveats a, #modal-context a:not([class]) { color: var(--accent-text); text-decoration: underline;
+            text-decoration-color: color-mix(in srgb, var(--accent-text) 45%, transparent); text-underline-offset: 2px; }
+        .tr-caveats a:hover, #modal-context a:not([class]):hover { text-decoration-color: currentColor; }
         /* the composite card repeated the header's rank and composite word for word; the eight scores now
            open the sheet directly */
         #modal-score-row > .modal-score-card.composite { display: none; }
@@ -10843,8 +10929,9 @@ def _css_investor() -> str:
         .score-key dt b { color: var(--text-primary); font-weight: 600; margin-right: 6px; }
         .score-key dd { margin: 0; }
         .score-key .sk-hit { background: var(--bg-elevated); }
-        .score-key a { color: var(--accent); text-decoration: none; }
-        .score-key a:hover { text-decoration: underline; }
+        .score-key a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px;
+            text-decoration-color: color-mix(in srgb, var(--accent-text) 45%, transparent); }
+        .score-key a:hover { text-decoration-color: currentColor; }
         @media (max-width: 520px) {
             .score-key .sk-list > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
         }
@@ -11481,11 +11568,11 @@ def _css_page() -> str:
     return """
         /* ---- HEADLINES: Inter 600, tracked tight - the leader cards' ticker style, at headline sizes ---- */
         .hero-title, .dist-title,
-        .dashboard-container > .section > .section-header .section-title,
+        .page-main > .section > .section-header .section-title,
         .sec-grid .section-header .section-title {
             font-family: var(--font-display); font-weight: 600; letter-spacing: -.022em; }
         .hero-title { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; max-width: 20ch; letter-spacing: -.032em; }
-        .dashboard-container > .section > .section-header .section-title,
+        .page-main > .section > .section-header .section-title,
         .dist-title { font-size: clamp(22px, 2.2vw, 28px) !important; line-height: 1.15; }
         .sec-grid .section-header .section-title { font-size: 21px !important; line-height: 1.2; }
         .sec-grid .collapsible-section:not(.collapsed) .section-header .section-title { font-size: clamp(22px, 2.2vw, 28px) !important; }
@@ -11607,7 +11694,9 @@ def _css_page() -> str:
         .filters-bar .result-count { align-self: flex-end; line-height: 34px; }
         .data-table td.sc-na { background: none; color: var(--text-muted); }
         .data-table tbody tr:hover td.sc { color: var(--text-primary); }
-        .data-table thead th { background: color-mix(in srgb, var(--bg-card) 92%, #fff); }
+        /* the raised header is the raised-surface token: an 8% white lift (#2c2c2b) put the muted labels at
+           4.16:1, under AA; --bg-elevated keeps the lift and reads 4.7:1 (axe color-contrast, round two) */
+        .data-table thead th { background: var(--bg-elevated); }
         .data-table thead th[data-sort]:not(.sorted):hover::after { content: ' \\2195'; color: var(--text-muted); }
         .data-table td.comp { font-size: 14.5px; }
         /* Widths, 2026-10-27 (fourth pass): at 1280px the company column was 162px - "Valero Energy Corpo...",
@@ -11615,7 +11704,10 @@ def _css_page() -> str:
            flags column takes the width of its widest chip, the composite the width of its gauge, and the
            company name gets the rest. */
         .data-table th:nth-child(1) { width: 46px; }
-        .data-table th:nth-child(2) { width: 50px; }
+        .data-table th:nth-child(2) { width: 56px; }
+        /* the rank-change column says "Move", not a bare Delta (round two, 2026-10-27): a word a first-year
+           reader knows, kept narrow by tighter padding so the sort arrow still fits beside it */
+        #universe-table #th-rank-delta { padding-left: 4px; padding-right: 4px; letter-spacing: .03em; }
         .data-table th:nth-child(5) { width: 160px; }
         .data-table th:nth-child(6) { width: 100px; }
         .data-table th:nth-child(15) { width: 80px; }
@@ -11676,6 +11768,24 @@ def _css_page() -> str:
                              mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
             .sm-table th:first-child, .sm-table td.sm-sector { position: sticky; left: 0; z-index: 1; background: var(--bg-card);
                              max-width: 132px; overflow: hidden; text-overflow: ellipsis; }
+            /* Round two, 2026-10-27: the sideways scroll showed two of nine score columns at a time, so no
+               sector could be read whole. Each sector is now a card: its name, stock count and composite on
+               the first line, the eight factor scores four to a line under it, every figure labelled. Same
+               numbers, same order, same shading; nothing scrolls. */
+            .sector-matrix { -webkit-mask-image: none; mask-image: none; overflow: visible; }
+            .sm-table, .sm-table tbody { display: block; width: 100%; }
+            .sm-table thead { display: none; }
+            .sm-table tbody tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 8px; row-gap: 8px;
+                                 padding: 12px 0; border-bottom: 1px solid var(--border); }
+            .sm-table tbody td { border-bottom: 0; padding: 0; min-width: 0; display: flex; flex-direction: column;
+                                 align-items: flex-start; text-align: left; font-size: 13px; line-height: 1.2; }
+            .sm-table tbody td::before { content: attr(data-l); font-size: 10px; font-weight: 500; letter-spacing: .04em;
+                                         text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+            .sm-table td.sm-sector { position: static; grid-column: 1 / span 2; grid-row: 1; max-width: none; background: none;
+                                     font-size: 14px; font-weight: 500; white-space: normal; justify-content: center; }
+            .sm-table td.sm-sector::before { content: none; }
+            .sm-table td.sm-n { grid-column: 3; grid-row: 1; }
+            .sm-table td.sm-comp { grid-column: 4; grid-row: 1; font-size: 15px; font-weight: 600; color: var(--text-primary); }
         }
         /* the header at laptop widths: nine nav items and the wordmark - the search keeps its icon and
            shortcut a little sooner so "Diagnostics" is not clipped */
@@ -11695,6 +11805,7 @@ def _css_page() -> str:
                          box-shadow: inset 0 -1px 0 var(--border); }
         }
         #correlation-heatmap { -webkit-mask-image: none; }
+        #correlation-heatmap:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
         @media (max-width: 760px) {
             #correlation-heatmap { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
                                    mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
@@ -11794,7 +11905,7 @@ def _css_page() -> str:
         @media (min-width: 761px) and (max-width: 1300px) {
             .data-table th:nth-child(1) { width: 38px; }
             .data-table th:nth-child(5) { width: 140px; }
-            .data-table th:nth-child(2) { width: 44px; }
+            .data-table th:nth-child(2) { width: 52px; }
             .data-table th:nth-child(3) { width: 64px; }
             .data-table th:nth-child(6) { width: 80px; }
             .data-table th:nth-child(n+7):nth-child(-n+14) { width: 52px; }
