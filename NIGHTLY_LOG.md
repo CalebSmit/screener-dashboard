@@ -15752,3 +15752,164 @@ untouched. The engine rerun moved no statistic.
   (est. 5-7 min), with an old-vs-new identity check. Its other ranked items need weeks of
   comparison data; leave fetch concurrency alone.
 - `scripts/rehearse_publish.py --full` still runs its tests serially - a cheap follow-up.
+
+## 2026-10-27 (06:00 session) - PRODUCT. A flaky ship gate fixed at the root, the open proposal refused on the number it asked for, and the drilldowns re-checked against the engine
+
+**Health (rule 8, all five):** last code session ran? **yes** - the 2026-10-26 13:00 midday
+session ends "Run complete: shipped to main", tag `good/2026-10-26-1340`. Data loop published?
+**yes** - 2026-10-27 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored, live at 02:20.
+Evidence base at `1m` = **38 rows, newest 2026-09-25 (32 days ago, bound 40), 4 effective**.
+Priority 0: `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor
+Lab** (opened 2026-10-12, **age 15 days**) - not advanced today; the next non-retrospective
+Friday is 2026-11-06 and nothing here competed for it.
+**Tests:** before **1 failed, 3247 passed, 1 skipped** - the failure was *flaky, not mine*, and
+became the session's first work (below). After: **3250 passed, 1 skipped** (+2 new scheduler
+tests, +7 brief tests, −1 flake).
+**Owner queue / rotation:** `OWNER_FOCUS.md` item 1 sub-item 1 ("decide the OPEN proposals") was
+waiting with one, 1 day open, so it came before the Tuesday focus as the prompt requires. The
+Tuesday focus was then done in its verification half (drilldowns against the engine) and found
+nothing broken. Nothing deferred for a loop or a gate.
+
+### Did
+
+**1. Gate 1 was flaky, and the flake was a test asserting a race.** The session's baseline came
+back `1 failed, 3247 passed` on
+`test_session_ends_clean.py::test_a_failed_worker_stops_the_run_with_the_serial_prefix_appended`,
+with `assert ['older'] == ['older', 'baseline', 'e1', 'e2', 'e3']`. The same test then passed
+alone, passed under `-n auto` in its own module, and the full suite passed twice more on the
+identical tree. **A nondeterministic gate 1 is worse than a red one**: the runner re-runs all four
+gates itself, so this could refuse a merge for a reason unconnected to the day's work, and would
+look like a different fault each time.
+
+The cause is not in the scheduler. `run_parallel`'s documented guarantee is that the ledger holds
+**a** prefix of the serial order; the test asserted the **maximal** prefix, which additionally
+requires workers 0 and 2 to reach their first row before worker 1 reaches its failing one - a race
+between three Python interpreter startups, held off only by a 0.3 s sleep on two unrelated rows.
+The parallel suite shipped 2026-10-26 puts an xdist worker on every core, which is exactly what
+makes a process lose that race. **Reproduced 100%** by delaying the other workers' first rows, the
+thing CPU contention actually does to startup: the prefix collapses to `['older']` and the failure
+is byte-identical to the baseline's.
+
+Fixed by removing the race rather than the assertion. The fake engine gains a done-marker per
+finished row and a barrier that waits on them, so e4 cannot fail until **every row another worker
+owns has finished** (c1 excluded - worker 1 runs it *after* e4, so waiting on it would deadlock
+rather than order anything). The maximal-prefix assertion is now a fact of the run instead of a
+hope, and **strictly stronger than before**: e5, e6, v1 and v2 are all demonstrably finished and
+still withheld, which is the "nothing after it even if it finished" clause the old sleep could only
+hope for. A second test pins the outcome that actually fired on the live machine - a short prefix -
+with assertions that are universal invariants (a prefix, never a hole, nothing at or after the
+failing row), so it holds whoever wins and cannot itself flake. Verified against the adverse
+schedule that broke the old test 100% of the time, plus twelve repeats under a live xdist load.
+
+**Swept for the same shape elsewhere and found none.** The only other wall-clock tests are
+`test_loop_mutual_exclusion`'s acquire loop (a 60 s polling deadline - a liveness bound, not a
+race) and `test_a_worker_stops_when_its_parent_goes`, whose 1 s sleep asserts the worker is *still
+running*, a claim slowness only reinforces.
+
+**2. The open proposal: REFUSED as written, on the measurement it nominated itself.**
+`research/2026-10-26-data-run-timing.md` section 5 item 1 asked for the SEC Form 4 refresh to be
+overlapped with the Yahoo ticker fetch, worth **~5-7 minutes**, and - to its credit - named the
+evidence that should decide it: *"read the first `PHASE TIMING` line in `logs/datarun-*.log`
+before deciding."* That line existed for the first time this morning.
+
+**`context.sec_insider` is 87.5 s, not ~400 s.** Not a short run either: 503 tickers, 566
+requests, 63 new filings, 0 failures, `complete: true`. The note's own 335 s stopwatch did not
+transfer because it timed EDGAR at **21:27-21:35**, where the median `submissions` response was
+0.50 s. At 02:00 the step is **floor-bound, not latency-bound** - 566 x `MIN_INTERVAL` 0.13 s =
+**73.6 s** of politeness this project imposes on itself, so EDGAR's share is ~14 s against ~262 s
+in the evening. **Even an infinitely fast EDGAR leaves 74 s**, so there is almost nothing there to
+overlap. Section 3's ~400 s was a *remainder* (`fetch_time` less every other stage) and so absorbed
+what the list-scheduling model under-counted: it put the Yahoo fetch at 452 s and the measured
+`fetch.tickers` is **659 s**. The "~500 s unaccounted" the note went looking for was mostly the
+ticker fetch itself.
+
+So item 1's ceiling is **~92 s**, and it would buy that by threading Form 4 XML parsing into the
+phase the same run shows **rate-limited on 39 tickers with a 124.7 s retry pass** - the longest
+phase and the one with a demonstrated failure mode. Wrong trade. **The ranking inverts with the
+number:** item 2 (EDGAR's daily form index, ~566 requests -> ~2) takes the same step to ~2 s, a
+*larger* saving than overlapping can reach at all, with no concurrency, no GIL contention, and 92
+MB/day less downloaded to find 57 documents. Section 8 of the note has the account; the status line
+is rewritten and `open_proposals()` returns `[]`.
+
+**3. The count that decision says to watch now has somewhere to be watched.** Item 6 proposes
+raising worker count only after the rate-limited count reads 0 "on every 02:00 run for a month" -
+and that number lives in a run's `meta.json` and one line of a gitignored log. That is precisely the
+rule-8 failure: the evidence-base line read "3 rows, newest 2026-02-22" for 183 days because nobody
+wrote it down. The brief's At-a-glance gains one row, built like the filing-check row - parsed from
+the line the run prints, **omitted entirely when a run printed none rather than guessed**:
+
+    | Data run timing | **19 min** total; slowest `fetch.tickers` 659 s, `snapshot` 136 s,
+      `fetch.retry` 125 s; **39 tickers rate-limited** |
+
+A clean run still states "0 tickers rate-limited" - that is the reading the month is looking for,
+and a row appearing only when something is wrong makes its absence ambiguous.
+`tests/test_phase_timing.py`'s `_MUST_NOT_READ` bars modules that **score, publish or hand the
+ranking to the bot**; the brief is none of those and timing is provenance about the machine, which
+is what it reports. A test pins the prefix to the one `phase_timing.py` prints, so the row cannot
+silently go blank.
+
+**4. The Tuesday focus: four drilldowns re-checked against the engine, all reproduce.** Looked at
+the live page at 1440 and 375px.
+
+| | composite from its own panels | page says |
+|---|---|---|
+| HST #4 | 20.46+18.15+4.68+12.636+4.64+5.30+2.915+2.415 = **71.196** | 71.2 |
+| JPM #339 (**bank profile**) | 8.382+8.58+7.904+8.502+7.13+3.79+0.10+1.745 = **46.133** | 46.1 |
+| EXPE #1 | `sustainable_growth` 97.14 pct x 15% weight = **14.571** | 14.57 points |
+| CF #20 | Valuation+Quality 19.9+19.3 = **39.2** of 65.4 | 39.2 of its 65.4 |
+
+The rank-percentile sentences are right too (JPM 159/497 = **32%**, HST 1−3/497 = **99%**), and the
+composite is still described as "a 0-100 score built from its 8 category scores and their weights,
+**not a percentile**" - the 2026-10-07 fix holding.
+
+**And the three names the health check flagged to the owner this morning all say so to the user**,
+which is the thing worth checking on a product day. EXPE (#1) carries the `fign` note on its own
+metric row - *"Shareholders' equity is only 4.2% of total assets ... this measure sits at its 100%
+cap"* - one of 48 stocks with one. CF (#20) renders *"Checked against the company's own SEC filing
+for the same quarters: total assets, equity, revenue and operating cash flow agree within 2%; net
+income (16%) differs from it"*, with the standing caveat naming minority interests, which is what a
+16% gap at CF Industries almost certainly is. **No defect found; the Tuesday verification is a
+clean pass, not a skipped day.** I first thought EXPE's note was missing and was wrong - I had
+grepped for a key containing "note"/"audit" and the field is `fign`.
+
+### Evidence / research
+
+- Not a literature day. The decision rests on direct measurement: `logs/datarun-2026-10-27_020002.log`'s
+  `PHASE TIMING` line, `runs/3328243b902e/meta.json` (`phase_seconds`, `phase_detail`),
+  `data/insider/filings.json` `_meta` (503/566/63/0, complete), and `insider_activity.MIN_INTERVAL`.
+- The flaky-test diagnosis is a reproduction, not an inference: the adverse schedule fails the old
+  test 100% of the time with the identical assertion text, and passes the new one.
+- Run time 2026-10-26 -> 10-27 on the same stage boundary: **1,075.1 s -> 906.3 s**, 169 s, ~2.8 min
+  against the ~4 min section 4 predicted. `context.options_pass` 1.0 s against 178 s removed.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or input moved; `METHODOLOGY_CHANGELOG.md` untouched. All
+  three pieces are infrastructure, evidence-visibility and verification.
+
+### Tried and rejected
+
+- **Overlapping the SEC passes with the Yahoo fetch** - the day's refused proposal. Rejected on its
+  own nominated measurement: the step is 87.5 s and floor-bound, so the prize is ~1.5 min, and it
+  would be paid for inside the phase that was rate-limited that morning.
+- **Raising fetch concurrency** - item 6's pre-registered gate ("rate_limited 0 on every 02:00 run
+  for a month") failed on day one with 39. Honestly read, today is ambiguous rather than decisive:
+  the owner-run night merged 3h22m earlier with two real subset runs, which is inside the "within
+  hours of another run" window item 6's own theory names. Policy unchanged either way; the claim
+  "no 02:00 data run in the record was rate-limited" is corrected because it is now false.
+- **Starting the per-category trend lines** (priority 2's residual, the north-star time-dimension
+  gap). Visible again in JPM's "What changed" panel, which compares only to the Sep 28 baseline.
+  Real work, too big to finish and verify before 09:00; starting it would have left the tree dirty.
+
+### Next
+
+- **Build item 2 of the data-run note: fetch Form 4 submissions from EDGAR's daily form index**
+  instead of one `submissions` request per company (~566 -> ~2 requests, ~87 s -> ~2 s, and 92 MB
+  a day less downloaded). It is now the largest remaining saving in the 02:00 run and carries no
+  concurrency risk. Take its saving as **~85 s, not the ~5 min its own line claims** - that figure
+  was derived from the same 400 s this session refuted. Its evidence bar is unchanged and is the
+  real cost: two weeks of shadow runs finding exactly the same new filings as the per-company scan,
+  so start the shadow run now and build on it later rather than waiting to begin.
+- Watch the new brief row's rate-limited count. **A second rate-limited 02:00 run on a night with
+  no preceding owner session** would distinguish "the 02:00 slot is not immune" from "it was still
+  paying for the evening's requests", which is the question item 6 now turns on.
