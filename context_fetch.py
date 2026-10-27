@@ -84,7 +84,7 @@ def _context_for(ticker: str, price: float | None, earnings_ts, today, with_opti
 
 
 def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=print,
-           root=None, options_live=None, now=None) -> dict:
+           root=None, options_live=None, now=None, insider_from_sec=frozenset()) -> dict:
     """Add options and insider context to each fetched record, in place. Returns stats.
 
     ``options_live`` overrides the probe (tests, and a caller that already knows). When quotes are
@@ -93,6 +93,14 @@ def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=
     ``_ctx_opt_status = "quotes-closed"``, which the page states plainly. When quotes are live,
     each reading is stamped with the session and clock time it was taken at, so the page can say
     whether it is a close or a mid-session reading.
+
+    ``insider_from_sec`` names the stocks whose insider rows the caller already has from the
+    SEC's own Form 4 filings and will set after this pass (run_screener). When quotes are not
+    live, a stock's request here fetches nothing but Yahoo's insider rows, which the SEC rows
+    then overwrite - so for those stocks it is not made (2026-10-26: 503 of 503 stocks on the
+    02:00 run, ~178 s of paced requests whose result no published field kept;
+    research/2026-10-26-data-run-timing.md). With live quotes the request also fetches the
+    option chain, so nothing is skipped.
     """
     import options_cache
 
@@ -103,6 +111,7 @@ def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=
     started = time.time()
     today = datetime.now(timezone.utc).date()
     todo = [r for r in raw if "_error" not in r and r.get("Ticker")]
+    n_all = len(todo)
     done = failed = limited = 0
     pace = PACE_SECONDS
     stopped = None
@@ -141,6 +150,12 @@ def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=
                 "the 'Screener Option Quotes' task (weekdays 20:00, scripts/refresh-option-quotes.ps1); "
                 "register it with scripts/register-tasks.ps1 if Get-ScheduledTask does not list it.")
 
+    # Without live quotes a request here is for insider rows only; a stock the SEC covers needs none.
+    covered = 0
+    if not live and insider_from_sec:
+        todo = [r for r in todo if r["Ticker"] not in insider_from_sec]
+        covered = n_all - len(todo)
+
     i = 0
     while i < len(todo):
         if time.time() - started > budget_seconds:
@@ -178,9 +193,11 @@ def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=
                 break
             time.sleep(30)
             pace = min(pace * 2, 3.0)
-    stats = {"done": done, "failed": failed, "rate_limited": limited, "of": len(todo),
+    stats = {"done": done, "failed": failed, "rate_limited": limited, "of": n_all,
              "seconds": round(time.time() - started), "stopped": stopped,
-             "options_live": bool(live), "options_why": why}
+             "options_live": bool(live), "options_why": why, "insider_from_sec": covered}
     log(f"  Context pass: {'options + ' if live else ''}insider context for {done} of {len(todo)} "
-        f"stocks{f' (stopped: {stopped})' if stopped else ''}, {stats['seconds']}s")
+        f"stocks{f' (stopped: {stopped})' if stopped else ''}, {stats['seconds']}s"
+        + (f"; {covered} more have insider rows from SEC Form 4, so no Yahoo request was made"
+           if covered else ""))
     return stats
