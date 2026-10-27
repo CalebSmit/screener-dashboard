@@ -466,6 +466,24 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
         if not needed:
             continue
 
+        # Skip the download when no horizon can be measured from it (2026-10-26). A horizon is
+        # ready only once the prices hold a complete close on or after its end, and every frame
+        # `_fetch_prices_for_returns` returns - fresh or cached - ends before today, because it
+        # drops today's bar. So when no weekday lies between the earliest due end and yesterday,
+        # no close that could make any horizon ready can be in the frame (US equities print no
+        # weekend bars; a holiday is a weekday, so it never causes a skip), the code below would
+        # reach the `will retry` branch, and the frame would not be cached either (that needs a
+        # close on or after the window end, later still). The download changed nothing but the
+        # clock: on 2026-10-26 four of the six were of this kind - a horizon ending that day, or
+        # on the weekend before a Monday run - 65% of the step's time
+        # (research/2026-10-26-data-run-timing.md).
+        if not _close_possible_since(min(snap_dt + timedelta(days=HORIZON_DAYS[h]) for h in needed)):
+            logger.info(
+                f"Forward returns for {snap_date_str}: no session has closed since the "
+                f"{'/'.join(sorted(needed))} horizon end; will retry."
+            )
+            continue
+
         # Load snapshot
         try:
             snap = pd.read_parquet(snap_path)
@@ -648,6 +666,20 @@ def _fetch_prices_for_returns(
     except Exception as e:
         logger.warning(f"Price fetch failed: {e}")
         return None
+
+
+def _close_possible_since(end: pd.Timestamp, today: pd.Timestamp | None = None) -> bool:
+    """Whether a daily close dated on or after ``end`` can exist in a frame from
+    ``_fetch_prices_for_returns``, which never holds a bar dated today: True iff some weekday
+    falls in ``[end, today)``. Holidays are not excluded, so this errs towards True - towards
+    downloading - and only ever rules out a frame that could not make a horizon ready."""
+    today = pd.Timestamp(today if today is not None else datetime.now().date()).normalize()
+    day = pd.Timestamp(end).normalize()
+    while day < today:
+        if day.dayofweek < 5:
+            return True
+        day += timedelta(days=1)
+    return False
 
 
 def _last_complete_close(prices: pd.DataFrame | None) -> pd.Timestamp | None:
