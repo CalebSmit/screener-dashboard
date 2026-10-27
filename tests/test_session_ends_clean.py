@@ -16,10 +16,14 @@ runner resumes a session that still ends dirty once, *before* the gates and with
 
 from __future__ import annotations
 
+import importlib
 import importlib.util
 import json
+import os
 import re
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -307,3 +311,207 @@ def test_the_rerun_helper_is_outside_the_engines_result_paths():
     import v2_experiments as X
     assert not any("rerun_experiments" in p or "wait_for" in p for p in X.RESULT_PATHS)
     assert "ledger.jsonl" not in " ".join(X.RESULT_PATHS), "committing the ledger mid-rerun must not stale it"
+
+
+# ---------------------------------------------------------------------------- rerun_experiments.py --jobs N
+# 2026-10-26: worker processes, so the ~47-minute full rerun is not one serial chain. What these pin
+# is the scheduler's contract, on a fake engine run in real worker processes: rows reach the real
+# ledger in the serial order and nowhere else first; only the parent opens it; a worker that fails or
+# drops a row stops the run with the serial prefix appended, never a ledger with a hole in it.
+
+FAKE_ENGINE = '''
+import json, os, time
+from pathlib import Path
+
+LEDGER = Path(os.environ["FAKE_REAL_LEDGER"])
+CONF = json.loads(os.environ.get("FAKE_ENGINE_CONF", "{}"))
+
+
+def _row(i, kind):
+    log = Path(os.environ["FAKE_WRITES_DIR"]) / f"{os.getpid()}.log"
+    with log.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"id": i, "ledger": str(LEDGER)}) + "\\n")
+    time.sleep(CONF.get("delay", {}).get(i, 0))
+    if i in CONF.get("fail", []):
+        raise RuntimeError("boom " + i)
+    if i in CONF.get("skip", []):
+        return
+    with LEDGER.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"id": i, "kind": kind, "pid": os.getpid()}) + "\\n")
+
+
+def run(ids):
+    for i in ids:
+        _row(i, "experiment")
+
+
+def run_evaluations(ids):
+    for i in ids:
+        _row(i, "evaluation")
+
+
+def run_controls(ids):
+    for i in ids:
+        _row(i, "control")
+'''
+
+EXPS = ["baseline", "e1", "e2", "e3", "e4", "e5", "e6"]
+EVS = ["v1", "v2"]
+CTRLS = ["c1"]
+
+
+@pytest.fixture
+def fake_engine(tmp_path, monkeypatch):
+    """A fake engine importable by the worker processes, and the 'real' ledger it defaults to."""
+    (tmp_path / "fake_rerun_engine.py").write_text(FAKE_ENGINE, encoding="utf-8")
+    real = tmp_path / "real-ledger.jsonl"
+    writes = tmp_path / "writes"
+    writes.mkdir()
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path) + os.pathsep + os.environ.get("PYTHONPATH", ""))
+    monkeypatch.setenv("FAKE_REAL_LEDGER", str(real))
+    monkeypatch.setenv("FAKE_WRITES_DIR", str(writes))
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.delitem(sys.modules, "fake_rerun_engine", raising=False)
+    X = importlib.import_module("fake_rerun_engine")
+
+    def configure(**conf):
+        monkeypatch.setenv("FAKE_ENGINE_CONF", json.dumps(conf))
+
+    def writes_made():
+        out = []
+        for p in writes.glob("*.log"):
+            out += [json.loads(ln) | {"pid": p.stem} for ln in p.read_text(encoding="utf-8").splitlines()]
+        return out
+
+    yield X, real, configure, writes_made
+    sys.modules.pop("fake_rerun_engine", None)
+
+
+def _ids(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    return [json.loads(ln)["id"] for ln in path.read_text(encoding="utf-8").splitlines()]
+
+
+def test_parallel_work_is_dealt_deterministically_and_every_id_once():
+    R = _load("rerun_experiments")
+    work = R.assign(EXPS, EVS, CTRLS, 3)
+    assert work == R.assign(EXPS, EVS, CTRLS, 3), "the split must not depend on anything but its inputs"
+    dealt = [i for a in work for i in a["experiments"] + a["evaluations"] + a["controls"]]
+    assert sorted(dealt) == sorted(EXPS + EVS + CTRLS) and len(dealt) == len(set(dealt))
+    # experiments round-robin in registry order, so rows finish roughly in the serial order
+    assert [a["experiments"] for a in work] == [["baseline", "e3", "e6"], ["e1", "e4"], ["e2", "e5"]]
+    # each group builds its own inputs once, so it is never split between workers
+    assert sum(bool(a["evaluations"]) for a in work) == 1 and sum(bool(a["controls"]) for a in work) == 1
+    assert R.serial_order(EXPS, EVS, CTRLS) == EXPS + EVS + CTRLS
+    assert len(R.assign(["e1"], [], [], 4)) == 1, "never more workers than pieces of work"
+    assert R.MAX_JOBS <= 4, "a worker holds every monthly record; raise this only with a new measurement"
+
+
+def test_jobs_1_and_a_single_piece_of_work_run_serially_in_process(monkeypatch):
+    R = _load("rerun_experiments")
+    calls = []
+
+    class X:
+        run = staticmethod(lambda ids: calls.append(("run", ids)))
+        run_evaluations = staticmethod(lambda ids: calls.append(("evaluate", ids)))
+        run_controls = staticmethod(lambda ids: calls.append(("control", ids)))
+
+    monkeypatch.setattr(R, "run_parallel", lambda *a, **k: pytest.fail("must not start workers"))
+    R.execute(X, ["baseline", "e1"], ["v1"], ["c1"], jobs=1)
+    assert calls == [("run", ["baseline", "e1"]), ("evaluate", ["v1"]), ("control", ["c1"])]
+    calls.clear()
+    R.execute(X, ["baseline"], [], [], jobs=4)            # one piece of work: no worker to share it
+    assert calls == [("run", ["baseline"])]
+
+
+def test_parallel_rows_reach_the_ledger_in_the_serial_order_and_only_through_the_parent(fake_engine):
+    R = _load("rerun_experiments")
+    X, real, configure, writes_made = fake_engine
+    # the first worker is the slowest, so the others finish rows far out of serial order
+    configure(delay={"baseline": 1.5, "e3": 0.5})
+    assert R.run_parallel(X, EXPS, EVS, CTRLS, 3, engine="fake_rerun_engine", poll_seconds=0.05) == 10
+    assert _ids(real) == EXPS + EVS + CTRLS
+    writes = writes_made()
+    assert len(writes) == 10
+    assert all(Path(w["ledger"]).resolve() != real.resolve() for w in writes), \
+        "a worker opened the real ledger - only the parent may append to it"
+    by_worker: dict[str, set] = {}
+    for w in writes:
+        by_worker.setdefault(w["pid"], set()).add(w["ledger"])
+    files = [next(iter(v)) for v in by_worker.values()]
+    assert all(len(v) == 1 for v in by_worker.values()) and len(set(files)) == len(files) == 3, \
+        "one private file per worker"
+    # every row was written by a worker process, then copied by the parent
+    rows = [json.loads(ln) for ln in real.read_text(encoding="utf-8").splitlines()]
+    assert {r["kind"] for r in rows} == {"experiment", "evaluation", "control"}
+    assert all(r["pid"] != os.getpid() for r in rows)
+
+
+def test_a_failed_worker_stops_the_run_with_the_serial_prefix_appended(fake_engine):
+    R = _load("rerun_experiments")
+    X, real, configure, _ = fake_engine
+    real.write_text(json.dumps({"id": "older"}) + "\n", encoding="utf-8")
+    configure(fail=["e4"], delay={"e5": 0.3, "e6": 0.3})
+    with pytest.raises(SystemExit, match="failed"):
+        R.run_parallel(X, EXPS, EVS, CTRLS, 3, engine="fake_rerun_engine", poll_seconds=0.05)
+    # everything before e4 in the serial order, nothing after it even if it finished
+    assert _ids(real) == ["older", "baseline", "e1", "e2", "e3"]
+
+
+def test_a_worker_that_drops_a_row_is_an_error_not_a_shorter_ledger(fake_engine):
+    R = _load("rerun_experiments")
+    X, real, configure, _ = fake_engine
+    configure(skip=["v1"])
+    with pytest.raises(SystemExit, match="no row for"):
+        R.run_parallel(X, EXPS, EVS, CTRLS, 2, engine="fake_rerun_engine", poll_seconds=0.05)
+    assert _ids(real) == EXPS
+
+
+def test_a_worker_refuses_to_write_the_real_ledger(fake_engine):
+    R = _load("rerun_experiments")
+    X, real, _, _ = fake_engine
+    spec = {"worker": 0, "engine": "fake_rerun_engine", "ledger": str(real),
+            "experiments": ["e1"], "evaluations": [], "controls": []}
+    with pytest.raises(SystemExit, match="never write the real ledger"):
+        R.worker_main(spec)
+    assert not real.exists()
+
+
+def test_a_worker_stops_when_its_parent_goes(fake_engine, tmp_path):
+    """A session cut off mid-rerun kills the parent; its workers must not run on for half an hour."""
+    _, _, configure, _ = fake_engine
+    configure(delay={"e1": 60})
+    parent = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"])
+    spec = {"worker": 0, "engine": "fake_rerun_engine", "ledger": str(tmp_path / "w.jsonl"),
+            "experiments": ["e1"], "evaluations": [], "controls": [], "parent_pid": parent.pid}
+    p = subprocess.Popen([sys.executable, str(ROOT / "scripts" / "rerun_experiments.py"), "--worker",
+                          json.dumps(spec)], stdin=subprocess.DEVNULL)
+    try:
+        time.sleep(1.0)
+        assert p.poll() is None, "the worker must run while its parent does"
+        parent.kill()                                # the session is cut off
+        assert p.wait(timeout=20) == 3
+    finally:
+        for proc in (p, parent):
+            if proc.poll() is None:
+                proc.kill()
+    assert not (tmp_path / "w.jsonl").exists()
+
+
+def test_a_worker_that_starts_a_subprocess_does_not_hang(fake_engine, tmp_path):
+    """The real engine shells out to git for every row. The first parent-watcher read the worker's
+    stdin, and on Windows a pending pipe read blocks the handle duplication a child process needs:
+    every real worker hung at its first git call while this file's fake engine, which started no
+    process, passed. So the fake engine here does what the real one does."""
+    X, real, _, _ = fake_engine
+    (tmp_path / "fake_rerun_engine.py").write_text(
+        FAKE_ENGINE.replace("def run(ids):\n",
+                            "def run(ids):\n    import subprocess, sys\n"
+                            "    subprocess.run([sys.executable, '-c', 'pass'], check=True, timeout=30)\n"),
+        encoding="utf-8")
+    R = _load("rerun_experiments")
+    t0 = time.monotonic()
+    R.run_parallel(X, ["baseline", "e1"], [], [], 2, engine="fake_rerun_engine", poll_seconds=0.05)
+    assert time.monotonic() - t0 < 60
+    assert _ids(real) == ["baseline", "e1"]

@@ -41,7 +41,9 @@ salvage (`research/2026-10-19-session-ended-on-a-background-job.md`). So, as har
 - **Research-engine reruns resume:** `python scripts/rerun_experiments.py` runs only the rows not
   yet current (`--status` to see them; `--limit 4`, about 8 minutes, fits one foreground call).
   The full rerun is about **47 minutes** (measured 2026-10-19: 1.7 min to build the baseline, 1.6
-  min per experiment). Commit the ledger and the report after every call.
+  min per experiment); `--jobs 4` runs it in four worker processes with identical rows (measured
+  2026-10-26: ~27 minutes estimated for all 32 against ~63 serial on a loaded machine), still waited
+  on in the foreground. Commit the ledger and the report after every call.
 - **Time budget: be finished - committed, pushed, clean - by {{DEADLINE}}** (local time). Task
   Scheduler stops this whole run four hours after it starts, gates and salvage included, and the
   runner needs about six minutes of that for the gates. Do not start a job you cannot finish and
