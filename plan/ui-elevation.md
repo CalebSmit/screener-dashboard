@@ -65,4 +65,35 @@ families *with no roles*; that rule still binds.
 
 ## Status
 
-The first pass (2026-10-27, owner-run) and what it left are recorded below.
+### First pass - 2026-10-27, owner-run (`good/2026-10-27-owner-1`)
+
+Four agents, one surface each, every diff reviewed before merging; the combined tree passed the four
+gates and `scripts/rehearse_publish.py`, and `dashboard_data.js` / `dashboard_context.js` /
+`lab_data*.js` are byte-identical to the live site.
+
+| Surface | What changed | Where |
+|---|---|---|
+| Dashboard page | display serif headlines and wordmark; **"498 companies, one dot each"** (the published composites, top 25 and trap flags marked, hover/tap names a stock, click opens it; one SVG built after first paint); leader cards as labelled score rows with a tick at 50; a small true chart on every home tile; heat-shaded score cells; phone list 96 -> 80 px a row (page ~6,900 px shorter); **open sections were capped at 5,000 px, so Reporting soon hid ~100 companies** - uncapped, day headings sticky; footer `#gen-time` labelled true UTC | `_css_page()`, `_js_page()`; `tests/test_dashboard_page_ui.py` (5) |
+| Drilldown | masthead: ticker and sector line, the company name in the serif, rank / composite / price, and a strip of all 498 composites with this stock marked; trap chips in the header; heat score tiles with a median tick, unscored as a dashed outline; "Why it ranks here" with its figures emphasised (characters wrapped, never changed - tested on every stock); How it adds up as a receipt with a stacked total; one colour language for charts; folding header; Enter/Space on every card; drag the header down to close on a phone; the Data tab now lights; the rank-history label no longer overprints at 375 | `_css_drilldown()`, `_js_drilldown()`; `tests/test_drilldown_presentation.py` (10) |
+| Factor Lab | the four rows of chips became a numbered index grouped by category (sticky side column >= 1080 px, a picker on phone) with each experiment's matched-figures bar; verdicts drawn as one cell per figure with the "no effect would match k" tick; tolerance marks per figure; loading state for lazy series; deep links open the experiment | `lab.html` |
+| Has it been tested? | the headline answer drawn as IC estimates with 95% intervals and the check's lead; the trading rule's gap drawn the same way; tables stack on phone | `research_page.py` (`headline_figure`, `excess_figure`) |
+| Bot dashboard | text inks at AA (tokens unchanged); direction shown by a triangle as well as colour; the tape scrolls with the page, pauses, stands still under reduced motion; one-row phone masthead and a theme switch; Replay named "Machinery" with its own band and per-session strip; chart end labels no longer collide; a withheld Sharpe shows a dash, never a count in the figure slot | `screener-bot` `bot/dashboard_template.html`, `DESIGN.md` |
+
+New tool: **`scripts/rebuild_page.py`** rebuilds `index.html` / `dashboard.html` from the published
+payload without being able to touch it; `tests/test_rebuild_page.py` fails if the committed page is
+not what the generator builds.
+
+### Left for a later pass (owner-run; nightly sessions do not take design work)
+
+1. Phone Reporting soon hides the "Last quarter" and "Insiders" columns - decide whether phone
+   readers should see them.
+2. Phone Weighting select clips "Balanced (published)".
+3. Phone Side-by-side puts the third stock in a sideways scroll.
+4. The dot picture is not keyboard-focusable (the table stays the keyboard route; it has an
+   `aria-label` summary).
+5. `renderFlagsWarnings()` writes to a `#modal-flags` element that does not exist, so its Beneish
+   and channel-stuffing badges have never rendered. Wiring it in would publish thresholds not
+   registered in `claims.py` - register them first, or delete the dead code.
+6. Bot: the "Against what you could hold instead" header wraps to four lines on a phone; the
+   one-mark empty chart is a large dashed box; ladder labels are not keyboard-reachable; white on
+   the map's full gain tile is 4.42:1 (the colour is locked in `DESIGN.md`).
