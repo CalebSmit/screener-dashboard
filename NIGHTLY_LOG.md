@@ -15913,3 +15913,75 @@ grepped for a key containing "note"/"audit" and the field is `fign`.
 - Watch the new brief row's rate-limited count. **A second rate-limited 02:00 run on a night with
   no preceding owner session** would distinguish "the 02:00 slot is not immune" from "it was still
   paying for the evening's requests", which is the question item 6 now turns on.
+
+## 2026-10-27 (owner-run, day) - UI ELEVATION. All four tools redesigned, presentation only; last night's speed work checked on its first live runs
+
+**Health (rule 8, all five):** last code session ran? **yes** - 06:00 today, "Run complete:
+shipped to main", tag `good/2026-10-27`. Data loop published? **yes** - 02:00 today, "Data loop
+complete", **HEALTH: PASS**, 498 scored. Evidence base at `1m` = **38 rows, newest 2026-09-25 (32
+days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 15 days**) - its page redesigned
+(below), no experiment added.
+**Tests:** **3258 passed, 1 skipped** at the start (staging, after the foundation commit); **3273
+passed, 1 skipped** on the merged tree (+15: the page's 5, the drilldown's 10). Gates 2-4 green;
+`python scripts/rehearse_publish.py` PASSED; `dashboard_data.js`, `dashboard_context.js`,
+`lab_data*.js`, `signals.json` and `SCREENER_OVERVIEW.md` **identical to `origin/main`**.
+**Owner queue:** the owner's request today - *"do a full in depth ui/ux update to all the tools ...
+Be creative and look into absolutly everything"* - is `OWNER_FOCUS.md` Done 2026-10-27. Nothing
+scheduled was reversed; the 06:00 session's decisions (the data-run proposal refused, the
+rate-limit row) are untouched.
+
+### Last night's work on its first live runs (owner asked: "make sure the runs last night worked")
+
+- **02:00 data run:** published, PASS. `PHASE TIMING` present (total 1,118 s). The claims gate
+  ran **`[parallel, -n auto]`: 1,576 passed in 65 s** (165 s serial the day before). The context
+  pass made **0 Yahoo insider requests** - `insider_from_sec 503`, `context.options_pass` **1.0 s**
+  against 178 s. The run was rate-limited on 39 tickers with a 125 s retry pass; the 06:00 session
+  already recorded that (`research/2026-10-26-data-run-timing.md` 8.5).
+- **06:00 session:** gate 1 parallel, 3256/1 in 1:42, shipped. **It found one flaky test that
+  last night's parallel engine rerun introduced** (the scheduler's prefix test raced worker startup
+  under xdist load) and fixed it at the root. Honest record: the owner-run night shipped it.
+- **Bot:** CI green on the merged arrival-cost/replay work; today's trade run fires at 15:00 UTC.
+
+### Did - the redesign (`plan/ui-elevation.md`, `good/2026-10-27-owner-1`)
+
+Audited every surface first (100 screenshots, 1440 and 375). The tools were clean but generic, so
+the direction is identity: **a research publication with an instrument inside it** - Newsreader
+for headlines (a third family with one job; `plan/dashboard-design-system.md` extended), the data
+as the decoration, depth through light. I laid the shared foundation (fonts, `--font-display`,
+`--hairline-hi`, and **`scripts/rebuild_page.py`**, which rebuilds the page from the published
+payload without being able to touch it - `tests/test_rebuild_page.py` fails if the committed page
+is not what the generator builds). Then four agents in worktrees, one surface each; every diff and
+its screenshots reviewed before merging; the two `generate_dashboard.py` branches conflicted only
+on their include lines and the adjacent new functions, resolved by keeping both and rebuilding.
+
+- **Dashboard page:** "498 companies, one dot each" (published composites; top 25 blue, trap flags
+  amber rings, median line; hover/tap, click opens the stock); leader score fingerprints with a tick
+  at 50; a small true chart on every home tile; heat-shaded table scores; phone list 96 -> 80 px.
+  **A real defect fixed:** open sections were capped at 5,000 px with overflow hidden, so Reporting
+  soon's 7-day list (8,857 px) hid ~100 companies. First-paint nodes 2,718 of 3,000.
+- **Drilldown:** a masthead with the company in the serif and the stock's place among all 498;
+  heat score tiles; the arithmetic as a receipt; folding header; keyboard on every card; drag to
+  close on a phone; two small bugs fixed (the Data tab never lit; the rank-history label overprinted
+  at 375). Sentences byte-identical - a test renders every stock's summary against the payload.
+- **Factor Lab / research page:** the chip wall became a grouped, numbered index with verdict
+  charts; the research headline drawn as intervals. Wordmark and eyebrow aligned with the dashboard
+  by me after review.
+- **Bot dashboard** (`screener-bot` `98f2e9e`, CI green; suite 532, both rehearsals exit 0): AA
+  text inks, direction by triangle as well as colour, a pausable tape that stands still under
+  reduced motion, one-row phone masthead, Replay named machinery. **I sent one change back:** the
+  withheld Sharpe showed a big "2" (weeks so far) in the figure slot, which reads as a Sharpe of 2;
+  it now shows a dash and "needs 26 weeks · 2 so far".
+
+### Methodology changed
+
+**None.** No weight, metric, threshold or sentence. `METHODOLOGY_CHANGELOG.md` untouched.
+
+### Next
+
+- The six residuals in `plan/ui-elevation.md` "Left for a later pass" are owner-run work (nightly
+  sessions do not take design work); item 5 - `renderFlagsWarnings()` writing to a missing element,
+  so its Beneish and channel-stuffing badges never render - is a correctness question a Tuesday
+  session may take: register the thresholds in `claims.py` and wire it, or delete the dead code.
+- Read the 02:00 run's first page built by this code: `PHASE TIMING`'s `dashboard` phase (24 s
+  today) should not move materially with the new page functions.

@@ -106,14 +106,14 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **At a glance** (`renderKPIs`): Ranked / Moved materially / **Track record** (`#kpi-track`, filled by
   `contextMetas()` once `dashboard_context.js` lands, "not loaded" on failure) / Trap flags (or the
   momentum weight when the regime rule moved it). Metric coverage lives in Diagnostics.
-- **Leading the ranking** (`#sec-top5`, nav "Leaders"): each card's eight scores as a column profile
-  (`.t5-profile`); a swipe row on a phone.
+- **Leading the ranking** (`#sec-top5`, nav "Leaders"): each card's eight scores as a horizontal
+  fingerprint (`.t5-fp`, since 2026-10-27; was the column profile `.t5-profile`); a swipe row on a phone.
 - **Section tiles**: Holdings ... Diagnostics are wrapped in `#sec-grid` - two columns of tiles, each with
   `.sec-meta` (its headline number) and `.sec-blurb`; an open tile spans the row. **Sections that draw
   charts open first and draw second** (the toggle wrappers in `_js` and `initContext`) - a chart drawn
   in a closed tile measures half the width.
-- **The full ranking** (`#sec-universe`): score cells carry no background; their ink brightens with the
-  score (`--v`). The sector heatmap does the same (`--t`).
+- **The full ranking** (`#sec-universe`): score cells carry the heat token since 2026-10-27 (below); until
+  then no background and ink that brightened with the score (`--v`). The sector heatmap keeps the ink (`--t`).
 - **Stock sheet**: `#modal-score-row` comes **before** `#modal-summary`, and the jump links follow
   (`test_the_drilldown_reads_in_the_order_its_jump_links_promise`); the header adds the last price
   (`.mh-price`, hidden on a phone).
@@ -129,6 +129,34 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **Link previews**: OG/Twitter tags on all three pages; `og-card.png` from `scripts/make_og_card.py` (no live numbers).
 - **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
   Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
+
+## The UI elevation, the page, 2026-10-27 (owner-run) - `plan/ui-elevation.md`
+
+Presentation only (payload byte-identical; `scripts/rebuild_page.py`). The page's own layer is
+`_css_page()` (emitted last) and `_js_page()` (after `_js_context`), so it is in two places, not spread
+through the older blocks. What a session must know before touching these:
+- **Type**: `--font-display` (Newsreader) on the hero title, the wordmark, `.dist-title`, every section
+  and tile title, the guide's three statements, the Methodology and Side-by-side dialog titles and the
+  methodology's `h2`s. Figures, labels and controls stay Inter.
+- **The whole ranking, one dot per company** (`#dist`, between `#kpi-row` and the guide): a unit histogram
+  of the published `Composite`, built by `renderDist()` after first paint as **one SVG of a few paths**
+  (`#dist-plot *` < 40 nodes). Blue = rank <= 25, amber ring = a trap flag, dashed line = the engine's
+  `kpis.median_composite`, the published #1 labelled. Hover names a dot (`DIST.tip`), a click opens its
+  sheet. Redrawn on a width change. `tests/test_dashboard_page_ui.py`.
+- **Tile charts** (`renderTileViz()`, one `.tile-viz` per tile header, hidden once the tile opens): What
+  changed = movers counts as shares of N; Reporting soon = companies per day for 14 days (first 7 solid);
+  Market = curve, VIX and inflation at FRED's `pct_10y`; Track record = the three published totals;
+  Factor analytics = `vt_by_sector` rates; Diagnostics = each weight's `avg_jaccard` against the 0.85
+  line; My holdings = each saved name's rank on 1..N. Each is drawn from a published number, never a new one.
+- **Heat**: `.data-table td.sc` background `rgba(57,135,229, 0.03 + 0.25 x score/100)`, ink unchanged.
+- **Phone rankings**: a 9-column card, `--row-h: 80px` (was 96): rank over its move in column 1, the
+  name and composite on line 1, the eight shaded scores on line 2; a flag takes half the name's width (`:has`).
+- **Open sections are uncapped** (`.sec-grid > .collapsible-section:not(.collapsed) > .section-body`):
+  the collapse rule's 5,000px cap cut Reporting soon off at ~60% of its 7-day list. Only closed bodies
+  carry the cap. Reporting's day headings are sticky on desktop.
+- **Track record figures** share one row (`auto-fit`); **Market readings** flow in CSS columns.
+- The static `#gen-time` label converts the run's local `start_time` to UTC (it printed 02:00 CDT as
+  "02:00 UTC"); the committed page keeps the old string until the next full run.
 
 ## Added 2026-10-15 (owner-run, night) - the evidence and the lab, one click from the top
 
@@ -311,6 +339,41 @@ industrial business only. `sec_crosscheck.lease_book` / `lease_capex_note`,
 `tests/test_capex_lease_note.py`. Display-only, and the reason it exists is
 `research/2026-10-14-capex-definition.md` section 5 - the proposal to change the metric was
 refused. `cavs` is a general per-stock, per-metric slot: a new one needs a claim and its own test.
+
+## The stock sheet, UI elevation (2026-10-27) - `_js_drilldown()` / `_css_drilldown()`
+
+`plan/ui-elevation.md`. Presentation only; every rule is scoped to `#stock-modal` and emitted
+last. `tests/test_drilldown_presentation.py` (10, browser).
+- **Masthead:** the identity block is `display: contents`, so ticker, sector, tools and close share
+  the top line and the company name (display serif) gets the full width. Figures: **Rank, then
+  Composite with a strip of every published composite** (`compDistHtml`, 40 bins of
+  `stock_detail[*].composite`, this one's bin and a line in the accent, a tick at
+  `kpis.median_composite`), then Last price (shown on phones again). **Trap chips** (`#modal-chips`,
+  "Value trap" / "Growth trap" from `s.vt` / `s.gt`, the table's words). The header **folds** once
+  the body scrolls past 140px (`.is-compact`; back at the top it opens); on a phone the folded
+  header drops the name, tools, chips and price.
+- **Tabs** are an underline strip; the lit tab is kept in view (`tabFollow`), and at the end of the
+  sheet the last section's tab lights (`modalSpy`, it used to stay on Peers).
+- **Score tiles** are a fingerprint: the heat token as the wash, text in ink, a tick at 50 on each bar.
+  Tiles, How-it-adds-up rows and the workings' category headers are `role="button"` and work from
+  Enter/Space.
+- **Why it ranks here:** section titles in the display serif; the lead sentence as the hero
+  statement; on wide screens each group label spans its sentences in a left column (`grid-row:
+  span N`). `figEmph()` sets figures with a decimal point, %, $ or an ordinal in ink - it wraps
+  characters of the escaped sentence and never changes one (a test renders all ~500 summaries and
+  compares them to the payload's text).
+- **How it adds up:** a receipt - hairline rows, a double rule, and the total track is a **stacked
+  bar of each category's points** (`.ct-seg`, widths from `s.contrib`).
+- **Charts:** one language - the accent is this stock (weekly close, the five-year yield line, the
+  rank line), the 50-day average is dashed ink, the 200-day and medians grey; strokes do not scale.
+  The rank-history band label takes its own line below 560px (it overprinted both dates at 375px).
+- **Phone:** the sheet's header drags down to close (`sheetDrag`, from the header only, past 96px;
+  a grabber is drawn); tabs and buttons are 40-44px on a touch screen; price targets sit in a
+  2-column grid. Stepping between stocks fades the body for 160 ms (Web Animations, skipped under
+  reduced motion).
+- Not changed: `renderFlagsWarnings()` writes to `#modal-flags`, which does not exist, so its trap /
+  Beneish / channel-stuffing badges have never rendered; the trap chips above cover the trap flags.
+  Wiring the rest would publish sentences with thresholds that are not in `claims.py`.
 
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 

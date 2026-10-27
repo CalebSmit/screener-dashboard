@@ -699,6 +699,21 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-27 - "A full in depth UI/UX update to all the tools": first pass DONE (owner-run).**
+  Owner: *"right now it looks okay, but it can look great. Be creative and look into absolutly
+  everything."* All four tools, presentation only - every number, rank and sentence byte-identical
+  (payload diffed against the live site). The direction and shared tokens are `plan/ui-elevation.md`:
+  a display serif for headlines, the data as the decoration, depth through light. Shipped: the
+  dashboard's ranking drawn as one dot per company, leader score fingerprints, a small true chart on
+  every home tile, heat-shaded scores, a compact phone list, and a real fix (Reporting soon cut ~100
+  companies off at 5,000 px); the drilldown's masthead with its place among all 498, heat score
+  tiles, the arithmetic as a receipt, a folding header, keyboard and drag-to-close; the Factor Lab's
+  chip wall replaced by a grouped index with verdict charts, and the research page's headline drawn
+  as intervals; the bot's page at AA contrast with a calmer tape, a one-row phone masthead and the
+  replay unmistakably labelled machinery. What was deliberately left is listed in
+  `plan/ui-elevation.md` "Left for a later pass". Nightly sessions still do not take on design work
+  (2026-10-07) - those items are owner-run unless you say otherwise.
+
 - **2026-10-24 - The screener's half of phase 1: DONE.** Items 1-4 shipped 2026-10-22; items 5
   and 6 shipped 2026-10-24 (06:00 weekend session) - `signals.json` written only after every
   gate and staged only by the data loop, the four audit identifiers in `kpis`, and each

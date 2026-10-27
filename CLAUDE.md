@@ -226,7 +226,9 @@ improving.
 
 10. **Don't hand-edit generated files.** `dashboard.html`, `index.html`, and
    `dashboard_data.js` are outputs of `generate_dashboard.py`. Edit the
-   generator. `index.html` is what Pages serves. (`lab_data.js` and its six on-demand parts
+   generator. `index.html` is what Pages serves. For presentation work, rebuild the page with
+   `python scripts/rebuild_page.py` - it cannot touch the payload, and `tests/test_rebuild_page.py`
+   fails if the committed page is not what the generator builds (2026-10-27). (`lab_data.js` and its six on-demand parts
    `lab_data_<key>.js` are generated too, by `factor_lab.py --build`; `lab.html` and
    `lab_engine.js` are source.)
 
