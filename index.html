@@ -4031,6 +4031,34 @@
         #stock-modal .summary-source { margin-top: 18px; font-size: 12px; color: var(--text-muted); max-width: 80ch; }
         #stock-modal .ctx-teaser-btn { box-shadow: var(--hairline-hi); border-color: var(--border-bright); padding: 12px 16px; }
 
+        /* ---- The case against: the summary's page layout (label column, then the line); each line is
+           a caveat, so its rule is amber - the caveat colour, never an interactive one. Hover and focus
+           use the sheet's own neutrals and accent outline. ---- */
+        #stock-modal .case-block { margin: 4px 0 30px; padding-top: 22px; border-top: 1px solid var(--border); scroll-margin-top: 12px; }
+        #stock-modal .case-block[hidden] { display: none; }
+        #stock-modal .case-title {
+            margin: 0 0 8px; font-family: var(--font-display); font-weight: 600; letter-spacing: -.022em;
+            font-size: 23px; line-height: 1.15; color: var(--text-primary);
+        }
+        #stock-modal .case-intro { margin: 0 0 16px; max-width: 80ch; font-size: 13px; line-height: 1.55; color: var(--text-muted); }
+        #stock-modal .case-list { display: flex; flex-direction: column; gap: 2px; }
+        #stock-modal .case-item {
+            display: grid; grid-template-columns: 144px minmax(0, 1fr) 16px; column-gap: 12px; align-items: baseline;
+            width: 100%; margin: 0; padding: 10px 10px 10px 12px; text-align: left; cursor: pointer;
+            background: none; border: 0; border-left: 2px solid var(--amber); border-radius: 0 var(--radius) var(--radius) 0;
+            color: var(--text-secondary); font: 14.5px/1.6 var(--font-body);
+            transition: background var(--t-fast) ease-out;
+        }
+        #stock-modal .case-item:hover { background: var(--bg-elevated); }
+        #stock-modal .case-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        #stock-modal .case-k { font-size: 12.5px; font-weight: 600; line-height: 1.6; color: var(--text-primary); }
+        #stock-modal .case-t { max-width: 70ch; }
+        #stock-modal .case-t .fig { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+        #stock-modal .case-go { justify-self: end; color: var(--text-muted); font-size: 18px; line-height: 1; }
+        #stock-modal .case-item:hover .case-go { color: var(--text-primary); }
+        #stock-modal .case-note { margin: 12px 0 0 14px; max-width: 80ch; font-size: 13px; line-height: 1.55; color: var(--text-muted); }
+        #stock-modal .case-note-k { font-weight: 600; color: var(--text-secondary); }
+
         /* ---- How it adds up: the arithmetic as a receipt ---- */
         #stock-modal #section-contribution .modal-chart-section { box-shadow: var(--hairline-hi); }
         #stock-modal #contrib-visual .contrib-row { grid-template-columns: 148px minmax(0, 1fr) 92px; padding: 11px 8px; margin: 0 -8px; }
@@ -4131,7 +4159,12 @@
             #stock-modal .summary-body > p.summary-fact.summary-lead { font-size: 17.5px; line-height: 1.5; }
             #stock-modal .summary-group-label { margin: 18px 0 8px; padding: 14px 0 0; }
             #stock-modal .summary-group-label + .summary-fact { margin-top: 0; padding-top: 0; border-top: 0; }
-            #stock-modal .summary-title, #stock-modal .collapsible-header span:first-child { font-size: 21px; }
+            #stock-modal .summary-title, #stock-modal .collapsible-header span:first-child, #stock-modal .case-title { font-size: 21px; }
+            #stock-modal .case-item { grid-template-columns: minmax(0, 1fr) 16px; row-gap: 2px; padding: 10px 6px 10px 12px; font-size: 14px; }
+            #stock-modal .case-k { grid-column: 1; }
+            #stock-modal .case-t { grid-column: 1; grid-row: 2; }
+            #stock-modal .case-go { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+            #stock-modal .case-note { margin-left: 0; }
             #stock-modal .collapsible.collapsed .collapsible-header span:first-child { font-size: 18px; }
             #stock-modal .modal-score-val { font-size: 24px; }
             #stock-modal #contrib-visual .contrib-row { grid-template-columns: minmax(0, 1fr) auto; }
@@ -4550,6 +4583,7 @@
                 <nav class="modal-nav" aria-label="In this stock">
                     <a href="#modal-score-row" onclick="goToModal('modal-score-row');return false">Scores</a>
                     <a href="#modal-summary" onclick="goToModal('modal-summary');return false">Why it ranks here</a>
+                    <a href="#modal-case" onclick="goToModal('modal-case');return false">The case against</a>
                     <a href="#section-contribution" onclick="goToModal('section-contribution');return false">How it adds up</a>
                     <a href="#section-categories" onclick="goToModal('section-categories');return false">The workings</a>
                     <a href="#section-context" onclick="goToModal('section-context');return false">Before you decide</a>
@@ -4576,6 +4610,15 @@
 
                     <!-- One line pointing at Before you decide (context, not scored) -->
                     <div class="ctx-teaser" id="modal-ctx-teaser" hidden></div>
+
+                    <!-- The case against (owner, 2026-10-27; research/2026-10-27-tradingagents-ideas.md
+                         section 5): what this page already shows against the stock, collected in one
+                         place. Built from the payload by renderCaseAgainst; claim drilldown.case_against. -->
+                    <section class="case-block" id="modal-case" aria-labelledby="case-title" hidden>
+                        <h3 class="case-title" id="case-title">The case against</h3>
+                        <p class="case-intro">What this page shows against this stock, or that makes its rank less certain, gathered from the sections below. Each line opens the section that shows it in full; nothing here is a new figure or a verdict.</p>
+                        <div class="case-list" id="modal-case-list"></div>
+                    </section>
 
                     <!-- What the company does (provider description, display only) -->
                     <div class="about-block" id="modal-about" style="display:none">
@@ -7237,6 +7280,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             (s.gt ? '<span class="flag" title="Flagged as a possible growth trap - see Read with care">Growth trap</span>' : '');
 
         renderSummary(s);
+        renderCaseAgainst(s);
         renderAbout(s);
 
         // Score summary cards
@@ -9768,7 +9812,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             initContext();
             const sel = document.getElementById('filter-ctx');
             if (sel && sel.value !== 'all') applyFilters();
-            if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderContext(UX.current, D.stock_detail[UX.current]);
+            if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) {
+                renderContext(UX.current, D.stock_detail[UX.current]);
+                renderCaseAgainst(D.stock_detail[UX.current]);
+            }
             if (RP_DONE) renderReporting();
             if (typeof renderHoldings === 'function') renderHoldings();
             ctxFilterState();
@@ -9777,6 +9824,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         el.onerror = () => { CTX_FAILED = true; CTX_LOADED = true; initContext();
             const kv = document.getElementById('kpi-track-v'); if (kv) kv.textContent = 'not loaded';
             const ks = document.getElementById('kpi-track-s'); if (ks) ks.textContent = 'the context data could not be loaded';
+            if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderCaseAgainst(D.stock_detail[UX.current]);
             ctxFilterState();
             const sel = document.getElementById('filter-ctx');
             if (sel && sel.value !== 'all') applyFilters();
@@ -10317,6 +10365,140 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         head.addEventListener('touchend', end);
         head.addEventListener('touchcancel', end);
     })();
+
+    // =====================================================================
+    // THE CASE AGAINST (owner, 2026-10-27; research/2026-10-27-tradingagents-ideas.md section 5)
+    // =====================================================================
+    // It only COLLECTS what the sheet already publishes for this stock. Every figure is one the
+    // sheet prints elsewhere, in the same format; four of the lines are the published sentences
+    // themselves (stock_summary.py's flags, confidence, change + input churn, target and
+    // earnings, and the Data provenance panel's newer-filing line). The only cut-offs are ones the
+    // page already states: the stock's own trap and accounting flags, Reporting soon's longer
+    // window (14 days), the filing check's 2%, a target or a close below the price or average it
+    // is printed beside. No verdict, no new number. Claim drilldown.case_against;
+    // tests/test_case_against.py.
+    const CASE_CATS = ['valuation', 'quality', 'growth', 'momentum', 'risk', 'revisions', 'size', 'investment'];
+    const CASE_REPORT_DAYS = 14;     // Reporting soon's longer window (renderReporting: Next 14 days)
+    const CASE_FILING_TOL = 0.02;    // the filing check's agreement band (renderProvenance)
+    const CASE_XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];
+    // the score row's note (msr-note): "a high Risk score means a calmer price, a high Size score a
+    // smaller company and a high Investment score slower asset growth"
+    const CASE_MEANS = { risk: 'a high Risk score means a calmer price', size: 'a high Size score means a smaller company',
+                         investment: 'a high Investment score means slower asset growth' };
+    function caseListed(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+    function caseDay(d) {
+        const t = new Date(d + 'T00:00:00');
+        return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function caseNum(v) { return typeof v === 'number' && isFinite(v); }
+
+    // { items: [{k, label, text, go}], clear: [...], na: [...], wait: '' } - text is plain, never HTML.
+    function caseItems(s) {
+        const items = [], clear = [], na = [];
+        let wait = '';
+        const sm = {};
+        (Array.isArray(s.summary) ? s.summary : []).forEach(f => { if (f && f.k && !(f.k in sm)) sm[f.k] = f.t || ''; });
+        const scores = s.cat_scores || {}, contrib = s.contrib || {}, fl = s.flags || {};
+
+        // 1. The two weakest weighted categories, with the score and points the score tiles print.
+        const ew = effWeights({ cat_scores: scores });
+        const live = CASE_CATS.filter(c => ew[c] > 0 && caseNum(scores[c]))
+            .sort((a, b) => (scores[a] - scores[b]) || (CASE_CATS.indexOf(a) - CASE_CATS.indexOf(b)));
+        const weak = live.slice(0, 2).map(c => CAT_LABELS[c] + ' at ' + fmt(scores[c], 'score') + ' (' +
+            fmt(contrib[c], 'score') + ' of ' + fmtWeight(ew[c]).replace('%', '') + ' points)');
+        // Where a low score is easily misread, the score row's own note says what a high one means.
+        const means = live.slice(0, 2).filter(c => CASE_MEANS[c]).map(c => CASE_MEANS[c]);
+        if (weak.length) items.push({ k: 'weakest', label: 'Weakest categories', go: 'section-contribution',
+            text: (weak.length === 2 ? 'Its two weakest categories are ' + weak[0] + ' and ' + weak[1] : 'Its weakest category is ' + weak[0]) + '.' +
+                  (means.length ? ' ' + means.join(', and ').replace(/^a/, 'A') + '.' : '') });
+
+        // 2. Trap and accounting flags: the summary's own sentence.
+        if (s.vt || s.gt || fl.beneish_flag || fl.channel_stuffing) {
+            if (sm.flags) items.push({ k: 'flags', label: 'Flagged', go: 'modal-summary', text: sm.flags });
+        } else clear.push('no trap or accounting flag');
+
+        // 3. The average analyst target below the last price: the summary's own sentence.
+        if (caseNum(s.price) && s.price > 0 && caseNum(s.pt_mean)) {
+            if (s.pt_mean < s.price) { if (sm.target) items.push({ k: 'target', label: 'Analyst targets', go: 'section-price-targets', text: sm.target }); }
+            else clear.push('average analyst target at or above the price');
+        } else na.push('analyst targets');
+
+        // 4-5. Context, from dashboard_context.js once it has loaded.
+        const c = s.ctx;
+        if (!c) {
+            if (!CTX_LOADED) wait = 'Loading the price trend and insider trades…';
+            else if (CTX_FAILED) wait = 'The price trend and insider trades could not be shown: the context data could not be loaded.';
+            else na.push('the price trend', 'insider trades');
+        } else {
+            if (caseNum(c.px) && caseNum(c.s200) && c.s200 > 0) {
+                if (c.px < c.s200) {
+                    const tr = trendOf(c);
+                    items.push({ k: 'trend', label: 'Trend', go: 'section-context',
+                        text: 'Its last close is ' + cPct(c.px / c.s200 - 1) + ' against its 200-day average of ' + cPrice(c.s200) + (tr ? ' (' + TREND_WORD[tr] + ')' : '') + '.' });
+                } else clear.push('last close at or above its 200-day average');
+            } else na.push('the 200-day average');
+            const ins = c.ins;
+            if (ins) {
+                const net = ins.sell_n > 0 && (!ins.buy_n || (ins.sell_value || 0) > (ins.buy_value || 0));
+                if (net) {
+                    const plan = (ins.sell_planned_value != null && ins.sell_value > 0) ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '';
+                    items.push({ k: 'insider', label: 'Insiders', go: 'section-context',
+                        text: 'Officers and directors made ' + cMoney(ins.sell_value) + ' of open-market sales in the last 90 days (' +
+                              ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + plan + ')' +
+                              (ins.buy_n ? ', against ' + cMoney(ins.buy_value) + ' of purchases.' : ' and no open-market purchases.') +
+                              ' The panel gives the evidence that sales have historically said less than purchases.' });
+                } else clear.push('no net insider sales in 90 days');
+            } else na.push('insider trades');
+        }
+
+        // 6. A report inside Reporting soon's longer window: the summary's own sentence.
+        const d = daysUntil(s.earn && s.earn.d);
+        if (d !== null && d >= 0) {
+            if (d <= CASE_REPORT_DAYS) { if (sm.earnings) items.push({ k: 'report', label: 'Earnings', go: 'modal-summary', text: sm.earnings }); }
+            else clear.push('no report within ' + CASE_REPORT_DAYS + ' days of this run');
+        } else na.push('the next earnings date');
+
+        // 7. What the summary's Read with care says about the score itself.
+        const missing = CASE_CATS.some(k => !caseNum(scores[k]));
+        if (missing || fl.stale_data || s.eps_mismatch) {
+            if (sm.confidence) items.push({ k: 'caveats', label: 'Read with care', go: 'modal-summary', text: sm.confidence });
+        } else clear.push('no missing category, stale filing or EPS disagreement');
+        if (sm.input_churn) items.push({ k: 'churn', label: 'Recent move', go: 'modal-summary', text: (sm.change ? sm.change + ' ' : '') + sm.input_churn });
+
+        // 8. Inputs that disagree with the company's own filing, and a period the run is behind.
+        const xk = s.xchk || {};
+        const checked = CASE_XNAMES.filter(p => caseNum(xk[p[0]]));
+        const differ = checked.filter(p => Math.abs(xk[p[0]]) > CASE_FILING_TOL).map(p => {
+            const a = Math.abs(xk[p[0]]);
+            return p[1] + ' (' + (a * 100).toFixed(a < 0.1 ? 1 : 0) + '%)';
+        });
+        if (!checked.length) na.push('the filing check');
+        else if (differ.length) items.push({ k: 'filing', label: 'Filing check', go: 'section-provenance',
+            text: 'Checked against the company’s own SEC filing for the same quarters, ' + caseListed(differ) + ' ' + (differ.length === 1 ? 'differs' : 'differ') + ' from it by more than 2%.' });
+        else clear.push('inputs agree with its SEC filing within 2%');
+        const nf = s.newer_filing;
+        if (nf && nf.end) items.push({ k: 'behind', label: 'Filings', go: 'section-provenance',
+            text: 'The company filed its ' + nf.form + ' for the period to ' + caseDay(nf.end) + ' on ' + caseDay(nf.filed) +
+                  '. The data source had not published that period when this run fetched, so the figures here are the period before.' });
+        return { items: items, clear: clear, na: na, wait: wait };
+    }
+
+    function renderCaseAgainst(s) {
+        const box = document.getElementById('modal-case');
+        const list = document.getElementById('modal-case-list');
+        if (!box || !list) return;
+        if (!s) { box.hidden = true; list.innerHTML = ''; return; }
+        const r = caseItems(s);
+        box.hidden = false;
+        // escapeHtml first; figEmph only wraps the figures the escaped text already has
+        let h = r.items.map(x => '<button type="button" class="case-item" data-k="' + x.k + '" onclick="goToModal(\'' + x.go + '\')">' +
+            '<span class="case-k">' + x.label + '</span><span class="case-t">' + figEmph(escapeHtml(x.text)) + '</span>' +
+            '<span class="case-go" aria-hidden="true">&rsaquo;</span></button>').join('');
+        if (r.wait) h += '<p class="case-note" data-k="wait">' + escapeHtml(r.wait) + '</p>';
+        if (r.clear.length) h += '<p class="case-note" data-k="clear"><span class="case-note-k">Checked, nothing to list:</span> ' + escapeHtml(r.clear.join('; ')) + '.</p>';
+        if (r.na.length) h += '<p class="case-note" data-k="na"><span class="case-note-k">Not available for this stock:</span> ' + escapeHtml(caseListed(r.na)) + '.</p>';
+        list.innerHTML = h;
+    }
 
     // Score tiles, the rows of How it adds up and the workings' category headers act as
     // buttons; Enter and Space work them the way they work a button.
