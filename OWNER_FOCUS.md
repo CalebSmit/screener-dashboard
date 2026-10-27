@@ -127,7 +127,29 @@ Two things still outrank this file, and neither is negotiable:
      (7 tests, in the publish gate) holds the published run to the §8.4 bar, calibrated across
      **all 57 committed payloads** (max +0.3206, so no ordinary day fires) and mutation-checked
      in four ways, including an 80/20 contamination that fires at +0.4777. **No weight, metric or
-     threshold changed. No proposal is now waiting for a decision**
+     threshold changed.**
+     **A fifth proposal arrived 2026-10-26 (owner-run night) and was DECIDED 2026-10-27 (06:00) -
+     REFUSED as written, on the one measurement the note itself nominated as deciding.**
+     `research/2026-10-26-data-run-timing.md` section 5 item 1 asked a later session to overlap the
+     SEC Form 4 refresh with the Yahoo ticker fetch for **~5-7 minutes**, and said to read the
+     first `PHASE TIMING` line from a real 02:00 run before deciding. That line landed this
+     morning and puts the step at **87.5 s, not the ~400 s the note inferred** - so the saving is
+     ~1.5 min. The reason the note's own 335 s stopwatch did not transfer is that it timed EDGAR at
+     **21:30**, and at 02:00 the step is **floor-bound rather than latency-bound**: 566 requests x
+     the 0.13 s politeness interval this project imposes on itself is **73.6 s**, so EDGAR
+     contributed ~14 s against ~262 s in the evening. Even an infinitely fast EDGAR leaves 74 s.
+     **So the ranking inverts:** item 2 (EDGAR's daily form index, ~566 requests -> ~2) takes the
+     same step to ~2 s - a **larger** saving than overlapping can reach at all - with no
+     concurrency, no GIL contention and 92 MB/day less downloading. Item 2 is the one to build.
+     **Two further corrections.** Item 6's "no 02:00 data run in the record was rate-limited" is
+     **false**: the first 02:00 run that could report the count reported **39**, with a 124.7 s
+     retry pass - its own pre-registered tripwire failed on day one. Read honestly that is not a
+     clean refutation (the owner-run night merged 3h22m earlier with two real subset runs, inside
+     the window item 6's own theory names), and its policy - leave concurrency alone - stands
+     either way. And the two skips shipped that night delivered **169 s, ~2.8 min** against ~4
+     predicted; `context.options_pass` is 1.0 s against the 178 s removed. The count now has a
+     place a session reads it (the brief's At-a-glance), which is what the month of watching needs.
+     **No weight, metric or threshold changed. No proposal is now waiting for a decision**
      (`write_brief.open_proposals()` returns `[]`).
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in

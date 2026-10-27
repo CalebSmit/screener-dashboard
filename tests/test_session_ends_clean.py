@@ -327,10 +327,29 @@ LEDGER = Path(os.environ["FAKE_REAL_LEDGER"])
 CONF = json.loads(os.environ.get("FAKE_ENGINE_CONF", "{}"))
 
 
+def _done_marker(i):
+    return Path(os.environ["FAKE_WRITES_DIR"]) / ("done-" + i)
+
+
+def _await(ids, timeout=120):
+    """Block until every id in ``ids`` has finished its row, in whichever worker owns it.
+
+    This is what makes the scheduler's tests independent of who wins the race to start a
+    Python interpreter - see the note above `test_a_failed_worker...`.
+    """
+    end = time.time() + timeout
+    while not all(_done_marker(i).exists() for i in ids):
+        if time.time() > end:
+            missing = [i for i in ids if not _done_marker(i).exists()]
+            raise RuntimeError("barrier timed out waiting for " + ",".join(missing))
+        time.sleep(0.01)
+
+
 def _row(i, kind):
     log = Path(os.environ["FAKE_WRITES_DIR"]) / f"{os.getpid()}.log"
     with log.open("a", encoding="utf-8") as f:
         f.write(json.dumps({"id": i, "ledger": str(LEDGER)}) + "\\n")
+    _await(CONF.get("barrier", {}).get(i, []))
     time.sleep(CONF.get("delay", {}).get(i, 0))
     if i in CONF.get("fail", []):
         raise RuntimeError("boom " + i)
@@ -338,6 +357,7 @@ def _row(i, kind):
         return
     with LEDGER.open("a", encoding="utf-8") as f:
         f.write(json.dumps({"id": i, "kind": kind, "pid": os.getpid()}) + "\\n")
+    _done_marker(i).write_text("", encoding="utf-8")
 
 
 def run(ids):
@@ -448,15 +468,46 @@ def test_parallel_rows_reach_the_ledger_in_the_serial_order_and_only_through_the
     assert all(r["pid"] != os.getpid() for r in rows)
 
 
+# 2026-10-27: these two were one test that asserted the MAXIMAL prefix while only waiting on a
+# 0.3 s delay for it. `run_parallel`'s guarantee is that the ledger holds *a* prefix of the serial
+# order - which prefix depends on how far the other workers got, i.e. on who won the race to start
+# a Python interpreter. On a machine running the suite under xdist that race is sometimes lost, and
+# gate 1 failed with `assert ['older'] == ['older', 'baseline', ...]` for no reason connected to
+# the change under test. Both outcomes are now pinned, each made deterministic by a barrier rather
+# than by a sleep: the maximal prefix when every other row demonstrably finished first, and a
+# legal short prefix when they demonstrably did not.
+
 def test_a_failed_worker_stops_the_run_with_the_serial_prefix_appended(fake_engine):
     R = _load("rerun_experiments")
     X, real, configure, _ = fake_engine
     real.write_text(json.dumps({"id": "older"}) + "\n", encoding="utf-8")
-    configure(fail=["e4"], delay={"e5": 0.3, "e6": 0.3})
+    # e4 may not fail until every row another worker owns has finished - c1 is excluded because
+    # worker 1 runs it *after* e4, so waiting on it would deadlock rather than order anything.
+    configure(fail=["e4"], barrier={"e4": ["baseline", "e2", "e3", "e5", "e6", "v1", "v2"]})
     with pytest.raises(SystemExit, match="failed"):
         R.run_parallel(X, EXPS, EVS, CTRLS, 3, engine="fake_rerun_engine", poll_seconds=0.05)
-    # everything before e4 in the serial order, nothing after it even if it finished
+    # Everything before e4 in the serial order, and nothing at or after it *although e5, e6, v1 and
+    # v2 had all finished* - which the barrier makes a fact of this run rather than a hope.
     assert _ids(real) == ["older", "baseline", "e1", "e2", "e3"]
+
+
+def test_a_failure_before_the_other_workers_get_going_leaves_a_short_prefix_not_a_hole(fake_engine):
+    """The case that actually fired on the live machine: worker 1 fails before workers 0 and 2
+    have written anything. A shorter prefix is correct; a ledger with a gap in it never is."""
+    R = _load("rerun_experiments")
+    X, real, configure, _ = fake_engine
+    real.write_text(json.dumps({"id": "older"}) + "\n", encoding="utf-8")
+    # Worker 1 runs e1 then fails on e4 at once, while the other workers' first rows are slow.
+    # The delay only *biases* the schedule - every assertion below holds whoever wins, so unlike
+    # the test this was split from, it cannot flake on a loaded machine.
+    configure(fail=["e4"], delay={"baseline": 0.6, "e2": 0.6})
+    with pytest.raises(SystemExit, match="failed"):
+        R.run_parallel(X, EXPS, EVS, CTRLS, 3, engine="fake_rerun_engine", poll_seconds=0.05)
+    got = _ids(real)
+    order = ["older"] + R.serial_order(EXPS, EVS, CTRLS)
+    assert got == order[:len(got)], f"the ledger must stay a prefix of the serial order, got {got}"
+    stop = order.index("e4")
+    assert len(got) <= stop, f"nothing at or after the failing row, got {got}"
 
 
 def test_a_worker_that_drops_a_row_is_an_error_not_a_shorter_ledger(fake_engine):

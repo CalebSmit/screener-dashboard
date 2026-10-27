@@ -4,9 +4,12 @@
 changes what is fetched, scored or published. `METHODOLOGY_CHANGELOG.md` is untouched because no
 weight, metric, threshold or input changed.*
 
-**Proposal status: OPEN** - overlap the SEC Form 4 refresh (and the other SEC/FRED passes) with
-the Yahoo ticker fetch, section 5 item 1; read the first `PHASE TIMING` line in
-`logs/datarun-*.log` before deciding.
+**Proposal status: DECIDED 2026-10-27 (06:00 session) - REFUSED as written**, on the measurement
+this note nominated as its deciding evidence. The first `PHASE TIMING` line from a real 02:00 run
+puts the step the proposal wants to overlap at **87.5 s, not the ~400 s section 3 inferred** - so
+the saving is ~1.5 minutes, not 5-7, and it would be bought by threading CPU work into the one
+phase that was rate-limited that morning. Section 5's ranking inverts with it: **item 2 now saves
+more than item 1 and carries none of its risk.** Section 8 has the account.
 
 ## 1. The question
 
@@ -173,6 +176,11 @@ directories were deleted and every tracked file they rewrote restored. Neither s
 
 ## 5. Recommendations, ranked by minutes saved
 
+> **Superseded 2026-10-27 by section 8.** Items 1 and 2 below are ranked on an inferred ~400 s for
+> the Form 4 refresh. Measured at 02:00 it is **87.5 s**, so item 1's ceiling is ~1.5 min and
+> **item 2 saves more than item 1**. Item 6's "no 02:00 data run in the record was rate-limited"
+> is **no longer true** - 2026-10-27 recorded 39. Read section 8 before acting on this list.
+
 1. **Overlap the SEC passes with the Yahoo fetch (~5-7 min).** The SEC Form 4 refresh (~400 s),
    the weekly companyfacts refresh (~225 s one day a week - 10-23's run was 1,300 s against
    ~1,075 s), and the FRED backdrop talk to different hosts from Yahoo and need nothing the ticker
@@ -244,3 +252,104 @@ Scratch scripts used tonight (not committed): a yfinance request probe wrapping
 `options_cache.quotes_are_live` to False with and without the skip; a field-by-field comparison of
 two runs' `00_raw_fetch.parquet` and `dashboard_context.js`. From tonight on, `meta.json`'s
 `phase_seconds` makes most of section 3 a lookup.
+
+## 8. The decision, 2026-10-27 (06:00 session): item 1 refused, and the ranking inverts
+
+This note left one proposal open and named the evidence that should decide it: *"read the first
+`PHASE TIMING` line in `logs/datarun-*.log` before deciding."* That line now exists. It refuses
+the proposal, and it corrects two other numbers here.
+
+### 8.1 The deciding number
+
+`logs/datarun-2026-10-27_020002.log`, the first 02:00 run with phase timing:
+
+    PHASE TIMING (s): total 1118 | universe 1 | fetch.probe 3 | fetch.tickers 659 | fetch.retry 125
+      | fetch.sec_roe_history 5 | context.valuation_history 14 | context.sec_insider 88
+      | context.options_pass 1 | context.rate_sensitivity 4 | portfolio 3 | excel 1
+      | context.market_backdrop 16 | context.track_record 35 | dashboard 24 | snapshot 136 | other 3
+
+**`context.sec_insider` - the SEC Form 4 refresh, the step item 1 exists to overlap - is 87.5 s.**
+Section 3 put it at ~400 s and section 6 timed it at 335 s. It is **4.5x smaller** than the
+number the proposal was ranked on.
+
+It was not a short run. `data/insider/filings.json` `_meta` for that run: **503 tickers checked,
+566 requests, 63 new filings, 0 failures, `complete: true`** - the same full-universe scan section
+6 timed, finishing in a quarter of the time.
+
+### 8.2 Why section 6's 335 s did not transfer to 02:00
+
+Section 6 timed EDGAR at **21:27-21:35 CT** and measured a median `submissions` response of
+0.50 s. `insider_activity.MIN_INTERVAL` is 0.13 s, so at 02:00 the step is **floor-bound, not
+latency-bound**:
+
+| | requests | floor we impose (n x 0.13 s) | measured | EDGAR's share |
+|---|---:|---:|---:|---:|
+| 21:30, section 6 | 560 | 72.8 s | 335 s | ~262 s |
+| **02:00, measured** | **566** | **73.6 s** | **87.5 s** | **~14 s** |
+
+At 02:00 the refresh runs **19% above a politeness floor this project chose itself**. There is
+almost nothing there to overlap: even an infinitely fast EDGAR leaves 74 s.
+
+Section 3's ~400 s was a *remainder* - `fetch_time` less every other fetch stage - so it absorbed
+whatever the list-scheduling model under-counted. It did: the model put the Yahoo fetch at 452 s
+and the measured `fetch.tickers` is **659 s**, with `sum_ticker_seconds` 1,032 over 3 workers.
+The missing ~500 s section 3.1 went looking for was mostly the ticker fetch itself.
+
+### 8.3 What item 1 could actually save, and what it would cost
+
+Overlappable against the Yahoo fetch, measured: `context.sec_insider` 87.5 s plus
+`fetch.sec_roe_history` 4.6 s - **~92 s, about 1.5 minutes.** The other passes the proposal
+gestures at are not free: `context.rate_sensitivity` (4.4 s) needs each stock's daily returns from
+the fetch, and `context.market_backdrop` (16.2 s) runs after scoring. So ~1.5 min is the ceiling,
+against the 5-7 min claimed.
+
+The costs are the ones this note already listed, unchanged - Form 4 XML parsing competing for the
+GIL with three Yahoo-parsing threads, and a refresh list that today excludes tickers whose Yahoo
+fetch failed, so overlapping changes which cache entries are refreshed for a failed ticker.
+
+What is new is where that cost lands. The same run recorded
+`phase_detail.fetch.tickers.rate_limited: 39` and a **124.7 s `fetch.retry` pass**. The fetch is
+both the longest phase and the one with a demonstrated failure mode. **Threading extra CPU work
+into it to buy 92 s is the wrong trade**, and the proposal's own acceptance test - "one full run's
+`PHASE TIMING` showing the fetch phase did not slow" - would be measured against a phase whose
+run-to-run spread is already larger than the prize.
+
+### 8.4 The ranking inverts: item 2 dominates item 1
+
+Item 2 replaces ~566 per-company `submissions` requests with one or two EDGAR daily-index
+requests. On the measured number that takes the step from **87.5 s to ~2 s - a larger saving than
+overlapping can achieve at all** - with no concurrency, no GIL contention, no shared-cache
+question, and it drops the 92 MB of filing indexes section 6 found are downloaded daily to find 57
+documents. Its own risk (an index lag dropping a filing for a day) and its evidence bar (two weeks
+of shadow runs finding the same filings) are unchanged and are the right next step in this area.
+
+**So: item 1 is refused as written. Item 2 is the one worth building**, and whoever builds it
+should take its saving as ~85 s, not the ~5 min item 2's own line claims - that figure was also
+derived from the 400 s.
+
+### 8.5 Item 6's premise is now false, and its tripwire has fired
+
+Item 6 states: *"no 02:00 data run in the record was rate-limited"*, and proposes raising worker
+count only after *"the new `phase_detail.fetch.tickers.rate_limited` count at 0 on every 02:00 run
+for a month."* The first 02:00 run that could report that count reported **39**, with a 124.7 s
+retry pass. The sentence is false as written and the pre-registered condition failed on day one.
+
+**Honestly read, this is not a clean refutation of item 6's theory.** The owner-run night of
+2026-10-26 merged at 22:38 and included two real subset `run_screener.main` runs and a yfinance
+request probe; 02:00 is 3h22m later, which is inside the "within hours of another run" window the
+theory names. So today is *consistent with* a rolling request budget rather than evidence against
+it. The conclusion item 6 reaches - **leave concurrency and delays alone** - stands either way,
+and now rests on a direct observation that the 02:00 slot is not immune rather than on an
+inference that it was.
+
+What should change is the claim, not the policy. The count is worth watching for the month item 6
+asked for; a second rate-limited 02:00 run on a night with no preceding owner session would
+distinguish the two readings.
+
+### 8.6 What the two shipped skips actually delivered
+
+Section 4 predicted ~4 minutes. Measured on `meta.json` `total_time_seconds`, the same stage
+boundary on both runs: **1,075.1 s on 2026-10-26, 906.3 s on 2026-10-27 - 169 s, ~2.8 minutes**,
+with the shortfall explained by the fetch phase running long and retrying.
+`context.options_pass` is **1.0 s**, against the 178 s section 4.3 removed, so that skip landed
+exactly as claimed.

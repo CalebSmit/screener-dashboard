@@ -305,6 +305,7 @@ def open_proposals(research_dir: Path | None = None, today: datetime | None = No
 
 FILING_LINE = "inputs against SEC filings: "
 TOP_LINE = "top 25, worth a look: "
+PHASE_LINE = "PHASE TIMING (s): "
 
 
 def top_of_ranking(lines: list[str]) -> str:
@@ -335,6 +336,56 @@ def filing_check(lines: list[str]) -> str:
         keep.append(f"filings cached {age.group(1)} days ago")
     attention = any("ATTENTION - " in ln for ln in lines)
     return "; ".join(keep) + (" - **see the ATTENTION note below**" if attention and keep else "")
+
+
+def run_timing(lines: list[str]) -> str:
+    """How long the data run took and whether Yahoo throttled it, for one row.
+
+    Added 2026-10-27. `research/2026-10-26-data-run-timing.md` section 5 item 6 proposed raising
+    the fetch's worker count only after the rate-limited count reads 0 "on every 02:00 run for a
+    month" - and the first 02:00 run that could report it reported **39**. A number nobody is shown
+    is a number nobody watches, which is the failure CLAUDE.md rule 8 exists for, so the count goes
+    where a session reads it first. Provenance about the machine, not about a stock: this module
+    neither scores nor publishes a ranking, which is why `tests/test_phase_timing.py`'s
+    `_MUST_NOT_READ` does not list it.
+
+    Empty when the run printed no timing line (a run from before phase timing) - the row is then
+    left out, never guessed.
+    """
+    line = next((ln for ln in reversed(lines) if PHASE_LINE in ln), "")
+    if not line:
+        return ""
+    body = line.split(PHASE_LINE, 1)[1].strip()
+    phases = {}
+    for part in body.split("|"):
+        bits = part.strip().rsplit(" ", 1)
+        if len(bits) == 2 and re.fullmatch(r"\d+(\.\d+)?", bits[1]):
+            phases[bits[0].strip()] = float(bits[1])
+    total = phases.pop("total", None)
+    if total is None:
+        return ""
+    out = [f"**{total / 60:.0f} min** total"]
+    slowest = sorted(phases.items(), key=lambda kv: -kv[1])[:3]
+    if slowest:
+        out.append("slowest " + ", ".join(f"`{k}` {v:.0f} s" for k, v in slowest))
+
+    limited = _rate_limited()
+    if limited is not None:
+        out.append(f"**{limited} tickers rate-limited**" if limited
+                   else "0 tickers rate-limited")
+    return "; ".join(out)
+
+
+def _rate_limited() -> int | None:
+    """The newest run's rate-limited ticker count, or None if it did not record one."""
+    try:
+        sys.path.insert(0, str(ROOT))
+        import run_context
+        d = run_context.latest_run_dir()
+        meta = json.loads((Path(d) / "meta.json").read_text(encoding="utf-8"))
+        return int(meta["phase_detail"]["fetch.tickers"]["rate_limited"])
+    except Exception:  # noqa: BLE001 - the brief never fails over a missing figure
+        return None
 
 
 def last_log_entry() -> str:
@@ -414,6 +465,9 @@ def main() -> int:
     _top = top_of_ranking(tail(data_log))
     if _top:
         a(f"| Top 25, worth a look | {_top} |")
+    _timing = run_timing(tail(data_log))
+    if _timing:
+        a(f"| Data run timing | {_timing} |")
     a(f"| Context coverage | {context_coverage()} |")
     a("")
 
