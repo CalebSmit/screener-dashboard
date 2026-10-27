@@ -7,6 +7,8 @@ pyyaml==6.0.3
 pyarrow==23.0.0
 pydantic==2.12.3
 pytest>=8.0.0
+pytest-xdist==3.8.0         # runs the suite in parallel (scripts/run_tests.py, the claims
+                            # gate). Optional: without it both run the serial command.
 markdown>=3.5               # generate_dashboard.py: renders SCREENER_OVERVIEW.md
                             # into the dashboard's Methodology modal. WITHOUT IT
                             # the code silently falls back to raw <pre> markdown

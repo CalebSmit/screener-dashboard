@@ -31,6 +31,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.git_sandbox import copy_sandbox
+
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 MODULE = SCRIPTS_DIR / "publish-brief.ps1"
 NIGHTLY = SCRIPTS_DIR / "nightly-screener.ps1"
@@ -59,13 +61,14 @@ def bare(repo: Path, *args: str) -> str:
     return r.stdout.strip() if r.returncode == 0 else f"<<error:{r.stderr.strip()}>>"
 
 
-@pytest.fixture
-def sandbox(tmp_path: Path):
+@pytest.fixture(scope="module")
+def _sandbox_template(tmp_path_factory):
     """A bare origin plus a clone holding one commit on `main`.
 
     Mirrors the real repo closely enough for the refspec semantics under test:
     `main` is the published branch, and `MORNING_BRIEF.md` is tracked on it.
     """
+    tmp_path = tmp_path_factory.mktemp("brief_publish_template")
     origin = tmp_path / "origin.git"
     work = tmp_path / "work"
     subprocess.run([GIT, "init", "-q", "--bare", str(origin)], check=True, timeout=120)
@@ -83,7 +86,20 @@ def sandbox(tmp_path: Path):
     # `git init --bare` may leave HEAD on `master`; the real origin resolves
     # origin/HEAD -> origin/main, and a second clone must land on main too.
     bare(origin, "symbolic-ref", "HEAD", "refs/heads/main")
-    return origin, work, git(work, "rev-parse", "HEAD")
+    return tmp_path, git(work, "rev-parse", "HEAD")
+
+
+@pytest.fixture
+def sandbox(tmp_path: Path, _sandbox_template):
+    """Each test's own copy: a bare origin plus a clone holding one commit on `main`.
+
+    Built once per module and copied per test (tests/git_sandbox.py): the same
+    repository every time, at the same tmp_path locations, at a fraction of the
+    git processes.
+    """
+    template, head = _sandbox_template
+    origin, work = copy_sandbox(template, tmp_path)
+    return origin, work, head
 
 
 def failing_branch(work: Path) -> None:
