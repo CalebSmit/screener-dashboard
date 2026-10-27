@@ -1,0 +1,282 @@
+"""The Factor Lab read by hand, by keyboard and on paper (2026-10-27, plan/ui-elevation.md second pass).
+
+An audit of ``lab.html`` as a student would use it found the bar charts were the one kind a phone
+could not read (their values print only where a bar has room, so eight of the size effect's ten
+bars carried no figure at 375 px) and no keyboard could read them at all; a series that failed to
+arrive replaced the whole experiment with one line and no way to try again; opening an experiment
+left the tab titled "Factor Lab" and the keyboard focus on a menu entry; the picker's list of
+eighteen entries answered only Tab; several controls were under 44 px on a phone; the equations hid
+their right half in a box that scrolled sideways; and a printed experiment came out white on white.
+
+Every assertion waits on a condition (8 s), never on a fixed sleep.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+import factor_lab as fl  # noqa: E402
+
+PAGE = ROOT / "lab.html"
+WAIT = 8000
+BY_ID = {x["id"]: x for x in fl.EXPERIMENTS}
+# one experiment of every kind that draws bars, and what its first bar's reading starts with
+BARS = {
+    "size-effect": lambda page: "Size group 1 of 10, the smallest:",
+    "low-volatility": lambda page: BY_ID["low-volatility"]["sort"]["groups"][0] + ":",
+    "big-and-small": lambda page: page.evaluate("LAB_DATA.split_names[LAB_DATA.split_keys[0]]") + ":",
+    "replication-crisis": lambda page: page.evaluate("LAB_STATE().result.themes[0].theme") + ":",
+    "size-given-profitability": lambda page: BY_ID["size-given-profitability"]["double"]["rows"][0] + ":",
+}
+BAR_IDLE = "Point at a bar, or tap it, to read its figures."
+
+
+def _hit(i) -> str:
+    """True when the bars of slot i, and only they, are marked as being read."""
+    return (f"(() => {{ const h = [...document.querySelectorAll('#ch-bars rect.hit')]; "
+            f"return h.length > 0 && h.every(r => r.dataset.i === '{i}'); }})()")
+
+
+@pytest.fixture(scope="module")
+def browser():
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        try:
+            b = pw.chromium.launch()
+        except Exception as exc:  # noqa: BLE001
+            pytest.skip(f"no usable chromium: {exc}")
+        yield b
+        b.close()
+
+
+def _page(browser, width=375, touch=False, init=None):
+    ctx = browser.new_context(viewport={"width": width, "height": 900}, has_touch=touch, is_mobile=touch)
+    if init:
+        ctx.add_init_script(init)
+    page = ctx.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    return ctx, page, errors
+
+
+def _goto(page, scene: str) -> None:
+    page.goto(PAGE.as_uri() + "#" + scene, wait_until="load", timeout=60000)
+    page.wait_for_function(f"window.LAB_STATE && window.LAB_STATE() && window.LAB_STATE().id === '{scene}'", timeout=WAIT)
+
+
+def test_every_bar_chart_can_be_read_from_the_keyboard(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        for scene, first in BARS.items():
+            _goto(page, scene)
+            svg, read = "#ch-bars svg", "#ch-bars + .chart-read"
+            assert page.get_attribute(svg, "tabindex") == "0" and page.get_attribute(svg, "role") == "img", scene
+            assert "arrow keys" in page.get_attribute(svg, "aria-label"), scene
+            assert page.get_attribute(read, "aria-live") == "polite"
+            assert page.inner_text(read) == BAR_IDLE
+            n = page.evaluate("new Set([...document.querySelectorAll('#ch-bars rect[data-i]')].map(r => r.dataset.i)).size")
+            page.focus(svg)
+            page.keyboard.press("Home")
+            page.wait_for_function(f"document.querySelector('{read}').textContent.startsWith({first(page)!r})", timeout=WAIT)
+            # the bar being read is marked on the chart, and only that bar (or that pair)
+            assert page.evaluate(_hit(0))
+            page.keyboard.press("ArrowRight")
+            page.wait_for_function(_hit(1), timeout=WAIT)
+            page.keyboard.press("End")
+            page.wait_for_function(_hit(n - 1), timeout=WAIT)
+            page.keyboard.press("ArrowRight")                                     # held at the last bar
+            assert page.evaluate(_hit(n - 1))
+            page.focus("#c-from")                                                  # leaving the chart clears it
+            page.wait_for_function(f"document.querySelector('{read}').textContent === {BAR_IDLE!r}", timeout=WAIT)
+            assert page.evaluate("document.querySelectorAll('#ch-bars rect.hit').length") == 0
+        # the size chart's reading is the figure the build computed for that group
+        _goto(page, "size-effect")
+        page.focus("#ch-bars svg")
+        page.keyboard.press("End")
+        mean = page.evaluate("LAB_STATE().result.deciles[9].mean.toFixed(2)").replace("-", "−")
+        page.wait_for_function("document.querySelector('#ch-bars + .chart-read').textContent.includes('the largest')", timeout=WAIT)
+        assert f": {mean}% a month on average." in page.inner_text("#ch-bars + .chart-read")
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_a_bar_reading_stays_after_a_tap_on_a_touch_screen(browser):
+    ctx, page, errors = _page(browser, touch=True)
+    try:
+        _goto(page, "size-effect")
+        page.locator("#ch-bars svg").scroll_into_view_if_needed()
+        box = page.locator("#ch-bars svg").bounding_box()
+        page.touchscreen.tap(box["x"] + box["width"] * 0.25, box["y"] + box["height"] * 0.6)
+        page.wait_for_function(f"document.querySelector('#ch-bars + .chart-read').textContent !== {BAR_IDLE!r}", timeout=WAIT)
+        assert page.inner_text("#ch-bars + .chart-read").startswith("Size group ")
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect.hit').length") == 1
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_a_line_chart_s_label_ends_on_its_last_month(browser):
+    ctx, page, errors = _page(browser, width=1200)
+    try:
+        _goto(page, "risk-managed-momentum")
+        last = page.evaluate("LAB_STATE().result.months.slice(-1)[0]")
+        mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][int(last[4:]) - 1] + " " + last[:4]
+        label = page.get_attribute("#ch-growth svg", "aria-label")
+        assert f"Last month shown, {mon}: $1 had become $" in label and "arrow keys" in label
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+SABOTAGE = """
+window.__failOnce = true;
+const __append = Node.prototype.appendChild;
+Node.prototype.appendChild = function (n) {
+    if (window.__failOnce && n && n.tagName === 'SCRIPT' && /lab_data_size\\.js/.test(n.src)) {
+        window.__failOnce = false; n.src = 'lab_data_not_a_file.js';
+    }
+    return __append.call(this, n);
+};
+"""
+
+
+def test_a_part_that_fails_to_load_keeps_the_experiment_and_can_be_tried_again(browser):
+    ctx, page, errors = _page(browser, init=SABOTAGE)
+    try:
+        page.goto(PAGE.as_uri() + "#size-effect", wait_until="load", timeout=60000)
+        page.wait_for_selector("#x-retry", timeout=WAIT)
+        # what did arrive stays: the experiment's title and verdict, from lab_data.js
+        assert page.inner_text("#x-title") == BY_ID["size-effect"]["title"]
+        assert page.get_attribute("#x-failed", "role") == "alert"
+        assert "did not load" in page.inner_text("#x-failed")
+        assert page.evaluate("document.querySelector('.exp').hasAttribute('aria-busy')") is False
+        page.click("#x-retry")
+        page.wait_for_function("window.LAB_STATE().id === 'size-effect'", timeout=WAIT)
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 10
+        assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_opening_an_experiment_names_it_in_the_tab_and_moves_focus_to_its_title(browser):
+    ctx, page, errors = _page(browser, width=1200)
+    try:
+        _goto(page, "overview")
+        assert page.title() == "Factor Lab · Multi-Factor Screener"
+        assert page.evaluate("document.activeElement === document.body")          # a first load moves nothing
+        x = fl.EXPERIMENTS[3]
+        page.click(".card >> nth=3")
+        page.wait_for_function(f"window.LAB_STATE().id === '{x['id']}'", timeout=WAIT)
+        page.wait_for_function("document.activeElement && document.activeElement.id === 'x-title'", timeout=WAIT)
+        assert page.title() == (x.get("tab") or x["title"]) + " · Factor Lab"
+        # the pager does the same, and so does a part that has to be fetched first
+        nxt = fl.EXPERIMENTS[4]
+        page.click("#pager a.nx")
+        page.wait_for_function(f"window.LAB_STATE().id === '{nxt['id']}'", timeout=WAIT)
+        page.wait_for_function("document.activeElement && document.activeElement.id === 'x-title'", timeout=WAIT)
+        assert page.title() == (nxt.get("tab") or nxt["title"]) + " · Factor Lab"
+        page.click("#tabs a[data-id='overview']")
+        page.wait_for_function("window.LAB_STATE().id === 'overview'", timeout=WAIT)
+        page.wait_for_function("document.activeElement && document.activeElement.id === 'o-exp'", timeout=WAIT)
+        assert page.title() == "Factor Lab · Multi-Factor Screener"
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_the_experiment_list_answers_the_arrow_keys(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "overview")
+        page.focus("#picker")
+        page.keyboard.press("ArrowDown")                                           # opens, on the entry on screen
+        page.wait_for_function("document.getElementById('picker').getAttribute('aria-expanded') === 'true'", timeout=WAIT)
+        page.wait_for_function("document.activeElement.dataset.id === 'overview'", timeout=WAIT)
+        page.keyboard.press("ArrowDown")
+        page.wait_for_function("document.activeElement.dataset.id === document.querySelectorAll('#tabs a')[1].dataset.id", timeout=WAIT)
+        page.keyboard.press("End")
+        page.wait_for_function("document.activeElement === [...document.querySelectorAll('#tabs a')].pop()", timeout=WAIT)
+        page.keyboard.press("Home")
+        page.wait_for_function("document.activeElement.dataset.id === 'overview'", timeout=WAIT)
+        page.keyboard.press("ArrowUp")                                             # held at the first entry
+        assert page.evaluate("document.activeElement.dataset.id") == "overview"
+        page.keyboard.press("Escape")
+        page.wait_for_function("document.activeElement.id === 'picker'", timeout=WAIT)
+        assert page.get_attribute("#picker", "aria-expanded") == "false"
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+TARGETS = (".bar nav a, #picker, .controls button, .controls select, .controls input[type=range], "
+           ".verdict > a, .exp summary, .pager a, .warn .retry")
+
+
+def test_on_a_phone_every_control_is_at_least_44_px_tall(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        for scene in ("overview", "risk-managed-momentum", "momentum-crashes", "size-effect", "replication-crisis"):
+            _goto(page, scene)
+            short = page.evaluate(f"""[...document.querySelectorAll({TARGETS!r})]
+                .filter(e => e.offsetParent !== null && getComputedStyle(e).display !== 'none' && !e.hidden)
+                .map(e => [e.id || e.textContent.trim().slice(0, 30), e.getBoundingClientRect().height])
+                .filter(x => x[1] < 43.5)""")
+            assert short == [], (scene, short)
+            assert page.evaluate(f"document.querySelectorAll({TARGETS!r}).length") >= 3, scene
+        page.click("#picker")
+        page.wait_for_function("document.getElementById('tabs').classList.contains('open')", timeout=WAIT)
+        assert page.evaluate("Math.min(...[...document.querySelectorAll('#tabs a')].map(a => a.getBoundingClientRect().height))") >= 43.5
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_on_a_phone_an_equation_wraps_instead_of_scrolling_sideways(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        for x in fl.EXPERIMENTS:
+            _goto(page, x["id"])
+            wide = page.evaluate("[...document.querySelectorAll('.eq')].filter(e => e.scrollWidth > e.clientWidth + 1).length")
+            assert wide == 0, x["id"]
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_the_no_effect_line_starts_its_own_line(browser):
+    """Run on after a long verdict note, the line's tick sat alone at the end of a line and read as a
+    stray capital I (seen at 375 px on the size effect)."""
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "size-effect")
+        assert page.evaluate("getComputedStyle(document.querySelector('.verdict .null')).display") == "block"
+        tick, line = page.evaluate("""(() => { const t = document.querySelector('.verdict .null .nl').getBoundingClientRect(),
+            v = document.querySelector('.verdict .null').getBoundingClientRect(); return [t.left, v.left]; })()""")
+        assert abs(tick - line) < 2
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_a_printed_experiment_is_ink_on_paper_without_its_controls(browser):
+    ctx, page, errors = _page(browser, width=1200)
+    try:
+        _goto(page, "size-effect")
+        page.emulate_media(media="print")
+        assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(255, 255, 255)"
+        assert page.evaluate("getComputedStyle(document.getElementById('x-title')).color") == "rgb(17, 17, 17)"
+        for sel in (".bar", ".controls", "#pager", "#index"):
+            assert page.evaluate(f"getComputedStyle(document.querySelector({sel!r})).display") == "none", sel
+        # the result, its chart and the comparison with the paper are what is printed
+        for sel in ("#x-read", "#ch-bars svg", "#t-ref"):
+            assert page.evaluate(f"getComputedStyle(document.querySelector({sel!r})).display") != "none", sel
+        assert errors == []
+    finally:
+        ctx.close()

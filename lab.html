@@ -347,6 +347,42 @@ footer p { margin: 0 0 8px; }
 h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
 @media (min-width: 720px) { h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: calc(var(--bar-h) + 88px); } }
 @media (min-width: 1080px) { h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: calc(var(--bar-h) + 24px); } }
+
+/* ---- second pass, 2026-10-27 (plan/ui-elevation.md, "Factor Lab and research page, second pass") ---- */
+/* The "no effect" line under a verdict starts its own line: run on after a long verdict note, its tick
+   was left at the end of a line, where it read as a stray capital I. */
+.verdict .null { display: block; margin-top: 6px; }
+/* a heading that takes focus when an experiment opens is a place to start reading, not a control */
+h2[tabindex="-1"]:focus { outline: none; }
+/* a bar being read: outlined in ink, so the sentence under the chart has a place on it */
+.chart rect.hit { stroke: var(--text-primary); stroke-width: 1.5; }
+/* a part that did not arrive: what happened, and a way to try again without losing the page */
+.warn .retry { appearance: none; margin-left: 10px; padding: 6px 14px; min-height: 36px; border: 1px solid var(--text-primary); border-radius: 999px;
+               background: transparent; color: var(--text-primary); font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; }
+.warn .retry:hover { background: rgba(255,255,255,.08); }
+/* On a phone every control is at least 44 px tall (WCAG 2.5.5; Apple's HIG minimum), and an equation
+   wraps rather than hiding its right half in a box that scrolls sideways under a thumb. */
+@media (max-width: 719px) {
+    .seg button, select, .reset, .warn .retry { min-height: 44px; }
+    .range input[type=range] { height: 44px; }
+    .bar nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; }
+    .tabs a { min-height: 44px; }
+    summary { display: flex; align-items: center; min-height: 44px; padding: 0; }
+    .verdict > a { display: inline-flex; align-items: center; min-height: 44px; }
+    .eq { white-space: normal; overflow-wrap: break-word; }
+}
+/* Printed (a club handing round one experiment): ink on paper, the page's own controls left off. */
+@media print {
+    :root { color-scheme: light; --bg-deep: #fff; --bg-card: #fff; --bg-card-hover: #fff; --bg-elevated: #f4f4f2; --border: #d8d8d4; --border-bright: #b9b9b4;
+            --text-primary: #111; --text-secondary: #333; --text-muted: #555; --accent: #1f5fae; --accent-text: #1f5fae; --rest: #8a8a85; --amber: #9a6200; }
+    body { background: #fff; font-size: 12px; }
+    .bar, .index, .pager, .next, .controls, .reset, #c-copy, details, .chart-read, .loading, .skel { display: none !important; }
+    .lab-grid { display: block !important; margin-top: 0; }
+    .exp, .card, .verdict, .kpis { box-shadow: none; break-inside: avoid; }
+    .exp > section { padding: 16px 0; break-inside: avoid-page; }
+    .hero { display: block; } .lede { padding-top: 0; }
+    a { color: inherit; } .cite a::after { content: ' (' attr(href) ')'; font-size: 10px; }
+}
 </style>
 </head>
 <body>
@@ -543,37 +579,45 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         s += `<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H - B}" style="visibility:hidden"/>`;
         // a point on each line at the month being read, so the sentence under the chart has a place on it
         series.forEach(se => { s += `<circle class="pt ${se.cls === 'managed' ? 'pt-a' : 'pt-b'}" r="${se.cls === 'managed' ? 4 : 3}" cx="0" cy="0" style="visibility:hidden"/>`; });
-        // Readable by keyboard as well as by pointer (2026-10-16): the chart takes focus, and the
-        // arrow keys, Home and End move the cursor one month at a time; the sentence under the chart
-        // is a polite live region, so a screen reader speaks each month as it is reached.
         if (!el.dataset.label) el.dataset.label = el.getAttribute('aria-label') || '';
-        if (opt.read) {
-            el.removeAttribute('role'); el.removeAttribute('aria-label');      // the focusable chart carries both
-            s = s.replace('<svg ', `<svg tabindex="0" role="img" aria-label="${esc(el.dataset.label + ' Use the left and right arrow keys to read one month at a time; Home and End go to the first and last.')}" `);
-        }
         el.innerHTML = s + '</svg>';
-        // Point at the chart (or touch it) to read one month, in words, under it.
+        const svg = el.firstChild, cur = svg.querySelector('.cursor'), pts = svg.querySelectorAll('.pt');
+        // the label ends on the last month's reading, so a reader who never moves the cursor still
+        // hears where the lines finish
+        readable(el, n, 'month', opt.read, {
+            label: el.dataset.label + ' Last month shown, ' + opt.read(n - 1), W: W,
+            at: px => Math.round((px - L) / (W - L - R) * (n - 1)),
+            on: i => { cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible';
+                series.forEach((se, j) => { const p = pts[j]; if (!p) return; p.setAttribute('cx', x(i).toFixed(1)); p.setAttribute('cy', y(se.v[i]).toFixed(1)); p.style.visibility = 'visible'; }); },
+            off: () => { cur.style.visibility = 'hidden'; pts.forEach(p => { p.style.visibility = 'hidden'; }); } });
+    }
+    // Every chart is read the same way. Lines since 2026-10-16, bars since 2026-10-27, when the bar
+    // charts were the one kind a phone could not read: their values print only where a bar has room,
+    // so on a 375 px screen eight of the size effect's ten bars carried no figure at all. Point at a
+    // chart or tap it, or focus it and use the arrow keys, Home and End; the sentence under it is a
+    // polite live region, so a screen reader speaks each reading as it is reached. On a touch screen
+    // the reading stays after the finger lifts, so it can be read.
+    function readable(el, n, unit, read, o) {
+        const svg = el.firstChild;
+        const idle = unit === 'month' ? 'Point at the chart to read any month.' : 'Point at a bar, or tap it, to read its figures.';
         let out = el.nextElementSibling;
         if (!out || !out.classList.contains('chart-read')) { out = document.createElement('p'); out.className = 'chart-read'; el.parentNode.insertBefore(out, el.nextSibling); }
         out.setAttribute('aria-live', 'polite');
-        const idle = 'Point at the chart to read any month.';
-        out.textContent = idle;
-        if (!opt.read) return;
-        const svg = el.firstChild, cur = svg.querySelector('.cursor'), pts = svg.querySelectorAll('.pt');
+        out.textContent = idle; out.classList.remove('on');
+        el.removeAttribute('role'); el.removeAttribute('aria-label');          // the focusable chart carries both
+        svg.setAttribute('tabindex', '0'); svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label', o.label + ' Use the left and right arrow keys to read one ' + unit + ' at a time; Home and End go to the first and last.');
         let at = -1;
-        const show = i => { at = i; cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible'; out.textContent = opt.read(i);
-            out.classList.add('on');
-            series.forEach((se, j) => { const p = pts[j]; if (!p) return; p.setAttribute('cx', x(i).toFixed(1)); p.setAttribute('cy', y(se.v[i]).toFixed(1)); p.style.visibility = 'visible'; }); };
-        const hide = () => { at = -1; cur.style.visibility = 'hidden'; out.textContent = idle; out.classList.remove('on'); pts.forEach(p => { p.style.visibility = 'hidden'; }); };
-        svg.addEventListener('pointermove', ev => {
-            const r = svg.getBoundingClientRect();
-            show(Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left) * (W / r.width) - L) / (W - L - R) * (n - 1)))));
-        });
-        svg.addEventListener('pointerleave', () => { if (document.activeElement !== svg) hide(); });
+        const show = i => { at = i; o.on(i); out.textContent = read(i); out.classList.add('on'); };
+        const hide = () => { at = -1; o.off(); out.textContent = idle; out.classList.remove('on'); };
+        const point = ev => { const r = svg.getBoundingClientRect(); show(Math.max(0, Math.min(n - 1, o.at((ev.clientX - r.left) * (o.W / r.width))))); };
+        svg.addEventListener('pointermove', point);
+        svg.addEventListener('pointerdown', point);
+        svg.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse' && document.activeElement !== svg) hide(); });
         svg.addEventListener('keydown', ev => {
             const step = { ArrowLeft: -1, ArrowRight: 1 }[ev.key];
             let i;
-            if (step) i = at < 0 ? (step > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, at + step * (ev.shiftKey ? 12 : 1)));
+            if (step) i = at < 0 ? (step > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, at + step * (ev.shiftKey && unit === 'month' ? 12 : 1)));
             else if (ev.key === 'Home') i = 0;
             else if (ev.key === 'End') i = n - 1;
             else return;
@@ -581,6 +625,9 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         });
         svg.addEventListener('blur', hide);
     }
+    // a bar chart's reading: the bars of slot i outlined, the rest left alone
+    const barsOn = svg => i => svg.querySelectorAll('rect[data-i]').forEach(b => b.classList.toggle('hit', +b.dataset.i === i));
+    const barsOff = svg => () => svg.querySelectorAll('rect.hit').forEach(b => b.classList.remove('hit'));
 
     // A scene is an experiment plus whatever settings differ from the ones it opens with. It is
     // kept in the address, so the page you are looking at can be sent to someone else.
@@ -927,14 +974,17 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         linTicks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
         values.forEach((v, i) => {
             const cx = L + slot * (i + .5), top = Math.min(y(v), y(0)), h = Math.max(1, Math.abs(y(v) - y(0)));
-            s += `<rect class="${opt.accent(i) ? 'col-a' : 'col'}" x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
+            s += `<rect class="${opt.accent(i) ? 'col-a' : 'col'}" data-i="${i}" x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
             if (W >= 520 || opt.accent(i) || i === 0) s += `<text class="val" x="${cx.toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${v.toFixed(2)}</text>`;
             s += `<text x="${cx.toFixed(1)}" y="${H - 18}" text-anchor="middle">${i + 1}</text>`;
         });
         const ends = opt.ends || ['smallest', 'largest'];
         s += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
         s += `<text x="${L}" y="${H - 3}" text-anchor="start">${esc(ends[0])}</text><text x="${W - R}" y="${H - 3}" text-anchor="end">${esc(ends[1])}</text>`;
+        if (!el.dataset.label) el.dataset.label = el.getAttribute('aria-label') || '';
         el.innerHTML = s + '</svg>';
+        readable(el, values.length, 'bar', opt.read, { label: opt.label || el.dataset.label, W: W,
+            at: px => Math.floor((px - L) / slot), on: barsOn(el.firstChild), off: barsOff(el.firstChild) });
     }
     function sizeEffect(X, n, mount, init) {
         const REF = X.reference, res0 = X.result, Z = D.size, Z0 = Z.months[0], Z1 = Z.months[Z.months.length - 1];
@@ -998,8 +1048,9 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
                 ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.';
             const bars = document.getElementById('ch-bars');
-            drawBars(bars, r.deciles.map(d => d.mean), { accent: i => i >= 8 });
-            bars.setAttribute('aria-label', 'Average monthly return of each of ten size groups, smallest to largest, in percent: ' + r.deciles.map(d => f2(d.mean)).join(', ') + '.');
+            drawBars(bars, r.deciles.map(d => d.mean), { accent: i => i >= 8,
+                label: 'Average monthly return of each of ten size groups, smallest to largest, in percent: ' + r.deciles.map(d => f2(d.mean)).join(', ') + '.',
+                read: i => `Size group ${i + 1} of 10${i === 0 ? ', the smallest' : i === 9 ? ', the largest' : ''}: ${f2(r.deciles[i].mean)}% a month on average.` });
             writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); render(); }
@@ -1073,7 +1124,8 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             document.getElementById('x-live-note').textContent = atRef()
                 ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.';
-            drawBars(document.getElementById('ch-bars'), r.groups.map(g => g.mean), { accent: i => G.accent.indexOf(i) >= 0, ends: G.ends });
+            drawBars(document.getElementById('ch-bars'), r.groups.map(g => g.mean), { accent: i => G.accent.indexOf(i) >= 0, ends: G.ends,
+                read: i => `${G.groups[i]}: ${f2(r.groups[i].mean)}% a month on average, with volatility of ${f2(r.groups[i].std)}% a month.` });
             writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); render(); }
@@ -1100,7 +1152,7 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             const mid = L + slot * (i + .5);
             [[r.small, 'col', mid - bw * .56], [r.big, 'col-a', mid + bw * .56]].forEach(b => {
                 const top = Math.min(y(b[0]), y(0)), h = Math.max(1, Math.abs(y(b[0]) - y(0)));
-                s += `<rect class="${b[1]}" x="${(b[2] - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
+                s += `<rect class="${b[1]}" data-i="${i}" x="${(b[2] - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
                 const room = many ? (slot >= 64 || (b[1] === 'col-a' && slot >= 34)) : (W >= 520 || b[1] === 'col-a');
                 if (room) s += `<text class="val" x="${b[2].toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${b[0].toFixed(places)}</text>`;
             });
@@ -1108,7 +1160,10 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             else s += `<text x="${mid.toFixed(1)}" y="${H - 12}" text-anchor="middle">${esc(W < 520 && r.name.length > 9 ? r.name.slice(0, 6) + '.' : r.name)}</text>`;
         });
         s += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
+        if (!el.dataset.label) el.dataset.label = el.getAttribute('aria-label') || '';
         el.innerHTML = s + '</svg>';
+        readable(el, rows.length, 'bar', opt.read, { label: opt.label || el.dataset.label, W: W,
+            at: px => Math.floor((px - L) / slot), on: barsOn(el.firstChild), off: barsOff(el.firstChild) });
     }
     function bigAndSmall(X, n, mount, init) {
         // One layout for any experiment that measures the same traits in two size groups. The
@@ -1181,7 +1236,8 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
                 ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.');
             document.querySelector('#t-sides tbody').innerHTML = KEYS.map(k => `<tr><td>${esc(NAME[k])}</td><td>${cell(F[k].long)}</td><td>${cell(F[k].short)}</td><td>${cell(F[k].big)}</td></tr>`).join('');
-            drawPairs(document.getElementById('ch-bars'), KEYS.map(k => ({ name: NAME[k], small: F[k].small.mean, big: F[k].big.mean })));
+            drawPairs(document.getElementById('ch-bars'), KEYS.map(k => ({ name: NAME[k], small: F[k].small.mean, big: F[k].big.mean })),
+                { read: i => `${NAME[KEYS[i]]}: ${sf2(F[KEYS[i]].small.mean)}% a month among ${SMALL}, ${sf2(F[KEYS[i]].big.mean)}% among ${BIG}.` });
             writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); render(); }
@@ -1411,7 +1467,10 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
                 ? 'These are the paper\'s settings; the comparison with its figures is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.');
             document.getElementById('x-key-a').textContent = G.universe_names[group].replace(/ \(.*\)$/, '').replace(/^./, c => c.toUpperCase());
-            drawPairs(document.getElementById('ch-bars'), r.themes.map((t, i) => ({ name: t.theme, small: other.themes[i].rate || 0, big: sized.themes[i].rate || 0 })), { many: true, places: 0 });
+            const gname = G.universe_names[group].replace(/ \(.*\)$/, '');
+            drawPairs(document.getElementById('ch-bars'), r.themes.map((t, i) => ({ name: t.theme, small: other.themes[i].rate || 0, big: sized.themes[i].rate || 0 })), { many: true, places: 0,
+                read: i => { const a = sized.themes[i], b = other.themes[i];
+                    return `${r.themes[i].theme}: ${a.n ? a.hits + ' of ' + a.n + ' factors (' + f2(a.rate) + '%)' : 'no factor'} clear the bar among ${gname}; ${b.n ? b.hits + ' of ' + b.n + ' (' + f2(b.rate) + '%)' : 'none counted'} among all stocks.`; } });
             writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); render(); }
@@ -1503,7 +1562,8 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
                 : 'These settings are yours, so there is no published figure to compare them with.');
             document.querySelector('#t-grid tbody').innerHTML = G.rows.map((name, p) =>
                 `<tr><td>${esc(name.split(' ')[0])}</td>${[0, 1, 2, 3, 4].map(s => `<td>${f2(r.cells[5 * s + p].mean)}</td>`).join('')}</tr>`).join('');
-            drawPairs(document.getElementById('ch-bars'), r.rows.map((row, p) => ({ name: ['Weakest', '2nd', '3rd', '4th', 'Most'][p], small: row.small_big.mean, big: row.four_big.mean })));
+            drawPairs(document.getElementById('ch-bars'), r.rows.map((row, p) => ({ name: ['Weakest', '2nd', '3rd', '4th', 'Most'][p], small: row.small_big.mean, big: row.four_big.mean })),
+                { read: p => `${G.rows[p]}: smallest minus largest ${sf2(r.rows[p].small_big.mean)}% a month, fourth minus largest ${sf2(r.rows[p].four_big.mean)}%.` });
             writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); render(); }
@@ -1558,6 +1618,18 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
     tabs.addEventListener('click', e => { if (e.target.closest('a') && tabs.classList.contains('open') && getComputedStyle(picker).display !== 'none') setOpen(false); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && tabs.classList.contains('open') && getComputedStyle(picker).display !== 'none') { setOpen(false); picker.focus(); } });
     document.addEventListener('pointerdown', e => { if (tabs.classList.contains('open') && !e.target.closest('#index')) setOpen(false); });
+    // Up and down arrows, Home and End, move through the list (2026-10-27): eighteen entries are a
+    // long way to Tab through, and a list that opens from a button is expected to answer arrows.
+    tabs.addEventListener('keydown', e => {
+        const all = [...tabs.querySelectorAll('a')], at = all.indexOf(document.activeElement);
+        const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: all.length - 1 }[e.key];
+        if (to === undefined || at < 0) return;
+        e.preventDefault(); all[Math.max(0, Math.min(all.length - 1, to))].focus();
+    });
+    picker.addEventListener('keydown', e => {
+        if (e.key !== 'ArrowDown' || tabs.classList.contains('open')) return;
+        e.preventDefault(); picker.click();
+    });
     document.getElementById('index').addEventListener('focusout', e => {           // tabbing out of the open list closes it
         if (tabs.classList.contains('open') && e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setOpen(false); });
     function mark(id) {
@@ -1588,15 +1660,24 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             const X0 = D.experiments[i];
             root.innerHTML = '<article class="exp" aria-busy="true">' + head(X0, i + 1, '') +
                 '<section><p class="loading" role="status">Loading this experiment’s data…</p><div class="skel"></div><div class="skel s2"></div></section></article>';
-            mark(scene.id); pager.hidden = true;
+            mark(scene.id); pager.hidden = true; title(X0);
+            // A part that fails to arrive (2026-10-27): the experiment's title and verdict stay, the
+            // reader is told what did not load, and can ask for it again without reloading the page -
+            // part() forgets a failed request, so a second try fetches afresh.
             Promise.all(need.map(part)).then(() => { if (token === showing) show(); },
-                () => { if (token === showing) root.innerHTML = '<p class="warn">This experiment’s data did not load. Check the connection and reload the page.</p>'; });
+                () => { if (token !== showing) return;
+                    const box = root.querySelector('.loading') ? root.querySelector('.loading').parentNode : root;
+                    box.innerHTML = '<div class="warn" role="alert" id="x-failed">This experiment’s data did not load. Check the connection and try again.' +
+                        '<button type="button" class="retry" id="x-retry">Try again</button></div>';
+                    root.firstChild.removeAttribute('aria-busy');
+                    document.getElementById('x-retry').addEventListener('click', () => { show(); }); });
             return;
         }
         root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';
+        title(i < 0 ? null : D.experiments[i]);
         if (i < 0) {
             current = overview(root.firstChild);
-            mark('overview');
+            mark('overview'); landed();
             return;
         }
         const X = D.experiments[i];
@@ -1614,6 +1695,20 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             });
         }
         tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === X.id ? 'page' : 'false'));
+        landed();
+    }
+    // The tab, the history list and a shared link's preview name the experiment on screen, not just
+    // the lab (2026-10-27).
+    function title(X) { document.title = X ? (X.tab || X.title) + ' · Factor Lab' : 'Factor Lab · Multi-Factor Screener'; }
+    // Opened from the index, the pager or a card, the new experiment's heading takes focus, so a
+    // keyboard or screen-reader user starts reading the experiment rather than staying on the link
+    // in a menu that no longer describes the page. The first load leaves focus where the browser put it.
+    let wantFocus = false;
+    function landed() {
+        if (!wantFocus) return;
+        wantFocus = false;
+        const h = document.getElementById('x-title') || document.getElementById('o-exp');
+        if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
     }
     // A link inside an experiment ("See every figure") points at a section of the page, not at a
     // scene. Left to the browser it would rewrite the address to "#x-against", which the scene
@@ -1637,7 +1732,7 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             try { if (sceneHash) history.replaceState(null, '', sceneHash); } catch (e) { /* the scene still works */ }
             return;                                                      // and the address goes back to the scene
         }
-        show(); toGrid();
+        wantFocus = true; show(); toGrid();
     });
     // a new scene opens at its top, just under whichever bars are sticky at this width
     function toGrid() {
