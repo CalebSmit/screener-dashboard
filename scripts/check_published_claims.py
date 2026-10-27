@@ -207,6 +207,14 @@ MODULES: tuple[tuple[str, str], ...] = (
     ("tests/test_methodology_claims_audit.py",
      "every formula, threshold, window and rule the methodology page states is the one the code "
      "applies (research/2026-10-19-methodology-claims-audit.md)"),
+    # Added 2026-10-27 (round 2 docs pass): the page now opens on a summary, how to use it and
+    # what it cannot do, then a glossary - and its one-line verdict on history is read from the
+    # research engine's summary. test_overview_reading_order is in through its claims as well.
+    ("tests/test_overview_reading_order.py",
+     "the methodology page opens on its summary and limits, every list renders as a list, its "
+     "pointers land on the right limitation, and its summary and glossary say what the engine does"),
+    ("tests/test_readme_front_door.py",
+     "the README's weights, metric counts, flags, sheets and history sentence are the code's"),
 )
 
 PYTEST_MISSING = 3

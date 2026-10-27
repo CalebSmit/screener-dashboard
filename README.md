@@ -1,207 +1,186 @@
 # Multi-Factor Stock Screener
 
-A standalone, multi-factor equity screening pipeline that scores S&P 500 stocks
-across **eight factor categories**, constructs a sector-constrained model
-portfolio, writes a formatted Excel workbook, and publishes a live dashboard.
+A free, public screener that scores the companies in the S&P 500 on eight
+categories - valuation, quality, growth, momentum, risk, analyst revisions,
+size and investment - ranks them, and shows the arithmetic behind every number.
+It is built to be taught from: an investment club can open any stock and follow
+its score back to the company's own figures.
 
-> **Canonical methodology reference:** For the full, plain-language explanation of
-> how the screener works — every metric, weight, filter, and design decision — see
-> **[SCREENER_OVERVIEW.md](SCREENER_OVERVIEW.md)**. That document is the source of
-> truth for methodology; this README is a quick operational guide.
+**It is decision support for research, not investment advice.** It does not
+say what to own or how much, and on 2012-2026 history its ranking has not been
+shown to predict returns (see "Has it been tested?" below).
 
-## What It Does
+## Open it
 
-The screener measures every S&P 500 company across a registry of financial
-metrics, combines them into a single 0-100 composite score, ranks the universe,
-and builds a model portfolio from the top-ranked names.
+| Page | What it is for |
+|------|----------------|
+| [The dashboard](https://calebsmit.github.io/screener-dashboard/) | The ranking, every stock's sheet, comparisons and your own watch list. Updated on weekday mornings. |
+| [Has it been tested?](https://calebsmit.github.io/screener-dashboard/research.html) | The ranking rerun on 2012-2026 history, with every pre-registered experiment and its result, including the ones that failed. |
+| [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html) | The published studies behind the categories, rerun on public data, with how far each rerun lands from its paper. You can change the conditions in the browser. |
+| Methodology | Every metric, weight, rule and limitation. On the dashboard it is the **Methodology** button; in this repository it is [SCREENER_OVERVIEW.md](SCREENER_OVERVIEW.md). |
 
-### The 8 Factor Categories
+## How to read it
 
-| Category | Weight | Captures |
-|----------|--------|----------|
-| Valuation | 22% | Is the stock priced attractively? |
+The dashboard's own short guide walks the same path.
+
+1. **Start with the ranking.** Each company has eight category scores from 0
+   to 100 and one composite. Every score compares a company with its own
+   sector, where about 50 is the middle, and on all eight a higher score adds
+   more to the composite - so a high Risk score means a calmer price and a high
+   Size score a smaller company. The key above the table, "What the columns
+   mean", says this column by column.
+2. **Read the composite as points.** It is the weighted sum of the eight
+   scores: a composite of 70 is 70 points out of 100, and it does not mean the
+   stock beats 70% of the others.
+3. **Open a stock.** "Why it ranks here" gives the reasons in a few sentences.
+   "The workings" rebuilds the score: each metric's value, its sector
+   percentile, the weight it carried and the points it added, so any number can
+   be checked with a calculator.
+4. **Treat a trap flag as a prompt to read on.** A value-trap flag marks a
+   stock that scores high on Valuation but is weak on at least two of Quality,
+   Momentum and Revisions; a growth-trap flag marks high Growth with weak
+   Quality or Revisions. A flag changes neither the score nor the rank.
+5. **Read the context.** "Before you decide" shows the price trend, options,
+   insider trades and the market backdrop beside the score. None of it enters
+   the score.
+6. **Compare and follow.** Compare puts two stocks side by side. My holdings
+   keeps the names you follow, in your own browser (no purchase price is asked
+   for), and shows where each ranks on every run.
+
+### In a club
+
+A ranking like this is a structured way to choose what to research, and the
+research is still the work: the company's filings, its competitors, what would
+have to be true for the price to be wrong. The stock sheet's "The case against"
+and the methodology's **Limitations** are written to start that argument, and
+"Has it been tested?" is the honest answer to "does this work?".
+
+## The eight categories
+
+| Category | Weight | The question it asks |
+|----------|--------|----------------------|
+| Valuation | 22% | Is the stock priced low against what the business generates? |
 | Quality | 22% | Is this a well-run, durable business? |
-| Growth | 13% | Is the business growing sustainably? |
-| Momentum | 13% | Has the market been rewarding it? |
-| Risk | 10% | How volatile / drawdown-prone is it? |
-| Revisions | 10% | What do analysts think, and is sentiment improving? |
-| Size | 5% | Small-cap premium tilt |
-| Investment | 5% | Conservative vs. aggressive asset growth |
+| Growth | 13% | Is the business growing, and can it keep it up? |
+| Momentum | 13% | Has the market been rewarding the stock recently? |
+| Risk | 10% | How bumpy has the ride been? |
+| Revisions | 10% | What do analysts expect, and are they turning more or less optimistic? |
+| Size | 5% | Is the company small for its sector? |
+| Investment | 5% | Is it expanding its asset base conservatively or aggressively? |
 
-Category weights sum to 100. Bank-like stocks (banks, insurers, credit
-companies) use a bank-specific metric set within Valuation and Quality.
+Weights sum to 100. Banks, insurers and other bank-like financial companies are
+scored on their own Valuation and Quality metrics, because enterprise value and
+return on invested capital do not fit a business whose liabilities are its
+raw material. On any one run the momentum regime rule or missing data can move
+a weight; each stock's sheet shows the weight it was actually scored with.
 
-### Metric Registry
+The registry holds **46 metrics**: **27** general ones that carry weight, **4**
+bank-specific ones (price-to-book, ROE, ROA and the equity ratio) that replace
+some of the general ones for a bank-like company - which is scored on **24** in
+all - and **15** candidates that are computed and shown but carry no weight. A
+candidate joins the score only through a research note and a changelog entry.
+`tests/test_readme_front_door.py` fails if these figures part from `config.yaml`.
 
-The metric registry (`METRIC_COLS` in `factor_engine.py`) has **46 entries**:
+## What it cannot do
 
-- **27 scored generic metrics** — carry non-zero weight, applied to non-bank stocks.
-- **4 bank-specific metrics** — P/B, ROE, ROA, Equity Ratio — substituted for
-  certain generic metrics on financial companies (24 weighted metrics in all for a bank).
-- **15 candidate metrics at weight 0** — computed and shown, but unscored. A
-  candidate joins the score only with a research note and a changelog entry.
+- **Predict returns, as far as anyone has shown.** Rerun on 2012-2026 history,
+  rebuilt from the filings as they stood each month, the ranking did no better
+  than chance, and that rebuild lacks the analyst inputs and the companies that
+  have since left the index. The live track record is months long, which shows
+  nothing either way.
+- **Compare sectors with each other.** A high Valuation score means low-priced
+  for its sector, and says nothing about the sector itself.
+- **See past free data.** Everything comes from Yahoo Finance, checked each
+  run against the companies' own SEC filings where a filing has the figure.
+  Analysts' estimate history reaches back only about 90 days.
+- **Say what to own or how much.** There is no model portfolio on the
+  dashboard and no position sizing.
 
-*(2026-10-09: `operating_leverage` and `earnings_acceleration` moved to weight 0 and
-`earnings_variability` was added as a candidate. Re-derive these counts from `config.yaml` with
-`factor_engine.weighted_metric_sets(cfg)` rather than editing them by hand.)*
+The methodology's **Limitations** section has the full list, with the numbers.
 
-*(Counts corrected 2026-09-10. The total was right but the split had read
-32/4/8 since before `sharpe_ratio` and `sortino_ratio` were moved to weight 0
-on 2026-09-02 — the errors cancelled, so the sum stayed plausible. Verified
-against `METRIC_COLS` and `config.yaml` rather than incremented by hand.)*
+## How it is built and checked
 
-### Composite Score
+- **Two scheduled loops.** A data run at 02:00 on weekdays fetches, scores and
+  publishes; a code session improves the system. A data run is discarded
+  rather than published if it fails its health checks - thin price or analyst
+  coverage, a collapse in score dispersion, stale prices, too few stocks
+  scored, or a ranking that breaks from the last one without a recorded
+  methodology change (`scripts/check_run_health.py`).
+- **The page proves its own arithmetic.** Before publishing, the build rebuilds
+  every category score and composite from the published inputs and refuses to
+  publish if any stock fails to reproduce. `python scripts/audit_stock.py JPM`
+  repeats the calculation for any stock with code that shares nothing with the
+  scoring engine.
+- **Every sentence that says how a number is computed is registered** in
+  `claims.py` with the code that makes it true and the test that checks it, and
+  the data run checks those claims before it publishes.
+- **Methodology changes are written down.** Each one is in
+  `METHODOLOGY_CHANGELOG.md` with its evidence: published research and
+  documented professional practice. Backtests and the live record are not yet
+  allowed to justify a change.
+- **More than 3,000 tests** run before any code change reaches the public site.
 
-Category scores are weighted and averaged into a composite that is **cardinal**:
-a 0-100 score which keeps its magnitude, and which is the ranking key. A stock
-below the configured metric-coverage threshold then has its composite reduced by
-the coverage discount. **The composite is not a percentile** — the universe
-percentile is a separate column, `Composite_Pct` (`rank(pct=True) * 100`), kept
-for display. So a composite of 95 means 95 points out of 100, *not* "better than
-95% of the universe".
-
-*(Corrected 2026-10-07. This section previously said the composite was converted
-to a cross-sectional percentile rank, which stopped being true at Phase 13 (F1) —
-`compute_composite` preserves cardinality deliberately so that conviction reaches
-portfolio construction. See `SCREENER_OVERVIEW.md` Step 5 and Limitation 8.)*
-
-## Quick Start
+## Run it yourself
 
 ```bash
-# 1. Install dependencies (Python 3.9+)
+# Python 3.9+
 pip install -r requirements.txt
 
-# 2. Run the full pipeline
-python run_screener.py
+python run_screener.py --dry-run          # check config and wiring (~10 s)
+python run_screener.py                    # full run (uses today's cache if present)
+python run_screener.py --refresh          # force fresh data
+python run_screener.py --tickers AAPL,MSFT,GOOGL   # quick test on 3 stocks
+python run_screener.py --preset value     # balanced / value / growth / momentum
+python run_screener.py --show-weights     # print the effective weights and exit
+python run_screener.py --no-portfolio     # scores only, no model portfolio
 ```
 
 On a machine with TLS interception (e.g. Avast), set `CURL_CA_BUNDLE` to
-`.certs/combined_ca.pem` before running — yfinance's curl_cffi backend honors
-`CURL_CA_BUNDLE`, and other SSL env vars do not affect the data path under
-Python 3.13.
+`.certs/combined_ca.pem` before running: yfinance's curl_cffi backend honors
+`CURL_CA_BUNDLE`, and other SSL environment variables do not affect the data
+path under Python 3.13.
 
-## Configuration
+Tests: `python scripts/run_tests.py tests/ test_screener.py -q`.
+
+### Configuration
 
 All tuneable parameters live in **`config.yaml`**:
 
-- **`universe`** — index selection, minimum market cap & volume, sector/ticker exclusions.
-- **`factor_weights`** — category-level weights (must sum to 100).
-- **`metric_weights`** / **`bank_metric_weights`** — within-category metric weights (each category sums to 100).
-- **`sector_neutral`** — toggle sector-relative scoring; GICS level and cap multiplier.
-- **`value_trap_filters`** — quality/momentum/revisions floor percentiles; `flag_only` to flag without excluding.
-- **`portfolio`** — number of stocks, weighting scheme, position/sector caps, rebalance frequency.
-- **`caching`** — refresh intervals and format (`parquet` or `csv`); caches are config-hash-aware.
-- **`data_quality`** — outlier-report percentiles (flagged, never clipped), coverage thresholds, metric clamps.
-- **`improvement`** — self-improvement / metric-evolution engine settings.
-- **`output`** — Excel filename and sheet names.
+- **`universe`** - index selection, minimum market cap and volume, exclusions.
+- **`factor_weights`** - category weights (sum to 100).
+- **`metric_weights`** / **`bank_metric_weights`** - weights within each category (each sums to 100).
+- **`value_trap_filters`** / **`growth_trap_filters`** - the trap thresholds.
+- **`portfolio`** - the workbook's model portfolio: size, weighting, position and sector caps.
+- **`caching`** - cache format and age; caches are tagged with a hash of the scoring config.
+- **`data_quality`** - outlier reporting (flagged, never clipped), coverage thresholds.
+- **`metric_clamps`** - bounds on the two metrics that are clamped.
+- **`improvement`** - the evidence-recording engine; it records and proposes, and applying a weight change is switched off.
 
-## Output Files
+### Output files
 
 | File | Description |
 |------|-------------|
-| `factor_output.xlsx` | Up to **6-sheet** workbook: **FactorScores** (full universe, all 8 category scores + composite), **ScreenerDashboard** (top names, color-coded), **ModelPortfolio** (holdings, weights, sector allocation), **DataValidation** (raw values + data-quality flags), **WeightSensitivity** (±5% perturbation / Jaccard, when available), **FactorCorrelation** (Spearman matrix of category scores, when available) |
-| `cache/factor_scores_<hash>_YYYYMMDD.parquet` | Scored universe cached for fast warm-start (config-hash tagged) |
-| `runs/<run_id>/` | Raw fetch data, scored data, and config snapshot per run (reproducibility) |
-| `validation/data_quality_log.csv` | Per-ticker data quality issues |
-| `improvement/` | Snapshots, performance & live-IC history for the self-improvement engine |
+| `factor_output.xlsx` | Up to **7 sheets**: ReadMe (disclaimers), FactorScores (every stock, all eight category scores and the composite), ScreenerDashboard (the top 25), ModelPortfolio (research use only), DataValidation (the top 10's raw values and data-quality flags), WeightSensitivity (each category weight moved 5 percentage points either way, with the top-20 overlap, when available) and FactorCorrelation (Spearman correlations of every metric's sector percentile, when available) |
+| `cache/factor_scores_<hash>_YYYYMMDD.parquet` | The scored universe, tagged with the config hash |
+| `runs/<run_id>/` | Raw fetch, scored data and config snapshot for each run |
+| `validation/data_quality_log.csv` | Per-ticker data-quality issues |
+| `improvement/` | Snapshots and live information-coefficient history |
 
-## Dashboard
-
-The live dashboard is hosted at: https://calebsmit.github.io/screener-dashboard/
-
-`generate_dashboard.py` writes a lightweight `dashboard.html` plus a
-`dashboard_data.js` payload (lazy-loaded) and a separate context file. Never
-edit those outputs by hand. The scheduled data loop (`scripts/data-run.ps1`)
-publishes them after its gates pass; see `CLAUDE.md` for the gates.
-
-### Factor Lab
-
-https://calebsmit.github.io/screener-dashboard/lab.html reruns a paper the
-screener cites on public data (the Kenneth R. French Data Library), shows how
-far the reproduction lands from the paper, and lets you change the conditions
-in the browser. `factor_lab.py` is the reference implementation;
-`python factor_lab.py --fetch --build` refreshes `lab_data.js` (and the
-`lab_data_<key>.js` series the page loads per experiment). It is a
-teaching tool: it does not set any of the screener's parameters.
-
-What the page holds (full list: `plan/dashboard-inventory.md`):
-
-- **Rankings** for every S&P 500 stock, with a **Weighting** menu (Balanced,
-  Value, Growth, Momentum). The engine computes each one at build time with
-  the run's own momentum regime.
-- **Stock sheet**: open any row (or press Ctrl/Cmd+K) to see each category
-  score. Every metric opens to its formula, the stock's own inputs, and its
-  rank among sector peers. Every score is rebuilt from the published inputs
-  before the page is allowed to publish.
-- **What Changed**: a short overview of what moved across the whole run,
-  plus the movers since the last run and since a month ago.
-- **Reporting Soon**: companies reporting within 7 or 14 days, with last
-  quarter's earnings surprise.
-- **My Holdings**: names you save, kept in your browser only. No cost
-  basis and no share counts.
-- **Before you decide**: trend, options, insider-trading and market-backdrop
-  context. It is shown beside the score and never enters it.
-- **Track Record**: how past top-ranked lists did afterwards. This is
-  illustration, not evidence for the method.
-
-## CLI Flags
-
-```
-python run_screener.py [OPTIONS]
-
-Options:
-  --refresh          Force-clear the Parquet cache and re-fetch data
-  --tickers T1,T2    Score only the listed tickers (quick test mode)
-  --top-n N          Number of holdings in the model portfolio
-  --preset NAME      Apply a weighting preset (balanced / value / growth / momentum)
-  --show-weights     Print the effective weights and exit
-  --dry-run          Validate config and wiring without fetching or scoring
-  --no-portfolio     Skip portfolio construction; write FactorScores only
-```
-
-### Examples
-
-```bash
-python run_screener.py                              # full run (default)
-python run_screener.py --refresh                    # force fresh data
-python run_screener.py --tickers AAPL,MSFT,GOOGL    # quick test on 3 stocks
-python run_screener.py --preset value               # value-tilted weights
-python run_screener.py --no-portfolio               # scores only
-```
-
-## Known Limitations
-
-1. **yfinance dependency** — data quality depends on Yahoo Finance's free API,
-   which may throttle (HTTP 429) or return stale fields. Roughly 10-25% of
-   tickers may fail to fetch on a given run; failures are retried and logged.
-2. **No portfolio risk model** — default weighting uses single-name volatility
-   only; there is no covariance/correlation model, so portfolio risk may be
-   understated for correlated holdings.
-3. **Look-ahead bias in backtests** — the screener uses latest-available
-   fundamentals and does not reconstruct point-in-time data.
-4. **Analyst coverage sparsity** — the Revisions category auto-redistributes its
-   weight when coverage is insufficient.
-5. **No intraday data** — all price data is daily close.
-6. **Not real-time** — designed for end-of-day batch runs, not live trading.
-
-See [SCREENER_OVERVIEW.md](SCREENER_OVERVIEW.md) for the complete limitations
-discussion.
+`generate_dashboard.py` writes the dashboard (`index.html`) and its two data
+files (`dashboard_data.js`, `dashboard_context.js`); `SCREENER_OVERVIEW.md` is
+written by `run_screener.py`. All four are generated - edit the code that
+writes them, never the files.
 
 ## Disclaimer
 
 This tool is provided for **educational and research purposes only**. It does
-not constitute investment advice. The model portfolio is a quantitative screen,
-not a recommendation to buy or sell any security. Past performance of any
-backtested strategy does not guarantee future results. Always perform your own
-due diligence and consult a qualified financial advisor before making investment
-decisions.
+not constitute investment advice, and nothing on the dashboard is a
+recommendation to buy or sell any security. Past results of any backtest or
+track record do not guarantee future results. Do your own research, and consult
+a qualified financial adviser before making investment decisions.
 
 ## Dependencies
 
-See `requirements.txt` for the full list. Core libraries:
-
-- **pandas / numpy / scipy** — data wrangling and statistics
-- **yfinance** — market data (S&P 500 constituents, fundamentals, price history)
-- **openpyxl** — Excel workbook creation with formatting
-- **PyYAML** — configuration file parsing
-- **pyarrow** — Parquet cache I/O
+See `requirements.txt` for the full list. Core libraries: pandas, numpy and
+scipy (data and statistics), yfinance (market data), openpyxl (the workbook),
+PyYAML (configuration), pyarrow (Parquet) and markdown (the methodology page).
