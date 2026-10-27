@@ -11028,6 +11028,16 @@ def _js_page() -> str:
                     '</div><div class="tv-cap"><span>Value-trap rate, each sector</span></div>',
                 secs.map(s => s + ' ' + Number(vt[s].rate).toFixed(1) + '%').join(', '));
         }
+        // Diagnostics: the published stability of the top 20 under each weight's +-5% move (Jaccard,
+        // 1.0 = unchanged), on a 0-1 scale with the view's own 0.85 line drawn across it
+        const sens = (D.weight_sensitivity || []).filter(x => typeof x.avg_jaccard === 'number');
+        if (sens.length) {
+            const short = { Valuation: 'Val', Quality: 'Qual', Growth: 'Grow', Momentum: 'Mom', Risk: 'Risk', Revisions: 'Rev', Size: 'Size', Investment: 'Inv' };
+            tileViz('sec-defensibility', '<div class="tv-cols tv-stab">' + sens.map(x =>
+                    '<i style="height:' + Math.max(4, Math.min(1, x.avg_jaccard) * 100).toFixed(1) + '%" title="' + escapeHtml(x.category) + ' ' + x.avg_jaccard.toFixed(2) + '"></i>').join('') +
+                    '<b style="bottom:85%"></b></div><div class="tv-cap tv-cap-cols">' + sens.map(x => '<span>' + escapeHtml(short[x.category] || x.category) + '</span>').join('') + '</div>',
+                'Top-20 stability under each weight: ' + sens.map(x => x.category + ' ' + x.avg_jaccard.toFixed(2)).join(', '));
+        }
         // My holdings: where each saved name sits in the ranking, 1 to N
         if (typeof holdings !== 'undefined' && holdings.length && N) {
             const ranks = holdings.map(t => (D.table_data.find(x => x.Ticker === t) || {}).Rank).filter(v => typeof v === 'number');
@@ -11086,6 +11096,8 @@ def _css_page() -> str:
         .hero-sub { color: var(--text-secondary); }
         @media (max-width: 760px) { .hero-title { font-size: 36px; } }
 
+        /* the guide's three statements read as the page's standfirst */
+        .guide-steps li strong { font-family: var(--font-display); font-weight: 500; font-size: 18px; letter-spacing: -.01em; margin-bottom: 6px; }
         /* the wordmark and the dialogs' titles are headlines too */
         .dashboard-header .brand h1, .footer-name, #meth-title, #cmp-title {
             font-family: var(--font-display); font-weight: 500; letter-spacing: -.01em; font-optical-sizing: auto; }
@@ -11170,6 +11182,10 @@ def _css_page() -> str:
         .tv-days .wk2 { background: color-mix(in srgb, var(--accent) 42%, var(--bg-elevated)); }
         .tv-cols i { background: #55544f; }
         .tv-cols i.hi { background: var(--amber); }
+        .tv-stab { position: relative; height: 40px; }
+        .tv-stab b { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--text-muted); }
+        .tv-cap-cols { justify-content: space-around; gap: 3px; }
+        .tv-cap-cols span { flex: 1 1 0; min-width: 0; text-align: center; }
         .tv-pct, .tv-bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; }
         .tvp-l, .tvb-l { font-size: 12px; color: var(--text-secondary); }
         .tvp-v, .tvb-v { font-size: 12px; font-weight: 600; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; min-width: 40px; }
@@ -11188,7 +11204,9 @@ def _css_page() -> str:
 
         /* ---- THE RANKINGS: score heat - magnitude in one hue behind ink that does not change ---- */
         .data-table td.sc { background: rgba(57, 135, 229, calc(0.03 + 0.25 * var(--v, 0))); color: var(--text-primary); font-weight: 500;
-                            box-shadow: inset 0 -1px 0 var(--border); }
+                            box-shadow: inset 2px 0 0 var(--bg-card), inset 0 -1px 0 var(--border); }
+        .data-table tbody tr:hover td.sc { box-shadow: inset 2px 0 0 var(--bg-card-hover), inset 0 -1px 0 var(--border); }
+        .filters-bar .result-count { align-self: flex-end; line-height: 34px; }
         .data-table td.sc-na { background: none; color: var(--text-muted); }
         .data-table tbody tr:hover td.sc { color: var(--text-primary); }
         .data-table thead th { background: color-mix(in srgb, var(--bg-card) 92%, #fff); }
@@ -11235,6 +11253,19 @@ def _css_page() -> str:
             .mk-reading { break-inside: avoid; margin-bottom: 12px; }
         }
         .mk-card, .mk-reading, .tr-kpis, .chart-container, .dq-kpi-card { box-shadow: var(--hairline-hi); }
+        /* Factor analytics on a phone: the Median/Average toggle was cut off at the panel's edge, and the
+           sector table scrolled sideways with nothing to say so - the sector names now stay put while the
+           scores scroll, and the scrolling edge fades */
+        @media (max-width: 760px) {
+            #sec-analytics .chart-title-row { flex-wrap: wrap; row-gap: 10px; }
+            .sector-matrix { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+                             mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+            .sm-table th:first-child, .sm-table td.sm-sector { position: sticky; left: 0; z-index: 1; background: var(--bg-card);
+                             max-width: 132px; overflow: hidden; text-overflow: ellipsis; }
+        }
+        /* the header at laptop widths: the serif wordmark is wider than the Inter one it replaced, so the
+           search keeps its icon and shortcut a little sooner and "Diagnostics" is not clipped */
+        @media (min-width: 761px) and (max-width: 1500px) { .cmdk-btn-text { display: none; } }
         /* the comparison tray sat on top of the open Methodology dialog, over its text */
         body:has(#methodology-modal:not([style*="none"])) .cmp-tray { display: none; }
         /* the footer as a colophon */
