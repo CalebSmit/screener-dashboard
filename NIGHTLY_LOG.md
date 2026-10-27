@@ -15994,3 +15994,13 @@ serif (Newsreader) is removed from all three pages and from the font download; e
 used it (18 rules) is Inter 600 tracked tight - the leader cards' ticker style - and the two long
 lead sentences are Inter 400. `plan/ui-elevation.md` and `plan/dashboard-design-system.md` now say
 **do not reintroduce a serif or a second display face.** Presentation only; payload byte-identical.
+
+### Same day, third owner pass - the header (`good/2026-10-27-owner-3`)
+
+The owner photographed the live page on a wide monitor with the section links cut off after
+"Mar". Reproduced on the generator's page at 1024, 1152, 1536, 1680 and 1920 px (five of eight
+widths): the bar had accumulated width-specific patches, and above 1560 px a "Last updated" line
+and the labelled search took the room. Replaced with one rule set - the links that fit stay, the
+rest move in order into a "More" menu (keyboard and Escape work), re-measured on resize and font
+load. `tests/test_header_nav_fit.py` (9 tests: seven widths, a live resize, the menu). Presentation
+only; payload byte-identical.
