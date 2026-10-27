@@ -33,6 +33,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.git_sandbox import copy_sandbox
+
 RUNNER = Path(__file__).resolve().parent.parent / "scripts" / "nightly-screener.ps1"
 SOURCE = RUNNER.read_text(encoding="utf-8-sig")
 
@@ -43,9 +45,10 @@ def _git(cwd, *args):
     return r.stdout
 
 
-@pytest.fixture
-def sandbox(tmp_path):
+@pytest.fixture(scope="module")
+def _sandbox_template(tmp_path_factory):
     """A real origin + clone, with one merged and one unmerged nightly branch."""
+    tmp_path = tmp_path_factory.mktemp("branch_sweep_template")
     origin = tmp_path / "origin.git"
     work = tmp_path / "work"
     subprocess.run(["git", "init", "--bare", "-b", "main", str(origin)],
@@ -78,6 +81,18 @@ def sandbox(tmp_path):
     _git(work, "checkout", "main")
 
     _git(work, "fetch", "--prune", "origin")
+    return tmp_path
+
+
+@pytest.fixture
+def sandbox(tmp_path, _sandbox_template):
+    """Each test's own copy of the template: origin + clone, one merged and one unmerged branch.
+
+    Built once per module and copied per test (tests/git_sandbox.py): the same
+    repository every time, at the same tmp_path locations, at a fraction of the
+    git processes.
+    """
+    _origin, work = copy_sandbox(_sandbox_template, tmp_path)
     return work
 
 

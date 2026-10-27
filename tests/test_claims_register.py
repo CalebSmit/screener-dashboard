@@ -385,6 +385,11 @@ def test_confidence_metric_count_is_the_discount_coverage(payload, generated_ove
     import yaml
     from factor_engine import weighted_metric_sets
 
+    if not (ROOT / "runs").is_dir():
+        # Gitignored, so absent in a fresh clone or worktree (OWNER_FOCUS 2026-10-20 item 7).
+        # Only absence skips: a runs/ folder with no usable run still fails as before.
+        pytest.skip(f"MISSING DATA: {ROOT / 'runs'} is absent (gitignored) - this test reads the "
+                    "newest full run and cannot run without one")
     run = max((d for d in (ROOT / "runs").iterdir() if (d / "config.yaml").exists()
                and (d / "05_final_scored.parquet").exists()),
               key=lambda d: (d / "05_final_scored.parquet").stat().st_mtime)

@@ -19,7 +19,9 @@ as it ends, on exactly what you leave. Finish by **{{DEADLINE}}** (local time):
    commit `research/experiments/ledger.jsonl` and the report after each call. For anything else,
    start it in the background and wait with `python scripts/wait_for.py` (it blocks for at most
    9.5 minutes; call it again until it reports `DONE`).
-2. **Run the tests that cover what you changed**, then commit with explicit paths (never
+2. **Run the tests that cover what you changed** (the whole suite, if you need it, is
+   `python scripts/run_tests.py tests/ test_screener.py -q` - parallel where pytest-xdist is
+   installed, about three minutes), then commit with explicit paths (never
    `git add -A`) and push the branch. Do not merge or push `main` - the runner does that after the
    gates pass.
 3. **If it cannot be finished in time, leave the tree clean anyway**: commit what is sound, revert

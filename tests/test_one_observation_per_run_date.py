@@ -40,6 +40,15 @@ def isolated(tmp_path, monkeypatch):
     disp = tmp_path / "dispersion_history.csv"
     monkeypatch.setattr(ie, "SNAPSHOTS_DIR", snaps)
     monkeypatch.setattr(ie, "DISPERSION_HISTORY_PATH", disp)
+    # record_run_snapshot also turns forward returns into IC rows (compute_live_ic, three
+    # horizons). Left pointed at the repo, every call here read the real 21 MB
+    # improvement/performance_history.csv three times and rewrote the tracked
+    # improvement/live_ic_history.csv - byte-identically, so no tripwire saw it, but under
+    # pytest-xdist two workers doing that read-modify-write at once can drop rows from the
+    # published evidence base (found 2026-10-26). Those files are not what these tests are
+    # about; they are scratch here too. ~2.2 s per call, 11 s for one test.
+    monkeypatch.setattr(ie, "PERFORMANCE_HISTORY_PATH", tmp_path / "performance_history.csv")
+    monkeypatch.setattr(ie, "LIVE_IC_HISTORY_PATH", tmp_path / "live_ic_history.csv")
     return snaps, disp
 
 

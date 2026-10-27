@@ -84,6 +84,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
@@ -254,6 +255,28 @@ def missing_modules() -> list[str]:
     return [m for m in module_paths() if not (ROOT / m).exists()]
 
 
+# Parallel since 2026-10-26, where pytest-xdist is importable (2:45 serially for ~1,445 tests
+# at 02:00 against this script's own 600 s timeout). Same modules, same flags, same exit codes;
+# only `-n auto` is added. Without xdist the command is byte for byte the serial one this gate
+# always ran, and pytest exit 3/4 from a parallel run (xdist could not run the modules - not a
+# verdict) reruns it serially. scripts/run_tests.py applies the same rule to gate 1.
+XDIST_WORKERS = "auto"
+XDIST_NOT_A_VERDICT = (3, 4)
+
+
+def xdist_available() -> bool:
+    try:
+        return importlib.util.find_spec("xdist") is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def pytest_command(parallel: bool) -> list[str]:
+    cmd = [sys.executable, "-m", "pytest", *module_paths(),
+           "-q", "--no-header", "-p", "no:cacheprovider"]
+    return cmd + ["-n", XDIST_WORKERS] if parallel else cmd
+
+
 def run(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Verify the claims in the artifacts about to be published.")
     ap.add_argument("--list", action="store_true", help="print the modules and exit")
@@ -292,10 +315,19 @@ def run(argv: list[str] | None = None) -> int:
         print("Update scripts/check_published_claims.py MODULES, or restore them.")
         return 1
 
-    cmd = [sys.executable, "-m", "pytest", *module_paths(),
-           "-q", "--no-header", "-p", "no:cacheprovider"]
+    parallel = xdist_available()
     try:
-        proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600)
+        proc = subprocess.run(pytest_command(parallel), cwd=ROOT, capture_output=True,
+                              text=True, timeout=600)
+        if parallel and proc.returncode in XDIST_NOT_A_VERDICT:
+            # xdist itself could not run the modules - not a verdict on any claim. The serial
+            # command this gate ran before 2026-10-26 decides instead; a plugin problem must
+            # never be what refuses (or passes) a publish.
+            print(f"PUBLISHED CLAIMS: the parallel run did not run the checks (pytest exit "
+                  f"{proc.returncode}) - rerunning serially.")
+            parallel = False
+            proc = subprocess.run(pytest_command(False), cwd=ROOT, capture_output=True,
+                                  text=True, timeout=600)
     except FileNotFoundError:
         print("PUBLISHED CLAIMS: pytest is not available - claims NOT checked.")
         return PYTEST_MISSING
@@ -316,12 +348,13 @@ def run(argv: list[str] | None = None) -> int:
             print(f"    {ln}")
         return 1
 
+    mode = f"parallel, -n {XDIST_WORKERS}" if parallel else "serial"
     if proc.returncode == 0:
         summary = tail[-1] if tail else "no output"
-        print(f"PUBLISHED CLAIMS: PASS ({summary})")
+        print(f"PUBLISHED CLAIMS: PASS ({summary}) [{mode}]")
         return 0
 
-    print(f"PUBLISHED CLAIMS: FAIL (pytest exit {proc.returncode})")
+    print(f"PUBLISHED CLAIMS: FAIL (pytest exit {proc.returncode}) [{mode}]")
     for ln in [ln for ln in tail if ln.startswith("FAILED") or ln.startswith("ERROR")][-12:]:
         print(f"    {ln}")
     if tail:

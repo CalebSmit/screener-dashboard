@@ -34,6 +34,7 @@ session, naming the file, so a new test that writes a published artifact is caug
 day it is written instead of being silently cleaned up for months.
 """
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -53,9 +54,89 @@ PROTECTED_PATHS = [
 ]
 
 
+_FAIL_MESSAGE = ("A test wrote published artifacts (restored, but the test must use tmp_path "
+                 "or stub the network): {}. See conftest.py.")
+
+
+# ---------------------------------------------------------------------------
+# Under pytest-xdist (2026-10-26). The suite runs in parallel where xdist is
+# installed (scripts/run_tests.py), and a per-worker snapshot would be wrong
+# there: a worker that starts after another worker's test wrote a file would
+# snapshot the *written* bytes and later "restore" them. So under xdist the
+# controller snapshots once, before any worker exists, and hands every worker
+# the digests; each worker fails its session if a file no longer matches them
+# (the writer's worker always does, because its teardown follows its own
+# write), and the controller restores the originals once every worker is done
+# and fails the run itself as a second line. Serially (no xdist, or -n 0) the
+# fixture below behaves exactly as it always has. tests/test_parallel_suite.py.
+# ---------------------------------------------------------------------------
+
+def _digest(data):
+    return None if data is None else hashlib.sha256(data).hexdigest()
+
+
+def _is_xdist_controller(config):
+    return config.pluginmanager.getplugin("dsession") is not None
+
+
+@pytest.hookimpl(trylast=True)  # after xdist's own pytest_configure registers "dsession"
+def pytest_configure(config):
+    if not hasattr(config, "workerinput") and _is_xdist_controller(config):
+        config._published_snapshot = {
+            str(p): (p.read_bytes() if p.exists() else None) for p in PROTECTED_PATHS
+        }
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_configure_node(node):
+    """xdist hook, run in the controller for each worker before it starts."""
+    snap = getattr(node.config, "_published_snapshot", None)
+    if snap is not None:
+        node.workerinput["published_artifact_digests"] = {k: _digest(v) for k, v in snap.items()}
+
+
+def pytest_sessionfinish(session, exitstatus):
+    snap = getattr(session.config, "_published_snapshot", None)
+    if snap is None:
+        return
+    written = []
+    for name, original in snap.items():
+        path = Path(name)
+        if original is None:
+            if path.exists():
+                path.unlink()
+                written.append(path.name)
+        elif not path.exists() or path.read_bytes() != original:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(original)
+            written.append(path.name)
+    if written:
+        session.config._published_written = written
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    written = getattr(config, "_published_written", None)
+    if written:
+        terminalreporter.write_sep("=", "published artifacts written", red=True)
+        terminalreporter.write_line(_FAIL_MESSAGE.format(", ".join(written)))
+
+
 @pytest.fixture(scope="session", autouse=True)
-def preserve_published_artifacts():
+def preserve_published_artifacts(request):
     """Restore published artifacts that the suite rewrites as a side effect."""
+    workerinput = getattr(request.config, "workerinput", None)
+    if workerinput is not None and "published_artifact_digests" in workerinput:
+        # An xdist worker: check against the controller's snapshot; the
+        # controller restores (see above), so workers never write these files.
+        expected = workerinput["published_artifact_digests"]
+        yield
+        changed = [Path(name).name for name, digest in expected.items()
+                   if _digest(Path(name).read_bytes() if Path(name).exists() else None) != digest]
+        if changed:
+            pytest.fail(_FAIL_MESSAGE.format(", ".join(changed)), pytrace=False)
+        return
+
     saved = {}
     for path in PROTECTED_PATHS:
         saved[path] = path.read_bytes() if path.exists() else None
@@ -75,5 +156,4 @@ def preserve_published_artifacts():
             path.write_bytes(original)
             written.append(path.name)
     if written:
-        pytest.fail("A test wrote published artifacts (restored, but the test must use tmp_path "
-                    f"or stub the network): {', '.join(written)}. See conftest.py.", pytrace=False)
+        pytest.fail(_FAIL_MESSAGE.format(", ".join(written)), pytrace=False)
