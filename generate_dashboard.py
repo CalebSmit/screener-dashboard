@@ -1679,6 +1679,102 @@ SCORE_KEY = (
 )
 
 
+# What each metric measures, in words a first-year investment-club member can use. Shown at the top of
+# a metric's card in The workings (and as the metric name's tooltip). Display only, and deliberately
+# *definitional*: no figure, no threshold, no direction ("lower is better" is the row's own chip, read
+# from METRIC_DIR) and no statement of how the engine computes the number - that is the card's
+# Calculation and Definition lines, which come from metric_lineage and are checked against every
+# stock. tests/test_drilldown_reading.py holds them to that: every metric the page can show has one,
+# none contains a digit or a computing verb, none uses advice language.
+METRIC_PLAIN = {
+    "ev_ebitda": "What the whole company would cost a buyer, its debt included, for each dollar of "
+                 "operating profit. The usual yardstick for comparing prices across companies that "
+                 "borrow very different amounts.",
+    "fcf_yield": "The cash the business has left after paying for its equipment and buildings, set "
+                 "against what the whole company costs. Cash is harder to flatter with accounting "
+                 "choices than profit is.",
+    "earnings_yield": "Profit set against the company's stock-market value: the price-to-earnings "
+                      "ratio turned upside down, so a company with a loss still gets a figure that "
+                      "can be compared.",
+    "ev_sales": "What the whole company costs for each dollar of sales. Useful where profits are "
+                "thin or swing from year to year, though it says nothing about how much of each sale "
+                "becomes profit.",
+    "pb_ratio": "What the stock market pays for each dollar of the company's net worth as its "
+                "balance sheet records it. For a bank or insurer, most of that net worth is loans "
+                "and investments carried close to their market value.",
+    "roic": "How much profit the business makes on the money shareholders and lenders have put into "
+            "it. A business that turns capital into profit well can grow without needing as much "
+            "new money.",
+    "gross_profit_assets": "The profit left after the direct cost of what the company sells, set "
+                           "against everything it owns: a broad measure of how productive its "
+                           "assets are.",
+    "debt_equity": "How much the company owes compared with what its shareholders own.",
+    "net_debt_to_ebitda": "Roughly how many years of operating profit it would take to pay off the "
+                          "company's debt after using its cash. A common test of how heavily a "
+                          "company borrows.",
+    "earnings_variability": "How much the company's return on its shareholders' money has swung from "
+                            "year to year: a measure of how predictable its profitability has been.",
+    "piotroski_f_score": "A checklist of basic signs of financial health from Joseph Piotroski's "
+                         "research: making a profit, generating cash, borrowing less, not issuing "
+                         "new shares, and becoming more efficient.",
+    "accruals": "How far reported profit runs ahead of the cash the business actually brought in. A "
+                "large gap is a reason to read the cash-flow statement before trusting the profit.",
+    "operating_leverage": "How strongly operating profit moves when sales move. A business with high "
+                          "fixed costs sees its profit rise and fall faster than its sales.",
+    "beneish_m_score": "A screen, from Messod Beneish's research, for the accounting patterns that "
+                       "came before companies were caught overstating their earnings. A flag for a "
+                       "closer look at the accounts, not proof of anything.",
+    "roe": "Profit set against shareholders' equity: how much the company earns on the money its "
+           "owners have in the business.",
+    "roa": "Profit set against everything the company owns. For a bank, how much it earns on its "
+           "loans and investments.",
+    "equity_ratio": "The share of the company's assets paid for by its owners rather than borrowed. "
+                    "For a bank or insurer, the cushion that absorbs losses before depositors or "
+                    "policyholders are hurt.",
+    "forward_eps_growth": "How much analysts expect earnings per share to grow over the coming year "
+                          "compared with the year just reported.",
+    "peg_ratio": "The price-to-earnings ratio set against the earnings growth analysts expect: a way "
+                 "to ask whether a high price is being paid for fast growth.",
+    "revenue_growth": "How much the company's sales grew over the past year.",
+    "revenue_cagr_3yr": "The average yearly growth in sales over three years, which smooths out a "
+                        "single unusual year.",
+    "sustainable_growth": "How fast the company could grow from its own profits, without raising "
+                          "new money or borrowing more, given how much of its profit it keeps.",
+    "return_12_1": "How the share price has done over roughly the past year: the classic measure of "
+                   "price momentum.",
+    "return_6m": "How the share price has done over roughly the past six months: a shorter reading "
+                 "of price momentum.",
+    "jensens_alpha": "The part of the stock's return over the past year that its sensitivity to the "
+                     "whole market does not explain: what it earned beyond what the market's move "
+                     "alone would predict.",
+    "volatility": "How much the share price swings from day to day, stated as a yearly figure: the "
+                  "everyday meaning of a risky stock.",
+    "beta": "How much the stock tends to move when the whole market moves. A stock with a beta of "
+            "one moves with the market; above one, by more than the market.",
+    "sharpe_ratio": "The return earned above a risk-free rate for each unit of price swing: return "
+                    "adjusted for the bumpiness of the ride.",
+    "sortino_ratio": "Like the Sharpe ratio, but counting only the downward swings as risk.",
+    "max_drawdown_1y": "The largest fall from a high to a later low over the period: the worst loss "
+                       "someone who bought at the top would have sat through.",
+    "fy1_revision_3m": "How analysts' estimates of this year's earnings have changed over the last "
+                       "three months, relative to the share price.",
+    "analyst_surprise": "How far the company's recently reported earnings have come in above or "
+                        "below what analysts expected.",
+    "price_target_upside": "How far the average analyst price target sits above or below the "
+                           "current share price.",
+    "earnings_acceleration": "Whether the company's latest earnings surprise was bigger or smaller "
+                             "than the one before: are results improving against expectations?",
+    "consecutive_beat_streak": "How consistently the company has beaten analysts' earnings estimates "
+                               "in recent quarters, with the most recent quarters counting most.",
+    "short_interest_ratio": "How many days of normal trading it would take for short sellers, "
+                            "investors betting on a fall, to repurchase the shares they have borrowed and sold.",
+    "size_log_mcap": "The company's size by stock-market value, on a scale where smaller companies "
+                     "sit higher.",
+    "asset_growth": "How fast the company's balance sheet grew over the past year, whether by "
+                    "building, buying other companies or holding more cash.",
+}
+
+
 def _trap_rules(cfg: dict | None = None) -> dict:
     """The trap-flag thresholds the engine reads (`factor_engine.apply_value_trap_flags` and
     `apply_growth_trap_flags`), from `config.yaml` with the engine's own defaults."""
@@ -2144,7 +2240,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         <!-- Stock Detail Modal -->
         <div class="modal-overlay" id="stock-modal" style="display:none" onclick="if(event.target===this)closeModal()">
-            <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-ticker">
+            <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-ticker modal-company">
                 <div class="modal-header">
                     <div>
                         <h2 class="modal-ticker" id="modal-ticker"></h2>
@@ -2155,13 +2251,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="modal-headline" id="modal-headline"></div>
                     <div class="modal-tools" role="toolbar" aria-label="Stock tools">
                         <button type="button" class="mt-btn mt-step" id="mt-prev" onclick="stepStock(-1)" aria-label="Previous stock" title="Previous stock in the list (K)"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
-                        <span class="mt-pos" id="mt-pos" aria-live="polite"></span>
+                        <span class="mt-pos" id="mt-pos"></span>
                         <button type="button" class="mt-btn mt-step" id="mt-next" onclick="stepStock(1)" aria-label="Next stock" title="Next stock in the list (J)"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
                         <button type="button" class="mt-btn mt-text" id="mt-hold" onclick="toggleHoldingCurrent()" aria-pressed="false" title="Keep this stock on My Holdings, saved in this browser (H)"><span class="mt-lg">Add to&nbsp;</span>Holdings</button>
                         <button type="button" class="mt-btn mt-text" id="mt-compare" onclick="toggleCompareCurrent()" aria-pressed="false" title="Add to the side-by-side comparison (C)">Compare</button>
                         <button type="button" class="mt-btn mt-text" id="mt-link" onclick="copyStockLink()" title="Copy a link that opens this stock"><span class="mt-lg">Copy&nbsp;</span>Link</button>
+                        <button type="button" class="mt-btn mt-step mt-print" id="mt-print" onclick="printSheet()" aria-label="Print this stock" title="Print this stock's sheet, every section open"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/></svg></button>
                     </div>
                     <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+                    <!-- What a screen reader hears when the sheet steps to another stock (focus stays on the
+                         button that stepped, so nothing else would say the stock changed) -->
+                    <span class="sr-only" id="modal-announce" role="status" aria-live="polite"></span>
                 </div>
                 <nav class="modal-nav" aria-label="In this stock">
                     <a href="#modal-score-row" onclick="goToModal('modal-score-row');return false">Scores</a>
@@ -2185,7 +2285,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
                     <div class="summary-block" id="modal-summary" style="display:none">
                         <div class="summary-head">
-                            <span class="summary-title">Why it ranks here</span>
+                            <h3 class="summary-title" id="summary-title">Why it ranks here</h3>
                         </div>
                         <div class="summary-body" id="modal-summary-body"></div>
                         <div class="summary-source">Generated from this run&rsquo;s data by a fixed template; every figure appears in the detail below. It describes where the stock ranks and why, and never says whether to buy, sell or hold.</div>
@@ -2206,7 +2306,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <!-- What the company does (provider description, display only) -->
                     <div class="about-block" id="modal-about" style="display:none">
                         <div class="about-head">
-                            <span class="about-title">About</span>
+                            <h3 class="about-title">About</h3>
                             <span class="about-industry" id="modal-industry"></span>
                         </div>
                         <p class="about-text clamped" id="modal-about-text"></p>
@@ -2218,9 +2318,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
                     <!-- Contribution breakdown -->
                     <div class="collapsible" id="section-contribution">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-contribution')">
-                            <span>How it adds up</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-contribution')">
+                                <span>How it adds up</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body">
                             <div class="modal-chart-section">
                                 <p class="modal-chart-desc">Points are each category score (0&ndash;100) times the weight <strong>actually multiplied by</strong> for this stock, and they sum to the composite. Where a weight differs from the Methodology default, the reason is shown below. Select a row for its build-up.</p>
@@ -2232,57 +2334,71 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
                     <!-- Category detail sections -->
                     <div class="collapsible" id="section-categories">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-categories')">
-                            <span>The workings</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-categories')">
+                                <span>The workings</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body" id="modal-categories"></div>
                     </div>
 
                     <!-- Before you decide: trend, options, insiders, rates. Context, never scored. -->
                     <div class="collapsible" id="section-context">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-context')">
-                            <span>Before you decide</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-context')">
+                                <span>Before you decide</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body" id="modal-context"></div>
                     </div>
 
                     <!-- Rank history -->
                     <div class="collapsible" id="section-history" style="display:none">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-history')">
-                            <span>Rank history</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-history')">
+                                <span>Rank history</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body" id="modal-history"></div>
                     </div>
 
                     <!-- Analyst Price Targets -->
                     <div class="collapsible" id="section-price-targets">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-price-targets')">
-                            <span>Analyst price targets</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-price-targets')">
+                                <span>Analyst price targets</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body" id="modal-price-targets"></div>
                     </div>
 
                     <!-- Company Snapshot -->
                     <div class="collapsible collapsed" id="section-snapshot">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-snapshot')">
-                            <span>Company snapshot</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-snapshot')">
+                                <span>Company snapshot</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body" id="modal-snapshot"></div>
                     </div>
 
                     <!-- Sector Peers -->
                     <div class="collapsible collapsed" id="section-peers">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-peers')">
-                            <span>Sector peers</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-peers')">
+                                <span>Sector peers</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body" id="modal-peers"></div>
                     </div>
 
                     <!-- Data Provenance -->
                     <div class="collapsible collapsed" id="section-provenance">
-                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-provenance')">
-                            <span>Data provenance</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
+                        <h3 class="collapsible-h">
+                            <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-provenance')">
+                                <span>Data provenance</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                            </div>
+                        </h3>
                         <div class="collapsible-body" id="modal-provenance"></div>
                     </div>
                 </div>
@@ -4365,6 +4481,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>`;
     }}
 
+    // Words for the workings (display only): what each metric measures, and what a high score in
+    // each category means (the score key's own lines, SCORE_KEY).
+    const METRIC_PLAIN = {json.dumps(METRIC_PLAIN, ensure_ascii=False)};
+    const CAT_MEANS = {json.dumps({k: text for k, _s, _n, text in SCORE_KEY}, ensure_ascii=False)};
 {_js_workings()}
 {_js_ux()}
 {_js_context()}
@@ -4481,7 +4601,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // aria-expanded true to the class whichever path moved it.
     function syncSectionAria(sec) {{
         if (!sec || !sec.querySelector) return;
-        const h = sec.querySelector(':scope > .section-header, :scope > .collapsible-header');
+        const h = sec.querySelector(':scope > .section-header, :scope > .collapsible-header, :scope > .collapsible-h > .collapsible-header');
         if (h && h.setAttribute) h.setAttribute('aria-expanded', sec.classList.contains('collapsed') ? 'false' : 'true');
     }}
     function watchSectionAria() {{
@@ -4982,7 +5102,7 @@ def _js_workings() -> str:
                         : `Configured ${fmtWeight(r.configured)}; no data for this stock, so it carries no weight here.`;
                     const hasInfo = (D.lineage || {})[r.metric];
                     body += `<tr class="metric-row${has ? '' : ' wk-nodata'}${hasInfo ? ' wk-click' : ''}" data-metric="${r.metric}"${hasInfo ? ' onclick="toggleMetricDetail(this)"' : ''}>
-                        <td class="wk-metric metric-name">${meta.label}${dirChip(meta)}</td>
+                        <td class="wk-metric metric-name"${(typeof METRIC_PLAIN !== 'undefined' && METRIC_PLAIN[r.metric]) ? ` title="${escapeHtml(METRIC_PLAIN[r.metric])}"` : ''}>${meta.label}${dirChip(meta)}</td>
                         <td class="wk-num metric-raw">${rawStr !== null ? rawStr : '<span class="metric-na">no data</span>'}</td>
                         <td class="wk-pct"><div class="metric-pct-bar-container"><div class="metric-pct-bar">${has ? `<div class="metric-pct-fill" style="width:${Math.max(1, r.pct)}%"></div>` : ''}</div>
                             <span class="metric-pct-label">${has ? r.pct.toFixed(0) : '<span class="metric-na">&mdash;</span>'}</span></div></td>
@@ -5000,16 +5120,40 @@ def _js_workings() -> str:
                 if (wk.notUsed.length) body += notUsedHtml(cat, wk);
             }
 
+            // What a high score in this category means, in the key's own words (SCORE_KEY, claim
+            // dashboard.score_key), said where a student first opens the category's arithmetic.
+            const means = (typeof CAT_MEANS !== 'undefined' && CAT_MEANS[cat])
+                ? `<p class="wk-cat-means">A higher ${CAT_LABELS[cat]} score means ${escapeHtml(CAT_MEANS[cat])}</p>` : '';
+            // The header is a button inside a level-4 heading (the WAI-ARIA accordion pattern): a
+            // heading inside role="button" is flattened, so screen readers could not reach the
+            // eight categories by heading. aria-expanded is kept true by syncWorkingsAria.
             out += `<div class="cat-detail-section collapsed" data-cat="${cat}" id="cat-detail-${cat}" style="--v:${scored ? (Math.max(0, Math.min(100, catScore)) / 100).toFixed(3) : 0}">
-                <div class="cat-detail-header" onclick="this.parentElement.classList.toggle('collapsed')" role="button" tabindex="0">
-                    <div><h3>${CAT_LABELS[cat]}</h3><span class="cat-weight-badge">${badge}</span></div>
+                <h4 class="cat-detail-h"><div class="cat-detail-header" onclick="this.closest('.cat-detail-section').classList.toggle('collapsed')" role="button" tabindex="0" aria-expanded="false" aria-controls="cat-body-${cat}">
+                    <div><span class="cat-detail-name">${CAT_LABELS[cat]}</span><span class="cat-weight-badge">${badge}</span></div>
                     <div><span class="cat-score-badge">Score ${fmt(catScore,'score')}</span><span class="wk-chevron" aria-hidden="true">&#9662;</span></div>
-                </div>
-                <div class="cat-detail-body">${body}</div>
+                </div></h4>
+                <div class="cat-detail-body" id="cat-body-${cat}">${means}${body}</div>
             </div>`;
         });
         container.innerHTML = out;
+        syncWorkingsAria();
     }
+
+    // Each category header says whether it is open, whichever path moved the class (a click,
+    // Enter, openWorkings from a score tile, Expand all).
+    function syncWorkingsAria() {
+        document.querySelectorAll('#modal-categories .cat-detail-section').forEach(sec => {
+            const h = sec.querySelector('.cat-detail-header');
+            if (h) h.setAttribute('aria-expanded', sec.classList.contains('collapsed') ? 'false' : 'true');
+        });
+    }
+    (function watchWorkingsAria() {
+        const box = document.getElementById('modal-categories');
+        if (!box || typeof MutationObserver === 'undefined') return;
+        new MutationObserver(list => {
+            if (list.some(m => m.type === 'attributes' && m.target.classList && m.target.classList.contains('cat-detail-section'))) syncWorkingsAria();
+        }).observe(box, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    })();
 
     function toggleAllWorkings(open) {
         document.querySelectorAll('#modal-categories .cat-detail-section').forEach(el => {
@@ -5074,7 +5218,12 @@ def _js_workings() -> str:
         if (!info) return '';
         const meta = (D.metric_meta || {})[m] || { fmt: 'ratio', label: m };
         const bad = (s.inp_bad || []).indexOf(m) >= 0;
-        let h = `<div class="wk-detail-body"><div class="wk-card">`;
+        // What the metric measures, in words a first-year student can use (METRIC_PLAIN, written
+        // in generate_dashboard.py; definitional only - no figure, no rule, no direction).
+        const plain = (typeof METRIC_PLAIN !== 'undefined') ? METRIC_PLAIN[m] : '';
+        let h = `<div class="wk-detail-body">` +
+            (plain ? `<p class="wk-plain"><span class="wk-k">What it measures</span>${escapeHtml(plain)}</p>` : '') +
+            `<div class="wk-card">`;
         const eq = equationHtml(m, s, meta);
         if (eq) h += `<div class="wk-line"><span class="wk-k">Calculation</span><div class="wk-v">${eq}</div></div>`;
         const pc0 = peerContext(m, s);
@@ -7338,7 +7487,7 @@ def _css() -> str:
             cursor: pointer;
             user-select: none;
         }
-        .cat-detail-header h3 {
+        .cat-detail-header .cat-detail-name {
             font-family: var(--font-heading);
             font-size: 14px;
             font-weight: 600;
@@ -10212,7 +10361,10 @@ def _js_context() -> str:
     // select (investor pass, 2026-10-15): the number leads, the citations stay one click away.
     document.addEventListener('click', e => {
         const p = e.target.closest && e.target.closest('.ctx-why');
-        if (p && !e.target.closest('a')) p.classList.toggle('open');
+        if (p && !e.target.closest('a')) {
+            p.classList.toggle('open');
+            if (typeof syncWhyMore === 'function') syncWhyMore(p);
+        }
     });
     let CTX_LOADED = false, CTX_FAILED = false;
     function loadContext(src) {
@@ -11723,6 +11875,173 @@ def _js_drilldown() -> str:
         e.preventDefault();
         el.click();
     });
+
+    // =====================================================================
+    // THE DRILLDOWN PASS (owner-run, 2026-10-27 night; plan/ui-elevation.md)
+    // Reading order, keyboard and screen-reader access, the phone, and paper. Presentation only:
+    // nothing below reads a number the sheet does not already print.
+    // =====================================================================
+
+    // A tab moves the reader, not just the view: after the jump, focus lands on the section it
+    // named (its header button, or its heading), so a keyboard or screen-reader user is where they
+    // asked to go. A mouse click shows no ring (focus-visible), so nothing changes for a pointer.
+    function sheetFocusTarget(id) {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        if (id === 'modal-score-row') return el.querySelector('.modal-score-card[role="button"]');
+        return el.querySelector('.collapsible-header') || el.querySelector('h3');
+    }
+    (function wrapGoToModal() {
+        const prev = goToModal;
+        goToModal = function(id) {
+            const out = prev.apply(this, arguments);
+            const t = sheetFocusTarget(id);
+            if (t && sheetOpen()) {
+                if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
+                t.focus({ preventScroll: true });
+            }
+            return out;
+        };
+    })();
+
+    // A step to another stock keeps focus on the control that stepped (it used to jump to Close,
+    // so a second Enter closed the sheet), and a screen reader is told which stock is now showing.
+    (function wrapSheetStepFocus() {
+        const prev = openStockDetail;
+        openStockDetail = function(ticker) {
+            const was = sheetOpen();
+            const ae = document.activeElement;
+            const keep = was && ae && ae.closest && ae.closest('#stock-modal .modal-tools') ? ae : null;
+            const out = prev.apply(this, arguments);
+            const s = D.stock_detail[ticker];
+            if (was && s) {
+                if (keep && document.contains(keep)) {
+                    let t = keep;
+                    if (t.disabled) t = t.id === 'mt-next' ? document.getElementById('mt-prev') : document.getElementById('mt-next');
+                    if (t && !t.disabled) t.focus({ preventScroll: true });
+                }
+                const ann = document.getElementById('modal-announce');
+                const pos = (document.getElementById('mt-pos') || {}).textContent || '';
+                if (ann) ann.textContent = ticker + ', ' + String(s.company || '').replace(/\.$/, '') + '. Rank ' + s.rank + ' of ' + D.kpis.universe_size + '.' +
+                    (pos ? ' ' + pos + ' in this list.' : '');
+            }
+            return out;
+        };
+    })();
+
+    // The tab strip says which tab is lit (aria-current), and when it is wider than the sheet -
+    // ten tabs did not fit an 880px sheet, so Peers and Data sat past the edge with nothing to say
+    // so - an edge fades and, for a mouse, an arrow scrolls it. The arrows are not tab stops: the
+    // keyboard reaches every tab directly.
+    (function tabStrip() {
+        const nav = document.querySelector('#stock-modal .modal-nav');
+        if (!nav) return;
+        // the strip goes into a positioned wrapper so the arrows can sit over its edges without
+        // being part of what scrolls
+        const wrap = document.createElement('div');
+        wrap.className = 'mnav-wrap';
+        nav.parentNode.insertBefore(wrap, nav);
+        wrap.appendChild(nav);
+        const mk = (cls, label, d) => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'mnav-scroll ' + cls; b.tabIndex = -1;
+            b.setAttribute('aria-label', label);
+            b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="' + (d < 0 ? '15 18 9 12 15 6' : '9 18 15 12 9 6') + '"/></svg>';
+            b.addEventListener('click', () => nav.scrollBy({ left: d * Math.max(120, nav.clientWidth * 0.6), behavior: 'smooth' }));
+            return b;
+        };
+        wrap.appendChild(mk('mnav-l', 'Scroll the section tabs left', -1));
+        wrap.appendChild(mk('mnav-r', 'Scroll the section tabs right', 1));
+        let queued = false;
+        const update = () => {
+            queued = false;
+            const over = nav.scrollWidth > nav.clientWidth + 1;
+            wrap.classList.toggle('more-l', over && nav.scrollLeft > 8);
+            wrap.classList.toggle('more-r', over && nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 8);
+        };
+        const later = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+        nav.addEventListener('scroll', later, { passive: true });
+        if (window.addEventListener) window.addEventListener('resize', later);
+        const sync = () => nav.querySelectorAll('a').forEach(a => {
+            if (a.classList.contains('active')) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+        });
+        // the links' own changes: the scroll-spy lighting a tab, History hidden or shown
+        if (typeof MutationObserver !== 'undefined') new MutationObserver(() => { sync(); later(); })
+            .observe(nav, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
+        const prev = openStockDetail;
+        openStockDetail = function() { const out = prev.apply(this, arguments); sync(); later(); return out; };
+    })();
+
+    // The research under each Before-you-decide reading is clamped to three lines and opened by
+    // clicking the paragraph - which a keyboard could not do and nothing on screen said was
+    // possible. Each clamped paragraph now has a real button after it, and the paragraph's own
+    // click (kept) moves the button's state with it (syncWhyMore, called from _js_context).
+    function syncWhyMore(p) {
+        const b = p && p.nextElementSibling;
+        if (!b || !b.classList.contains('ctx-why-more')) return;
+        const open = p.classList.contains('open');
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
+        b.textContent = open ? 'Show less' : 'Read the research';
+    }
+    let WHY_SEQ = 0;
+    function enhanceWhy() {
+        document.querySelectorAll('#modal-context .ctx-why').forEach(p => {
+            if (p.dataset.more) return;
+            p.dataset.more = '1';
+            // a paragraph that already fits its three lines needs no control (measured only when shown)
+            if (p.clientHeight > 0 && p.scrollHeight <= p.clientHeight + 2) return;
+            if (!p.id) p.id = 'ctx-why-' + (++WHY_SEQ);
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'ctx-why-more';
+            b.setAttribute('aria-controls', p.id);
+            b.addEventListener('click', () => { p.classList.toggle('open'); syncWhyMore(p); });
+            p.after(b);
+            syncWhyMore(p);
+        });
+    }
+    (function wrapRenderContext() {
+        if (typeof renderContext !== 'function') return;
+        const prev = renderContext;
+        renderContext = function() {
+            const out = prev.apply(this, arguments);
+            requestAnimationFrame(enhanceWhy);
+            return out;
+        };
+    })();
+
+    // On paper: Ctrl+P (or the toolbar's Print) with a sheet open prints the sheet - every section
+    // open, light ink, no controls - for a club meeting. It used to print the page behind it, because
+    // the print stylesheet hides every overlay. The sheet is put back exactly as it was afterwards.
+    let PRINT_STATE = null;
+    function preparePrint() {
+        if (PRINT_STATE || !sheetOpen()) return;
+        const sheet = document.querySelector('#stock-modal .modal-content');
+        const opened = [...document.querySelectorAll('#stock-modal .collapsible.collapsed')];
+        opened.forEach(s => s.classList.remove('collapsed'));
+        const why = [...document.querySelectorAll('#stock-modal .ctx-why:not(.open)')];
+        why.forEach(p => p.classList.add('open'));
+        const compact = !!(sheet && sheet.classList.contains('is-compact'));
+        if (sheet) sheet.classList.remove('is-compact');
+        document.documentElement.classList.add('print-sheet');
+        PRINT_STATE = { opened: opened, why: why, compact: compact, sheet: sheet };
+    }
+    function restorePrint() {
+        const st = PRINT_STATE;
+        if (!st) return;
+        PRINT_STATE = null;
+        document.documentElement.classList.remove('print-sheet');
+        st.opened.forEach(s => s.classList.add('collapsed'));
+        st.why.forEach(p => { p.classList.remove('open'); syncWhyMore(p); });
+        if (st.compact && st.sheet) st.sheet.classList.add('is-compact');
+    }
+    function printSheet() {
+        preparePrint();
+        try { window.print(); } catch (e) { /* printing unavailable */ }
+    }
+    if (window.addEventListener) {
+        window.addEventListener('beforeprint', preparePrint);
+        window.addEventListener('afterprint', restorePrint);
+    }
 """
 
 
@@ -11939,7 +12258,7 @@ def _css_drilldown() -> str:
 
         /* ---- The workings: one card per category, the score washed like its tile ---- */
         #stock-modal .cat-detail-section { border-radius: var(--radius); box-shadow: var(--hairline-hi); padding: 14px 18px; margin-bottom: 8px; }
-        #stock-modal .cat-detail-header h3 { font-size: 15px; }
+        #stock-modal .cat-detail-header .cat-detail-name { font-size: 15px; color: var(--text-primary); }
         #stock-modal .cat-detail-header .cat-score-badge {
             border-radius: var(--radius-pill); border-color: rgba(255, 255, 255, .06); font-variant-numeric: tabular-nums;
             background: color-mix(in srgb, var(--accent) calc(3% + var(--v, 0) * 25%), var(--bg-card));
@@ -12038,6 +12357,106 @@ def _css_drilldown() -> str:
         }
         @media (prefers-reduced-motion: reduce) {
             #stock-modal .modal-nav a::after { transition: none; }
+        }
+
+        /* =====================================================================
+           THE DRILLDOWN PASS (owner-run, 2026-10-27 night)
+           ===================================================================== */
+        /* real headings, styled exactly as the spans they replaced */
+        #stock-modal .collapsible-h, #stock-modal .cat-detail-h { margin: 0; font: inherit; letter-spacing: inherit; color: inherit; }
+        #stock-modal h3.summary-title, #stock-modal h3.about-title { margin: 0; }
+        #stock-modal h3[tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
+        #stock-modal h3[tabindex="-1"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+        /* plain words in the workings: what a high category score means, what a metric measures */
+        #stock-modal .wk-cat-means { margin: 12px 0 14px; max-width: 80ch; font-size: 13.5px; line-height: 1.55; color: var(--text-secondary); }
+        #stock-modal .wk-plain {
+            margin: 0 0 12px; max-width: 80ch; font-size: 14px; line-height: 1.6; color: var(--text-primary);
+        }
+        #stock-modal .wk-plain .wk-k { display: block; margin-bottom: 2px; }
+
+        /* the tab strip: an arrow at an edge with more tabs past it (mouse), a fade (touch) */
+        #stock-modal .mnav-wrap { position: relative; flex: none; }
+        #stock-modal .mnav-scroll {
+            display: none; position: absolute; top: 0; bottom: 1px; z-index: 2; width: 52px; align-items: center;
+            padding: 0 10px; border: 0; color: var(--text-secondary); cursor: pointer;
+        }
+        #stock-modal .mnav-l { left: 0; justify-content: flex-start; background: linear-gradient(to right, var(--bg-primary) 55%, transparent); }
+        #stock-modal .mnav-r { right: 0; justify-content: flex-end; background: linear-gradient(to left, var(--bg-primary) 55%, transparent); }
+        #stock-modal .mnav-wrap.more-l .mnav-l, #stock-modal .mnav-wrap.more-r .mnav-r { display: flex; }
+        #stock-modal .mnav-scroll svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        #stock-modal .mnav-scroll:hover { color: var(--text-primary); }
+        @media (hover: none), (pointer: coarse) {
+            #stock-modal .mnav-wrap.more-l .mnav-scroll, #stock-modal .mnav-wrap.more-r .mnav-scroll { display: none; }
+            #stock-modal .mnav-wrap.more-r .modal-nav { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+            #stock-modal .mnav-wrap.more-l .modal-nav { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent); }
+            #stock-modal .mnav-wrap.more-l.more-r .modal-nav { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+        }
+
+        /* the research under a context reading: a real control, not a clickable paragraph */
+        #stock-modal .ctx-why-more {
+            display: inline-flex; align-items: center; min-height: 32px; margin: 2px 0 0; padding: 0;
+            background: none; border: 0; color: var(--accent-text); font: 500 12.5px var(--font-body); cursor: pointer;
+        }
+        #stock-modal .ctx-why-more:hover { text-decoration: underline; }
+        #stock-modal .ctx-why-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+        #stock-modal .mt-print { margin-left: 4px; }
+
+        @media (max-width: 760px) {
+            #stock-modal .mt-print { display: none; }
+            /* a phone hides the workings' column heads, so each figure says what it is */
+            #stock-modal #modal-categories tr.metric-row:not(.wk-nodata) .metric-pct-label::after,
+            #stock-modal #modal-categories tr.metric-row:not(.wk-nodata) .metric-weight::after,
+            #stock-modal #modal-categories tr.metric-row:not(.wk-nodata) .wk-points::after {
+                font-size: 11px; font-weight: 400; color: var(--text-muted); letter-spacing: 0;
+            }
+            #stock-modal #modal-categories tr.metric-row:not(.wk-nodata) .metric-pct-label::after { content: " pctile"; }
+            #stock-modal #modal-categories tr.metric-row:not(.wk-nodata) .metric-weight::after { content: " weight"; }
+            #stock-modal #modal-categories tr.metric-row:not(.wk-nodata) .wk-points::after { content: " pts"; }
+        }
+        @media (pointer: coarse) {
+            /* the Calculation control and the research toggle are full-size tap targets */
+            #stock-modal .wk-more { min-width: 44px; min-height: 44px; }
+            #stock-modal .ctx-why-more { min-height: 44px; }
+        }
+
+        /* ---- on paper (printSheet / Ctrl+P with a sheet open): the sheet alone, light, every section
+           open, no controls. The page's own print rules hide every overlay; these win only while
+           html.print-sheet is set, which preparePrint sets and restorePrint removes. ---- */
+        @media print {
+            html.print-sheet {
+                --bg-deep: #fff; --bg-primary: #fff; --bg-card: #fff; --bg-card-hover: #f4f4f4; --bg-elevated: #f2f2f2;
+                --text-primary: #000; --text-secondary: #333; --text-muted: #555; --border: #ddd; --border-bright: #bbb;
+                --accent-text: #1f5fae; --hairline-hi: none;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            html.print-sheet body { background: #fff !important; overflow: visible !important; }
+            html.print-sheet body > *:not(.dashboard-container) { display: none !important; }
+            html.print-sheet .dashboard-container { display: block !important; max-width: none !important; padding: 0 !important; margin: 0 !important; }
+            html.print-sheet .dashboard-container > *:not(#stock-modal) { display: none !important; }
+            html.print-sheet #stock-modal.modal-overlay {
+                display: block !important; position: static !important; inset: auto !important; background: none !important;
+                overflow: visible !important; padding: 0 !important; backdrop-filter: none !important;
+            }
+            html.print-sheet #stock-modal .modal-content {
+                display: block !important; position: static !important; transform: none !important; animation: none !important;
+                width: auto !important; max-width: none !important; height: auto !important; max-height: none !important;
+                overflow: visible !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important;
+            }
+            html.print-sheet #stock-modal .modal-body { overflow: visible !important; max-height: none !important; height: auto !important; padding: 0 24px !important; }
+            html.print-sheet #stock-modal .mnav-wrap, html.print-sheet #stock-modal .modal-tools, html.print-sheet #stock-modal .modal-close,
+            html.print-sheet #stock-modal .modal-content::before, html.print-sheet #stock-modal .collapsible-chevron,
+            html.print-sheet #stock-modal .wk-chevron, html.print-sheet #stock-modal .about-toggle, html.print-sheet #stock-modal .ctx-why-more,
+            html.print-sheet #stock-modal .wk-controls, html.print-sheet #stock-modal .case-go { display: none !important; }
+            html.print-sheet #stock-modal .ctx-why, html.print-sheet #stock-modal .about-text {
+                display: block !important; -webkit-line-clamp: unset !important; line-clamp: none !important; overflow: visible !important; max-height: none !important;
+            }
+            html.print-sheet #stock-modal .modal-score-card, html.print-sheet #stock-modal .case-item, html.print-sheet #stock-modal .ctx-card,
+            html.print-sheet #stock-modal .contrib-row, html.print-sheet #stock-modal .cat-detail-section, html.print-sheet #stock-modal .pt-card,
+            html.print-sheet #stock-modal .summary-fact { break-inside: avoid; }
+            html.print-sheet #stock-modal .collapsible-h, html.print-sheet #stock-modal .summary-title,
+            html.print-sheet #stock-modal .case-title { break-after: avoid; }
         }
 """
 

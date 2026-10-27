@@ -1353,7 +1353,8 @@ CLAIMS: tuple[Claim, ...] = (
         surface=DRILLDOWN,
         asserts=(
             "The 'What the columns mean' key above the ranking, the line under the stock sheet's "
-            "scores and the guide's first statement say which way each category score runs: a "
+            "scores, the line opening each category of the sheet's workings and the guide's first "
+            "statement say which way each category score runs: a "
             "higher Valuation score is a lower price against cash flow, earnings and sales, a "
             "higher Risk score a calmer price, a higher Size score a smaller company than its "
             "sector peers (the largest in each sector near 0), a higher Investment score slower "
@@ -1368,6 +1369,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_the_sheet_says_which_way_the_scores_run",
             "tests/test_club_readiness.py::test_the_engine_gives_the_largest_company_in_a_sector_the_lowest_size_score",
             "tests/test_club_readiness.py::test_the_median_composite_the_key_quotes_is_the_median_not_the_mean",
+            "tests/test_drilldown_reading.py::test_the_page_carries_the_words_it_shows",
+            "tests/test_drilldown_reading.py::test_plain_words_in_the_workings",
         ),
     ),
     Claim(
