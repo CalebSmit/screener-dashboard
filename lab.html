@@ -1636,12 +1636,14 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
             try { if (sceneHash) history.replaceState(null, '', sceneHash); } catch (e) { /* the scene still works */ }
             return;                                                      // and the address goes back to the scene
         }
-        // a new scene opens at its top, just under whichever bars are sticky at this width
-        show();
+        show(); toGrid();
+    });
+    // a new scene opens at its top, just under whichever bars are sticky at this width
+    function toGrid() {
         const bar = document.querySelector('.bar'), grid = document.getElementById('lab-grid');
         const above = getComputedStyle(bar).position === 'sticky' ? bar.offsetHeight : 0;
         window.scrollTo(0, Math.max(0, grid.getBoundingClientRect().top + window.scrollY - above - 12));
-    });
+    }
     let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => current && current.redraw(), 120); });
     document.getElementById('foot').innerHTML =
         `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
@@ -1666,6 +1668,9 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         .observe(document.body, { childList: true, subtree: true });
     typeset(document.body);
     show();
+    // A link to one experiment (the methodology's, a shared scene) opens on that experiment rather
+    // than on the introduction above it; the overview and a bare address still open at the top.
+    if (D.experiments.some(x => x.id === parseScene().id)) toGrid();
 })();
 </script>
 </body>
