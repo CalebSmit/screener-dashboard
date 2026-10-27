@@ -1749,8 +1749,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <!-- The web fonts never block first paint: preloaded, then swapped in when they arrive. With the
          font request stalled the page used to stay blank and the data script waited behind it
          (2026-10-16). The system-ui stack in --font-body shows until then, or for good. -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
     <link rel="preload" href="./dashboard_data.js?v={version}" as="script">
@@ -5645,6 +5645,11 @@ def _css() -> str:
             --font-heading: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
             --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
             --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+            /* display serif: page titles, section titles, hero statements only -
+               never a label, control, table or figure (plan/ui-elevation.md) */
+            --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+            /* depth through light: the top edge of a raised card, no shadow */
+            --hairline-hi: inset 0 1px 0 rgba(255,255,255,.04);
         }
 
         /* ---- WHAT CHANGED (time dimension) ---- */
