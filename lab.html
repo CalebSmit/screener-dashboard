@@ -149,6 +149,30 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
         background: var(--bg-elevated); box-shadow: var(--hairline-hi); color: var(--text-secondary);
         transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast); }
 .card:hover { border-color: var(--text-muted); background: var(--bg-card-hover); text-decoration: none; }
+/* the card is an article whose title link covers it, so the whole card still opens the experiment;
+   the one control inside it, "What it found" on a phone, sits above that cover */
+.card { position: relative; }
+.card-a { display: flex; flex-direction: column; gap: 6px; color: inherit; }
+.card-a:hover { text-decoration: none; }
+.card-a::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.card-a:focus-visible { outline: none; }
+.card:has(.card-a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card-body { display: flex; flex-direction: column; gap: 6px; }
+.card-more { display: none; }
+@media (max-width: 719px) {
+    .cards { gap: 10px; }
+    .cards .card { padding: 14px 16px 6px; gap: 4px; }
+    .card strong { font-size: 18px; }
+    .card .meter { margin-top: 6px; }
+    .card:not(.open) .card-body { display: none; }
+    .card.open .card-body { padding-bottom: 4px; }
+    .card-more { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; min-height: 44px; padding: 0;
+                 appearance: none; background: none; border: 0; color: var(--accent-text); font: inherit; font-size: 13.5px; cursor: pointer; }
+    .card-more::after { content: ''; width: 7px; height: 7px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+                        transform: rotate(45deg); transition: transform var(--t-fast), margin var(--t-fast); }
+    .card-more[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: 3px; }
+}
+@media print { .card-body { display: flex !important; } .card-more { display: none !important; } }
 .card:active { transform: translateY(1px); }
 .card strong { color: var(--text-primary); font-family: var(--font-display); font-size: 21px; font-weight: 600;
                line-height: 1.2; letter-spacing: -.022em; text-wrap: balance; }
@@ -362,6 +386,19 @@ h2[tabindex="-1"]:focus { outline: none; }
 .next-nav { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 16px; font-size: 13.5px; }
 @media (max-width: 719px) { .next-nav a { display: inline-flex; align-items: center; min-height: 44px; } }
 @media print { .next-nav { display: none; } }
+/* The hero's three figures on a phone (2026-10-27): three 110 px columns set each label five words to
+   a line over five lines. Each figure is now a row - the number, then its label beside it at reading
+   width. */
+@media (max-width: 719px) {
+    .kpis { grid-template-columns: 1fr; }
+    .kpi { display: grid; grid-template-columns: 7em minmax(0, 1fr); grid-template-areas: "v k" "pb k"; column-gap: 16px; align-items: center;
+           padding: 12px 16px; border-left: 0; border-top: 1px solid var(--border); }
+    .kpi:first-child { border-top: 0; }
+    .kpi .v { grid-area: v; } .kpi .pb { grid-area: pb; margin-top: 6px; }
+    .kpi .k { grid-area: k; margin-top: 0; font-size: 13px; }
+    .kpi .v small { display: inline; margin-top: 0; font-size: 13px; }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* a count such as "17 of 19" is one figure: it does not break across lines */
 #t-live td:nth-child(2) { white-space: nowrap; }
 /* a bar being read: outlined in ink, so the sentence under the chart has a place on it */
@@ -670,6 +707,8 @@ h2[tabindex="-1"]:focus { outline: none; }
     const linTicks = (lo, hi) => { const step = [.25, .5, 1, 2, 5].find(s => (hi - lo) / s <= 5) || 5, out = [];
         for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push([v, v.toFixed(step < 1 ? 2 : 1)]); return out; };
     const lg = v => v.map(z => Math.log10(Math.max(z, 1e-9)));
+    // a tick's label with its unit, and a true minus for a negative one, as the figures elsewhere print
+    const pctTicks = ts => ts.map(t => [t[0], String(t[1]).replace(/^-/, '−') + '%']);
     function periodControl(presets, ys) {
         const opts = ys ? ys.map(y => `<option value="${y}">${y}</option>`).join('') : yopts;
         return `<div><span class="ctl-label" id="l-period">Period</span>
@@ -977,11 +1016,12 @@ h2[tabindex="-1"]:focus { outline: none; }
 
     // ------------------------------------------------------------------ experiment 4
     function drawBars(el, values, opt) {
-        const W = Math.max(280, el.clientWidth || 600), H = 260, L = 40, R = 8, T = 22, B = 34;
+        const W = Math.max(280, el.clientWidth || 600), H = 260, L = 52, R = 8, T = 22, B = 34;
         const hi = Math.max(0, Math.max.apply(null, values)) * 1.08 || 1, lo = Math.min(0, Math.min.apply(null, values)) * 1.08;
         const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B), slot = (W - L - R) / values.length, bw = Math.min(46, slot * .68);
         let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
-        linTicks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
+        // the axis carries its unit on every tick (2026-10-27): a bar chart's figures are percentages a month
+        pctTicks(linTicks(lo, hi)).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
         values.forEach((v, i) => {
             const cx = L + slot * (i + .5), top = Math.min(y(v), y(0)), h = Math.max(1, Math.abs(y(v) - y(0)));
             s += `<rect class="${opt.accent(i) ? 'col-a' : 'col'}" data-i="${i}" x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
@@ -1151,13 +1191,13 @@ h2[tabindex="-1"]:focus { outline: none; }
     // printed only where a bar has room for them, to opt.places decimals.
     function drawPairs(el, rows, opt) {
         const many = !!(opt && opt.many), places = opt && opt.places !== undefined ? opt.places : 2;
-        const W = Math.max(280, el.clientWidth || 600), H = many ? 320 : 260, L = 40, R = 8, T = 22, B = many ? 96 : 34;
+        const W = Math.max(280, el.clientWidth || 600), H = many ? 320 : 260, L = 52, R = 8, T = 22, B = many ? 96 : 34;
         const all = rows.reduce((a, r) => a.concat([r.small, r.big]), []);
         // shares (opt.many) run on a fixed 0-100 scale, so two settings read against the same axis
         const hi = many ? 108 : Math.max(0, Math.max.apply(null, all)) * 1.08 || 1, lo = many ? 0 : Math.min(0, Math.min.apply(null, all)) * 1.08;
         const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B), slot = (W - L - R) / rows.length, bw = Math.min(46, slot * .3);
         let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
-        (many ? [0, 25, 50, 75, 100].map(v => [v, String(v)]) : linTicks(lo, hi)).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
+        pctTicks(many ? [0, 25, 50, 75, 100].map(v => [v, String(v)]) : linTicks(lo, hi)).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
         rows.forEach((r, i) => {
             const mid = L + slot * (i + .5);
             [[r.small, 'col', mid - bw * .56], [r.big, 'col-a', mid + bw * .56]].forEach(b => {
@@ -1344,13 +1384,18 @@ h2[tabindex="-1"]:focus { outline: none; }
     function overview(mount) {
         const byId = {}; D.experiments.forEach((x, i) => { byId[x.id] = { x: x, n: i + 1 }; });
         const total = D.experiments.reduce((a, x) => a + x.result.total, 0), within = D.experiments.reduce((a, x) => a + x.result.within, 0);
-        const card = (x, i) => `<a class="card" href="#${esc(x.id)}">
-            <span class="eyebrow">Experiment ${i + 1} · ${esc(x.topic)}</span>
-            <strong>${esc(x.title)}</strong>
-            <span class="cite">${esc(x.paper.authors)} (${x.paper.year})</span>
+        // A card is the experiment's title and verdict, the whole card a link to it (2026-10-27). On a
+        // phone the authors, the no-effect line and the takeaway fold under "What it found", so the
+        // seventeen cards scan as a list - every one still shown - rather than run to seven thousand
+        // pixels; on a wider screen all of it shows, as before.
+        const card = (x, i) => `<article class="card">
+            <a class="card-a" href="#${esc(x.id)}"><span class="eyebrow">Experiment ${i + 1} · ${esc(x.topic)}</span>
+            <strong>${esc(x.title)}</strong></a>
             <span class="meter${verdictClass(x.result)}">${meter(x.result)}<span class="m-l"><b>${x.result.within} of ${x.result.total}</b> figures match the paper</span></span>
+            <div class="card-body" id="cb-${esc(x.id)}"><span class="cite">${esc(x.paper.authors)} (${x.paper.year})</span>
             <span class="null"><i class="nl" aria-hidden="true"></i>${nullLine(x.result)}</span>
-            <span class="take">${esc(x.takeaway)}</span></a>`;
+            <span class="take">${esc(x.takeaway)}</span></div>
+            <button type="button" class="card-more" aria-expanded="false" aria-controls="cb-${esc(x.id)}">What it found</button></article>`;
         const link = id => `<a href="#${esc(id)}" title="${esc(byId[id].x.title)}">${byId[id].n}. ${esc(byId[id].x.tab || byId[id].x.title)}</a>`;
         // In the paper's sample and since, drawn on the row's own scale: the paper's years in grey, the
         // years since in the accent, zero marked - so "weaker afterwards" reads as the dot moving in.
@@ -1405,6 +1450,9 @@ h2[tabindex="-1"]:focus { outline: none; }
                 <dt>Still unverified</dt><dd>What is different about the data here, and what has not been checked.</dd>
             </dl>
         </section>`;
+        mount.querySelectorAll('.card-more').forEach(b => b.addEventListener('click', () => {
+            const open = b.getAttribute('aria-expanded') !== 'true';
+            b.setAttribute('aria-expanded', String(open)); b.closest('.card').classList.toggle('open', open); }));
         return { id: 'overview', settings: () => ({}), result: () => null, redraw: () => {} };
     }
 
@@ -1700,10 +1748,17 @@ h2[tabindex="-1"]:focus { outline: none; }
         if (reset) {
             const copy = document.createElement('button'), label = 'Copy a link to this scene';
             copy.type = 'button'; copy.className = 'reset'; copy.id = 'c-copy'; copy.textContent = label;
-            reset.parentNode.classList.add('actions'); reset.parentNode.appendChild(copy);
+            // A change to a button's own label is not reliably spoken (2026-10-27): the confirmation goes
+            // to a polite status region placed beside it, which is on the page before anything is written
+            // to it, as a live region has to be.
+            const said = document.createElement('span');
+            said.className = 'sr-only'; said.id = 'c-copy-status'; said.setAttribute('role', 'status'); said.setAttribute('aria-live', 'polite');
+            reset.parentNode.classList.add('actions'); reset.parentNode.appendChild(copy); reset.parentNode.appendChild(said);
             copy.addEventListener('click', () => {
-                const done = () => { copy.textContent = 'Link copied'; setTimeout(() => { copy.textContent = label; }, 1600); };
-                const ask = () => window.prompt('Copy this link', location.href);
+                said.textContent = '';
+                const done = () => { copy.textContent = 'Link copied'; said.textContent = 'A link to this scene, with its settings, is on the clipboard.';
+                    setTimeout(() => { copy.textContent = label; }, 1600); };
+                const ask = () => { said.textContent = 'The clipboard could not be reached; the link is in the box to copy by hand.'; window.prompt('Copy this link', location.href); };
                 if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(location.href).then(done, ask); else ask();
             });
         }

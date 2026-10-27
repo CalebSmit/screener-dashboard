@@ -325,3 +325,106 @@ def test_without_javascript_the_page_says_why_and_where_to_go():
     html = PAGE.read_text(encoding="utf-8")
     ns = html[html.index("<noscript><p"):html.index("</noscript>", html.index("<noscript><p"))]
     assert "needs JavaScript" in ns and 'href="research.html"' in ns
+
+
+# --------------------------------------------------------------------------- follow-up pass, 2026-10-27
+def test_on_a_phone_the_overview_scans_as_a_list_with_every_experiment_on_it(browser):
+    """At 375 px the seventeen cards ran to about 7,000 px of an overview 19,000 px long. Each card is
+    now its title and verdict meter, with the rest under "What it found"; no experiment is hidden."""
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "overview")
+        n = len(fl.EXPERIMENTS)
+        assert page.evaluate("[...document.querySelectorAll('.card .card-a strong')].filter(e => e.offsetParent).length") == n
+        assert page.evaluate("[...document.querySelectorAll('.card .meter svg')].filter(e => e.getBoundingClientRect().height > 0).length") == n
+        assert page.evaluate("[...document.querySelectorAll('.card-body')].filter(e => e.offsetParent).length") == 0
+        assert page.evaluate("document.querySelector('#o-exp').closest('section').offsetHeight") < 4500
+        # "What it found" opens one card's detail and says so; it does not open the experiment
+        x = fl.EXPERIMENTS[2]
+        page.click(f"#o-exp ~ .cards .card-more[aria-controls='cb-{x['id']}']")
+        page.wait_for_function(f"document.getElementById('cb-{x['id']}').offsetParent !== null", timeout=WAIT)
+        assert page.get_attribute(f".card-more[aria-controls='cb-{x['id']}']", "aria-expanded") == "true"
+        assert page.evaluate("window.LAB_STATE().id") == "overview"
+        body = page.inner_text(f"#cb-{x['id']}")
+        assert str(x["paper"]["year"]) in body and "no effect at all would match" in body
+        page.click(f".card-more[aria-controls='cb-{x['id']}']")
+        page.wait_for_function(f"document.getElementById('cb-{x['id']}').offsetParent === null", timeout=WAIT)
+        # the card itself still opens its experiment, from its title as from anywhere else on it
+        page.click(".card >> nth=5")
+        page.wait_for_function(f"window.LAB_STATE().id === '{fl.EXPERIMENTS[5]['id']}'", timeout=WAIT)
+        assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_on_a_wide_screen_every_card_shows_all_of_itself(browser):
+    ctx, page, errors = _page(browser, width=1200)
+    try:
+        _goto(page, "overview")
+        assert page.evaluate("[...document.querySelectorAll('.card-body')].filter(e => e.offsetParent).length") == len(fl.EXPERIMENTS)
+        assert page.evaluate("[...document.querySelectorAll('.card-more')].filter(e => e.offsetParent).length") == 0
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_every_bar_chart_axis_carries_its_unit_and_fits(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        for scene in BARS:                                                      # the y axis's labels sit at L - 8
+            _goto(page, scene)
+            ticks = page.evaluate("[...document.querySelectorAll('#ch-bars text[text-anchor=end]')].filter(t => t.getAttribute('x') === '44').map(t => t.textContent)")
+            assert len(ticks) >= 3 and all(t.endswith("%") for t in ticks), (scene, ticks)
+            assert not any(t.startswith("-") for t in ticks), (scene, ticks)               # a true minus, as elsewhere
+            spill = page.evaluate("""(() => { const s = document.querySelector('#ch-bars svg').getBoundingClientRect().left;
+                return Math.min(...[...document.querySelectorAll('#ch-bars text')].map(t => t.getBoundingClientRect().left)) - s; })()""")
+            assert spill >= -1, (scene, spill)
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+CLIPBOARD = """
+Object.defineProperty(navigator, 'clipboard', { configurable: true,
+    value: { writeText: t => (window.__copied = t, window.__clipFails ? Promise.reject(new Error('no')) : Promise.resolve()) } });
+"""
+
+
+def test_copy_a_link_confirms_through_a_status_region(browser):
+    ctx, page, errors = _page(browser, init=CLIPBOARD)
+    try:
+        page.on("dialog", lambda d: d.dismiss())
+        _goto(page, "size-effect")
+        status = "#c-copy-status"
+        assert page.get_attribute(status, "role") == "status" and page.get_attribute(status, "aria-live") == "polite"
+        assert page.inner_text(status) == ""                                     # present, and empty, before anything is said
+        page.click("#c-weighting button[data-v='vw']")
+        page.click("#c-copy")
+        page.wait_for_function("document.getElementById('c-copy-status').textContent.includes('on the clipboard')", timeout=WAIT)
+        assert page.evaluate("window.__copied").endswith("#size-effect?weighting=vw")
+        page.evaluate("window.__clipFails = true")
+        page.click("#c-copy")
+        page.wait_for_function("document.getElementById('c-copy-status').textContent.includes('could not be reached')", timeout=WAIT)
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_on_a_phone_the_hero_figures_sit_beside_their_labels(browser):
+    """Three 110 px columns set each label five words to a line over five lines."""
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "overview")
+        rows = page.evaluate("""[...document.querySelectorAll('#kpis .kpi')].map(k => {
+            const v = k.querySelector('.v').getBoundingClientRect(), l = k.querySelector('.k'), b = l.getBoundingClientRect();
+            return { vRight: v.right, kLeft: b.left, kWidth: b.width, lines: Math.round(b.height / parseFloat(getComputedStyle(l).lineHeight)),
+                     overlapY: v.top < b.bottom && b.top < v.bottom }; })""")
+        assert len(rows) == 3
+        for r in rows:
+            assert r["overlapY"] and r["vRight"] <= r["kLeft"], r            # the figure beside its label
+            assert r["kWidth"] >= 150 and r["lines"] <= 3, r
+        assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+        assert errors == []
+    finally:
+        ctx.close()
