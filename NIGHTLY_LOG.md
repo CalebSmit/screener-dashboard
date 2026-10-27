@@ -15625,3 +15625,130 @@ skips itself the day a changelog entry takes the question up.
   It is not load-bearing for anything - the refusal does not use it and §8.5 flags the draft - but
   if a later session can reach the published paper through a library copy, the author list and the
   sample should be checked against the EFMA draft before anyone quotes 0.98%/month from this repo.
+
+## 2026-10-26 (owner-run, night) - SPEED. The suite in 1:51 instead of 6-7 minutes, engine reruns in parallel, the lab's phone first paint 6.3 s -> 0.95 s, ~4 minutes off the 02:00 run, and three bot ROADMAP items
+
+**Health (rule 8, all five):** last code session ran? **yes** - the 13:00 midday session ended
+"Run complete: shipped to main" at 13:40, tag `good/2026-10-26-1340`. Data loop published?
+**yes** - 2026-10-26 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored. Evidence base at
+`1m` = **36 rows, newest 2026-09-23 (33 days ago, bound 40), 4 effective**. Priority 0:
+`allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 14 days**) - advanced (its first paint, below).
+**Tests:** before **3159 passed, 1 skipped** in 7:19 serial. After, on the merged tree: **3248
+passed, 1 skipped in 1:51** through `scripts/run_tests.py` (parallel), and 6:09 when forced serial
+on the same tree (3,249 collected either way). `python scripts/rehearse_publish.py`: PASSED,
+published files restored byte for byte.
+**Owner queue:** the owner's brief for the night was speed first. `OWNER_FOCUS.md` 2026-10-20 item
+7 (suite runtime, `lab_data.js`, the fresh-worktree failures) is **done in all three parts**.
+Nothing scheduled was reversed; the price-target decision from 13:00 is untouched.
+
+### How the night was run
+
+Measured first, then seven agents in isolated worktrees (two in the bot repo), each told not to
+push or merge; every diff was read before it was merged onto `staging/2026-10-26-owner`, the gates
+were run once on the combined tree, then `--no-ff` to `main`. The five screener branches merged with
+no conflicts; the two bot branches conflicted only in `ROADMAP.md`/`SESSION_LOG.md`.
+
+### Did - screener
+
+**1. The suite runs in parallel** (`scripts/run_tests.py`, pytest-xdist 3.8.0 pinned). The slow
+tail was a long tail - the slowest test is 16 s - so distribution, not test surgery, was the lever.
+- **Gate 1** (`scripts/nightly-screener.ps1`) and the **data loop's claims gate**
+  (`scripts/check_published_claims.py`) add `-n auto` only when xdist is importable; otherwise the
+  byte-for-byte serial command. pytest exit 3/4 from a parallel run (xdist could not run the suite -
+  not a verdict) reruns serially and that run decides; a failing test is never retried.
+  `scripts/data-run.ps1` is **unchanged**.
+- **The `conftest.py` tripwire works under xdist:** the controller snapshots the protected files
+  before any worker starts and hands each worker the digests; a per-worker snapshot would have
+  snapshotted another worker's write and "restored" it. Proved with a throwaway writer under `-n 4`
+  and pinned by a real `-n 2` run in `tests/test_parallel_suite.py` (32 tests).
+- **One real isolation defect:** `test_one_observation_per_run_date`'s fixture left the two
+  improvement-history paths pointing at the repo, so every run re-read the 21 MB
+  `performance_history.csv` three times and **rewrote the tracked `improvement/live_ic_history.csv`**
+  (byte-identical, so no tripwire saw it - but two parallel writers could have dropped rows from the
+  evidence base). Now `tmp_path`; the module went 29.4 s -> 2.4 s.
+- Three git-sandbox modules build their origin+clone once per module and copy it (42.7 s -> 26.2 s).
+- **Fresh worktrees:** the three tests that needed gitignored `runs/` skip with `MISSING DATA: ...`
+  only when it is absent. **Copy data into a worktree with `cp -rp`** - two agents lost time to
+  `test_investor_profiles` choosing the wrong "newest run" from a copy whose mtimes `cp -r` reset.
+- Claims gate on the rehearsed page: **1,576 passed in 71 s, `[parallel, -n auto]`** (02:00 this
+  morning: 1,445 in 165 s serial).
+
+**2. Engine reruns in parallel** (`scripts/rerun_experiments.py --jobs N`, cap 4, ~2 GB a worker).
+Workers are subprocesses writing private ledgers; only the parent appends to the real ledger, and
+only a prefix of the serial order, so a cut-off run leaves exactly what a serial run would have.
+Proved on 10 ids: serial and `--jobs 4` rows **byte-equal except `run_at`**. Then used for real on
+the merged tree: **all 32 rows in ~18 min** under load (serial ~47-63), `STALE REMAINING: 0`, and
+against each id's previous row **0 differences outside `run_at`/`code_hash`/`code_hashes`/
+`code_version`/`commit`** - a provenance refresh (today's `config.yaml` edit), no published number
+moved. **One Windows finding worth keeping:** a worker thread blocked reading stdin hung every
+worker at its first `git` call (starting a child process while a thread holds a pending stdin
+read blocks); the workers watch the parent's process handle instead, with a regression test.
+
+**3. The 02:00 run is timed, and ~4 minutes shorter** (`phase_timing.py`; note
+`research/2026-10-26-data-run-timing.md`). The breakdown of this morning's 22-minute screener step,
+rebuilt from logs: Yahoo ticker fetch 452 s (12 requests a ticker, none duplicated), **SEC Form 4
+refresh ~400 s** (the "missing" time - 503 filing-index requests, 92 MB, to find 57 new filings),
+improvement snapshot 181 s, context pass 178 s. Shipped, each proven output-identical:
+- the context pass makes **no Yahoo insider request for a stock whose rows the SEC refresh then
+  overwrites** (503 of 503 at 02:00; ~178 s). The SEC refresh now runs before the pass and its rows
+  are still set after it; with live option quotes nothing is skipped. Proof: two real 30-ticker
+  runs back to back - identical insider and option fields, Yahoo requests 30 -> 0.
+- **forward returns skip a download that cannot complete any horizon** (no weekday between the
+  horizon end and yesterday): 4 of 6 downloads on 10-26. Proof: the pre-10-26 state replayed with
+  old and new code - `performance_history.csv` and `live_ic_history.csv` byte-identical.
+- every stage's seconds in `meta.json` and a `PHASE TIMING` line in the loop log.
+**Runs for the first time at 02:00 tonight.** Read the `PHASE TIMING` line tomorrow and check the
+context pass reports "503 more have insider rows from SEC Form 4".
+
+**4. The Factor Lab's first paint.** Measured with a phone profile (375 px, 4x CPU, slow 4G): the
+menu took **6.2-6.4 s**, almost all of it downloading a 1.18 MB gzipped `lab_data.js` of which JKP's
+153 factors were 60%. The six series the first screen never reads are now `lab_data_<key>.js`,
+loaded when their experiment opens: `lab_data.js` **100 KB gzipped, menu in 0.95 s**; opening "153
+factors" the first time now costs 4-5 s on that profile (an honest trade, shown as "Loading...").
+The reassembled object deep-equals the old one (Python and Node), and every experiment's rendered
+text is identical at 1440 and 375 px. No publish path builds lab files, so no runner changed.
+
+**5. Claims mutation audit, items 5 and 6** (`plan/claims-mutation-audit.md` rows 63-88). 45
+mutations on 25 claims: **21 checks could not see the number they check** (10 real gaps, 11 gaps
+in the register), all fixed and re-mutated to CAUGHT. The row-59 shape was everywhere: a test that
+builds its expected page text *and* its probes from the module constant moves with the constant.
+Five claims were checked only against the committed payload; each now has a test that runs the
+code (the Beneish SGI coefficient 0.892 -> 0.982 and a median computed as a mean were invisible
+before). **And the register itself:** `test_claims_register` accepted a class method's bare name,
+which pytest cannot select - five registrations used it; now only `file::function` or
+`file::Class::method` pass. No claim was false; no production code changed.
+
+### Did - bot (`../screener-bot`, `main` at `9681f45`, CI green)
+
+- **ROADMAP 3.5:** every Alpaca order journals the IEX bid/ask/mid read just before submit, SPY's
+  mid and the ranking's price; the report splits cost into slippage vs arrival and delay net of SPY,
+  with C1/C2 reading "not decided" until 100 fills. One 5 s attempt, never retried, never able to
+  change or stop an order. First live use: the next rebalance.
+- **ROADMAP 3.9:** the tear sheet against a hand calculation - two defects fixed (longest drawdown
+  counted run dates, not closes; a trailing `live` mark was paired with the previous close's
+  benchmark).
+- **ROADMAP 3.8:** the replay rebuilt point-in-time - the old one used a post-slot version on **6**
+  days (not the 3 the audit counted) and traded Labor Day; now 0 and skipped. Labelled machinery,
+  never return evidence, never joined to the live record.
+- Suite 491 -> **532**; both rehearsals exit 0. Seen in passing, not changed: `bot.rehearse` warns
+  "no signals.json is published yet" although one is - on unchanged `main` too, so the rehearsal
+  probably does not fetch it. Worth a look in the next bot session.
+
+### Methodology changed
+
+**None.** No weight, metric, threshold or `config.yaml` line moved; `METHODOLOGY_CHANGELOG.md` is
+untouched. The engine rerun moved no statistic.
+
+### Next
+
+- **Read 02:00's `PHASE TIMING` line** - the first measured run - and confirm the claims gate says
+  `[parallel, -n auto]`. If either new step misbehaves, the gates refuse and the site keeps today's.
+- **`config.yaml`'s `caching:` block misleads:** it reads like a 7-day fundamentals cache; it only
+  bounds reuse of the scored cache (effectively 1 day) and `estimate_data_refresh_days` is read by
+  nothing. Fix the comment **together with the next session's other `config.yaml` change** - any
+  edit there stales all 32 engine rows (`RESULT_PATHS`), and a `--jobs 4` rerun is now ~18 min.
+- The data-run note's **`Proposal status: OPEN`**: run the SEC passes alongside the Yahoo fetch
+  (est. 5-7 min), with an old-vs-new identity check. Its other ranked items need weeks of
+  comparison data; leave fetch concurrency alone.
+- `scripts/rehearse_publish.py --full` still runs its tests serially - a cheap follow-up.
