@@ -5,10 +5,17 @@ metric, threshold, page or payload changed, so `METHODOLOGY_CHANGELOG.md` is unt
 finding is a defect in production code (`scripts/repo-lock.ps1`); it is measured and proposed
 below, not changed here.*
 
-**Proposal status: OPEN** - fix the two races in `scripts/repo-lock.ps1` (section 3): publish the
-lock already carrying its PID instead of exposing an empty unreadable file, treat an unreadable lock
-as live, and reclaim a stale lock by atomic rename instead of read-then-delete. Then add the
-stale-lock race as a test.
+**Proposal status: DONE 2026-10-27 (owner-run, coordinator)** - both races fixed in
+`scripts/repo-lock.ps1`. A lock is published whole (`Publish-RepoLockFile`: write a private temp file,
+`File.Move` onto the lock, which fails if it exists); a lock that names no owner counts as held until
+it is 10 minutes old; a dead or over-age lock is removed only by the holder of a short-lived reclaim
+token, after re-reading it under the token (chosen over the atomic-rename reclaim proposed here
+because rename-then-check can still hand a third racer the gap while a wrongly moved lock is put
+back). Measured with this note's own script on the fixed lock: `stale 8` - **0 of 8** trials with more
+than one holder (was 6 of 16); `window 6 0.5` - the contender took a live lock in **0 of 6** (was 4
+of 5). Tests: `test_several_racers_reclaiming_one_dead_lock_leave_exactly_one_holder`,
+`test_a_lock_that_names_no_owner_is_held_until_it_is_old`; the module passed 3 of 3 runs. All three
+runner scripts parse (`Parser.ParseFile`, 0 errors).
 
 ## 1. Why
 
