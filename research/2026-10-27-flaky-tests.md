@@ -156,4 +156,7 @@ Same machine, same competing load (the browser runs took 3:04-4:55 each, slower 
 | The two lab modules, `-n 4` | 1 of 3 runs failed | **3 of 3 clean** (100 passed each) |
 | Each forced timing above | failed as described | passes |
 
-The full-suite runs on the final tree are below.
+Full suite on the final tree (`python scripts/run_tests.py tests/ test_screener.py -q`, parallel),
+three consecutive runs under the same load: **3,453 passed, 1 skipped** each, in 7:21, 5:25 and
+6:02. The mutual-exclusion test passed in all three; it will still fail now and then under load
+until route 1 in section 3 is fixed, and when it does its message names the route.
