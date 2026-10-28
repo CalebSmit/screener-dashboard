@@ -385,6 +385,16 @@ def _open(browser, phone=True, hash_=""):
     return ctx, page, errors
 
 
+def _wait_for_text(page, selector, text, timeout=15000):
+    """Wait until ``selector`` shows ``text``; on timeout fall through so the assertion that
+    follows reports what was actually on the page."""
+    try:
+        page.wait_for_function("([s, t]) => { const el = document.querySelector(s); return !!el && el.innerText.includes(t); }",
+                               arg=[selector, text], timeout=timeout)
+    except Exception:  # noqa: BLE001 - the assertion below reports what was seen
+        pass
+
+
 def _no_sideways_scroll(page):
     return page.evaluate("document.documentElement.scrollWidth <= innerWidth")
 
@@ -419,9 +429,12 @@ def test_a_ticker_this_run_did_not_score_is_named(browser):
         page.fill("#filter-search", "WBA")
         page.wait_for_selector(".vt-empty")
         assert "WBA is not in this ranking." in page.inner_text(".vt-empty")
-        # a name fragment that matches nothing keeps the ordinary message
+        # a name fragment that matches nothing keeps the ordinary message. The search box applies
+        # its filter on a 150 ms debounce, so wait for the table to have re-filtered on this text
+        # rather than a fixed 200 ms, which a loaded machine overran: the debounce had not fired
+        # and the box still showed the WBA message (2026-10-27, research/2026-10-27-flaky-tests.md)
         page.fill("#filter-search", "zzzz corp")
-        page.wait_for_timeout(200)
+        _wait_for_text(page, ".vt-empty", "No stocks match these filters.")
         assert "No stocks match these filters." in page.inner_text(".vt-empty")
         # a scored ticker hidden by another filter is not called missing
         page.fill("#filter-search", "AAPL")

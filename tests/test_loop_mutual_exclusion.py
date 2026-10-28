@@ -260,18 +260,40 @@ def test_exactly_one_of_several_simultaneous_starts_wins(tmp_path: Path):
     This is the shape of the real failure: processes starting in the same
     second, not neatly one after another.
 
-    The winner holds for longer than the others take to start, so a loser sees
-    a *live* holder. Without the hold every racer would find a lock owned by an
+    The winner holds until every racer has had its turn, so a loser sees a
+    *live* holder. Without the hold every racer would find a lock owned by an
     exited process and correctly reclaim it - which is the stale-lock path
     covered above, not the race this test is about.
+
+    Harness, 2026-10-27 (`research/2026-10-27-flaky-tests.md`). The hold used to
+    be a fixed 15 s and the winners were appended to one shared file. Both were
+    load-sensitive in the harness, not the lock: a racer whose PowerShell took
+    longer than 15 s to start found the lock *released* and won it legitimately,
+    which read as a double win; and two winners appending to one file at once can
+    lose a line to a sharing violation, which would hide one. Now the winner holds
+    until all six racers have returned from Enter-RepoLock (each records its own
+    result file), and the assertion is unchanged: exactly one of them held it.
+
+    **If this fails, read the racers' output in the message before anything
+    else.** "held by PID 0 (unknown), which is gone. Reclaiming." means a racer
+    read the winner's lock file inside the moment between its CreateNew and its
+    write - the file exists but is not yet readable - took the live owner for a
+    dead one and deleted its lock. That is a race in `scripts/repo-lock.ps1`,
+    measured and written up in the note above; it is not this test misbehaving.
     """
+    n = 6
     racers = []
-    for i in range(6):
+    for i in range(n):
         s = _write(tmp_path / f"race{i}.ps1", f"""
 $p = Enter-RepoLock -LogDir '{tmp_path.as_posix()}' -Holder 'racer {i}' -MaxWaitMinutes 0 -PollSeconds 1
+if ($p) {{ Set-Content -Path '{tmp_path.as_posix()}/won{i}' -Value $PID }}
+else {{ Set-Content -Path '{tmp_path.as_posix()}/lost{i}' -Value $PID }}
 if ($p) {{
-    Add-Content -Path '{tmp_path.as_posix()}/winners' -Value $PID
-    Start-Sleep -Seconds 15
+    # hold until every racer has tried (bounded, so a lost racer cannot hang the suite)
+    $deadline = (Get-Date).AddSeconds(90)
+    while (@(Get-ChildItem -Path '{tmp_path.as_posix()}' -Filter 'won*').Count +
+           @(Get-ChildItem -Path '{tmp_path.as_posix()}' -Filter 'lost*').Count -lt {n} -and
+           (Get-Date) -lt $deadline) {{ Start-Sleep -Milliseconds 100 }}
     Exit-RepoLock $p
 }}
 """)
@@ -280,8 +302,12 @@ if ($p) {{
              "-File", str(s)],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         ))
-    for p in racers:
-        p.wait(timeout=120)
+    outputs = [p.communicate(timeout=180) for p in racers]
 
-    winners = (tmp_path / "winners").read_text().split()
-    assert len(winners) == 1, f"{len(winners)} processes held the repo at once: {winners}"
+    winners = sorted(f.name for f in tmp_path.glob("won*"))
+    losers = sorted(f.name for f in tmp_path.glob("lost*"))
+    said = "\n".join(f"  racer {i}: {(o + e).strip()!r}" for i, (o, e) in enumerate(outputs))
+    assert len(winners) + len(losers) == n, (
+        f"only {len(winners) + len(losers)} of {n} racers reported a result:\n{said}")
+    assert len(winners) == 1, (
+        f"{len(winners)} processes held the repo at once: {winners}\n{said}")

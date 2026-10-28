@@ -20,6 +20,7 @@ import json
 import re
 import shutil
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -320,7 +321,14 @@ def test_context_lines_wait_for_the_context_file(browser, site):
     pg.route("**/dashboard_context.js*", lambda route: held.append(route))
     pg.goto((site / "index.html").as_uri(), wait_until="domcontentloaded", timeout=60000)
     pg.wait_for_function("typeof openStockDetail === 'function' && typeof D !== 'undefined' && D.table_data", timeout=60000)
-    pg.wait_for_timeout(200)
+    # Wait until the context request has actually reached the route and is held, rather than a
+    # fixed 200 ms: the page asks for the file at the end of its init, but the route handler runs
+    # only when that request's event reaches this process, which a loaded machine delayed past
+    # 200 ms - and then `assert held` below failed although nothing was wrong with the page
+    # (2026-10-27, research/2026-10-27-flaky-tests.md).
+    deadline = time.monotonic() + 30
+    while not held and time.monotonic() < deadline:
+        pg.wait_for_timeout(50)
     data = _payload("dashboard_data.js")
     ctx = _payload("dashboard_context.js")["ctx"]
     # a stock whose context lists something, so the arrival is visible
