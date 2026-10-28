@@ -69,8 +69,17 @@ def test_each_profile_is_what_the_preset_would_publish():
         # Only absence skips: a runs/ folder with no usable run still fails as before.
         pytest.skip(f"MISSING DATA: {ROOT / 'runs'} is absent (gitignored) - this test reads the "
                     "newest full run and cannot run without one")
-    run = max((x for x in (ROOT / "runs").iterdir() if (x / "05_final_scored.parquet").exists()),
-              key=lambda x: (x / "05_final_scored.parquet").stat().st_mtime)
+    # The run this payload was built from, by the id it publishes - not the newest folder. On
+    # 2026-10-28 the 02:00 run was refused after scoring, so the newest folder was a run the page
+    # never showed and this test failed on a correct payload until the next run published.
+    run_id = (d.get("kpis") or {}).get("run_id")
+    if run_id:
+        run = ROOT / "runs" / run_id
+        if not (run / "05_final_scored.parquet").exists():
+            pytest.skip(f"MISSING DATA: the published run {run_id} is not under {ROOT / 'runs'}")
+    else:
+        run = max((x for x in (ROOT / "runs").iterdir() if (x / "05_final_scored.parquet").exists()),
+                  key=lambda x: (x / "05_final_scored.parquet").stat().st_mtime)
     df = pd.read_parquet(run / "05_final_scored.parquet")
     cfg = yaml.safe_load((run / "config.yaml").read_text(encoding="utf-8")) if (run / "config.yaml").exists() \
         else yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
