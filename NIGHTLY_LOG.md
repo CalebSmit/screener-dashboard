@@ -16391,6 +16391,13 @@ both failures were one defect each, now fixed:
   source checks pin that every discard uses it and that both loops decide on `git status`;
   `test_published_claims_gate.py::test_a_failed_claim_discards_the_run` follows the helper. Both
   runners parse (`Parser.ParseFile`, 0 errors).
+- **A third casualty, found by gate 1:** `tests/test_investor_profiles.py` compared the published
+  payload with the *newest* `runs/` folder - the refused run, which the page never showed - and
+  failed on a correct payload; the 13:00 session's gate 1 would have failed the same way. It now
+  pairs the payload with the run it names (`kpis.run_id`) and skips loudly if that run is absent.
+  Gates on the final tree: suite **3,500 passed, 1 skipped**; dry run OK; `node --check` both
+  payloads; tree clean; `rehearse_publish.py` against last night's refused run **PASSED** (claims
+  gate 1,781). Payload byte-identical; page rebuilt with `rebuild_page.py`.
 - **Not republished today, deliberately.** `data-run.ps1` has no regenerate-only mode and a fresh
   full run now would take mid-session prices and be the second full fetch within hours - the one
   pattern that has been throttled (`research/2026-10-26-data-run-timing.md`). The 2026-10-28
