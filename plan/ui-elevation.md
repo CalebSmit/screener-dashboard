@@ -173,6 +173,34 @@ a second one).
 - `tests/test_case_against.py::test_each_line_opens_the_section_that_shows_it` (dashboard, untouched
   here) failed once under the parallel suite on a loaded machine and passed alone.
 
+### Same day, round three - the lab and the research page: the 153 factors' wait, and what a student still tripped on
+
+Owner: *"please keep making improvements!! anything you can find"*. Load order, presentation and one
+self-check made progressive; no figure changed (the reassembled lab payload equals round two's,
+3,153,295 sorted-key bytes), no ledger, registry or `summary.json` touched. `ASSET_VERSION` 28. Scratch
+measurements and screenshots in the gitignored `logs/round3-lab/`.
+
+| # | Page | What was wrong | What it is now | Tested in |
+|---|---|---|---|---|
+| 1 | Lab | **153 factors took 5.03 s to open on the phone profile** (median of 5 from a tap; 375 px, 4x CPU, slow 4G): one 716 KB part with three universes, all checked at open - round two's worst offender | each size group its own part (`LAZY_INTO`); opens on all stocks in **1.98 s**, the opening chart (which sets mega caps beside all stocks) complete at **3.53 s**; large caps load when chosen. A figure whose series is not here yet is printed as the build's, labelled "not yet re-run in this browser", never counted as checked or as drift, and re-run when it lands; the line under the table counts the re-run figures (claim `lab.replication_check`); a failed group says so with Try again | `test_factor_lab.py` (+1), `test_lab_reading_and_access.py` (+3) |
+| 2 | Lab | On a phone the 153 factors' thirteen theme names, set at an angle under 26 bars in 340 px, ran into one another | below 520 px the chart is a row per theme - name, then its two bars on the same fixed 0-100% scale, each with its figure; read by pointer, tap or arrows (Up/Down too). Wide screens unchanged | `test_lab_reading_and_access.py` (+1) |
+| 3 | Lab | The eight sorts shared one 212 KB part though each reads one (10-38 KB) | one part each; earnings yield, the largest, opens in **0.99 s** against 2.04 s | `test_factor_lab.py` (the parts tests, generalised) |
+| 4 | Research | t-statistics printed a hyphen beside means printed with a real minus ("&minus;0.09% (t -0.67)") | every t through `num()`: a real minus; zero unsigned | `test_research_page.py` (+1) |
+| 5 | Lab | On the overview a card's count sat beside a short meter and under a long one, so counts never lined up across a row or down a column | always under its meter, at every width | `test_lab_reading_and_access.py` (+1) |
+
+**Seen, not fixed**
+
+- Month counts print without a thousands separator ("Over 1140 months") in about ten sentences, several
+  pinned verbatim by tests - a one-helper change worth doing with those tests in one pass.
+- On a phone the scorecard and the category map list the same experiment links per category twice, a
+  section apart (round two's note). Merging them is the owner's content decision.
+- The research page's per-period figures for the trading rule are a stack of label/value pairs on a
+  phone (about 1,000 px for three periods); a compact three-column table would read faster. Not
+  started: the stop-loss block beside it would have to move with it.
+- The first 1-2 s of the 153 factors on a phone are now the `jkp` part (243 KB gz) itself: the
+  all-stocks series is already integer basis points; a further cut would mean shipping the paper's
+  window first and the post-2020 months after - not worth its complexity today.
+
 ### Same day, night - the drilldown pass (owner-run)
 
 The stock sheet audited as a student would use it - EXPE (#1), JPM (bank), VICI (REIT), ED (utility),

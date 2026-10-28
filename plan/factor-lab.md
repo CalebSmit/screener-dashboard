@@ -40,7 +40,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `factor_lab.py` | **The reference.** Parses the source files, defines every calculation, holds each experiment's record (`EXPERIMENTS`), and builds `lab_data.js`. |
 | `lab_engine.js` | The same arithmetic for the browser. Must reproduce the Python on the published data at the paper's settings and away from them - including each experiment's comparison with its paper (`compare`, `compareCrashes`, `compareFactors`, `compareSize`, `compareSort`, `compareSplit`, `compareCombo`, `compareReplication`, `compareDouble`) and a research note's pre-registered rule (`criterionResult`), from which the page fills "Against the paper". |
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
-| `lab_data_<key>.js` | **Generated** by the same build: the six heaviest series (`factor_lab.LAZY_KEYS`: `jkp`, `sorts`, `size`, `double`, `split`, `quintiles`), one file each, which `lab.html` loads only when an experiment that reads one is opened (its `PARTS`). Content is the payload's, unchanged - `load_published()` puts it back together. A new kind that reads one of them gets a `PARTS` entry, or it renders with the series missing (`test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own`). See "The first paint". |
+| `lab_data_<key>.js` | **Generated** by the same build: the heaviest series (`factor_lab.LAZY_KEYS`: `jkp`, `jkp_mega`, `jkp_large`, one `sorts_<name>` per sort, `size`, `double`, `split`, `quintiles`), one file each, which `lab.html` loads only when an experiment that reads one is opened (its `PARTS`). A part listed in `LAZY_INTO` is a *branch* - the value at a path inside another part or inside `lab_data.js` (`jkp.series.mega`, `sorts.<name>`) - and the page's `attach()` puts it back there (round three, 2026-10-27). Content is the payload's, unchanged - `load_published()` puts it back together. A new kind that reads one of them gets a `PARTS` entry, or it renders with the series missing (`test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own`); a new sort gets its part from `SORTS` with no other change. See "The first paint". |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
 | `data/lab/jkp/` | Jensen, Kelly & Pedersen's Global Factor Data (experiment 15): 310 files, **gitignored**, re-downloadable (`--fetch`, `fetch_jkp`), never committed. **CC BY-NC 4.0 - non-commercial only**; the page carries the attribution the licence asks for (`attribution_jkp`). |
@@ -293,8 +293,12 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   moderate rules on every audit); the menu's two files preloaded from the head; an experiment's part
   asked for at a mouse press, a 150 ms hover or keyboard focus on its card or menu entry - never a
   finger coming down, which as often starts a scroll. `lab_engine.js` and every data file untouched.
-- Open: **153 factors on a phone take 4.5-5 s to open** (716 KB gz; the page needs all three universes
-  at once for its self-check). See "The first paint" below for what a fix would move.
+- ~~**153 factors on a phone take 4.5-5 s to open**~~ - done 2026-10-27, round three: usable in 2.0 s,
+  its opening chart complete in 3.5 s; each size group is its own part and its figure is checked when
+  its series arrives. The eight sorts were split the same way (earnings yield 2.0 -> 1.0 s). See "The
+  first paint", round three.
+- Round three also: on a phone the 153 factors' chart is a row per theme (the angled names had run
+  into one another), and every overview card's count sits under its meter.
 
 ## The first paint (measured 2026-10-26)
 
@@ -355,6 +359,39 @@ check the large-cap figures when the third arrives - a change to `LAZY_KEYS`, `w
 reassembly test, `PARTS` and `ASSET_VERSION`, and to when the "disagrees with the build" warning can
 appear. Worth a lab session; it saves about a third of the wait.
 
+**Round three, 2026-10-27 (owner-run evening agent) - the 153 factors, split by universe.** Measured
+with Playwright + CDP on the same profile (375 px, 4x CPU, 150 ms, 1.6 Mbit/s x 0.9, cache off, a
+local server gzipping as Pages does, external fonts blocked so both sides load the same bytes), from
+a tap on the experiment's card on the overview, median of 5 (machine shared with other sessions, so
++-0.3 s noise; scratch harness in the gitignored `logs/round3-lab/measure.py`):
+
+| | Before (round two's files) | After |
+|---|---|---|
+| `jkp` part(s), gzipped | one file, 716 KB (three universes) | `jkp` 243 KB (meta + all stocks), `jkp_mega` 234 KB, `jkp_large` 235 KB |
+| 153 factors: reading, table and "Against the paper" on screen | **5.03 s** (4.89-5.14) | **1.98 s** (1.84-2.03) |
+| 153 factors: opening chart complete (needs the mega caps) | 5.04 s | 3.53 s (3.35-3.57) |
+| Earnings yield (largest sort): opened | 2.04 s (`sorts`, 212 KB) | **0.99 s** (`sorts_earnings_yield`, 38 KB) |
+| Menu usable (lab_data.js 99 KB gz both sides) | 1.61 s | 1.39-1.72 s (unchanged within noise) |
+| Re-run interleaved at the end, machine under load (n = 3 each) | 5.11 s usable / 5.13 s chart | 2.35 s usable / 3.81 s chart |
+
+How it works: `LAZY_INTO` maps a part to the path it goes back at. The experiment opens on `jkp`
+(the factors, months, market and the all-stocks series); it asks for the mega caps at once because its
+opening chart draws them beside all stocks, and for the large caps only when they are chosen, linked
+(`#replication-crisis?universe=large` opens on them and leaves the mega figure pending instead) or
+asked for with "Check it now". **The self-check is never dropped**: `E.compareReplication` returns a
+figure whose series has not loaded as `pending` (no number, no verdict; with every series present the
+rows are exactly as before - a node test pins both), the page prints the build's own figure for it
+labelled "The build's figure - not yet re-run in this browser", never counts it as checked or as a
+disagreement, and re-runs it the moment its series lands; the line under the table says how many of
+the ten were re-run and which group is still waiting (claim `lab.replication_check`). A group whose
+series fails to load says so where it would have drawn, with Try again. The eight sorts moved to one
+part each the same way (`sorts` in `lab_data.js` is the empty object they go back into, +6 bytes gz).
+
+**Identity:** the reassembled payload equals round two's - 3,153,295 sorted-key bytes both, `==` in
+Python, and in node with every branch run *before* its holder (the order a slow parent and a quick
+branch arrive in). `lab_engine.js` changed only in `compareReplication`'s pending rows; every parity
+test passes at 1e-9. `ASSET_VERSION` 28 (both `?v=` tags and both preloads).
+
 **Publish paths:** none change. The lab is built by sessions (`python factor_lab.py --build`) and
 merged with the code; `scripts/data-run.ps1` never builds or stages a lab file, and neither
 runner's payload gate names `lab_data.js` - the lab's parse check is `tests/test_factor_lab.py`.
@@ -370,6 +407,16 @@ runner's payload gate names `lab_data.js` - the lab's parse check is `tests/test
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-27, round three (owner-run evening agent; `plan/ui-elevation.md` "round three") - load
+  order and presentation; no figure changed, `ASSET_VERSION` 28.** The 153 factors open in 2.0 s on
+  the phone profile (5.0 before): each size group is its own part, checked against the build when it
+  arrives and labelled as the build's until then. Each sort is its own part (earnings yield 2.0 -> 1.0
+  s). On a phone the 153 factors' chart is a row per theme; every card's count sits under its meter.
+  `tests/test_factor_lab.py` (+1, 78 in all), `tests/test_lab_reading_and_access.py` (+5, 28 in all).
+  Not done, for a later pass: month counts print without a thousands separator ("Over 1140 months",
+  in about ten sentences, several pinned by tests); the scorecard and the category map still list the
+  same experiment links twice a section apart on a phone (a content decision for the owner).
 
 - **2026-10-27, round two (owner-run evening; `plan/ui-elevation.md` "round two") - presentation, access
   and load order only; no figure, data file or `lab_engine.js` changed, `ASSET_VERSION` stays 27.** The
