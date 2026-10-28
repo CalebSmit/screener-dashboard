@@ -699,6 +699,22 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-27 (evening, round three) - "please keep making improvements!! anything you can find":
+  DONE (owner-run).** Five more passes. **A real defect found and fixed:** the lock that keeps the
+  02:00 data loop and the code sessions off the repo at the same time could, under load, be held by
+  two processes at once - by two routes, both measured (4 of 5 and 6 of 16 trials) and both now 0
+  (`scripts/repo-lock.ps1`; `research/2026-10-27-flaky-tests.md`). Six flaky browser tests fixed at
+  their cause. **Stock sheet:** tabs light the section you are reading, a Financials tab, a faster
+  first open, an unscored category says which of its metrics had no data, empty sections say so,
+  peers open their own sheet. **Page:** a plain message and a reload button if the data fails to
+  load, a notice if the figures are two or more weekday runs old, the run time shown correctly
+  outside Central time, a print layout for the rankings, a 404 page, home-screen icons, and less jump
+  when the web font arrives. **Factor Lab:** "153 factors" opens in about 2 s on a phone instead of
+  5; each sort loads only its own data. **Bot (screener-bot `0311be6`):** a run's outcome in one
+  glance in the alert, summary and dashboard; a damaged journal named loudly; tables that fit. One
+  display-only field added to the payload (`flags.px_rejected`), published from the next data run;
+  no number, rank, weight or scored sentence changed. NIGHTLY_LOG.md 2026-10-27 (seventh owner pass).
+
 - **2026-10-27 (evening, round two) - "Keep finding improvements please!": DONE (owner-run).**
   Four more passes on what nobody had measured. **Accessibility:** an axe-core audit of every
   surface - dashboard serious findings 67 -> 0 (moderate 6,293 -> 0), lab and research page to zero,
