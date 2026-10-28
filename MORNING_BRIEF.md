@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 27 October 2026, 13:38
+# Morning Brief - Wednesday 28 October 2026, 02:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,7 +7,7 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran today |
+| Data run (2 AM) | **stopped deliberately** - last ran today |
 | Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-10-27T02:00:05.759618 |
 | Stocks scored | 498 |
@@ -16,28 +16,34 @@ history is in `NIGHTLY_LOG.md`.
 | Top 5 | EXPE, MU, APA, HST, EG |
 | Evidence for weight changes | 4 of 8 needed at the 1m horizon (38 rows, but overlapping windows are not independent; 99 rows across all horizons), newest 2026-10-19 |
 | Context signals | Context signals: 14 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 424/425 within 0.5%; operating cash flow 408/412 within 0.5%; net income 398/421 within 0.5%; market value 443/484 within 5%; filings cached 4 days ago |
-| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#20: net income 16% off the filing) |
-| Data run timing | **19 min** total; slowest `fetch.tickers` 659 s, `snapshot` 136 s, `fetch.retry` 125 s; **39 tickers rate-limited** |
+| Inputs vs SEC filings | total assets 412/413 within 0.5%; operating cash flow 397/401 within 0.5%; net income 387/409 within 0.5%; market value 443/484 within 5%; filings cached 5 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#17: net income 16% off the filing); WDC (#18: net income 2.13x after-tax operating income) |
+| Data run timing | **18 min** total; slowest `fetch.tickers` 651 s, `fetch.retry` 144 s, `context.sec_insider` 98 s; **44 tickers rate-limited** |
 | Context coverage | options usable 485/498 (13 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
+
+## Things that needed attention
+
+- The regenerated artifacts contradict claims this project asserts about them.
+- Refusing to publish. The live site keeps the last good version.
+- Run discarded: published-claims check failed - fix the generator, not the file.
 
 ## What changed in the repo
 
-- `bf6da57 page: rebuild index.html for the three new provenance sentences (payload byte-identical)`
-- `b573f36 log: the dead-badge hunt - four defects, one a false sentence on a top-25 stock, one a false claim on the public methodology page`
-- `e043051 provenance: the EV sentence states the limit that applied to this stock, not the other one`
-- `2b04e17 drilldown: the dead badges' last four - a false LTM sentence, a silent EV substitution, an unexplained beta, and a flag no run ever set`
-- `c148df2 docs: log and owner queue for the TradingAgents build`
-- `903c796 tests: two browser tests wait for the condition, not a fixed delay a loaded suite overran`
-- `e8baa51 contract: pin stock_detail[t].price_date, which the bot's swap ledger now reads; note: swap ledger done`
-- `0a7f45e header: the priority-plus fit counts a rounded 1px overflow as over`
-- `ccab5b3 drilldown: "The case against" - what the sheet already shows against a stock, collected (owner)`
-- `3e62cb3 evidence base: a holiday run enters at the next session's close, not the one its ranking was built from`
-- `952a184 research: what to take from TradingAgents - and a holiday look-ahead in the live evidence base`
-- `8063ee6 header: every section link whole or under More, at every width (owner)`
-- `06c54bd type: one typeface - headlines in Inter 600 tracked tight, the ticker's style; the display serif removed (owner)`
-- `8a33be0 docs: 2026-10-27 owner-run UI elevation - log, owner queue, plan status and residuals, design-system note, rebuild_page in rule 10`
-- `9658fb0 lab, research: the serif wordmark as the dashboard sets it; eyebrows in muted ink (accent is for what you can click)`
+- `b7ff1f4 log: the seventh owner pass - the repo lock's two races fixed, flaky tests, sheet, shell, lab, bot`
+- `ab2a172 test_sheet_round_three: the tab tests wait for the context payload and for the jump to land, not for a fixed position (flaked twice in five parallel runs)`
+- `763e791 repo lock: publish the lock whole and reclaim only under a token - both measured races fixed`
+- `a22a01b page shell, round three: failure states, freshness, true run time, Inter stand-in, print, 404, home screen (payload byte-identical)`
+- `8b9b0fc research: flaky tests - three full suites green on the final tree`
+- `be8ef69 research: the flaky tests of 2026-10-27 - each flake, its cause, the fix, before/after; the repo-lock races measured and proposed`
+- `df43558 tests: make the load-sensitive browser waits deterministic; harden the repo-lock race test`
+- `aa91610 sheet round three: scroll-spy holds the chosen tab, Financials tab, idle warm-up of the first open, unscored categories say why, peers open and rank`
+- `2d26d77 CLAUDE.md: drop the repeated LAZY_KEYS reference`
+- `1333c56 CLAUDE.md: the lab's lazy parts are one per LAZY_KEYS entry, not six`
+- `0d5d128 plan: round three notes - the 153 factors split by universe, the sorts by sort, measured`
+- `cae470c lab: every overview card puts its count under its meter, so the counts line up`
+- `27642a6 research: every t-statistic carries a real minus, as the means beside it do`
+- `5d257e9 lab: each of the eight sorts is its own part, so opening one fetches its own series only`
+- `1749c31 lab: on a phone the 153 factors' chart is a row per theme, so no theme name runs into another`
 
 ## The session's own account
 
