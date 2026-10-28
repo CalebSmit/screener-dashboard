@@ -1188,6 +1188,13 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="market_context:readings",
         checked_by=(
             "tests/test_context_layer.py::test_sahm_indicator_definition",
+            # 2026-10-28 mutation audit, rows 102-103. Every fixture the register had for this
+            # claim was a *rising* unemployment series, where the prior-12 low and the inclusive
+            # one are the same month - so dropping the `shift(1)` that makes the window "prior"
+            # passed the whole suite; and the only reading ever handed to `readings` was 0.6, so
+            # the 0.50 bar itself was never probed and `>=` -> `>` passed too.
+            "tests/test_context_layer.py::test_the_sahm_low_is_the_prior_twelve_months_and_not_this_one",
+            "tests/test_context_layer.py::test_the_sahm_trigger_is_half_a_point_and_half_a_point_triggers_it",
             "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
             "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_does_not_say_the_rule_marks_the_start",
             "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_names_both_false_alarms",
