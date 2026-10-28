@@ -222,6 +222,34 @@ Two things still outrank this file, and neither is negotiable:
      `Class::method`, which the register could not, so the good tests in `tests/test_metrics.py`
      are no longer invisible to it or to the publish gate. The plan file lists the next six items,
      two of them mechanical searches that should outperform more hand-picked mutations.
+     **Fourth pass DONE 2026-10-28 (13:00 session) - the research page's statistics, and the last
+     three residuals. 17 mutations on 6 claims: 11 caught, 6 gaps, four of them seen by nothing
+     anywhere in the suite.** Rows 89-105; the queue's items 1-4 are now closed. The research
+     surface was the one no pass had touched, and what it found is a *kind* of unchecked claim this
+     audit had not met: **the only thing seeing six of its eight gaps was a drift tripwire** -
+     "the committed page is what the generator makes" - and a drift check is green in exactly the
+     state the change ships in. Measured, not argued: each mutation was re-run with
+     `python v2_experiments.py report` in between, the way the page is actually published, and
+     **all seven stayed green.** Underneath that, two claims were checked by tests that recompute
+     the rule out of the code and then ask the page to agree with it (`every_zero = all(lo <= 0 <=
+     hi ...)`; `published["better"]`), which is row 59's rule applied to a *rule* instead of a
+     constant and much harder to see.
+     **The six gaps, now each failing a registered check:** the interval boundary at exactly zero
+     (the published figures are rounded to four decimals, so an endpoint of 0.0000 is a real
+     state); the intervals' confidence level, in both places that builds them; the record the
+     pooled estimate covers (176 months, not 80); what "cleared its bar" means for the count of
+     alternatives; the Sahm trigger *at* 0.50; and the window that makes the Sahm low a
+     **prior**-12-month low. The last two had real arithmetic behind them and were blind anyway,
+     because **every fixture in the register was a rising unemployment series**, where the prior-12
+     low and the inclusive-12 low are the same month.
+     **One register finding worth the owner's attention:** `tests/test_engine_calibration.py` -
+     the seven synthetic tests that are the reason to believe the engine can measure what it
+     reports - was named by **no** claim, so the loop that publishes the research page had never
+     run them. It is in the gate now, by derivation. **Four of the six gaps change no number
+     published today**; they change what the next one would be, which is the class of defect only
+     a mutation finds. Nothing about scoring, no published text, and no production code changed.
+     The plan's next list is three items, one of them the three *unregistered* computational
+     sentences this pass found on the research page.
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).

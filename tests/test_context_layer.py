@@ -387,6 +387,34 @@ def test_sahm_indicator_definition():
     assert mc.sahm_indicator(u) == pytest.approx(round(expected, 2))
 
 
+def test_the_sahm_low_is_the_prior_twelve_months_and_not_this_one():
+    """Claim ``context.sahm``: "its low over the prior 12 months". Row 103 of
+    plan/claims-mutation-audit.md - dropping the ``shift(1)`` that makes the window *prior* passed
+    the whole suite, because the fixture above is a rising series, where the oldest month is the
+    low either way. On a falling series it is the difference between a negative reading and a flat
+    zero: unemployment 5.0 down by 0.1 a month leaves the last 3-month average at 3.4 against a
+    prior-12 low of 3.5, so the indicator reads -0.1; counting this month's own average as the low
+    reads 0.00, and the indicator could then never print a negative number at all."""
+    u = pd.Series([5.0 - 0.1 * i for i in range(18)],
+                  index=pd.date_range("2024-01-01", periods=18, freq="MS"))
+    assert mc.sahm_indicator(u) == pytest.approx(-0.1)
+
+
+def test_the_sahm_trigger_is_half_a_point_and_half_a_point_triggers_it():
+    """Claim ``context.sahm``: the plain-words line says "triggering at 0.50 percentage points".
+    Row 102: nothing probed the bar itself - ``>=`` turned into ``>`` passed every registered check
+    and the whole suite, because the only reading ever passed to ``readings`` is 0.6."""
+    summ = {"T10Y3M": {"last": 0.4}, "VIXCLS": {"last": 15.0, "median_10y": 17.0},
+            "BAA10Y": {"last": 1.8, "pct_10y": 40}, "CPIAUCSL": {"last": 2.1, "date": "2026-08-01"},
+            "UNRATE": {"last": 4.4}}
+    jobs = lambda v: {r["k"]: r for r in mc.readings(summ, v)}["jobs"]            # noqa: E731
+    assert jobs(0.50)["state"] == "triggered"             # at the bar, not past it
+    assert jobs(0.49)["state"] == "not triggered"
+    assert jobs(0.51)["state"] == "triggered"
+    assert "+0.50pp" in jobs(0.50)["text"]                # and the bar the sentence names is that one
+    assert "reads +0.50pp" in jobs(0.50)["text"]
+
+
 def test_readings_name_their_rule():
     summ = {"T10Y3M": {"last": -0.4}, "VIXCLS": {"last": 30.0, "median_10y": 17.0},
             "BAA10Y": {"last": 2.5, "pct_10y": 80}, "CPIAUCSL": {"last": 3.1, "date": "2026-08-01"},

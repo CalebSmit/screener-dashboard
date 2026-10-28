@@ -687,6 +687,12 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="v2_experiments:summary_for_page",
         checked_by=(
             "tests/test_v2_experiments.py::test_the_methodology_page_quotes_the_engine_s_own_summary",
+            # 2026-10-28 mutation audit, row 97: the check above reads `better` out of the same
+            # function that computes it, so the rule deciding what "cleared its bar" means was
+            # unpinned - an alternative clears by either route, the held-out judgement or
+            # 2012-2019 in the 2020-2026 direction, and `or` -> `and` passed green.
+            "tests/test_v2_experiments.py::test_an_alternative_that_cleared_the_bar_in_either_judgement_is_counted",
+            "tests/test_v2_experiments.py::test_a_comparison_that_cleared_nothing_is_counted_in_neither_column",
         ),
         detect=r"Tested against history, 2026-10-15",
     ),
@@ -705,6 +711,15 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_positive_control.py::test_the_page_quotes_the_controls_own_row",
             "tests/test_positive_control.py::test_the_page_makes_no_claim_without_a_comparable_row",
             "tests/test_positive_control.py::test_the_page_says_so_when_the_design_did_not_see_it",
+            # 2026-10-28 mutation audit, rows 89-91: the three above check that the sentence is
+            # assembled from the control's own row, and none of them could see what "the smallest
+            # difference it could reliably detect" means - the 80%-power quantile moved, the power
+            # term dropped altogether and the t-distribution swapped for the normal all went
+            # through them green. These two pin that figure: the first as arithmetic at the
+            # engine's own bar, the second behaviourally (plant twice it, it must be caught).
+            "tests/test_v2_experiments.py::test_the_bar_at_38_held_out_months_is_the_exact_t_and_detectable_uses_it",
+            "tests/test_engine_calibration.py::test_the_detectable_figure_is_honest",
+            "tests/test_v2_experiments.py::test_every_verdict_says_how_small_a_difference_it_could_see",
         ),
         # one of three states, so no single regex matches every published version; the three
         # checks above assert the text of each against the row that produced it
@@ -728,6 +743,13 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="research_page:plain_answer",
         checked_by=(
             "tests/test_research_page.py::test_the_plain_answer_is_given_only_while_every_interval_includes_zero",
+            # 2026-10-28 mutation audit, rows 92-94 and 98: the check above recomputes the rule
+            # from the same code and then asks the page to agree with it, so it cannot see the
+            # rule itself change. These two pin the parts the sentence actually states - the
+            # intervals' confidence level, the record they cover, and the boundary at zero -
+            # against quantiles written as literals.
+            "tests/test_research_page.py::test_the_intervals_behind_the_plain_answer_are_95_percent_over_the_whole_record",
+            "tests/test_research_page.py::test_an_interval_that_only_just_includes_zero_still_includes_it",
         ),
         # absent by design the day an interval leaves zero, so no regex can be required of the page
         detect=None,
@@ -1166,6 +1188,13 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="market_context:readings",
         checked_by=(
             "tests/test_context_layer.py::test_sahm_indicator_definition",
+            # 2026-10-28 mutation audit, rows 102-103. Every fixture the register had for this
+            # claim was a *rising* unemployment series, where the prior-12 low and the inclusive
+            # one are the same month - so dropping the `shift(1)` that makes the window "prior"
+            # passed the whole suite; and the only reading ever handed to `readings` was 0.6, so
+            # the 0.50 bar itself was never probed and `>=` -> `>` passed too.
+            "tests/test_context_layer.py::test_the_sahm_low_is_the_prior_twelve_months_and_not_this_one",
+            "tests/test_context_layer.py::test_the_sahm_trigger_is_half_a_point_and_half_a_point_triggers_it",
             "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
             "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_does_not_say_the_rule_marks_the_start",
             "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_names_both_false_alarms",

@@ -290,32 +290,115 @@ loop's publish gate.
   existence check now accepts only selectable names (proved: restoring one bare name fails
   `test_every_checked_by_test_exists`).
 
+## Results, 2026-10-28 (13:00 midday session): the research surface, and the last three residuals
+
+Items 4, then 1-3 of the list below. **17 mutations across 6 claims. 11 caught, 6 gaps - and
+four of the six were caught by nothing anywhere in the suite.** Every gap now fails a registered
+check, each shown to pass unmutated and fail under its mutation, and every mutation re-run
+afterwards and required to come back `CAUGHT` (the 2026-10-25 rule). No production code changed.
+
+**The shape of the research surface's gaps, which is new and worse than rows 71-73.** Those rows
+found claims whose only checks read the committed payload, so an engine change was invisible
+until the morning. Here the only checks that saw six of the eight research-surface gaps were two
+*drift* tripwires - `test_the_committed_page_is_what_the_generator_makes_from_the_ledger` and
+`test_the_methodology_page_quotes_the_engine_s_own_summary`, both of which assert that the
+committed artifact equals a regeneration. **A drift check cannot fire in the state the change
+actually ships in.** Measured rather than argued: each mutation was re-run with
+`python v2_experiments.py report` in between - the way `research.html` and `summary.json` are
+published - and **all seven gaps stayed green**, because the page, the summary and the test then
+agree with each other and with the mutated code. That is CLAUDE.md rule 10 at the level of a
+claim: *assert the claim against the generator's arithmetic, not against the artifact.*
+
+**And the register's own weakest form, twice over.** `research.plain_answer`'s single check opened
+with `every_zero = all(lo <= 0 <= hi for lo, hi in ci.values())` - the code's rule, restated - and
+then asserted the page agreed with it; `overview.research_engine`'s read `published["better"]` out
+of the same function that computes it. A check written that way is a consistency check between the
+code and itself. It is row 59's rule ("a check may not import the number it is checking") applied
+to a *rule* rather than a constant, and it is harder to see, because nothing in the test looks
+like a constant.
+
+**Four of the six gaps change no published figure today** (92, 97, 102, 103): the boundary at
+zero, the `or` deciding what "cleared its bar" means, the Sahm bar at exactly 0.50, and the
+window that makes the Sahm low a *prior*-12-month low. Each is equivalent on today's data and
+false about the next value - which is the Method's "equivalent mutants" note turning out to be
+the majority case, not the footnote. A fixture chosen to exercise the sentence rather than the
+code is what separates them: every Sahm fixture in the register was a *rising* unemployment
+series, where the prior-12 low and the inclusive-12 low are the same month.
+
+| # | Claim | Mutation (file) | Registered checks | Now |
+|---|---|---|---|---|
+| 89 | `research.positive_control` | `detectable`'s 80%-power quantile, `t_critical(0.40, df)` -> `(0.20, df)` (v2_experiments) | **gap in the register** - the three checks assemble the sentence from the row's fields and never ask what the figure means; `test_the_bar_at_38_held_out_months...` (unregistered) sees it | registered that test, `test_the_detectable_figure_is_honest` and `test_every_verdict_says_how_small_a_difference_it_could_see`; `tests/test_engine_calibration.py` was named by **no** claim, so the publish gate had never run it |
+| 90 | same | the power term dropped: `(pass_bar + power) * se` -> `pass_bar * se` | **gap in the register** - same three; caught by the calibration module's behavioural check (plant 2x, it must be seen) | same; also now pinned as arithmetic by row 93's new test (`pooled_detectable == 0.0029`, not 0.0023) |
+| 91 | same | `df = (n - 1) if n > 1 else None` -> `df = None` (the normal curve for the bar and the power) | **gap in the register** | same registration |
+| 92 | `research.plain_answer` | `all(lo <= 0 <= hi ...)` -> `all(lo < 0 < hi ...)` (research_page) | **gap - nothing in the suite**, and nothing after a regeneration either | fixed: `test_an_interval_that_only_just_includes_zero_still_includes_it` - endpoints exactly on zero both ways keep the line, +0.0001 ends it. The published interval is rounded to 4dp, so an endpoint *of exactly 0.0000* is a real state, not a contrivance |
+| 93 | same | each era's interval at 10% instead of 5%: `t_critical(0.05, st["n"] - 1)` -> `(0.10, ...)` (summary_for_page) | **gap** - only the two drift tripwires, and only while the page is stale | fixed: `test_the_intervals_behind_the_plain_answer_are_95_percent_over_the_whole_record`, on a synthetic baseline against quantiles written as literals (2.0262 on 37 df, 1.9905 on 79, 1.9736 on 175) |
+| 94 | same | the pooled interval at 10% | **gap** - as above | fixed: same test |
+| 95 | `overview.research_engine` | `pass_bar` without Bonferroni: `t_critical(0.05 / max(n_tests, 1), ...)` -> `t_critical(0.05, ...)` | caught | - |
+| 96 | same | `n = len([e for e in reg if kind != "baseline"])` -> `len(reg)` | caught | - |
+| 97 | same | `cleared = v.endswith(...) or vp.endswith(...)` -> `and` | **gap - nothing in the suite.** No alternative clears either judgement today, so the mutation moves no figure; it changes what the first one to clear would be counted as | fixed: `test_an_alternative_that_cleared_the_bar_in_either_judgement_is_counted` (one row clearing by each route, both counted) and `test_a_comparison_that_cleared_nothing_is_counted_in_neither_column` |
+| 98 | `research.plain_answer` | the pooled record's start, `PRESAMPLE[0]` -> `SAMPLE[0]` (176 months -> 80) | **gap** - the two drift tripwires only | fixed: row 93's test, with a month either side of the record that no interval may include |
+| 99 | `context.put_skew` | the paper's window flag, `XZZ_DAYS_LO <= days <= XZZ_DAYS_HI` -> `<` both sides | caught | - |
+| 100 | same | the nearest-target pick with `.abs()` dropped (`_xzz_leg`) | caught | - |
+| 101 | same | the put leg's target moved to the band's midpoint, 0.95 -> 0.875, leaving the call leg alone | caught | - |
+| 102 | `context.sahm` | the trigger, `sahm >= 0.5` -> `> 0.5` (market_context.readings) | **gap - nothing in the suite**: the only reading ever handed to `readings` is 0.6 | fixed: `test_the_sahm_trigger_is_half_a_point_and_half_a_point_triggers_it` (0.49 / 0.50 / 0.51) |
+| 103 | same | `low12 = avg3.shift(1).rolling(12).min()` -> `avg3.rolling(12).min()` (the low stops being *prior*) | **gap - nothing in the suite.** Both fixtures for this claim - including the one in `test_club_readiness` that restates the window as `avg3.iloc[-13:-1]` - are rising series, where the two windows have the same minimum | fixed: `test_the_sahm_low_is_the_prior_twelve_months_and_not_this_one`, on a falling series: -0.1 against the mutation's flat 0.00, which is also the state in which the mutated code could never print a negative reading at all |
+| 104 | `context.track_turnover` | `0.5 * sum(abs(...))` -> `sum(abs(...))` (one-way turnover doubled) | caught | - |
+| 105 | same | the break-even's `1 - 2 c TO` -> `1 - c TO` (cost charged on one side) | caught | - |
+
+### What the 2026-10-28 gaps have in common
+
+- **A check that restates the rule and then asks the page to agree (92-94, 97, 98).** Not a
+  constant read into an `approx` (row 59) and not a page built from a constant (rows 66-70) - the
+  *decision* recomputed. `every_zero = all(lo <= 0 <= hi ...)` in the test is the code's line
+  copied; `published["better"]` is the function's own answer. Write the rule's inputs by hand and
+  the expected outcome as a literal, or the test can only prove the page is self-consistent.
+- **A drift tripwire is not a check of a claim (89-91, 93, 94, 98).** It fires on any change and
+  on nothing in particular, and it is green in exactly the state the change ships in. Where a
+  claim's surface is generated, at least one of its checks must call the generator with inputs the
+  test chose.
+- **The fixture, not the assertion, is what was missing (102, 103).** Both Sahm checks did real
+  arithmetic, one of them restating the window independently, and both were blind - because every
+  fixture was a rising series. When a claim names a window, a boundary or a direction, the fixture
+  has to be the case where getting it wrong shows.
+- **A module can hold the best evidence in the project and be outside the gate.**
+  `tests/test_engine_calibration.py` - seven synthetic tests that are the reason anyone should
+  believe the engine can measure what it reports - was named by no claim, so
+  `check_published_claims.py` had never run it before publishing the page that quotes it. 23s,
+  synthetic, fixed seed, no network.
+
 ## Next claims (for the nightly sessions)
 
 Take them in order; one session can do four to six. Record each in the table above with
 the date, and move this list down.
 
-**The 2026-10-20 list's items 1-8 and 12 are done** (2026-10-25, rows 39-62), **and the two
-mechanical searches are done** (2026-10-26, rows 63-88; item 1's bands and window were covered
-there, rows 65 and 74-75). What is left:
+**The 2026-10-20 list's items 1-8 and 12 are done** (2026-10-25, rows 39-62), **the two
+mechanical searches are done** (2026-10-26, rows 63-88), **and items 1-4 of the list below are
+done** (2026-10-28, rows 89-105). What is left:
 
-1. `context.put_skew` - what is left of it: the *put* leg's "nearest 0.95" with two eligible
-   puts either side of 0.95 (row 65 moved the target to 0.90, which the 0.90-strike fixture
-   happens to sit on), and the 10-60 day flag *at* 10 and 60 (`<=` -> `<`).
-2. `context.sahm` - 3-month average minus the prior-12-month low of the 3-month average; the
-   0.50 trigger (`>=` -> `>`).
-3. `context.track_turnover` - half the sum of absolute weight changes; the break-even
-   formula's factor of 2.
-4. **The `research.*` surface, which no pass has touched.** `research.html` became a claims
-   surface on 2026-10-25 (claim `research.positive_control`); its sentences quote intervals,
-   t-statistics and a detectable-difference figure, which is exactly the shape rows 26 and 59
-   show is easiest to get wrong - a tolerance or a divisor that no test pins independently.
-   (Row 87 moved `HLZ_T` and was caught; the intervals and the detectable difference were not
-   probed.)
-5. **The partly-payload claims.** Item 5's scan also lists 21 claims whose checks *mix* payload
+1. **The partly-payload claims.** The 2026-10-26 scan lists 21 claims whose checks *mix* payload
    reads with other tests. A claim is safe only if a non-payload check pins the specific number
    - the 2026-10-26 pass did not go through them. Re-run the scan (below) and mutate the numbers
-   whose only reader is a payload test.
+   whose only reader is a payload test. **Widen it with what 2026-10-28 found:** a *drift* check
+   against a generated artifact (`research.html`, `SCREENER_OVERVIEW.md`, `index.html`,
+   `summary.json`) counts as a payload read for this purpose, because it is green once the
+   artifact is regenerated. The scan looks for the payload file names; add the generated-page
+   paths and `== _rebuilt()`-shaped assertions.
+2. **A third mechanical search, from the 2026-10-28 shape:** a registered test that recomputes its
+   expected value by calling the same function it is checking, or by copying a predicate out of
+   the module under test. Rows 92-94, 97 and 98 all have it, and an `ast` walk can find the
+   obvious form - a call to `made_true_by`'s own module whose result is then compared with the
+   page. Same caveat as item 6 in 2026-10-26: it over-reports, and only a mutation decides.
+3. `research.*`'s remaining unregistered sentences, which this pass found but did not fix: the
+   research page prints "the ranking's monthly correlation swings by about X from one month to the
+   next" (`ic_sd`, the standard deviation recovered as `se * sqrt(n)`), "the smallest difference
+   the test could reliably see was about X over 2012-2019 and Y over the held-out months" (the
+   *median* row's standard error, `mde_p`/`mde_h`), and "N months of record to show a monthly
+   correlation of 0.05 at the usual 5% level" (`months_needed`). All three say how a number is
+   computed, and **none is registered in `claims.py`** - so they are outside the publish gate's
+   derivation and outside this audit. `test_signs_and_zero_are_printed_honestly` pins
+   `months_needed`'s formula with literals, which is the good half; the choice of the *median*
+   experiment's standard error for the two headline figures is pinned nowhere. Register them, then
+   mutate them.
 
 The two scans are not tracked (see "Method" on why harness code stays out of the repo); both
 are about 100 lines - an `ast` walk over `tests/` that resolves `import m as x` / `from m import

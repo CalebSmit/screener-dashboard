@@ -870,3 +870,63 @@ def test_the_diagnostic_build_records_nothing_because_it_caches_nothing():
     src = (ROOT / "backtest_v2.py").read_text(encoding="utf-8")
     assert "if f_as_of is None:\n                built.append(m)" in src
     assert "if filings_as_of is None:\n        try:\n            save_metrics" in src
+
+
+# ------------------------------------------------------ the 2026-10-28 mutation audit (row 97)
+def _vs(**periods) -> dict:
+    """A ledger row carrying only what ``summary_for_page`` and the two verdicts read."""
+    return {"data_hash": "synthetic", "method_version": 2, "months": 176,
+            "summary": {k: {"ic_vs_baseline": v} for k, v in periods.items()}}
+
+
+_BASE = {"data_hash": "synthetic", "method_version": 2, "months": 176,
+         "ic_by_month": {"2020-01-31": 0.0, "2020-02-29": 0.01, "2020-03-31": -0.01},
+         "summary": {"all": {"ic": {"mean": 0.0, "se": 0.005, "n": 80}}}}
+_FLAT = {"mean": 0.001, "se": 0.01, "t": 0.1, "n": 42}
+
+
+def test_an_alternative_that_cleared_the_bar_in_either_judgement_is_counted():
+    """Claim ``overview.research_engine`` quotes "the count of pre-registered alternatives that
+    cleared its bar", and an alternative clears it by *either* route - the held-out judgement, or
+    2012-2019 in the 2020-2026 direction. Row 97 of plan/claims-mutation-audit.md: the registered
+    check reads ``better`` out of the same function that computes it and then asserts the page's
+    wording agrees, so turning that ``or`` into an ``and`` went through it green. Today no
+    alternative clears either way, so the mutation moves no published figure - it changes what the
+    first one to clear would be counted as, which is the sentence's whole content."""
+    reg = [{"id": "baseline", "transform": {"kind": "baseline"}},
+           {"id": "held-out-only", "transform": {"kind": "weights"}},
+           {"id": "presample-only", "transform": {"kind": "weights"}}]
+    latest = {
+        "baseline": _BASE,
+        # better in both periods and past the bar in the held-out months; 2012-2019 says nothing
+        "held-out-only": _vs(discovery={"mean": 0.03, "se": 0.0075, "t": 4.0, "n": 42},
+                             holdout={"mean": 0.03, "se": 0.0067, "t": 4.5, "n": 38},
+                             presample={"mean": 0.001, "se": 0.005, "t": 0.2, "n": 96},
+                             all={"mean": 0.03, "se": 0.005, "t": 6.0, "n": 80}),
+        # the other way round: nothing in the held-out judgement, past the bar in 2012-2019
+        "presample-only": _vs(discovery=_FLAT, holdout=dict(_FLAT, n=38),
+                              presample={"mean": 0.03, "se": 0.006, "t": 5.0, "n": 96},
+                              all={"mean": 0.004, "se": 0.01, "t": 0.4, "n": 80}),
+    }
+    v = {e["id"]: X.verdict(e, latest[e["id"]], 2) for e in reg[1:]}
+    vp = {e["id"]: X.verdict_presample(e, latest[e["id"]], 2) for e in reg[1:]}
+    assert v["held-out-only"].endswith("clears the multiple-testing bar")
+    assert not vp["held-out-only"].endswith("the same direction as 2020-2026")
+    assert not v["presample-only"].endswith("clears the multiple-testing bar")
+    assert vp["presample-only"].endswith("the same direction as 2020-2026")
+    out = X.summary_for_page(reg, latest)
+    assert out["alternatives"] == 2
+    assert (out["better"], out["worse"]) == (2, 0), (out, v, vp)
+
+
+def test_a_comparison_that_cleared_nothing_is_counted_in_neither_column():
+    """The same counting, the other way round - the ledger's actual state since 2026-10-15. An
+    alternative that clears neither judgement is still an alternative, and is neither better nor
+    worse: ``alternatives`` is what the page's "none of the N" is read against."""
+    reg = [{"id": "baseline", "transform": {"kind": "baseline"}},
+           {"id": "flat", "transform": {"kind": "weights"}}]
+    latest = {"baseline": _BASE,
+              "flat": _vs(discovery=_FLAT, holdout=dict(_FLAT, n=38),
+                          presample=dict(_FLAT, n=96), all=dict(_FLAT, n=80))}
+    out = X.summary_for_page(reg, latest)
+    assert (out["alternatives"], out["better"], out["worse"]) == (1, 0, 0)

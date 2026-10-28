@@ -16420,3 +16420,162 @@ band, the page's `|| 500`). Phase 0 is research and belongs to a Monday.
 - Read tonight's 02:00 log: it should publish, and a refused run (if any) should now leave
   `git status` clean.
 - Phase 0 of the universe plan on research Monday 2026-11-02.
+## 2026-10-28 (13:00 midday session) - QUEUE. The research page's statistics mutation-tested: six of its eight unchecked claims were seen only by a tripwire that is green in the state the change ships in
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-27 13:00 shipped
+(`good/2026-10-27-1338`); today's 06:00 stood down and the owner-run morning session fixed both
+causes (its entry above). Data loop published? **no, correctly** - 02:00 today was HEALTH: PASS
+and then refused by the published-claims gate on a real false sentence; the live site keeps
+2026-10-27's figures and the fix is committed, so tonight's run publishes. Evidence base at `1m`
+= **38 rows, newest 2026-09-25 (33 days ago, bound 40), 4 effective**. Priority 0:
+`allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 16 days**) - not advanced, and not drifting: the lab's day is a Friday, 10-30 is
+an even ISO week so the runner swaps in the retrospective, and the next lab Friday is **2026-11-06**.
+**Tests:** before 3,500 passed / 1 skipped, after **3,506 passed / 1 skipped**.
+**Owner queue / rotation:** took `OWNER_FOCUS.md` item 3 of the 2026-10-20 block, "Test the
+tests" - the fourth mutation pass, `plan/claims-mutation-audit.md`'s queue items 4 then 1-3. No
+proposal was waiting (`write_brief.open_proposals()` returns `[]`). The top open item in that file
+(universe expansion) is a Monday research item by its own Next line; nothing else deferred.
+
+### Did
+
+**17 mutations across 6 claims: 11 caught, 6 gaps. Every gap now fails a registered check.**
+Rows 89-105 of `plan/claims-mutation-audit.md`, which closes its queue items 1-4. No production
+code changed and no published sentence moved; the whole diff is tests, the register, and the
+write-up.
+
+**The research surface was the one no pass had touched, and it had a kind of unchecked claim this
+audit had not met.** `research.html`'s sentences quote intervals, t-statistics and a
+"smallest difference the test could reliably detect" figure. Ten mutations of that arithmetic - the
+80%-power quantile, the power term itself, the t-distribution for the bar, the interval boundary at
+zero, the intervals' confidence level in both places that builds them, the record the pooled
+estimate covers, the multiple-testing bar, the alternatives count, and the rule deciding what
+"cleared its bar" means - produced **two** caught and **eight** gaps.
+
+**The thing worth carrying forward: for six of those eight, the only test that failed was a drift
+tripwire** - `test_the_committed_page_is_what_the_generator_makes_from_the_ledger`, or
+`test_the_methodology_page_quotes_the_engine_s_own_summary`, which asserts the committed
+`summary.json` equals a recomputation. Both of those fail under *any* numeric change and assert
+nothing about the arithmetic - **and both are green in exactly the state the change ships in.**
+That is measured rather than argued: every mutation was re-run with `python v2_experiments.py
+report` in between, which is how `research.html` and `summary.json` are actually published, and
+**all seven gaps stayed green.** It is CLAUDE.md rule 10 one level up ("assert claims against the
+generator's output, not the committed file"): a check that compares a generated artifact with its
+own regeneration cannot see a change to the generator.
+
+**Underneath that, two claims were checked by a test that recomputes the rule out of the code and
+then asks the page to agree with it.** `research.plain_answer`'s only check opened with
+`every_zero = all(lo <= 0 <= hi for lo, hi in ci.values())` - the generator's line, copied - and
+`overview.research_engine`'s read `published["better"]` out of the same function that computes it.
+Both are consistency checks between the code and itself. This is row 59's rule ("a check may not
+import the number it is checking") applied to a *rule* rather than a constant, and it is much
+harder to spot, because nothing in the test looks like a constant.
+
+**The six gaps and their fixes** (each new test shown to pass unmutated, fail under its mutation,
+and every mutation re-run afterwards and required to come back `CAUGHT`):
+
+- **The interval boundary at zero** (`<=` -> `<`): nothing in the suite saw it, before or after a
+  regeneration. The published intervals are rounded to four decimals, so an endpoint of exactly
+  `0.0000` is a real state, not a contrivance - and under the mutation the page would drop "No
+  edge has been shown" and print "Not reliably" on a record that includes zero.
+- **The intervals' confidence level** (5% -> 10%, in the era block and the pooled block) and
+  **the record the pooled estimate covers** (176 months -> 80, by moving its start to 2020):
+  pinned now on a synthetic baseline against quantiles written as **literals** (2.0262 on 37
+  degrees of freedom, 1.9905 on 79, 1.9736 on 175), with a month either side of the record that no
+  interval may include. The same test pins the pooled detectable figure at 0.0029 - `(3 + 0.8434) x
+  se`, not `3 x se` - which catches two of the three `detectable` mutations as arithmetic.
+- **What "cleared its bar" means** (`or` -> `and`): an alternative clears by either route, the
+  held-out judgement or 2012-2019 in the 2020-2026 direction. Two new tests count one row clearing
+  by each route and one clearing by neither.
+- **The Sahm trigger at exactly 0.50** (`>=` -> `>`): the only reading ever handed to `readings`
+  in the whole suite is 0.6, so the bar itself was never probed. Now 0.49 / 0.50 / 0.51.
+- **The window that makes the Sahm low a *prior* 12-month low** (dropping the `shift(1)`): this
+  one is the instructive failure. Both existing fixtures do real arithmetic - the one in
+  `test_club_readiness` even restates the window independently as `avg3.iloc[-13:-1]` - and both
+  were blind, because **every Sahm fixture in the register is a *rising* unemployment series**,
+  where the prior-12 low and the inclusive-12 low are the same month. The new fixture falls: 5.0%
+  down by 0.1 a month gives -0.1 against the mutation's flat 0.00, and the mutated code could
+  never print a negative reading at all.
+
+**One register finding that is not about any single claim.**
+`tests/test_engine_calibration.py` - seven synthetic tests that plant a known IC difference and
+check the engine measures it back, which is the whole reason to believe "we found nothing" means
+there was nothing to find - was named by **no** claim. So `scripts/check_published_claims.py`,
+whose membership is derived from `checked_by`, had never run it before publishing the page that
+quotes its result. It is in the gate now by derivation (37 modules; 23 s, synthetic, fixed seed,
+no network, no run directory).
+
+**Four of the six gaps change no number published today** - the boundary, the `or`, the Sahm bar
+and the Sahm window are all equivalent mutants on today's data. They change what the *next* value
+would be. The audit's Method notes that class in a paragraph; on this pass it was the majority,
+which is the argument for mutating rather than reading.
+
+**What was caught, for the record** (11 of 17, so the register is mostly doing its job): the
+Bonferroni correction in `pass_bar`; the alternatives count excluding the baseline; all three
+put-skew mutations (the 10-60 day window flag at its ends, the nearest-target pick with `abs()`
+dropped, and the put leg's target moved to the band's midpoint while leaving the call leg alone);
+and both `context.track_turnover` mutations (the half in one-way turnover, and the factor of 2 that
+charges the break-even cost on both sides of a trade).
+
+### Evidence / research
+
+- This is test-of-tests work, so the evidence is the mutations themselves: 17 applied one at a
+  time, each a single exact-string replacement that had to occur exactly once, each followed by
+  running **only** that claim's `checked_by` (the coverage the register actually buys, and what
+  the publish gate derives), then `git checkout` and a clean `git status` before the next.
+  The harness is ~60 lines and deliberately lives outside the repo (`plan/claims-mutation-audit.md`,
+  "Method"): a mutation tool in the tree is one bad `finally` away from committing a mutant.
+- The regeneration experiment is the new measurement: mutate, run `v2_experiments.py report`,
+  then run the claim's checks. 7 of 7 still green. That is what demotes a drift tripwire from
+  "a check" to "a staleness alarm".
+- `research/2026-10-15-research-engine-first-batch.md` and `research/2026-10-25-positive-control.md`
+  for what the figures being pinned actually are. Nothing here uses or quotes an engine number as
+  evidence for anything (rule 5); the subject is the tests, not the results.
+
+### Methodology changed
+
+- None. No weight, metric, threshold or published sentence moved. `claims.py` gained seven
+  `checked_by` entries across four claims and no new `asserts` text.
+
+### Tried and rejected
+
+- **Registering the three remaining computational sentences on the research page** - "the ranking's
+  monthly correlation swings by about X from one month to the next" (`se x sqrt(n)`), "the smallest
+  difference the test could reliably see was about X over 2012-2019 and Y over the held-out months"
+  (the **median** alternative's standard error through `detectable`), and "N months of record to
+  show a monthly correlation of 0.05 at the usual 5% level" (`months_needed`). All three say how a
+  number is computed and **none is in `claims.py`**, so they sit outside the publish gate's
+  derivation and outside this audit. I checked rather than assumed: `grep` over `claims.py` finds
+  only the control's "reliably detect". I did not register them today, because the rule for a new
+  claim is that it ships with a test on both sides of its number, and the one that matters -
+  pinning that the two headline figures come from the *median* row's standard error rather than the
+  mean or the smallest - needs a synthetic `rows` structure through `research_page.build`, and
+  writing it in the last hour of a session is how you get another test that restates the code.
+  It is item 3 of the plan's next list with the work specified.
+- **Treating rows 89-91 as closed by the tests that already existed.** They were caught by
+  `test_the_bar_at_38_held_out_months...` and the calibration module, both unregistered, so the
+  claim bought nothing. The 2026-10-25 rule is that finishing a gap means registering the fix;
+  three registrations were the fix.
+
+### Observed, not acted on
+
+- **Gate 2 dirties the tree gate 4 inspects.** `python run_screener.py --dry-run` rewrites
+  `sp500_tickers.json` - today a pure reordering (PEG and PTC swap), same content - so a session
+  that runs the gates in order sees gate 2 pass and gate 4 report a modified tracked file. It is
+  known and handled: both runners carry the file in their restore list
+  (`nightly-screener.ps1:105`, `data-run.ps1:527`) and `prompts/nightly.md` tells sessions not to
+  commit it. Recorded because it costs a minute of doubt every time and a session reading gate 4's
+  output cold would not know.
+
+### Next
+
+- **The plan's next list, item 1**, widened by what today found: re-run the 2026-10-26
+  payload-reader scan with the *generated pages* added to what counts as a payload read
+  (`research.html`, `SCREENER_OVERVIEW.md`, `index.html`, `summary.json`, and `== _rebuilt()`-shaped
+  assertions), then mutate the numbers whose only reader is one of those. Item 2 is a third
+  mechanical search for the 2026-10-28 shape - a registered test that computes its expected value
+  by calling the same function it is checking.
+- Read tonight's 02:00 log: it should publish, and a refused run should now leave `git status`
+  clean (the owner-run morning session's fix, first exercise tonight).
+- Phase 0 of the universe plan on research Monday **2026-11-02**; the next lab Friday is
+  **2026-11-06**.

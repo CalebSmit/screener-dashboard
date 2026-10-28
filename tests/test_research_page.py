@@ -407,6 +407,66 @@ def test_one_banner_one_main_one_footer_and_links_in_sentences_are_underlined():
             browser.close()
 
 
+# ------------------------------------------- the 2026-10-28 mutation audit (rows 92-94, 98, 99)
+# `research.plain_answer`'s only check recomputed the rule from the code and then asked the page to
+# agree with it (`every_zero = all(lo <= 0 <= hi ...)`), so four mutations of the claim's own
+# arithmetic went through it green: the boundary `<=` -> `<`, the intervals' confidence level
+# 5% -> 10% in either of the two places that builds them, and the record the pooled estimate
+# covers. The quantiles below are written as literals on purpose - reading them back out of
+# `v2_experiments` is what made the old check blind (plan/claims-mutation-audit.md, row 59's rule).
+def _synthetic_baseline() -> dict:
+    """A baseline ledger row with hand-chosen statistics, so the intervals the page prints can be
+    checked against figures written here rather than against the engine's recomputation of them.
+    Its monthly series covers the record exactly - 176 month-ends, 2012-01 to 2026-08 - with one
+    month either side of it that no interval may include."""
+    idx = list(pd.date_range("2012-01-31", "2026-08-31", freq="ME").strftime("%Y-%m-%d"))
+    months = {m: (0.01 if i % 2 else -0.01) for i, m in enumerate(idx)}
+    months["2011-12-31"] = months["2026-09-30"] = 0.5          # outside the record on either side
+    return {"id": "baseline", "months": len(idx), "data_hash": "synthetic", "method_version": 2,
+            "ic_by_month": months,
+            "summary": {"presample": {"ic": {"mean": 0.0, "se": 0.01, "n": 38}},
+                        "all": {"ic": {"mean": 0.002, "se": 0.005, "n": 80}}}}
+
+
+def test_the_intervals_behind_the_plain_answer_are_95_percent_over_the_whole_record():
+    """Claim ``research.plain_answer`` says "every 95% interval on the ranking's monthly rank
+    correlation (each era and pooled)". Two-sided 5% Student's t: 2.0262 on 37 df, 1.9905 on 79,
+    1.9736 on 175 (the first is pinned against the textbook in
+    ``test_the_t_distribution_matches_known_quantiles``)."""
+    summary = X.summary_for_page(X.load_registry(), {"baseline": _synthetic_baseline()})
+    ci = summary["baseline_ic_ci95"]
+    assert ci["presample"] == [-0.0203, 0.0203]              # 0.0 +- 2.0262 x 0.01
+    assert ci["all"] == [-0.008, 0.012]                      # 0.002 +- 1.9905 x 0.005
+    # the pooled estimate is the whole record and nothing outside it: either 0.5 month on its own
+    # would move the mean to 0.0028 and carry the interval clear of zero
+    assert summary["months"]["pooled"] == 176
+    assert summary["baseline_ic"]["pooled"] == 0.0
+    assert ci["pooled"] == [-0.0015, 0.0015]                 # 0.0 +- 1.9736 x 0.00075593
+    # and the figure beside them: the smallest mean this record could detect 80% of the time at
+    # |t| >= 3 is (3 + 0.8434) x 0.00075593, not 3 x it
+    assert summary["pooled_detectable"] == 0.0029
+
+
+def test_an_interval_that_only_just_includes_zero_still_includes_it():
+    """Row 92: the rule is ``lo <= 0 <= hi``. An endpoint landing exactly on zero - which rounding
+    the published interval to four decimals makes a real possibility - still includes zero, so the
+    plain answer and "Not measurably." both stand; a lower bound a ten-thousandth above zero ends
+    both."""
+    reg, latest = X.load_registry(), _latest()
+    base = X.summary_for_page(reg, latest)
+    middling = {"all": [-0.01, 0.01], "pooled": [-0.02, 0.01]}
+    for era, expected in (([-0.02, 0.0], True),           # upper bound exactly on zero
+                          ([0.0, 0.02], True),            # lower bound exactly on zero
+                          ([0.0001, 0.02], False)):       # the first interval that excludes it
+        summary = copy.deepcopy(base)
+        summary["baseline_ic_ci95"] = {"presample": era, **middling}
+        page = rp.build(reg, latest, summary, X.detectable, X.load_evaluations())
+        assert ("In plain terms:" in page) is expected, era
+        assert ("<strong>Not measurably.</strong>" in page) is expected, era
+        assert ("<strong>Not reliably.</strong>" in page) is (not expected), era
+        assert ("Every interval includes zero." in page) is expected, era
+
+
 def test_every_t_statistic_carries_a_real_minus_as_the_means_beside_it_do():
     """Round three, 2026-10-27: the t-statistics printed a hyphen ("t -0.67") beside means printed with
     a real minus ("&minus;0.09%"), so two signs on one row differed in shape and width."""
