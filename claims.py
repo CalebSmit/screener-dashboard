@@ -687,6 +687,12 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="v2_experiments:summary_for_page",
         checked_by=(
             "tests/test_v2_experiments.py::test_the_methodology_page_quotes_the_engine_s_own_summary",
+            # 2026-10-28 mutation audit, row 97: the check above reads `better` out of the same
+            # function that computes it, so the rule deciding what "cleared its bar" means was
+            # unpinned - an alternative clears by either route, the held-out judgement or
+            # 2012-2019 in the 2020-2026 direction, and `or` -> `and` passed green.
+            "tests/test_v2_experiments.py::test_an_alternative_that_cleared_the_bar_in_either_judgement_is_counted",
+            "tests/test_v2_experiments.py::test_a_comparison_that_cleared_nothing_is_counted_in_neither_column",
         ),
         detect=r"Tested against history, 2026-10-15",
     ),
