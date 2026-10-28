@@ -136,6 +136,36 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
   Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
 
+## The shell, round three, 2026-10-27 (owner-run) - `plan/ui-elevation.md` "Round three", `tests/test_page_shell.py`
+
+Presentation and platform only (payload byte-identical). What a later session must know:
+- **`#page-notices`** (inside `.hero-text`, after `.hero-note`) is where the page talks about its own loading:
+  `#load-wait` (static, shown by an inline timer 4 s after the shell parses if `window.SCREENER_DATA` has
+  not arrived), `#load-fail` (`showLoadFailure(kind)`, kinds `offline` / `network` / `broken` / `empty` /
+  `render`), `#stale-note` (`showStaleness`) and `#ctx-fail` (`showContextFailure`, with a working Try again
+  that re-runs `loadContext`). `:empty` hides it. All in `_js_page` / `_css_page`.
+- **A failed payload sets `html.data-failed`**, which hides every section of `.page-main` except the hero, the
+  guide, the header nav, search, the hero's buttons and the Menu pill. The data `<script>` carries
+  `onerror="window.SCREENER_DATA_FAILED = true"`. INIT is wrapped: a drawing exception shows the `render`
+  notice **and is rethrown**, so `pageerror` checks still see it - do not swallow it.
+- **`runInstant(ts)`** reads `kpis.run_timestamp` as US Central wall time (`RUN_ZONE`); the hero eyebrow and
+  footer use it. `new Date(run_timestamp)` is wrong outside Central - never use it for a time of day.
+- **`runStaleness(ts, now)`** counts weekdays after the run date whose run was due (14:00 UTC); the notice
+  shows at >= 2. Claim `page.freshness`. The data loop publishes on NYSE holidays, so it is weekdays, not
+  sessions - do not swap in the NYSE calendar.
+- **Fonts:** `'Inter Fallback'` (four `@font-face`, local Arial / Arial Bold with size-adjust and Inter's
+  ascent/descent) sits between `'Inter'` and `system-ui` in all three font tokens. Re-derive the numbers with
+  a canvas measure of the page's text (`plan/ui-elevation.md`) if the Inter version Google serves changes.
+- **Print, no sheet open:** `preparePagePrint` / `restorePagePrint` on before/afterprint build **every**
+  filtered row (`window.PRINT_PAGE_ON` makes `renderWindow` stand still meanwhile), add `#print-caption`, set
+  `html.print-page`; the `@media print` block in `_css_page` undoes the phone's card rows (the printed page is
+  laid out at the paper's portrait width) and hides collapsed sections. The sheet's own print path
+  (`preparePrint`, `html.print-sheet`) is untouched and wins whenever a sheet is open.
+- **New root files (source, not generated, not data artifacts):** `404.html` (hand-written; links rooted at
+  `/screener-dashboard/`, rewritten to `/` elsewhere), `manifest.webmanifest`, `icon-180.png` /
+  `icon-192.png` / `icon-512.png` / `icon-maskable-512.png` (made by `python scripts/make_icons.py`). No
+  service worker, deliberately.
+
 ## The page, round two, 2026-10-27 (owner-run) - `plan/ui-elevation.md` "Round two", `tests/test_page_round_two.py`
 
 Presentation only (payload byte-identical). What a later session must know before touching these:

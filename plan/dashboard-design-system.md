@@ -75,7 +75,7 @@ families stays the rule.
 
 | Token | Value | Job |
 |---|---|---|
-| `--font-body` | `'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif` | everything: UI, body, headings, **and figures** |
+| `--font-body` | `'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif` | everything: UI, body, headings, **and figures**. `'Inter Fallback'` (2026-10-27, round three) is local Arial cut to Inter's measure - `plan/ui-elevation.md` |
 | `--font-heading` | same stack (kept as alias) | headings differentiate by weight/size, not family |
 | `--font-mono` | `'JetBrains Mono', ui-monospace, monospace` | literal code only: methodology code blocks, the localStorage key |
 
@@ -97,7 +97,9 @@ families stays the rule.
   spacing; 9-10px sizes are removed.
 - Webfonts load from Google Fonts css2 (`display=swap`, latin subset via
   unicode-range, weights 400/500/600/700 Inter + 400/500 JBM only - down from
-  12 weight-files to 6). The fallback stack is metric-compatible system UI.
+  12 weight-files to 6). Until Inter arrives the page is set in `'Inter Fallback'` - local Arial with
+  `size-adjust` and Inter's ascent/descent, one face per weight, so the swap moves almost nothing - and,
+  where Arial is absent, the system UI stack (2026-10-27, round three).
 
 ## Space, shape, elevation
 
