@@ -572,8 +572,9 @@ def test_the_score_cards_read_as_points_of_the_most_possible(browser):
         try:
             page.wait_for_selector("#stock-modal .msr-note", state="visible")
             got = page.evaluate("[...document.querySelectorAll('#stock-modal .modal-score-card:not(.composite) .modal-score-sub')].map(e => [e.textContent, e.scrollWidth <= e.clientWidth + 1])")
-            want = page.evaluate("(() => { const s = D.stock_detail.JPM, ew = effWeights(s); return ['valuation','quality','growth','momentum','risk','revisions','size','investment'].map(c => s.cat_scores[c] == null ? null : fmt(s.contrib[c], 'score') + ' of ' + fmtWeight(ew[c]).replace('%', '') + ' points'); })()")
-            assert [t for t, _ in got] == [w or "Not scored: no data" for w in want]
+            want = page.evaluate("(() => { const s = D.stock_detail.JPM, ew = effWeights(s); return ['valuation','quality','growth','momentum','risk','revisions','size','investment'].map(c => s.cat_scores[c] == null ? unscoredWhy(c, s).short : fmt(s.contrib[c], 'score') + ' of ' + fmtWeight(ew[c]).replace('%', '') + ' points'); })()")
+            # an unscored tile says why (round three, 2026-10-27: it said "Not scored: no data")
+            assert [t for t, _ in got] == want
             assert all(re.fullmatch(r"\d+(\.\d)? of \d+(\.\d)? points", t) for t, _ in got), got
             assert all(fits for _, fits in got), got
             assert errors == []

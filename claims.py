@@ -751,6 +751,27 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="drilldown.unscored_category",
+        surface=DRILLDOWN,
+        asserts=(
+            "An unscored category's tile and workings say why: a category is scored only when at "
+            "least one metric carrying weight in the table this stock was scored with has a value, "
+            "so an unscored one names those metrics, none of which has data in this run, and its "
+            "weight is shared across the others. Where the run rejected the stock's daily price "
+            "history (the split-scale integrity check), Momentum and Risk - whose weighted metrics "
+            "are all built from that history - give that reason as well. Display only: the reason "
+            "(flags.px_rejected) never enters raw, pct, a category score or the composite."
+        ),
+        made_true_by="factor_engine:compute_category_scores",
+        checked_by=(
+            "tests/test_sheet_round_three.py::test_the_engine_leaves_a_category_unscored_only_when_no_weighted_metric_has_data",
+            "tests/test_sheet_round_three.py::test_every_published_unscored_category_has_no_weighted_metric_with_data",
+            "tests/test_sheet_round_three.py::test_the_price_history_categories_are_built_only_from_the_price_history",
+            "tests/test_sheet_round_three.py::test_the_rejection_reason_is_published_and_never_scored",
+            "tests/test_sheet_round_three.py::test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history",
+        ),
+    ),
+    Claim(
         id="drilldown.capex_lease_note",
         surface=DRILLDOWN,
         asserts=(

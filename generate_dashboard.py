@@ -1320,6 +1320,11 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "ltm_rolled_labels": _str_list(row.get("_ltm_rolled_labels")),
             # display-only: why the flows are the last fiscal year's (factor_engine.quarterly_statement_defect)
             "q_rejected": row.get("_quarterly_rejected") if isinstance(row.get("_quarterly_rejected"), str) else None,
+            # display-only: why the run withheld every measure built from the daily price history
+            # (factor_engine.check_price_series_integrity -> `_price_series_rejected`, e.g. a series
+            # mixing pre- and post-split prices). An unscored Momentum or Risk tile names it
+            # (round three, 2026-10-27; claim drilldown.unscored_category). Never scored.
+            "px_rejected": row.get("_price_series_rejected") if isinstance(row.get("_price_series_rejected"), str) else None,
             "stale_data": bool(row.get("_stale_data")) if pd.notna(row.get("_stale_data")) else False,
             "stmt_age_days": _safe(row.get("_stmt_age_days")),
         }
@@ -2297,6 +2302,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <a href="#section-context" onclick="goToModal('section-context');return false">Before you decide</a>
                     <a href="#section-history" onclick="goToModal('section-history');return false" id="mnav-history">History</a>
                     <a href="#section-price-targets" onclick="goToModal('section-price-targets');return false">Price targets</a>
+                    <a href="#section-snapshot" onclick="goToModal('section-snapshot');return false">Financials</a>
                     <a href="#section-peers" onclick="goToModal('section-peers');return false">Peers</a>
                     <a href="#section-provenance" onclick="goToModal('section-provenance');return false">Data</a>
                 </nav>
@@ -2884,6 +2890,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         return {{
             ticker: peerTicker,
             company: d.company || '',
+            rank: d.rank,
             rev_growth: d.raw ? d.raw.revenue_growth : null,
             pe_ratio: (ey !== null && ey !== undefined && ey > 0) ? Math.round(10.0 / ey) / 10 : null,
             net_margin: d.financials ? d.financials.net_margin : null,
@@ -3946,7 +3953,21 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     function openStockDetail(ticker) {{
         const s = D.stock_detail[ticker];
         if (!s) return;
+        renderSheet(ticker, s);
 
+        modalReturnFocus = document.activeElement;
+        document.getElementById('stock-modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const mb = document.querySelector('#stock-modal .modal-body');
+        if (mb) mb.scrollTop = 0;
+        const closeBtn = document.querySelector('#stock-modal .modal-close');
+        if (closeBtn) closeBtn.focus({{ preventScroll: true }});
+    }}
+
+    // Everything the sheet shows for one stock, written into the (open or closed) sheet. Split
+    // from openStockDetail in round three (2026-10-27) so the idle-time warm-up (_js_drilldown,
+    // sheetPrewarm) can lay the sheet out once, unseen, without opening it.
+    function renderSheet(ticker, s) {{
         document.getElementById('modal-ticker').textContent = ticker;
         document.getElementById('modal-company').textContent = s.company;
         document.getElementById('modal-sector').textContent = s.sector;
@@ -3978,7 +3999,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const weight = (score === null || score === undefined) ? null : ew[c];
             // Spelled out for a first-year reader (club readiness, 2026-10-19): the category's points
             // out of the most it could add, which is its weight. It was "18.9 pts (22% wt)".
-            const ptsText = weight === null ? 'Not scored: no data' : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+            // An unscored tile says why, from the payload (unscoredWhy, claim drilldown.unscored_category;
+            // it said only "Not scored: no data" until round three, 2026-10-27).
+            const ptsText = weight === null ? escapeHtml(unscoredWhy(c, s).short) : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
             scoreHtml += `<div class="modal-score-card${{weight === null ? ' is-na' : ''}}" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="modal-score-label">${{CAT_LABELS[c]}}</div>
@@ -4012,14 +4035,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         // Context: trend, options, insiders, rates (display only)
         if (typeof renderContext === 'function') renderContext(ticker, s);
-
-        modalReturnFocus = document.activeElement;
-        document.getElementById('stock-modal').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        const mb = document.querySelector('#stock-modal .modal-body');
-        if (mb) mb.scrollTop = 0;
-        const closeBtn = document.querySelector('#stock-modal .modal-close');
-        if (closeBtn) closeBtn.focus({{ preventScroll: true }});
     }}
 
     let modalReturnFocus = null;
@@ -4040,6 +4055,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const el = document.getElementById(id);
         if (!el) return;
         if (el.classList.contains('collapsed')) el.classList.remove('collapsed');
+        // the tab the reader chose stays lit until they scroll by hand (modalSpy, _js_ux)
+        if (typeof spyPin === 'function') spyPin(id);
         scrollSheetTo(el);
     }}
 
@@ -4074,9 +4091,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const ptLow = s.pt_low;
         const nAnalysts = s.num_analysts;
 
-        // If no price target data, hide section
+        // No targets: say so. It used to leave the heading over an empty body (ERIE, 2026-10-27).
         if (!ptMean && !ptHigh && !ptLow) {{
-            container.innerHTML = '';
+            container.innerHTML = '<p class="modal-note sheet-empty">No analyst price target was published for this stock in this run.</p>';
             return;
         }}
 
@@ -4172,7 +4189,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const container = document.getElementById('modal-snapshot');
         if (!container) return;
         const f = s.financials;
-        if (!f) {{ container.innerHTML = ''; return; }}
+        if (!f) {{ container.innerHTML = '<p class="modal-note sheet-empty">No financial figures were published for this stock in this run.</p>'; return; }}
 
         const fmtShares = (v) => {{
             if (v === null || v === undefined) return '\u2014';
@@ -4249,7 +4266,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const container = document.getElementById('modal-peers');
         if (!container) return;
         const self = s.self_metrics;
-        if (!self) {{ container.innerHTML = ''; return; }}
+        if (!self) {{ container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }}
 
         // Initialize peer state on first render for this ticker
         if (peerState.currentTicker !== ticker) {{
@@ -4280,7 +4297,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }};
 
         // Build rows dynamically from peerState
-        const selfRow = {{ ticker: ticker, company: s.company, isSelf: true, ...self }};
+        const selfRow = {{ ticker: ticker, company: s.company, isSelf: true, ...self, rank: s.rank }};
         const peerRows = peerState.customPeers
             .map(t => buildPeerRow(t))
             .filter(r => r !== null);
@@ -4305,6 +4322,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <table class="peer-table">
             <thead><tr>
                 <th class="peer-th-ticker">Ticker</th>
+                <th title="Its place in this run's published ranking, 1 = the highest composite">Rank</th>
                 <th>Mkt Cap</th>
                 <th>P/E</th>
                 <th>Rev Growth</th>
@@ -4313,7 +4331,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <th>D/E</th>
                 <th>Div Yield</th>
                 <th>FCF Yield</th>
-                <th class="peer-th-action"><span class="sr-only">Open</span></th>
+                <th class="peer-th-action"><span class="sr-only">Remove</span></th>
             </tr></thead><tbody>`;
 
         allRows.forEach(r => {{
@@ -4322,9 +4340,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const profitMetric = useROE ? r.roe : r.roic;
             html += `<tr class="${{cls}}">
                 <td class="peer-td-ticker">
-                    <span class="peer-ticker">${{escapeHtml(r.ticker)}}</span>
+                    ${{r.isSelf ? `<span class="peer-ticker">${{escapeHtml(r.ticker)}}</span>`
+                        : `<button type="button" class="peer-ticker peer-open" onclick="openStockDetail('${{escapeHtml(r.ticker)}}')" aria-label="Open ${{escapeHtml(r.ticker)}}, ${{escapeHtml(String(r.company || ''))}}" title="Open this stock's sheet">${{escapeHtml(r.ticker)}}</button>`}}
                     ${{r.isSelf ? '<span class="peer-you">YOU</span>' : ''}}
                 </td>
+                <td class="peer-td-num peer-td-rank">${{r.rank ? '#' + r.rank : '—'}}</td>
                 <td class="peer-td-num">${{fmtBig(r.mcap)}}</td>
                 <td class="peer-td-num">${{fmtPE(r.pe_ratio)}}</td>
                 <td class="peer-td-num">${{fmtRG(r.rev_growth)}}</td>
@@ -4333,7 +4353,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <td class="peer-td-num">${{fmtDE(r.debt_equity)}}</td>
                 <td class="peer-td-num">${{fmtPct1(r.div_yield)}}</td>
                 <td class="peer-td-num">${{fmtPct1(r.fcf_yield)}}</td>
-                <td class="peer-td-action">${{r.isSelf ? '' : `<button class="peer-remove-btn" onclick="removePeer('${{escapeHtml(r.ticker)}}')" title="Remove">&times;</button>`}}</td>
+                <td class="peer-td-action">${{r.isSelf ? '' : `<button type="button" class="peer-remove-btn" onclick="removePeer('${{escapeHtml(r.ticker)}}')" title="Remove from the comparison" aria-label="Remove ${{escapeHtml(r.ticker)}} from the comparison">&times;</button>`}}</td>
             </tr>`;
         }});
 
@@ -4343,6 +4363,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const med = k => median(others.map(r => k === 'profit' ? (useROE ? r.roe : r.roic) : r[k]));
             html += `<tr class="peer-row-median">
                 <td class="peer-td-ticker"><span class="peer-ticker">Peer median</span></td>
+                <td class="peer-td-num"></td>
                 <td class="peer-td-num">${{fmtBig(med('mcap'))}}</td>
                 <td class="peer-td-num">${{fmtPE(med('pe_ratio'))}}</td>
                 <td class="peer-td-num">${{fmtRG(med('rev_growth'))}}</td>
@@ -5097,6 +5118,37 @@ def _js_workings() -> str:
         return { pid: pid, table: table, total: total, weighted: weighted, withData: withData };
     }
 
+    // Why a category has no score, from the published payload alone (round three, 2026-10-27; claim
+    // drilldown.unscored_category). The engine scores a category only when at least one metric that
+    // carries weight in this stock's table has a value (factor_engine.compute_category_scores: the
+    // weighted average runs over metrics with data, and a category with none is NaN); so an unscored
+    // category's reason is the list of those metrics. Where the run rejected the stock's daily price
+    // history (flags.px_rejected, factor_engine.check_price_series_integrity), Momentum and Risk -
+    // whose weighted metrics are all built from that history - also say why. Nothing else is
+    // inferred: a short history or a missing filing is not recorded per stock, so it is not claimed.
+    const PRICE_HISTORY_CATS = ['momentum', 'risk'];
+    function unscoredWhy(cat, s) {
+        const wp = weightProfile(cat, s);
+        const fl = s.flags || {};
+        const px = (fl.px_rejected && PRICE_HISTORY_CATS.indexOf(cat) >= 0) ? String(fl.px_rejected) : '';
+        const weighted = wp ? Object.keys(wp.table).filter(m => wp.table[m] > 0).sort((a, b) => wp.table[b] - wp.table[a]) : [];
+        const empty = weighted.filter(m => s.pct[m] === null || s.pct[m] === undefined);
+        // the rule holds only if every weighted metric is empty; otherwise say no more than "no data"
+        const names = (weighted.length && empty.length === weighted.length) ? empty.map(metricLabel) : [];
+        const n = names.length;
+        const listed = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+        const short = px ? 'Not scored: price history rejected'
+            : n === 1 ? 'Not scored: its one metric has no data'
+            : n ? 'Not scored: none of its ' + n + ' metrics has data'
+            : 'Not scored: no data';
+        const shared = ', so the category is not scored and its weight is shared across the others.';
+        const long = (n === 1 ? 'Its one weighted metric, ' + names[0] + ', has no data for this stock in this run' + shared
+            : n ? 'None of the ' + n + ' metrics this category weights for this stock has data in this run (' + listed(names) + ')' + shared
+            : 'No weighted metric has data for this stock' + shared) +
+            (px ? ' The run rejected this stock’s daily price history (' + px + '), and every measure built from that history was left out.' : '');
+        return { short: short, long: long, metrics: names, px: px };
+    }
+
     // One category's metric rows: value, percentile, weight used, points.
     function categoryWorkings(cat, s) {
         const wp = weightProfile(cat, s);
@@ -5156,7 +5208,7 @@ def _js_workings() -> str:
                     body += `<p class="wk-note">${wk.wp.withData} of the ${wk.wp.weighted} weighted metrics have data for this stock. A metric with no data drops out and the rest are scaled up to 100%, so the weights below are shares of this stock's score.</p>`;
                 }
                 if (!scored) {
-                    body += `<p class="wk-note">No weighted metric has data for this stock, so the category is not scored and its weight is shared across the others.</p>`;
+                    body += `<p class="wk-note wk-unscored">${escapeHtml(unscoredWhy(cat, s).long)}</p>`;
                 }
                 body += `<table class="wk-table"><thead><tr>
                     <th class="wk-metric">Metric</th>
@@ -5507,6 +5559,7 @@ def _js_workings() -> str:
         const section = document.getElementById('section-categories');
         if (section) section.classList.remove('collapsed');
         el.classList.remove('collapsed');
+        if (typeof spyPin === 'function') spyPin('section-categories');
         scrollSheetTo(el);
     }
 """
@@ -9191,27 +9244,54 @@ def _js_ux() -> str:
     }
 
     // Which part of the drilldown you are reading, lit in its nav.
-    let modalSpyBound = false;
+    //
+    // Round three (2026-10-27): two rules, because one could not be right at the end of the sheet.
+    // 1. A tab the reader chose stays lit until they scroll by hand (wheel, touch, a scrolling key, a
+    //    press in the body). The last few sections cannot reach the top of a sheet that ends below
+    //    them, so a click on Price targets or Peers used to light Data (APA at 1280: both did).
+    // 2. Scrolling freely, the reading line sits 24px under the top - and over the sheet's last
+    //    screen it slides to the bottom, so the sections that can never reach the top still take
+    //    their turn in order instead of all jumping to the last one at the final pixel.
+    let modalSpyBound = false, SPY_PIN = null, SPY_UPDATE = null;
+    function spyPin(id) {
+        SPY_PIN = id || null;
+        if (SPY_UPDATE) requestAnimationFrame(SPY_UPDATE);
+    }
     function modalSpy() {
         const body = document.querySelector('#stock-modal .modal-body');
         const links = [...document.querySelectorAll('#stock-modal .modal-nav a')];
         if (!body || !links.length) return;
+        const target = a => document.getElementById(a.getAttribute('href').slice(1));
         const update = () => {
-            const top = body.getBoundingClientRect().top + 24;
-            let cur = links[0];
-            links.forEach(a => {
-                const el = document.getElementById(a.getAttribute('href').slice(1));
-                if (el && el.offsetParent !== null && el.getBoundingClientRect().top <= top) cur = a;
-            });
-            // Scrolled to the end, the last sections can never reach the top line, so their tab never
-            // lit (Data stayed on Peers). At the bottom, the last section showing is the one being read.
-            if (body.scrollTop > 0 && body.scrollTop + body.clientHeight >= body.scrollHeight - 2) {
-                const shown = links.filter(a => { const el = document.getElementById(a.getAttribute('href').slice(1)); return el && el.offsetParent !== null && !a.hidden; });
-                if (shown.length) cur = shown[shown.length - 1];
+            const shown = links.filter(a => { const el = target(a); return !a.hidden && el && el.offsetParent !== null; });
+            if (!shown.length) return;
+            let cur = SPY_PIN ? shown.find(a => a.getAttribute('href') === '#' + SPY_PIN) : null;
+            if (!cur) {
+                const br = body.getBoundingClientRect();
+                const max = body.scrollHeight - body.clientHeight;
+                const span = Math.min(body.clientHeight, max);
+                const remain = max - body.scrollTop;
+                let line = br.top + 24;
+                if (span > 0 && remain < span) line += Math.max(0, body.clientHeight - 48) * (1 - Math.max(0, remain) / span);
+                cur = shown[0];
+                shown.forEach(a => { if (target(a).getBoundingClientRect().top <= line) cur = a; });
             }
             links.forEach(a => a.classList.toggle('active', a === cur));
         };
-        if (!modalSpyBound) { body.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true }); modalSpyBound = true; }
+        SPY_UPDATE = update;
+        if (!modalSpyBound) {
+            body.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+            // the reader taking over the scroll releases the tab they chose
+            const release = () => { if (SPY_PIN) { SPY_PIN = null; requestAnimationFrame(update); } };
+            body.addEventListener('wheel', release, { passive: true });
+            body.addEventListener('touchstart', release, { passive: true });
+            body.addEventListener('pointerdown', release, { passive: true });
+            body.addEventListener('keydown', e => {
+                if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End', ' '].indexOf(e.key) >= 0) release();
+            });
+            modalSpyBound = true;
+        }
+        SPY_PIN = null;     // a sheet just opened or stepped starts from its top
         update();
     }
 
@@ -12742,6 +12822,76 @@ def _js_drilldown() -> str:
         window.addEventListener('beforeprint', preparePrint);
         window.addEventListener('afterprint', restorePrint);
     }
+
+    // =====================================================================
+    // ROUND THREE - THE SHEET (owner-run, 2026-10-27; plan/ui-elevation.md)
+    // =====================================================================
+
+    // The first sheet open was a cold layout: at 375 px and 4x CPU its layout took ~340 ms against
+    // ~100 ms for every later open, and ~200 ms of that was the browser shaping the sheet's words
+    // for the first time at the sheet's type sizes (Chrome trace, InlineNode::ShapeTextIncludingFirstLine).
+    // Once the page is idle and the context payload is in, the top-ranked stock's sheet is written
+    // into the closed sheet and laid out unseen, one section per idle slice - visibility hidden, no
+    // pointer, no focus, not open by sheetOpen() - so the shaping is done before anyone asks. Nothing
+    // is computed: renderSheet() is the same writer openStockDetail uses, and every open rewrites
+    // the sheet. A reader who opens a stock first simply ends it.
+    const SHEET_WARM = { state: 'wait' };
+    (function sheetPrewarm() {
+        const modal = document.getElementById('stock-modal');
+        // a stand-in DOM (the node harnesses some tests run the page's script in) gets no warm-up
+        const body = modal && typeof modal.querySelector === 'function' ? modal.querySelector('.modal-body') : null;
+        if (!body || !body.children || typeof renderSheet !== 'function' || !window.requestAnimationFrame || !window.addEventListener) { SHEET_WARM.state = 'done'; return; }
+        const idle = window.requestIdleCallback ? (f => requestIdleCallback(f, { timeout: 1500 })) : (f => setTimeout(f, 120));
+        let parts = [];
+        const stop = () => {
+            if (SHEET_WARM.state === 'run') {
+                modal.classList.remove('sheet-warm');
+                parts.concat([...modal.querySelectorAll('.warm-skip')]).forEach(el => el.classList.remove('warm-skip'));
+                parts = [];
+            }
+            SHEET_WARM.state = 'done';
+        };
+        SHEET_WARM.stop = stop;
+        const step = () => {
+            if (SHEET_WARM.state !== 'run') return;
+            if (sheetOpen()) return stop();
+            const el = parts.shift();
+            if (!el) return stop();
+            el.classList.remove('warm-skip');
+            void el.offsetHeight;          // this slice's style and layout, now rather than at the first tap
+            idle(step);
+        };
+        const start = () => {
+            if (SHEET_WARM.state !== 'wait') return;
+            if (sheetOpen()) return stop();
+            const rows = (D.table_data || []).filter(r => D.stock_detail[r.Ticker]);
+            if (!rows.length) return stop();
+            const top = rows.reduce((a, r) => (r.Rank < a.Rank ? r : a), rows[0]).Ticker;
+            SHEET_WARM.state = 'run';
+            SHEET_WARM.ticker = top;
+            const head = modal.querySelector('.modal-header'), nav = modal.querySelector('.mnav-wrap') || modal.querySelector('.modal-nav');
+            parts = [head, nav].concat([...body.children]).filter(Boolean);
+            parts.forEach(el => el.classList.add('warm-skip'));
+            modal.classList.add('sheet-warm');
+            try { renderSheet(top, D.stock_detail[top]); } catch (e) { return stop(); }
+            idle(step);
+        };
+        // after first paint, the fonts and the context payload (Before you decide is most of the sheet)
+        let tries = 0;
+        const ready = () => {
+            if (SHEET_WARM.state !== 'wait') return;
+            if ((typeof CTX_LOADED !== 'undefined' && CTX_LOADED) || ++tries > 20) return idle(start);
+            setTimeout(ready, 250);
+        };
+        const go = () => setTimeout(() => {
+            const f = document.fonts && document.fonts.ready;
+            if (f && f.then) f.then(ready, ready); else ready();
+        }, 600);
+        if (document.readyState === 'complete') go(); else window.addEventListener('load', go);
+        // a reader opening a stock ends it at once; their open rewrites the whole sheet anyway
+        const prev = openStockDetail;
+        openStockDetail = function() { if (SHEET_WARM.state !== 'done') stop(); return prev.apply(this, arguments); };
+    })();
 """
 
 
@@ -13157,6 +13307,40 @@ def _css_drilldown() -> str:
             html.print-sheet #stock-modal .summary-fact { break-inside: avoid; }
             html.print-sheet #stock-modal .collapsible-h, html.print-sheet #stock-modal .summary-title,
             html.print-sheet #stock-modal .case-title { break-after: avoid; }
+        }
+
+        /* Round three (2026-10-27): the idle-time warm-up (sheetPrewarm) lays the closed sheet out
+           unseen - never painted, never hit, never focusable - one section at a time. */
+        #stock-modal.sheet-warm { display: flex !important; visibility: hidden !important; pointer-events: none !important; }
+        #stock-modal .warm-skip { content-visibility: hidden; }
+
+        /* A section with nothing published says so, rather than a heading over an empty body. */
+        #stock-modal .sheet-empty { margin: 4px 0 8px; color: var(--text-muted); font-size: 13px; }
+
+        /* Sector peers: each peer opens its own sheet; its rank sits beside it. */
+        #stock-modal .peer-open {
+            font: inherit; font-weight: 600; color: var(--text-primary); background: none; border: 0; padding: 0;
+            cursor: pointer; text-decoration: underline; text-decoration-color: var(--text-muted); text-underline-offset: 3px;
+        }
+        #stock-modal .peer-open:hover { color: var(--accent-text); text-decoration-color: currentColor; }
+        #stock-modal .peer-open:focus-visible, #stock-modal .peer-remove-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+        #stock-modal .peer-td-rank { color: var(--text-secondary); }
+        #stock-modal .peer-row-self .peer-td-rank { color: var(--text-primary); }
+        #stock-modal .peer-remove-btn { min-width: 24px; min-height: 24px; }
+        @media (max-width: 760px) {
+            /* the table scrolls sideways on a phone; the ticker column stays put so a row keeps its name */
+            #stock-modal .peer-table th:first-child, #stock-modal .peer-table td:first-child {
+                position: sticky; left: 0; z-index: 1; background: var(--bg-primary);
+            }
+            #stock-modal .peer-table .peer-row-self td:first-child { background: linear-gradient(rgba(88,166,255,.06), rgba(88,166,255,.06)), var(--bg-primary); }
+        }
+        @media (pointer: coarse) {
+            /* the last small targets in the sheet (an audit at 375 px, 2026-10-27): peers' open and remove,
+               About's toggle, the insider table's filing links */
+            #stock-modal .peer-open { min-height: 44px; }
+            #stock-modal .peer-remove-btn { min-width: 44px; min-height: 44px; }
+            #stock-modal .about-toggle { min-height: 44px; }
+            #stock-modal #modal-context td a, #stock-modal #modal-context .ctx-src a { display: inline-flex; align-items: center; min-height: 32px; }
         }
 """
 
