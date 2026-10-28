@@ -68,6 +68,8 @@ def _page(browser, width=375, touch=False, init=None):
 def _goto(page, scene: str) -> None:
     page.goto(PAGE.as_uri() + "#" + scene, wait_until="load", timeout=60000)
     page.wait_for_function(f"window.LAB_STATE && window.LAB_STATE() && window.LAB_STATE().id === '{scene}'", timeout=WAIT)
+    # and the opening scene fully drawn: the 153 factors' chart waits on a second part (round three)
+    page.wait_for_function("!document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
 
 
 def test_every_bar_chart_can_be_read_from_the_keyboard(browser):
@@ -375,7 +377,9 @@ def test_every_bar_chart_axis_carries_its_unit_and_fits(browser):
     try:
         for scene in BARS:                                                      # the y axis's labels sit at L - 8
             _goto(page, scene)
-            ticks = page.evaluate("[...document.querySelectorAll('#ch-bars text[text-anchor=end]')].filter(t => t.getAttribute('x') === '44').map(t => t.textContent)")
+            # (the 153 factors on a phone are a row per theme, round three: their scale runs along the foot, `text.tick`)
+            ticks = page.evaluate("[...document.querySelectorAll('#ch-bars text')].filter(t => (t.getAttribute('text-anchor') === 'end'"
+                                  " && t.getAttribute('x') === '44') || t.classList.contains('tick')).map(t => t.textContent)")
             assert len(ticks) >= 3 and all(t.endswith("%") for t in ticks), (scene, ticks)
             assert not any(t.startswith("-") for t in ticks), (scene, ticks)               # a true minus, as elsewhere
             spill = page.evaluate("""(() => { const s = document.querySelector('#ch-bars svg').getBoundingClientRect().left;
@@ -549,7 +553,9 @@ def test_a_mouse_button_on_a_card_asks_for_its_series_before_the_click(browser):
         page.mouse.move(b["x"] + 10, b["y"] + 10)
         page.mouse.move(2, 2)
         page.wait_for_timeout(400)                            # longer than the 150 ms dwell it never had
-        assert page.evaluate("'sorts' in LAB_DATA") is False
+        # (each sort is its own part since round three, put into the empty `sorts` lab_data.js carries)
+        assert page.evaluate("'low-volatility' in LAB_DATA.sorts || 'sorts_low_volatility' in LAB_DATA") is False
+        assert page.evaluate("document.querySelectorAll('script[src^=\"lab_data_\"]').length") == 0
         page.evaluate("""document.querySelector(".card-a[href='#replication-crisis']")
             .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }))""")
         page.wait_for_timeout(400)
@@ -568,3 +574,143 @@ def test_a_mouse_button_on_a_card_asks_for_its_series_before_the_click(browser):
         assert errors == []
     finally:
         ctx.close()
+
+
+# --------------------------------------------------------------------------- round three: the 153 factors by universe
+# The 153 factors' part carried all three universes (716 KB gzipped) and the page checked all three
+# against the build before showing anything: 4.9-5.1 s to open on the phone profile. Each size group is
+# now its own part (factor_lab.LAZY_INTO). The experiment opens on all stocks, fetches the mega caps
+# because its opening chart draws them, and fetches the large caps only when chosen. A figure whose
+# series has not arrived is never dropped and never passed off as checked: it stands as the build's,
+# says so, and is re-run when its series lands.
+PARTS_ON_PAGE = "[...document.querySelectorAll('script[src^=\"lab_data_\"]')].map(s => s.getAttribute('src').split('?')[0])"
+PEND = "[...document.querySelectorAll('#t-ref tr.pend')].map(tr => tr.cells[0].textContent)"
+
+
+def test_the_153_factors_open_on_all_stocks_and_check_each_group_when_it_arrives(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "replication-crisis")
+        assert page.evaluate(PARTS_ON_PAGE) == ["lab_data_jkp.js", "lab_data_jkp_mega.js"]
+        assert page.evaluate("Object.keys(LAB_DATA.jkp.series)") == ["all", "mega"]
+        assert page.evaluate("document.querySelectorAll('#t-ref tbody tr').length") == 10        # every figure still listed
+        pend = page.evaluate(PEND)
+        assert len(pend) == 1 and pend[0].startswith("Large caps only") and "not yet re-run in this browser" in pend[0]
+        # the pending row prints the build's own figure, so nothing on the page is a number the page made up
+        built = next(r for r in next(x for x in fl.load_published()["experiments"] if x["id"] == "replication-crisis")["result"]["rows"]
+                     if r["key"] == "rate_capm_large")
+        assert page.evaluate("document.querySelector('#t-ref tr.pend').cells[2].textContent") == f"{built['here']:.2f}"
+        said = page.inner_text("#x-checked")
+        assert "9 of the 10 figures above were re-run in your browser" in said and "each agrees with the build" in said
+        assert "large-cap figure is the build’s until its series loads" in said
+        assert page.get_attribute("#x-checked", "role") == "status"
+        assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+        assert page.evaluate("document.getElementById('x-check-now').getBoundingClientRect().height") >= 43.5
+        page.click("#x-check-now")
+        page.wait_for_function("!document.querySelector('#t-ref tr.pend')", timeout=WAIT)
+        assert page.evaluate(PARTS_ON_PAGE)[-1] == "lab_data_jkp_large.js"
+        assert page.inner_text("#x-checked").startswith("All 10 figures above were re-run in your browser")
+        assert page.evaluate("document.getElementById('x-check-now')") is None
+        assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_a_link_to_the_large_caps_opens_on_them_and_leaves_the_mega_figure_pending(browser):
+    ctx, page, errors = _page(browser, width=1280)
+    try:
+        page.goto(PAGE.as_uri() + "#replication-crisis?universe=large", wait_until="load", timeout=60000)
+        page.wait_for_function("window.LAB_STATE && window.LAB_STATE() && window.LAB_STATE().id === 'replication-crisis'"
+                               " && window.LAB_STATE().result && !document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
+        assert sorted(page.evaluate(PARTS_ON_PAGE)) == ["lab_data_jkp.js", "lab_data_jkp_large.js"]
+        assert "among large caps" in page.inner_text("#x-read")
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 26
+        pend = page.evaluate(PEND)
+        assert len(pend) == 1 and pend[0].startswith("Mega caps only")
+        assert "mega-cap figure is the build’s" in page.inner_text("#x-checked")
+        # choosing the mega caps fetches their series, redraws on them, and the last figure is checked
+        page.click("#c-universe button[data-v='mega']")
+        page.wait_for_function("window.LAB_STATE().result && !document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
+        assert "among mega caps" in page.inner_text("#x-read")
+        assert page.evaluate(PEND) == []
+        assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+SABOTAGE_LARGE = SABOTAGE.replace("lab_data_size\\.js", "lab_data_jkp_large\\.js")
+
+
+def test_a_group_whose_series_fails_to_load_says_so_and_can_be_tried_again(browser):
+    assert SABOTAGE_LARGE != SABOTAGE
+    ctx, page, errors = _page(browser, init=SABOTAGE_LARGE)
+    try:
+        _goto(page, "replication-crisis")
+        page.click("#c-universe button[data-v='large']")
+        page.wait_for_selector("#x-read .warn .retry", timeout=WAIT)
+        assert "did not load" in page.inner_text("#x-read") and page.get_attribute("#x-read .warn", "role") == "alert"
+        assert "factors hold up" in page.inner_text("#x-title")                               # the experiment stays
+        assert "it did not load" in page.inner_text("#x-checked")
+        assert len(page.evaluate(PEND)) == 1                                                 # still listed, still pending
+        page.click("#x-read .retry")
+        page.wait_for_function("window.LAB_STATE().result && !document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
+        assert "among large caps" in page.inner_text("#x-read")
+        assert page.evaluate(PEND) == []
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+OVERLAPS = """(() => { const b = [...document.querySelectorAll('#ch-bars text')].filter(t => !t.classList.contains('val'))
+    .map(t => t.getBoundingClientRect()), hit = [];
+  for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++)
+    if (b[i].left < b[j].right - 1 && b[j].left < b[i].right - 1 && b[i].top < b[j].bottom - 1 && b[j].top < b[i].bottom - 1) hit.push([i, j]);
+  return hit.length; })()"""
+
+
+def test_on_a_phone_the_153_factors_chart_is_a_row_per_theme_and_no_label_runs_into_another(browser):
+    """At 375 px the thirteen theme names, set at an angle under twenty-six bars, overlapped."""
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "replication-crisis")
+        themes = page.evaluate("LAB_STATE().result.themes.map(t => t.theme)")
+        assert page.evaluate("[...document.querySelectorAll('#ch-bars text.rl')].map(t => t.textContent)") == themes
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect[data-i]').length") == 26
+        assert page.evaluate(OVERLAPS) == 0
+        assert page.evaluate("document.querySelector('#ch-bars svg').getBoundingClientRect().width") <= 375
+        # read down the rows: ArrowDown steps to the next theme, as ArrowRight does
+        page.focus("#ch-bars svg")
+        page.keyboard.press("Home")
+        page.keyboard.press("ArrowDown")
+        page.wait_for_function(_hit(1), timeout=WAIT)
+        assert page.inner_text("#ch-bars + .chart-read").startswith(themes[1] + ":")
+        assert "up and down" in page.get_attribute("#ch-bars svg", "aria-label")
+        assert errors == []
+    finally:
+        ctx.close()
+    ctx, page, errors = _page(browser, width=1280)
+    try:
+        _goto(page, "replication-crisis")                                   # a wide screen keeps its columns
+        assert page.evaluate("document.querySelectorAll('#ch-bars text.rl').length") == 0
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect[data-i]').length") == 26
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_every_card_puts_its_count_under_its_meter_so_the_counts_line_up(browser):
+    """Round three: "6 of 6" and "1 of 4" sat beside their short meters, "13 of 14" under its long one."""
+    for width in (375, 1280):
+        ctx, page, errors = _page(browser, width=width)
+        try:
+            _goto(page, "overview")
+            beside = page.evaluate("""[...document.querySelectorAll('.card .meter')].filter(m => m.offsetParent)
+                .filter(m => m.querySelector('.m-l').getBoundingClientRect().top < m.querySelector('svg').getBoundingClientRect().bottom - 1)
+                .map(m => m.querySelector('.m-l').textContent)""")
+            assert beside == [], (width, beside)
+            assert page.evaluate("[...document.querySelectorAll('.card .meter')].filter(m => m.offsetParent).length") == len(fl.EXPERIMENTS)
+            assert errors == []
+        finally:
+            ctx.close()

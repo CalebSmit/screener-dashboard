@@ -42,8 +42,12 @@ ENGINE = ROOT / "lab_engine.js"
 NODE_LOAD = (
     "const D = (() => { const fs = require('fs'), path = require('path');\n"
     "  const read = f => { const t = fs.readFileSync(f, 'utf8'); return JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); };\n"
-    "  const d = read(process.argv[3]);\n"
-    f"  for (const k of {json.dumps(list(fl.LAZY_KEYS))}) if (!(k in d)) d[k] = read(path.join(path.dirname(process.argv[3]), 'lab_data_' + k + '.js'));\n"
+    "  const value = f => { const t = fs.readFileSync(f, 'utf8'), b = t.slice(t.indexOf(' = ') + 3).trim(); return JSON.parse(b.replace(/;$/, '')); };\n"
+    "  const d = read(process.argv[3]), part = k => path.join(path.dirname(process.argv[3]), 'lab_data_' + k + '.js');\n"
+    f"  const INTO = {json.dumps(fl.LAZY_INTO)};\n"
+    f"  for (const k of {json.dumps(list(fl.LAZY_KEYS))}) {{\n"
+    "    if (k in INTO) { const p = INTO[k]; p.slice(0, -1).reduce((o, q) => o[q], d)[p[p.length - 1]] = value(part(k)); }\n"
+    "    else if (!(k in d)) d[k] = read(part(k)); }\n"
     "  return d; })();\n")
 
 
@@ -1047,17 +1051,35 @@ FIRST_PAINT_BUDGET_GZ = 200_000
 
 
 def _parts_for(exp: dict) -> list[str]:
-    """What each kind of experiment reads that lab_data.js leaves out - lab.html's PARTS, restated."""
-    return {"size": ["size"], "sort": ["sorts"], "split": [(exp.get("split") or {}).get("data", "split")],
+    """What each kind of experiment needs, beyond lab_data.js, before it can open - lab.html's PARTS, restated."""
+    return {"size": ["size"], "sort": [fl.sort_part((exp.get("sort") or {}).get("data", ""))],
+            "split": [(exp.get("split") or {}).get("data", "split")],
             "combo": ["split"], "replication": ["jkp"], "double": ["double"]}.get(exp["kind"], [])
+
+
+# What an experiment has loaded once its opening scene is fully drawn, where that is more than it
+# needed to open: the 153 factors open on all stocks and then fetch the mega caps' series, because the
+# opening chart sets them beside all stocks. The large caps' series loads only when chosen (round three).
+SETTLED = {"replication": ["jkp", "jkp_mega"]}
+ON_CHOICE = {"replication": ["jkp_large"]}
 
 
 def test_the_first_screen_waits_for_none_of_the_heavy_series(published, tmp_path):
     import gzip
     first = fl._parse_js_object(fl.OUT)
+    tops = set(fl.LAZY_KEYS) - set(fl.LAZY_INTO)                              # the parts that are top-level keys
     assert not set(first) & set(fl.LAZY_KEYS)
-    assert set(first) | set(fl.LAZY_KEYS) == set(published)                  # nothing lost in the split
+    assert set(first) | tops == set(published)                                # nothing lost in the split
     assert len(gzip.compress(fl.OUT.read_bytes(), 9)) < FIRST_PAINT_BUDGET_GZ
+    # each branch is listed after the part that holds it, and whatever holds it no longer carries it
+    for key, path in fl.LAZY_INTO.items():
+        *up, last = path
+        in_part = up[0] in fl.LAZY_KEYS
+        if in_part:
+            assert fl.LAZY_KEYS.index(up[0]) < fl.LAZY_KEYS.index(key)
+        held = fl._parse_js_object(fl.part_path(up[0]) if in_part else fl.OUT)
+        assert last not in fl._at(held, tuple(up[1:] if in_part else up)), key
+        assert last in fl._at(published, tuple(up)), key
     # the committed files are exactly what the build's writer produces from the published content
     fl.write(published, tmp_path / fl.OUT.name)
     for path in [fl.OUT] + [fl.part_path(k) for k in fl.LAZY_KEYS]:
@@ -1065,23 +1087,40 @@ def test_the_first_screen_waits_for_none_of_the_heavy_series(published, tmp_path
         assert path.read_text(encoding="utf-8").startswith(
             "window.LAB_DATA = " if path == fl.OUT else f"window.LAB_DATA.{path.stem[len('lab_data_'):]} = ")
     # every part is read by some experiment, and the page names each one the build writes
-    assert {k for x in published["experiments"] for k in _parts_for(x)} == set(fl.LAZY_KEYS)
-    parts_js = PAGE.read_text(encoding="utf-8").split("const PARTS = ", 1)[1].split("};", 1)[0]
+    kinds = {x["kind"] for x in published["experiments"]}
+    assert ({k for x in published["experiments"] for k in _parts_for(x)}
+            | {k for kd in kinds for k in SETTLED.get(kd, []) + ON_CHOICE.get(kd, [])}) == set(fl.LAZY_KEYS)
+    html = PAGE.read_text(encoding="utf-8")
+    parts_js = html.split("const PARTS = ", 1)[1].split("};", 1)[0]
     for kind in {x["kind"] for x in fl.EXPERIMENTS if _parts_for(x)}:
         assert f"'{kind}':" in parts_js, kind
+    # the page's map of branch parts is the build's: its written entries, and one per sort experiment
+    into_js = html.split("const INTO = ", 1)[1].split("};", 1)[0] + "}"
+    page_into = json.loads(into_js.replace("'", '"'))
+    assert ("D.experiments.forEach(x => { if (x.kind === 'sort') INTO[sortPart(x.sort.data)] = ['sorts', x.sort.data]; });"
+            in html)
+    page_into.update({fl.sort_part(x["sort"]["data"]): ["sorts", x["sort"]["data"]] for x in fl.EXPERIMENTS if x["kind"] == "sort"})
+    assert page_into == {k: list(v) for k, v in fl.LAZY_INTO.items()}
 
 
 @pytest.mark.skipif(NODE is None, reason="node not installed")
 def test_the_parts_run_as_the_page_runs_them_and_rebuild_the_payload(published, tmp_path):
     """lab_data.js and then every part, executed in one window as a browser would, give the whole
-    published payload: the split moved bytes, not figures."""
+    published payload: the split moved bytes, not figures. A branch part (factor_lab.LAZY_INTO) is put
+    where the page's attach() puts it - and it is run before its parent here, the order a slow
+    parent and a quick branch would arrive in, so the rebuild cannot lean on the build's order."""
+    html = PAGE.read_text(encoding="utf-8")
+    attach = html[html.index("    const holder = "):html.index("    const dataTag = ")]
     script = tmp_path / "parts.js"
     script.write_text(
         "const fs = require('fs'), vm = require('vm');\n"
         "const w = {}; w.window = w; const c = vm.createContext(w);\n"
         "process.argv.slice(2).forEach(f => vm.runInContext(fs.readFileSync(f, 'utf8'), c, { filename: f }));\n"
+        "const D = w.LAB_DATA, INTO = " + json.dumps(fl.LAZY_INTO) + ";\n"
+        + attach +
+        "attach();\n"
         "process.stdout.write(JSON.stringify(w.LAB_DATA));\n", encoding="utf-8")
-    files = [fl.OUT] + [fl.part_path(k) for k in fl.LAZY_KEYS]
+    files = [fl.OUT] + [fl.part_path(k) for k in reversed(fl.LAZY_KEYS)]          # every branch before its parent
     for f in files:
         assert subprocess.run([NODE, "--check", str(f)], capture_output=True).returncode == 0, f.name
     res = subprocess.run([NODE, str(script)] + [str(f) for f in files], capture_output=True, timeout=120)
@@ -1092,7 +1131,10 @@ def test_the_parts_run_as_the_page_runs_them_and_rebuild_the_payload(published, 
 def test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own():
     sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
     lazy = json.dumps(list(fl.LAZY_KEYS))
-    loaded = f"{lazy}.filter(k => k in window.LAB_DATA)"
+    # a branch part (factor_lab.LAZY_INTO) counts once it is where it belongs, or waiting at the top level
+    loaded = (f"(() => {{ const D = window.LAB_DATA, INTO = {json.dumps(fl.LAZY_INTO)}; return {lazy}.filter(k => k in D"
+              " || (k in INTO && (h => !!h && INTO[k][INTO[k].length - 1] in h)(INTO[k].slice(0, -1)"
+              ".reduce((o, q) => o && typeof o === 'object' && q in o ? o[q] : undefined, D)))); })()")
     with sync_api.sync_playwright() as pw:
         browser, page, errors = _open(pw, width=375)
         try:
@@ -1105,7 +1147,7 @@ def test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own():
                 page = browser.new_page(viewport={"width": 375, "height": 900})
                 page.on("pageerror", lambda e: errors.append(str(e)))
                 _goto(page, exp["id"])
-                assert sorted(page.evaluate(loaded)) == sorted(_parts_for(exp)), exp["id"]
+                assert sorted(page.evaluate(loaded)) == sorted(SETTLED.get(exp["kind"], _parts_for(exp))), exp["id"]
                 assert page.evaluate("document.getElementById('x-mismatch').hidden") is True, exp["id"]
                 assert page.evaluate("document.querySelectorAll('#lab svg').length") > 0, exp["id"]
                 page.close()
@@ -1120,8 +1162,11 @@ def test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own():
             page.click("#tabs a[data-id='replication-crisis']")
             assert page.evaluate("document.getElementById('picker').getAttribute('aria-expanded')") == "false"
             page.wait_for_function("window.LAB_STATE().id === 'replication-crisis'", timeout=30000)
-            assert page.evaluate(loaded) == ["jkp"]
+            assert page.evaluate(loaded)[0] == "jkp" and "jkp_large" not in page.evaluate(loaded)
             assert "99 of 119" in page.inner_text("#x-read")
+            # the opening chart's mega caps follow; the large caps wait to be chosen
+            page.wait_for_function("!document.querySelector('#lab [aria-busy=\"true\"]')", timeout=30000)
+            assert page.evaluate(loaded) == SETTLED["replication"]
             assert errors == []
         finally:
             browser.close()
@@ -1530,6 +1575,8 @@ def _open(pw, width: int = 1200):
 def _goto(page, exp_id: str) -> None:
     page.goto(PAGE.as_uri() + "#" + exp_id, wait_until="load", timeout=60000)
     page.wait_for_function(f"window.LAB_STATE && window.LAB_STATE().id === '{exp_id}'", timeout=30000)
+    # and the opening scene fully drawn: the 153 factors' chart waits on a second part (round three)
+    page.wait_for_function("!document.querySelector('#lab [aria-busy=\"true\"]')", timeout=30000)
 
 
 def test_see_every_figure_scrolls_to_the_comparison_and_keeps_the_experiment():
@@ -1923,6 +1970,32 @@ def test_the_browser_counts_the_factors_as_the_reference_does(published, tmp_pat
     py = fl.jkp_outside(published["jkp"])
     for k, v in py.items():
         assert got["outside"][k] == pytest.approx(v, abs=1e-9), k
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_a_figure_whose_series_has_not_loaded_is_pending_and_never_computed(published, tmp_path):
+    """Round three (2026-10-27): the page loads each size group's series when it is shown or chosen
+    (factor_lab.LAZY_INTO). Until it arrives, compareReplication returns that group's figure as
+    pending - no number, no verdict - and every other row exactly as with everything loaded."""
+    script = tmp_path / "pending.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        + NODE_LOAD +
+        "const X = D.experiments.find(x => x.kind === 'replication'), full = E.compareReplication(D.jkp, X.reference);\n"
+        "const without = drop => { const s = {}; Object.keys(D.jkp.series).filter(u => drop.indexOf(u) < 0).forEach(u => { s[u] = D.jkp.series[u]; });\n"
+        "  return E.compareReplication(Object.assign({}, D.jkp, { series: s }), X.reference); };\n"
+        "console.log(JSON.stringify({ full: full, noLarge: without(['large']), allOnly: without(['mega', 'large']) }));\n",
+        encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT)], capture_output=True, text=True, timeout=120)
+    assert res.returncode == 0, res.stderr
+    got = json.loads(res.stdout)
+    assert not any("pending" in r for r in got["full"])                         # everything loaded: the old rows exactly
+    for case, gone in (("noLarge", {"rate_capm_large"}), ("allOnly", {"rate_capm_mega", "rate_capm_large"})):
+        for r, f in zip(got[case], got["full"]):
+            if r["key"] in gone:
+                assert r["pending"] is True and r["here"] is None and r["diff"] is None and r["within"] is None, (case, r["key"])
+            else:
+                assert r == f, (case, r["key"])
 
 
 def test_the_153_factors_can_be_rerun_among_the_largest_companies():
