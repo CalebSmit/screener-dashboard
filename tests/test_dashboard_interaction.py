@@ -89,8 +89,10 @@ def test_web_fonts_do_not_block_first_paint(html):
         assert 'rel="stylesheet"' not in tag, tag
     assert 'rel="preload"' in outside_noscript and "this.rel='stylesheet'" in outside_noscript
     assert re.search(r"<noscript><link[^>]+fonts\.googleapis\.com/css2[^>]+rel=\"stylesheet\"", head)
-    # the fallback stack is still there for when the fonts never arrive
-    assert "--font-body: 'Inter', system-ui" in gd._css()
+    # the fallback stack is still there for when the fonts never arrive: since round three
+    # (2026-10-27) the metric-matched 'Inter Fallback' (local Arial cut to Inter's measure) first,
+    # then the system stack for where Arial is not installed
+    assert "--font-body: 'Inter', 'Inter Fallback', system-ui" in gd._css()
 
 
 def test_new_copy_carries_no_advice_language(html):

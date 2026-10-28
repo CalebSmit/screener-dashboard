@@ -2000,6 +2000,22 @@ CLAIMS: tuple[Claim, ...] = (
         # the file; the browser tests read the rendered sentence
         detect=None,
     ),
+    Claim(
+        id="page.freshness",
+        surface=DRILLDOWN,
+        asserts=("When the published figures are older than the schedule allows, the page's hero says "
+                 "'These figures are from the run of <day>. A new run normally appears every weekday "
+                 "morning, and N weekday runs since then have not'. N counts the weekdays after the "
+                 "run's date (the date part of kpis.run_timestamp) whose run was due by the reader's "
+                 "clock - due from 14:00 UTC that day, six hours after the 02:00 Central start - "
+                 "weekends excluded and NYSE holidays included, because the data loop publishes on "
+                 "them; the sentence appears at N >= 2 and never otherwise (round three, 2026-10-27)."),
+        made_true_by="generate_dashboard:_js_page",
+        checked_by=(
+            "tests/test_page_shell.py::test_staleness_counts_weekday_runs_and_never_trading_days",
+            "tests/test_page_shell.py::test_a_page_two_weekday_runs_behind_says_so_and_a_current_one_says_nothing",
+        ),
+    ),
 )
 
 
