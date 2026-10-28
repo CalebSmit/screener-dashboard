@@ -377,7 +377,9 @@ def test_every_bar_chart_axis_carries_its_unit_and_fits(browser):
     try:
         for scene in BARS:                                                      # the y axis's labels sit at L - 8
             _goto(page, scene)
-            ticks = page.evaluate("[...document.querySelectorAll('#ch-bars text[text-anchor=end]')].filter(t => t.getAttribute('x') === '44').map(t => t.textContent)")
+            # (the 153 factors on a phone are a row per theme, round three: their scale runs along the foot, `text.tick`)
+            ticks = page.evaluate("[...document.querySelectorAll('#ch-bars text')].filter(t => (t.getAttribute('text-anchor') === 'end'"
+                                  " && t.getAttribute('x') === '44') || t.classList.contains('tick')).map(t => t.textContent)")
             assert len(ticks) >= 3 and all(t.endswith("%") for t in ticks), (scene, ticks)
             assert not any(t.startswith("-") for t in ticks), (scene, ticks)               # a true minus, as elsewhere
             spill = page.evaluate("""(() => { const s = document.querySelector('#ch-bars svg').getBoundingClientRect().left;
@@ -654,6 +656,43 @@ def test_a_group_whose_series_fails_to_load_says_so_and_can_be_tried_again(brows
         page.wait_for_function("window.LAB_STATE().result && !document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
         assert "among large caps" in page.inner_text("#x-read")
         assert page.evaluate(PEND) == []
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+OVERLAPS = """(() => { const b = [...document.querySelectorAll('#ch-bars text')].filter(t => !t.classList.contains('val'))
+    .map(t => t.getBoundingClientRect()), hit = [];
+  for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++)
+    if (b[i].left < b[j].right - 1 && b[j].left < b[i].right - 1 && b[i].top < b[j].bottom - 1 && b[j].top < b[i].bottom - 1) hit.push([i, j]);
+  return hit.length; })()"""
+
+
+def test_on_a_phone_the_153_factors_chart_is_a_row_per_theme_and_no_label_runs_into_another(browser):
+    """At 375 px the thirteen theme names, set at an angle under twenty-six bars, overlapped."""
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "replication-crisis")
+        themes = page.evaluate("LAB_STATE().result.themes.map(t => t.theme)")
+        assert page.evaluate("[...document.querySelectorAll('#ch-bars text.rl')].map(t => t.textContent)") == themes
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect[data-i]').length") == 26
+        assert page.evaluate(OVERLAPS) == 0
+        assert page.evaluate("document.querySelector('#ch-bars svg').getBoundingClientRect().width") <= 375
+        # read down the rows: ArrowDown steps to the next theme, as ArrowRight does
+        page.focus("#ch-bars svg")
+        page.keyboard.press("Home")
+        page.keyboard.press("ArrowDown")
+        page.wait_for_function(_hit(1), timeout=WAIT)
+        assert page.inner_text("#ch-bars + .chart-read").startswith(themes[1] + ":")
+        assert "up and down" in page.get_attribute("#ch-bars svg", "aria-label")
+        assert errors == []
+    finally:
+        ctx.close()
+    ctx, page, errors = _page(browser, width=1280)
+    try:
+        _goto(page, "replication-crisis")                                   # a wide screen keeps its columns
+        assert page.evaluate("document.querySelectorAll('#ch-bars text.rl').length") == 0
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect[data-i]').length") == 26
         assert errors == []
     finally:
         ctx.close()

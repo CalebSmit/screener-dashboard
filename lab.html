@@ -313,6 +313,7 @@ select:hover { border-color: var(--text-muted); }
 /* not .bar: the page's top bar owns that name, and its height would be applied to these */
 .chart .col { fill: var(--rest); } .chart .col-a { fill: var(--accent); }
 .chart text.val { fill: var(--text-secondary); font-size: 11px; font-weight: 500; }
+.chart text.rl { fill: var(--text-primary); font-size: 12.5px; font-weight: 500; }
 .chart svg { touch-action: pan-y; cursor: crosshair; border-radius: 4px; }
 .chart svg:focus-visible { outline-offset: 6px; }
 .chart-read { margin: 8px 0 0; min-height: 1.6em; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -701,16 +702,19 @@ h2[tabindex="-1"]:focus { outline: none; }
         out.textContent = idle; out.classList.remove('on');
         el.removeAttribute('role'); el.removeAttribute('aria-label');          // the focusable chart carries both
         svg.setAttribute('tabindex', '0'); svg.setAttribute('role', 'img');
-        svg.setAttribute('aria-label', o.label + ' Use the left and right arrow keys to read one ' + unit + ' at a time; Home and End go to the first and last.');
+        svg.setAttribute('aria-label', o.label + (o.rows ? ' Use the up and down (or left and right) arrow keys to read one row at a time;'
+            : ' Use the left and right arrow keys to read one ' + unit + ' at a time;') + ' Home and End go to the first and last.');
         let at = -1;
         const show = i => { at = i; o.on(i); out.textContent = read(i); out.classList.add('on'); };
         const hide = () => { at = -1; o.off(); out.textContent = idle; out.classList.remove('on'); };
-        const point = ev => { const r = svg.getBoundingClientRect(); show(Math.max(0, Math.min(n - 1, o.at((ev.clientX - r.left) * (o.W / r.width))))); };
+        // a chart of rows (drawRows) is read down its height; every other chart across its width
+        const point = ev => { const r = svg.getBoundingClientRect();
+            show(Math.max(0, Math.min(n - 1, o.at(o.rows ? (ev.clientY - r.top) * (o.H / r.height) : (ev.clientX - r.left) * (o.W / r.width))))); };
         svg.addEventListener('pointermove', point);
         svg.addEventListener('pointerdown', point);
         svg.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse' && document.activeElement !== svg) hide(); });
         svg.addEventListener('keydown', ev => {
-            const step = { ArrowLeft: -1, ArrowRight: 1 }[ev.key];
+            const step = Object.assign({ ArrowLeft: -1, ArrowRight: 1 }, o.rows ? { ArrowUp: -1, ArrowDown: 1 } : {})[ev.key];
             let i;
             if (step) i = at < 0 ? (step > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, at + step * (ev.shiftKey && unit === 'month' ? 12 : 1)));
             else if (ev.key === 'Home') i = 0;
@@ -1237,8 +1241,36 @@ h2[tabindex="-1"]:focus { outline: none; }
     // ------------------------------------------------------------------ factors among small and big companies
     // opt.many (experiment 15's thirteen themes): names tilted so they do not run into each other, values
     // printed only where a bar has room for them, to opt.places decimals.
+    // Thirteen themes on a phone (round three, 2026-10-27): set at an angle under twenty-six bars in a
+    // 340 px frame, their names ran into one another ("Debt Issuance" over "Accruals" and "Investment").
+    // There each theme is a row - its name, then its two bars on the same fixed 0-100% scale, each with
+    // its figure - read by pointer, tap or the arrow keys like every other chart.
+    function drawRows(el, rows, opt) {
+        const places = opt.places !== undefined ? opt.places : 2;
+        const W = Math.max(280, el.clientWidth || 340), L = 2, R = 34, T = 6, rowH = 46, B = 24, H = T + rows.length * rowH + B;
+        const x = v => L + Math.max(0, Math.min(100, v)) / 100 * (W - L - R);
+        let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+        pctTicks([0, 25, 50, 75, 100].map(v => [v, String(v)])).forEach((t, k) => {
+            s += `<line class="grid" x1="${x(t[0]).toFixed(1)}" x2="${x(t[0]).toFixed(1)}" y1="${T}" y2="${H - B}"/>` +
+                `<text class="tick" x="${x(t[0]).toFixed(1)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === 4 ? 'end' : 'middle'}">${t[1]}</text>`; });
+        rows.forEach((r, i) => {
+            const y0 = T + i * rowH;
+            s += `<text class="rl" x="${L}" y="${y0 + 13}">${esc(r.name)}</text>`;
+            [[r.small, 'col', y0 + 19], [r.big, 'col-a', y0 + 31]].forEach(b => {
+                const w = Math.max(1, x(b[0]) - L);
+                s += `<rect class="${b[1]}" data-i="${i}" x="${L}" y="${b[2]}" width="${w.toFixed(1)}" height="9" rx="2"/>` +
+                    `<text class="val" x="${(L + w + 5).toFixed(1)}" y="${b[2] + 8.5}">${b[0].toFixed(places)}</text>`;
+            });
+        });
+        s += `<line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/>`;
+        if (!el.dataset.label) el.dataset.label = el.getAttribute('aria-label') || '';
+        el.innerHTML = s + '</svg>';
+        readable(el, rows.length, 'bar', opt.read, { label: opt.label || el.dataset.label, W: W, H: H, rows: true,
+            at: py => Math.floor((py - T) / rowH), on: barsOn(el.firstChild), off: barsOff(el.firstChild) });
+    }
     function drawPairs(el, rows, opt) {
         const many = !!(opt && opt.many), places = opt && opt.places !== undefined ? opt.places : 2;
+        if (many && (el.clientWidth || 600) < 520) return drawRows(el, rows, opt);
         const W = Math.max(280, el.clientWidth || 600), H = many ? 320 : 260, L = 52, R = 8, T = 22, B = many ? 96 : 34;
         const all = rows.reduce((a, r) => a.concat([r.small, r.big]), []);
         // shares (opt.many) run on a fixed 0-100 scale, so two settings read against the same axis
