@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 28 October 2026, 02:20
+# Morning Brief - Wednesday 28 October 2026, 06:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **stopped deliberately** - last ran today |
-| Code session (latest) | **completed** - last ran today |
+| Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-10-27T02:00:05.759618 |
 | Stocks scored | 498 |
 | With a price | 498/498 |
@@ -26,9 +26,17 @@ history is in `NIGHTLY_LOG.md`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
+- Working tree is dirty - probably leftovers from a failed session:
+- ?? data/context_log/2026-10-28.parquet
+- ?? improvement/price_cache/prices_2026-07-29_2026-10-27.parquet
+- ?? improvement/price_cache/prices_2026-10-20_2026-10-27.parquet
+- Saved working directory and index state On main: auto-rescue 2026-10-28_060001
+- warning: failed to remove output/: Permission denied
+- Could not stash the leftovers. Resolve by hand: git status
 
 ## What changed in the repo
 
+- `9f9fda7 brief: data run 2026-10-28`
 - `b7ff1f4 log: the seventh owner pass - the repo lock's two races fixed, flaky tests, sheet, shell, lab, bot`
 - `ab2a172 test_sheet_round_three: the tab tests wait for the context payload and for the jump to land, not for a fixed position (flaked twice in five parallel runs)`
 - `763e791 repo lock: publish the lock whole and reclaim only under a token - both measured races fixed`
@@ -43,7 +51,6 @@ history is in `NIGHTLY_LOG.md`.
 - `cae470c lab: every overview card puts its count under its meter, so the counts line up`
 - `27642a6 research: every t-statistic carries a real minus, as the means beside it do`
 - `5d257e9 lab: each of the eight sorts is its own part, so opening one fetches its own series only`
-- `1749c31 lab: on a phone the 153 factors' chart is a row per theme, so no theme name runs into another`
 
 ## The session's own account
 
