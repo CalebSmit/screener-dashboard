@@ -195,6 +195,9 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
    many a result of no effect at all would match. */
 .meter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 10px 0 2px; }
 .card .meter { margin-top: 12px; }
+/* the count always under its meter (round three): it sat beside a short meter and under a long one,
+   so down a column of cards, and across a row of two, the counts never lined up to be compared */
+.card .meter .m-l { flex-basis: 100%; }
 .card .take { margin-top: 6px; }
 .meter svg { display: block; flex: none; max-width: 100%; overflow: visible; }
 .meter .m-in { fill: var(--accent); } .meter .m-out { fill: none; stroke: var(--amber); stroke-width: 1; }

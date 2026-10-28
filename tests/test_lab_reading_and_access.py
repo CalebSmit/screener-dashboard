@@ -698,3 +698,19 @@ def test_on_a_phone_the_153_factors_chart_is_a_row_per_theme_and_no_label_runs_i
         assert errors == []
     finally:
         ctx.close()
+
+
+def test_every_card_puts_its_count_under_its_meter_so_the_counts_line_up(browser):
+    """Round three: "6 of 6" and "1 of 4" sat beside their short meters, "13 of 14" under its long one."""
+    for width in (375, 1280):
+        ctx, page, errors = _page(browser, width=width)
+        try:
+            _goto(page, "overview")
+            beside = page.evaluate("""[...document.querySelectorAll('.card .meter')].filter(m => m.offsetParent)
+                .filter(m => m.querySelector('.m-l').getBoundingClientRect().top < m.querySelector('svg').getBoundingClientRect().bottom - 1)
+                .map(m => m.querySelector('.m-l').textContent)""")
+            assert beside == [], (width, beside)
+            assert page.evaluate("[...document.querySelectorAll('.card .meter')].filter(m => m.offsetParent).length") == len(fl.EXPERIMENTS)
+            assert errors == []
+        finally:
+            ctx.close()
