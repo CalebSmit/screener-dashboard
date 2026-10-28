@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 28 October 2026, 06:00
+# Morning Brief - Wednesday 28 October 2026, 14:03
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **stopped deliberately** - last ran today |
-| Code session (latest) | **failed** - last ran today |
+| Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-10-27T02:00:05.759618 |
 | Stocks scored | 498 |
 | With a price | 498/498 |
@@ -26,79 +26,72 @@ history is in `NIGHTLY_LOG.md`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
-- Working tree is dirty - probably leftovers from a failed session:
-- ?? data/context_log/2026-10-28.parquet
-- ?? improvement/price_cache/prices_2026-07-29_2026-10-27.parquet
-- ?? improvement/price_cache/prices_2026-10-20_2026-10-27.parquet
-- Saved working directory and index state On main: auto-rescue 2026-10-28_060001
-- warning: failed to remove output/: Permission denied
-- Could not stash the leftovers. Resolve by hand: git status
 
 ## What changed in the repo
 
+- `0d20410 log: the fourth mutation pass - the research surface, and a drift tripwire that is green in the state the change ships in`
+- `9f46655 plan/OWNER_FOCUS: the fourth mutation pass - the research surface's statistics and the last three residuals`
+- `6c815b3 wip: pin the Sahm rule's prior-12 window and its 0.50 bar (audit rows 102-103)`
+- `eaa27eb wip: pin what 'cleared its bar' means for the alternatives count (audit row 97)`
+- `ec11731 wip: pin the research page's interval rule and the detectable figure against the claims they state`
+- `c87757f log: the third casualty of the refused run, and the gates`
+- `639e1d6 test_investor_profiles: pair the payload with the run it names, not the newest folder`
+- `ac294b1 The refused 2026-10-28 data run: a signed 'case against' trend line, a discard that leaves no files, a stash judged by the tree; the universe-expansion plan`
+- `a63a914 brief: code session 2026-10-28`
 - `9f9fda7 brief: data run 2026-10-28`
 - `b7ff1f4 log: the seventh owner pass - the repo lock's two races fixed, flaky tests, sheet, shell, lab, bot`
 - `ab2a172 test_sheet_round_three: the tab tests wait for the context payload and for the jump to land, not for a fixed position (flaked twice in five parallel runs)`
 - `763e791 repo lock: publish the lock whole and reclaim only under a token - both measured races fixed`
 - `a22a01b page shell, round three: failure states, freshness, true run time, Inter stand-in, print, 404, home screen (payload byte-identical)`
 - `8b9b0fc research: flaky tests - three full suites green on the final tree`
-- `be8ef69 research: the flaky tests of 2026-10-27 - each flake, its cause, the fix, before/after; the repo-lock races measured and proposed`
-- `df43558 tests: make the load-sensitive browser waits deterministic; harden the repo-lock race test`
-- `aa91610 sheet round three: scroll-spy holds the chosen tab, Financials tab, idle warm-up of the first open, unscored categories say why, peers open and rank`
-- `2d26d77 CLAUDE.md: drop the repeated LAZY_KEYS reference`
-- `1333c56 CLAUDE.md: the lab's lazy parts are one per LAZY_KEYS entry, not six`
-- `0d5d128 plan: round three notes - the 153 factors split by universe, the sorts by sort, measured`
-- `cae470c lab: every overview card puts its count under its meter, so the counts line up`
-- `27642a6 research: every t-statistic carries a real minus, as the means beside it do`
-- `5d257e9 lab: each of the eight sorts is its own part, so opening one fetches its own series only`
 
 ## The session's own account
 
-> 2026-10-27 (13:00 midday session) - QUEUE. The eleven badges that lived in dead code: four said nothing, one of them a false sentence on a top-25 stock, and one a false claim on the public methodology page
+> 2026-10-28 (13:00 midday session) - QUEUE. The research page's statistics mutation-tested: six of its eight unchecked claims were seen only by a tripwire that is green in the state the change ships in
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - 06:00 today, "Run complete:
-> shipped to main", tag `good/2026-10-27`; five owner-run passes merged after it. Data loop
-> published? **yes** - 02:00 today, "Data loop complete", **HEALTH: PASS**, 498 scored, live at
-> 02:20, claims gate 1,576 passed in 65 s `[parallel, -n auto]`. Evidence base at `1m` = **38 rows,
-> newest 2026-09-25 (32 days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**,
-> unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 15 days**) -
-> not advanced; the next non-retrospective Friday is 2026-11-06 and experiment 18 is a Friday's work.
-> **Tests:** before **3295 passed, 1 skipped**; after **3313 passed, 1 skipped** (+18, the new
-> module). `scripts/rehearse_publish.py` **PASSED**.
-> **Owner queue / rotation:** no proposal was waiting (`open_proposals()` returns `[]`). The 06:00
-> session's **Next** was the EDGAR daily-form-index build, whose own evidence bar is two weeks of
-> shadow runs - it cannot be finished end to end today, and the prompt asks for one item finished.
-> I took instead the item this morning's owner-run session flagged as available to a session
-> (`plan/ui-elevation.md` item 5), which is also what the 2026-10-15 session called **"the single
-> most valuable next thing"** and which had then sat for **12 days**. Nothing deferred for a loop or
-> a gate; nothing an earlier session decided today was reversed.
+> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-27 13:00 shipped
+> (`good/2026-10-27-1338`); today's 06:00 stood down and the owner-run morning session fixed both
+> causes (its entry above). Data loop published? **no, correctly** - 02:00 today was HEALTH: PASS
+> and then refused by the published-claims gate on a real false sentence; the live site keeps
+> 2026-10-27's figures and the fix is committed, so tonight's run publishes. Evidence base at `1m`
+> = **38 rows, newest 2026-09-25 (33 days ago, bound 40), 4 effective**. Priority 0:
+> `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened
+> 2026-10-12, **age 16 days**) - not advanced, and not drifting: the lab's day is a Friday, 10-30 is
+> an even ISO week so the runner swaps in the retrospective, and the next lab Friday is **2026-11-06**.
+> **Tests:** before 3,500 passed / 1 skipped, after **3,506 passed / 1 skipped**.
+> **Owner queue / rotation:** took `OWNER_FOCUS.md` item 3 of the 2026-10-20 block, "Test the
+> tests" - the fourth mutation pass, `plan/claims-mutation-audit.md`'s queue items 4 then 1-3. No
+> proposal was waiting (`write_brief.open_proposals()` returns `[]`). The top open item in that file
+> (universe expansion) is a Monday research item by its own Next line; nothing else deferred.
 > 
 > ### Did
 > 
-> **The defect hunt the 2026-10-15 session left open.** That session found
-> `generate_dashboard.renderFlagsWarnings` dead - nothing called it, and its container
-> `#modal-flags` was never written into the page, so that morning's quarterly-rejection badge could
-> never have appeared. It rehomed the two provenance sentences and left the **other eleven badges**
-> with the note that one session should check each against the live page and either rehome it or
-> delete it. This is that session.
+> **17 mutations across 6 claims: 11 caught, 6 gaps. Every gap now fails a registered check.**
+> Rows 89-105 of `plan/claims-mutation-audit.md`, which closes its queue items 1-4. No production
+> code changed and no published sentence moved; the whole diff is tests, the register, and the
+> write-up.
 > 
-> Measured on the 2026-10-27 published run, 498 stocks
-> (`research/measurements/2026-10-27-dead-badge-audit.py`, reproducible at any commit):
+> **The research surface was the one no pass had touched, and it had a kind of unchecked claim this
+> audit had not met.** `research.html`'s sentences quote intervals, t-statistics and a
+> "smallest difference the test could reliably detect" figure. Ten mutations of that arithmetic - the
+> 80%-power quantile, the power term itself, the t-distribution for the bar, the interval boundary at
+> zero, the intervals' confidence level in both places that builds them, the record the pooled
+> estimate covers, the multiple-testing bar, the alternatives count, and the rule deciding what
+> "cleared its bar" means - produced **two** caught and **eight** gaps.
 > 
-> | Badge | Stocks | Reaches the reader? |
-> |---|---|---|
-> | value trap | 46 | yes - table flag column, `summary`, "The case against" |
-> | growth trap | 66 | yes - same |
-> | Beneish | 43 | yes - `summary`, "The case against" |
-> | channel stuffing | 14 | yes - `summary`, "The case against" |
-> | stale financials | 28 | yes - Filing Age badge, `summary`, "The case against" |
-> | EPS basis mismatch | 100 | yes - provenance badge, data-quality KPIs |
-> | bank-like | 46 | yes - the ROE/ROIC column label, methodology page |
-> | **LTM 3-of-4 annualised** | **4** | **no - and the panel said the opposite** |
-> | **enterprise value substituted** | **18** | **no** |
-> | **beta overlap under 80%** | **1** | **no** |
-> | **financial-sector caveat** | **0** | **no - dead at source, with a false claim on the public page** |
+> **The thing worth carrying forward: for six of those eight, the only test that failed was a drift
+> tripwire** - `test_the_committed_page_is_what_the_generator_makes_from_the_ledger`, or
+> `test_the_methodology_page_quotes_the_engine_s_own_summary`, which asserts the committed
+> `summary.json` equals a recomputation. Both of those fail under *any* numeric change and assert
+> nothing about the arithmetic - **and both are green in exactly the state the change ships in.**
+> That is measured rather than argued: every mutation was re-run with `python v2_experiments.py
+> report` in between, which is how `research.html` and `summary.json` are actually published, and
+> **all seven gaps stayed green.** It is CLAUDE.md rule 10 one level up ("assert claims against the
+> generator's output, not the committed file"): a check that compares a generated artifact with its
+> own regeneration cannot see a change to the generator.
 > 
+> **Underneath that, two claims were checked by a test that recomputes the rule out of the code and
+> then asks the page to agree with it.** `research.plain_answer`'s only check opened with
 > ...
 
 ---
