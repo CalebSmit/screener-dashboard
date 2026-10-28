@@ -28,6 +28,7 @@ screenshots, rebuilds), so the owner's redesign directive makes it likelier.
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -212,3 +213,90 @@ def test_stash_rescue_makes_the_data_loop_start_from_the_committed_generator(tmp
     assert (repo / "generator.py").read_text(encoding="utf-8") == "PALETTE = 'old'\n"
     assert not (repo / "notes.md").exists()
     assert "auto-rescue data-run" in _git(repo, "stash", "list").stdout
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-28: a refused data run must leave nothing behind for the next session
+# ---------------------------------------------------------------------------
+#
+# The 02:00 run was refused by its claims gate. Every discard restored the tracked artifacts but
+# cleaned only improvement/snapshots, so the run's new context log and two price-cache files stayed
+# untracked; the 06:00 session found a dirty tree, its stash saved them but exited non-zero on
+# "failed to remove output/: Permission denied", and the session stood down. One refused run cost
+# two sessions.
+
+POWERSHELL = shutil.which("powershell") or shutil.which("pwsh")
+
+
+def _function(src: str, name: str) -> str:
+    """One top-level function's text, from `function <name> {` to its closing brace at column 0."""
+    i = src.index(f"function {name} {{")
+    return src[i:src.index("\n}", i) + 2]
+
+
+def test_every_discard_in_the_data_loop_undoes_the_runs_files():
+    src = _src(DATA_RUN)
+    body = _function(src, "Undo-RunArtifacts")
+    assert "'checkout', '--', '.'" in body
+    for folder in ("'improvement'", "'validation'", "'data/context_log'"):
+        assert folder in body, folder
+    rest = src.replace(body, "")
+    # no discard restores the tracked files by hand any more, and each "Run discarded" goes through it
+    assert "'checkout', '--', '.'" not in rest
+    for m in re.finditer(r'Stop-Run "(Run discarded|Data run failed|Refusing to publish|Dashboard generation)', rest):
+        assert "Undo-RunArtifacts" in rest[max(0, m.start() - 400):m.start()], rest[m.start():m.start() + 80]
+
+
+@needs_git
+@pytest.mark.skipif(POWERSHELL is None, reason="no PowerShell on this platform")
+def test_undo_run_artifacts_leaves_a_clean_tree_and_nothing_else_touched(tmp_path: Path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@example.com")
+    _git(repo, "config", "user.name", "T")
+    for rel, text in (("dashboard_data.js", "old\n"), ("improvement/snapshots/a.json", "{}\n"),
+                      ("data/context_log/2026-10-27.parquet", "x\n"), (".gitignore", "cache/\n")):
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+
+    # what the refused run wrote: a tracked artifact rewritten, and new files in three folders
+    (repo / "dashboard_data.js").write_text("refused\n", encoding="utf-8")
+    run_files = ["data/context_log/2026-10-28.parquet", "improvement/price_cache/p.parquet",
+                 "improvement/snapshots/b.json", "validation/v.csv"]
+    for rel in run_files:
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text("new\n", encoding="utf-8")
+    (repo / "cache").mkdir()
+    (repo / "cache" / "kept.bin").write_text("ignored\n", encoding="utf-8")
+
+    src = _src(DATA_RUN)
+    script = tmp_path / "undo.ps1"
+    script.write_text("\n".join([_function(src, "Invoke-Native"), _function(src, "Undo-RunArtifacts"),
+                                 f"Set-Location '{repo.as_posix()}'", "Undo-RunArtifacts", ""]),
+                      encoding="utf-8")
+    r = subprocess.run([POWERSHELL, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                        "-File", str(script)], capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stderr
+
+    assert _git(repo, "status", "--porcelain").stdout == ""
+    assert (repo / "dashboard_data.js").read_text(encoding="utf-8") == "old\n"
+    for rel in run_files:
+        assert not (repo / rel).exists(), rel
+    assert (repo / "cache" / "kept.bin").exists(), "an ignored file is never the discard's to remove"
+
+
+def test_a_stash_that_saved_but_exited_nonzero_is_judged_by_the_tree():
+    """Both loops decide on `git status` after the stash, not on the stash's exit code alone."""
+    code_loop = _src(NIGHTLY)
+    i = code_loop.index("'stash', 'push', '-u', '-m', \"auto-rescue $Stamp\"")
+    block = code_loop[i:code_loop.index("# --- Sync main", i)]
+    assert "Stop-Run" not in block[:block.index("Working tree still not clean")]
+    assert "Working tree still not clean after stashing. Refusing to run." in block
+
+    data_loop = _src(DATA_RUN)
+    i = data_loop.index("'stash', 'push', '-u'")
+    block = data_loop[i:i + 600]
+    assert "'status', '--porcelain'" in block and "Stop-Run" in block

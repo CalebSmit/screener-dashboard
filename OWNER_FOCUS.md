@@ -24,6 +24,21 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-10-28 - Beyond the S&P 500: add NASDAQ and NYSE stocks, phased in.** Owner, in chat:
+  *"right now we only have the S&P 500 stocks, and that's good. There's been some really good
+  testing done on these stocks. But over time, I would really like to get the NASDAQ and the New
+  York Stock Exchange tickers in here as well ... we would have to phase it in bit by bit."* A
+  long-horizon item; the ordered queue, the measurements behind it and what must not change is
+  `plan/universe-expansion.md`. In short: **phase 0** is a Monday research note (which universe
+  first - the S&P 1500 is the expectation to test - how professionals handle microcaps, analyst
+  coverage and sector percentiles once small companies are in the pool); **phase 1** makes the
+  universe a parameter and loads each stock's detail on demand, with the S&P 500 page byte-identical;
+  **phase 2** scores the S&P 400 + 600 in shadow, unpublished, and writes the numbers down;
+  **phase 3** publishes the S&P 1500 beside the S&P 500; **phase 4** is all NYSE and NASDAQ common
+  stocks above a pre-registered floor. **Throughout: the S&P 500 ranking, `signals.json` and the
+  bot are unchanged, and each universe keeps its own evidence series.** Next: phase 0, the next
+  research Monday (2026-11-02).
+
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test
   things."* The night shipped (owner-run, tags `good/2026-10-20-owner-1..`): the overfitting check on

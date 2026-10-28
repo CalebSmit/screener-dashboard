@@ -16354,3 +16354,69 @@ run OK; `node --check` both payloads, `lab_engine.js` and every `lab_data*.js`; 
 clean. Left: self-hosting Inter (a binary font in the repo) would end the font relayout; the sheet's
 strip now has 11 tabs; `test_row_click_to_drilldown_is_fast` failed once under load in an agent's run
 and was deliberately not given best-of-five (it measures the first open a reader feels).
+
+## 2026-10-28 (owner-run, morning) - last night's refused run fixed; the universe-expansion plan
+
+**Health (rule 8, all five):** last code session ran? **no** - 06:00 today stood down: "Could not
+stash the leftovers" (the cause is below). The 13:00 session of 2026-10-27 shipped
+(`good/2026-10-27-1338`). Data loop published? **no** - 02:00 today, HEALTH: PASS (498 scored, 0
+fetch failures), then **refused by the published-claims gate** (1 failed, 1,779 passed); the live
+site kept 2026-10-27's figures, as designed. Evidence base at `1m` = **38 rows, newest 2026-09-25
+(33 days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 16 days**) - not advanced this pass.
+
+Owner, in chat: *"How did the runs go last night? I'm assuming they went okay"* - they did not, and
+both failures were one defect each, now fixed:
+
+- **The refusal was right; the line it refused was wrong.** BXP closed **0.03%** under its 200-day
+  average (60.89 against 60.91). The stock sheet's "case against" line formats that gap with
+  `cPct` at one decimal, which rounds it to zero and drops the sign: *"Its last close is 0.0%
+  against its 200-day average"* - a line listed as a reason against the stock saying the gap is
+  nothing. `tests/test_case_against.py` checks every stock's line every run and failed on it. Fix in
+  `generate_dashboard.py`: the line is always signed, and a gap under 0.1% takes two decimals
+  (`−0.03%`). New test `test_a_close_just_below_its_200_day_average_still_reads_as_below` pins BXP's
+  exact figures. Re-run against a regeneration of last night's run (17098ca9b290): the module passes
+  9 of 9 (it failed before), and the rehearsal's claims gate with it.
+- **One refused run cost two sessions.** Every discard in `data-run.ps1` restored the tracked
+  artifacts and cleaned only `improvement/snapshots`, so the refused run's new
+  `data/context_log/2026-10-28.parquet` and two `improvement/price_cache` files stayed untracked.
+  The 06:00 runner stashed them - the stash **saved** - but `git stash` exited non-zero on
+  *"failed to remove output/: Permission denied"* and the runner stopped on the exit code. Two fixes:
+  (1) every discard now goes through one helper, `Undo-RunArtifacts`, which also cleans the run's new
+  files under `improvement`, `validation` and `data/context_log` (the tree was clean or stashed when
+  the run began, so they are the run's; ignored files are never touched); (2) both loops judge a
+  non-zero stash by whether the tree is clean afterwards - a stash that failed outright still leaves
+  it dirty and still stops the run. Tests: `test_undo_run_artifacts_leaves_a_clean_tree_and_nothing_else_touched`
+  runs the real function, extracted from `data-run.ps1`, in a scratch repo under PowerShell; two
+  source checks pin that every discard uses it and that both loops decide on `git status`;
+  `test_published_claims_gate.py::test_a_failed_claim_discards_the_run` follows the helper. Both
+  runners parse (`Parser.ParseFile`, 0 errors).
+- **A third casualty, found by gate 1:** `tests/test_investor_profiles.py` compared the published
+  payload with the *newest* `runs/` folder - the refused run, which the page never showed - and
+  failed on a correct payload; the 13:00 session's gate 1 would have failed the same way. It now
+  pairs the payload with the run it names (`kpis.run_id`) and skips loudly if that run is absent.
+  Gates on the final tree: suite **3,500 passed, 1 skipped**; dry run OK; `node --check` both
+  payloads; tree clean; `rehearse_publish.py` against last night's refused run **PASSED** (claims
+  gate 1,781). Payload byte-identical; page rebuilt with `rebuild_page.py`.
+- **Not republished today, deliberately.** `data-run.ps1` has no regenerate-only mode and a fresh
+  full run now would take mid-session prices and be the second full fetch within hours - the one
+  pattern that has been throttled (`research/2026-10-26-data-run-timing.md`). The 2026-10-28
+  observation is lost; tonight's 02:00 run publishes with the fix. The refused run's three files
+  are in `stash@{0}` ("auto-rescue 2026-10-28_060001"): **do not pop it** - under the new rule a
+  refused run leaves no evidence behind, and those files are that run's.
+- **Repo lock, first night:** the data log has no lock line at all, which is what an uncontended
+  acquire looks like (it logs only on waiting or reclaiming). The 06:00 runner stood down before
+  the lock mattered, so the race fix has not yet been exercised under contention.
+
+**Owner item opened: beyond the S&P 500** (`OWNER_FOCUS.md`, `plan/universe-expansion.md`). Five
+phases, each with an exit test; the S&P 500 ranking, `signals.json` and the bot unchanged
+throughout; per-universe evidence series. Measured for the plan: `dashboard_data.js` 6.2 MB with
+`stock_detail` ~90% of it, the Yahoo fetch 795 s for ~500 stocks, and the constants that encode
+"about 500" (`MIN_SCORED = 490`, `$universe = 500`, `MIN_UNIVERSE = 495`, the 495-515 membership
+band, the page's `|| 500`). Phase 0 is research and belongs to a Monday.
+
+### Next
+
+- Read tonight's 02:00 log: it should publish, and a refused run (if any) should now leave
+  `git status` clean.
+- Phase 0 of the universe plan on research Monday 2026-11-02.

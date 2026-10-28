@@ -350,6 +350,19 @@ def test_context_lines_wait_for_the_context_file(browser, site):
     pg.close()
 
 
+def test_a_close_just_below_its_200_day_average_still_reads_as_below(page, data):
+    """2026-10-28: BXP closed 0.03% under its 200-day average, the line read "Its last close is
+    0.0% against...", with no sign, and the data loop's claims gate refused the whole run. A gap
+    too small for one decimal takes two, and the line is always signed."""
+    t = next(iter(data["stock_detail"]))
+    for px, s200, want in ((60.889999, 60.909738, "−0.03%"), (99.0, 100.0, "−1.0%"),
+                           (99.95, 100.0, "−0.05%"), (99.8, 100.0, "−0.2%")):
+        r = page.evaluate("([t, px, s200]) => caseItems(Object.assign({}, D.stock_detail[t], "
+                          "{ctx: {px: px, s200: s200}}))", [t, px, s200])
+        line = next(x["text"] for x in r["items"] if x["k"] == "trend")
+        assert line.startswith(f"Its last close is {want} against"), (px, s200, line)
+
+
 def test_each_line_opens_the_section_that_shows_it(page, cases):
     """Each kind of line, clicked, brings its section to the top of the sheet (opened if folded),
     and the navigation layer still wraps openStockDetail (UX.current follows it)."""

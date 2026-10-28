@@ -459,8 +459,13 @@ try {
         Write-NativeOutput $status 'WARN'
         $stash = Invoke-Native 'git' @('stash', 'push', '-u', '-m', "auto-rescue $Stamp")
         Write-NativeOutput $stash 'WARN'
+        # 2026-10-28: git saved the stash, then exited non-zero because it could
+        # not remove an emptied folder ("failed to remove output/: Permission
+        # denied"), and this stood the session down on a tree that was already
+        # clean. The check below decides: a stash that failed outright leaves the
+        # tree dirty and still stops the run.
         if ($stash.ExitCode -ne 0) {
-            Stop-Run "Could not stash the leftovers. Resolve by hand: git status"
+            Write-Log "git stash exited $($stash.ExitCode); checking whether the tree is clean anyway." 'WARN'
         }
         Write-Log "Stashed as 'auto-rescue $Stamp'. Recover with: git stash list / git stash pop" 'WARN'
     }

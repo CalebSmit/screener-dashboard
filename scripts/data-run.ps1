@@ -80,6 +80,18 @@ function Stop-Run {
     exit $Code
 }
 
+# A refused run leaves the tree as it found it: the tracked artifacts restored AND
+# the files the run created removed. Until 2026-10-28 every discard restored the
+# tracked files and cleaned only improvement/snapshots, so the run's new context
+# log and price-cache files stayed behind untracked - and the 06:00 code session,
+# finding a dirty tree, stood down. One refused run cost two sessions. The tree
+# was clean (or stashed) when this run began, so every untracked file under these
+# folders is this run's; ignored files are never touched.
+function Undo-RunArtifacts {
+    Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+    Invoke-Native 'git' @('clean', '-fd', '--', 'improvement', 'validation', 'data/context_log') | Out-Null
+}
+
 # Writes MORNING_BRIEF.md and publishes it. Called from `finally`, so a summary
 # appears whether the run published, was discarded by the health check, or
 # crashed - a discarded run is the one you most want to be told about.
@@ -196,10 +208,16 @@ try {
     if ($dirty.Text.Trim()) {
         Write-Log "Working tree is dirty before the run, so it is being stashed and not published:" 'WARN'
         Write-NativeOutput $dirty 'WARN'
+        # git can save the stash and still exit non-zero, when it cannot remove a
+        # folder it emptied ("failed to remove output/: Permission denied",
+        # 2026-10-28). What decides is whether the tree is clean afterwards.
         $stash = Invoke-Native 'git' @('stash', 'push', '-u', '-m', "auto-rescue data-run $Date")
         Write-NativeOutput $stash 'WARN'
         if ($stash.ExitCode -ne 0) {
-            Stop-Run "Could not stash a dirty tree. Not publishing from it." 2
+            if ((Invoke-Native 'git' @('status', '--porcelain')).Text.Trim()) {
+                Stop-Run "Could not stash a dirty tree. Not publishing from it." 2
+            }
+            Write-Log "git stash exited $($stash.ExitCode) but the tree is clean; carrying on." 'WARN'
         }
     }
 
@@ -251,7 +269,7 @@ try {
 
     if ($run.ExitCode -ne 0) {
         Write-Log "Screener exited $($run.ExitCode). Discarding partial output." 'ERROR'
-        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Undo-RunArtifacts
         Stop-Run "Data run failed - the code loop will see this in logs/ and should treat it as top priority." 2
     }
 
@@ -292,8 +310,7 @@ try {
         if ($synthetic.Count -gt 0) {
             Write-Log "Screener substituted SYNTHETIC data for $($synthetic.Count) ticker(s)." 'ERROR'
             Write-Log "Refusing to publish fabricated values. Discarding this run." 'ERROR'
-            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
-            Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+            Undo-RunArtifacts
             Stop-Run "Run discarded: synthetic data detected. Check connectivity." 2
         }
 
@@ -304,15 +321,14 @@ try {
         $failPct = [math]::Round(100.0 * $fetchFail.Count / $universe, 1)
         if ($fetchFail.Count -gt ($universe * $maxFailPct / 100)) {
             Write-Log "Fetch failure rate ~$failPct% exceeds $maxFailPct%. Data too thin to publish." 'ERROR'
-            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
-            Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+            Undo-RunArtifacts
             Stop-Run "Run discarded: fetch failure rate ~$failPct%." 2
         }
         $GateVerdicts['synthetic_data'] = 'pass'
         $GateVerdicts['fetch_failure_rate'] = 'pass'
     } else {
         Write-Log "No data quality log found - cannot verify the run was real. Not publishing." 'ERROR'
-        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Undo-RunArtifacts
         Stop-Run "Run discarded: no data quality log." 2
     }
 
@@ -327,13 +343,12 @@ try {
 
     if ($health.ExitCode -eq 1) {
         Write-Log "Run is DEGRADED. Refusing to publish." 'ERROR'
-        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
-        Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+        Undo-RunArtifacts
         Stop-Run "Run discarded by health check - the live dashboard is unchanged." 2
     }
     elseif ($health.ExitCode -ne 0) {
         Write-Log "Health check could not evaluate this run (exit $($health.ExitCode))." 'ERROR'
-        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Undo-RunArtifacts
         Stop-Run "Run discarded - could not verify it was healthy." 2
     }
     $GateVerdicts['run_health'] = 'pass'
@@ -343,7 +358,7 @@ try {
     $gd = Invoke-Native 'python' @('generate_dashboard.py')
     if ($gd.ExitCode -ne 0) {
         Write-Log "generate_dashboard.py failed - not publishing." 'ERROR'
-        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Undo-RunArtifacts
         Stop-Run "Dashboard generation failed." 2
     }
     $GateVerdicts['dashboard_generated'] = 'pass'
@@ -373,7 +388,7 @@ try {
         $p = $spec[0]; $min = $spec[1]
         if (-not (Test-Path $p) -or (Get-Item $p).Length -lt $min) {
             Write-Log "Output $p looks wrong (missing or under $min bytes). Not publishing." 'ERROR'
-            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+            Undo-RunArtifacts
             Stop-Run "Refusing to publish a broken dashboard." 2
         }
     }
@@ -400,7 +415,7 @@ try {
             if ($parse.ExitCode -ne 0) {
                 Write-Log "$leaf does not parse as JavaScript. Not publishing." 'ERROR'
                 Write-NativeOutput $parse 'ERROR'
-                Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+                Undo-RunArtifacts
                 Stop-Run "Refusing to publish a dashboard payload the browser cannot read." 2
             }
             Write-Log "$leaf parses ($([int]((Get-Item $p).Length / 1024)) KB)."
@@ -421,7 +436,7 @@ try {
         $firstChars = (Get-Content $p -TotalCount 1) -replace '\s', ''
         if ($firstChars -notmatch $expect) {
             Write-Log "$(Split-Path $p -Leaf) no longer starts with the expected assignment ($expect). Not publishing." 'ERROR'
-            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+            Undo-RunArtifacts
             Stop-Run "Refusing to publish a payload the dashboard will not recognise." 2
         }
     }
@@ -454,8 +469,7 @@ try {
     elseif ($claims.ExitCode -ne 0) {
         Write-Log "The regenerated artifacts contradict claims this project asserts about them." 'ERROR'
         Write-Log "Refusing to publish. The live site keeps the last good version." 'ERROR'
-        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
-        Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+        Undo-RunArtifacts
         Stop-Run "Run discarded: published-claims check failed - fix the generator, not the file." 2
     }
     if (-not $GateVerdicts.Contains('published_claims')) { $GateVerdicts['published_claims'] = 'pass' }

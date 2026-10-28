@@ -326,10 +326,14 @@ def test_a_failed_claim_discards_the_run():
     assert "Stop-Run" in window, (
         "a contradicted claim must stop the data run, not be logged past"
     )
-    assert "'checkout', '--', '.'" in window, (
+    # Since 2026-10-28 every discard goes through Undo-RunArtifacts, which restores the tracked
+    # artifacts and removes the files the run created (tests/test_interrupted_session_recovery.py).
+    assert "Undo-RunArtifacts" in window, (
         "the regenerated artifacts must be discarded so the live site keeps the "
         "last good version"
     )
+    helper = code[code.index("function Undo-RunArtifacts"):]
+    assert "'checkout', '--', '.'" in helper[:helper.index("}")]
 
 
 def test_an_unavailable_pytest_does_not_jam_the_loop():
