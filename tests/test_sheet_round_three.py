@@ -185,6 +185,23 @@ def _sheet(page, t):
     page.wait_for_function("document.getElementById('stock-modal').style.display === 'flex'", timeout=WAIT)
 
 
+def _settled(page):
+    """The context payload is in (its arrival re-renders Before you decide, which moves every section
+    below it) and the sheet's body has stopped scrolling for ten frames."""
+    page.wait_for_function("typeof CTX_LOADED !== 'undefined' && CTX_LOADED", timeout=WAIT)
+    page.wait_for_function("""() => new Promise(r => { const b = document.querySelector('#stock-modal .modal-body');
+        let last = -1, same = 0; const f = () => { if (b.scrollTop === last) same++; else { same = 0; last = b.scrollTop; }
+        if (same >= 10) r(true); else requestAnimationFrame(f); }; f(); })""", timeout=WAIT)
+
+
+def _arrived(page, sid):
+    """The jump to a section is over: its top is at the top of the body, or the body is at its end."""
+    page.wait_for_function(f"""() => {{ const b = document.querySelector('#stock-modal .modal-body'), el = document.getElementById('{sid}');
+        return el.getBoundingClientRect().top - b.getBoundingClientRect().top <= 10 || b.scrollTop + b.clientHeight >= b.scrollHeight - 2; }}""",
+                           timeout=WAIT)
+    _settled(page)
+
+
 LIT = "(() => { const a = document.querySelector('#stock-modal .modal-nav a.active'); return a ? a.getAttribute('href').slice(1) : null; })()"
 
 
@@ -194,6 +211,7 @@ def test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet(browser):
     ctx, page, errors = _open(browser)
     try:
         _sheet(page, "APA")
+        _settled(page)
         tabs = page.evaluate("[...document.querySelectorAll('#stock-modal .modal-nav a')].filter(a => !a.hidden).map(a => a.getAttribute('href').slice(1))")
         assert "section-snapshot" in tabs
         for t in tabs:
@@ -202,12 +220,11 @@ def test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet(browser):
                 return a.classList.contains('active') && a.getAttribute('aria-current') === 'location' &&
                        document.querySelectorAll('#stock-modal .modal-nav a.active').length === 1; }}""", timeout=WAIT)
         # still lit once the smooth scroll has settled at the end of the sheet
-        page.wait_for_function("""() => { const b = document.querySelector('#stock-modal .modal-body');
-            return b.scrollTop + b.clientHeight >= b.scrollHeight - 2; }""", timeout=WAIT)
+        _arrived(page, "section-provenance")
         assert page.evaluate(LIT) == "section-provenance"
         page.click("#stock-modal .modal-nav a[href='#section-peers']")
-        page.wait_for_function("""() => { const b = document.querySelector('#stock-modal .modal-body');
-            return b.scrollTop + b.clientHeight >= b.scrollHeight - 2; }""", timeout=WAIT)
+        page.wait_for_function(f"{LIT} === 'section-peers'", timeout=WAIT)
+        _arrived(page, "section-peers")
         assert page.evaluate(LIT) == "section-peers"
         # the reader scrolling by hand releases it: back at the top, Scores is lit
         page.mouse.move(900, 500)
@@ -226,6 +243,7 @@ def test_scrolling_freely_lights_every_tab_in_order(browser):
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
         _sheet(page, "JPM")
+        _settled(page)
         page.evaluate("document.querySelectorAll('#stock-modal .collapsible.collapsed').forEach(s => s.classList.remove('collapsed'))")
         tabs = page.evaluate("[...document.querySelectorAll('#stock-modal .modal-nav a')].filter(a => !a.hidden).map(a => a.getAttribute('href').slice(1))")
         seen = page.evaluate("""async () => {
