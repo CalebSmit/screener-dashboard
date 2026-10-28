@@ -425,7 +425,8 @@ last. `tests/test_drilldown_presentation.py` (10, browser).
   the body scrolls past 140px (`.is-compact`; back at the top it opens); on a phone the folded
   header drops the name, tools, chips and price.
 - **Tabs** are an underline strip; the lit tab is kept in view (`tabFollow`), and at the end of the
-  sheet the last section's tab lights (`modalSpy`, it used to stay on Peers).
+  sheet the last section's tab lights (`modalSpy`, it used to stay on Peers) - *superseded by round
+  three below: a chosen tab holds, and free scrolling slides the reading line over the last screen.*
 - **Score tiles** are a fingerprint: the heat token as the wash, text in ink, a tick at 50 on each bar.
   Tiles, How-it-adds-up rows and the workings' category headers are `role="button"` and work from
   Enter/Space.
@@ -496,6 +497,30 @@ Presentation only; payload byte-identical. What a later session must know before
   on phones), prints the sheet alone: light tokens, every collapsed section open, research unclamped, no
   tabs/tools. `preparePrint` / `restorePrint` on `beforeprint` / `afterprint` (`html.print-sheet`); the
   sheet is put back exactly as it was. The page's own print rules still hide every overlay otherwise.
+
+### Round three - the sheet, 2026-10-27 late (owner-run) - `tests/test_sheet_round_three.py` (12)
+
+`plan/ui-elevation.md` "Round three - the sheet". What a later session must know before touching these:
+- **The scroll-spy has two rules** (`modalSpy` in `_js_ux`). `spyPin(id)` - called by `goToModal` and
+  `openWorkings` - holds the chosen tab lit until the reader scrolls by hand (wheel / touchstart /
+  pointerdown / a scrolling key on `.modal-body` release it; `modalSpy()` on open clears it). Free
+  scrolling uses a reading line 24 px under the top that slides to the bottom over the sheet's last
+  screen. Do not go back to "at the bottom, light the last section": it lit Data for Price targets and Peers.
+- **Eleven tabs**: Financials (`#section-snapshot`) sits between Price targets and Peers.
+- **`renderSheet(ticker, s)`** writes the whole sheet and is what `openStockDetail` calls before showing
+  it. **`sheetPrewarm`** (`_js_drilldown`, state in `SHEET_WARM`) calls it once at idle for the #1 stock and
+  lays the closed sheet out section by section under `#stock-modal.sheet-warm` / `.warm-skip`; any
+  `openStockDetail` ends it. `sheetOpen()` stays false throughout (it reads the inline display, which the
+  class overrides with `!important`). A stand-in DOM without `querySelector` gets no warm-up (the node
+  harnesses in `test_review_cadence.py` / `test_holdings_concentration.py`).
+- **An unscored category** prints `unscoredWhy(cat, s)` (`_js_workings`): `.short` on the score tile,
+  `.long` as `.wk-unscored` in the workings. It names the weighted metrics from the published table
+  (`weightProfile`), and `flags.px_rejected` - display-only, the engine's `_price_series_rejected` string -
+  on Momentum and Risk only (`PRICE_HISTORY_CATS`). Claim `drilldown.unscored_category`.
+- **Empty sections say so** (`.sheet-empty`): price targets, Company snapshot, Sector peers.
+- **Sector peers**: `.peer-open` buttons open the peer's sheet; a Rank column (`r.rank` from
+  `stock_detail[t].rank`, added to `buildPeerRow` and the self row); remove buttons are labelled; the ticker
+  column is sticky below 760 px.
 
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 

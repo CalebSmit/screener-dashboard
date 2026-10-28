@@ -310,3 +310,33 @@ if any cross-reference names a heading that does not exist.
 
 Seen, not changed: the guide's "What each column means" link (guide owned elsewhere tonight); an unscored
 category tile still says "Not scored: no data" without a reason (optional item 4, not attempted).
+
+### Round three - the sheet (owner-run, 2026-10-27, late)
+
+Owner: *"please keep making improvements!! anything you can find throughout these tools."* The stock
+sheet and how it behaves when data is missing; another agent had the page shell. Audited at 375 and
+1280 px on MU (#2), KEY (bank), HST (REIT, #4), AMCR (both trap flags), ERIE (sparse coverage, no
+analyst targets), TSLA (#490), plus APA, JPM, FDXF and DPZ for the known items. Presentation only
+except one display-only payload field (item 4); `tests/test_sheet_round_three.py` (12) asserts each
+as behaviour. Scratch scripts and screenshots in the gitignored `logs/round3-sheet/`.
+
+| # | What was wrong | What it is now |
+|---|---|---|
+| 1 | **The scroll-spy lit the wrong tab at the end of the sheet.** The last sections cannot reach the top of a sheet that ends below them, so the rule "at the bottom, light the last section" won: on APA at 1280, clicking Price targets lit Data, and so did Peers; on a phone, Price targets lit Data | Two rules (`modalSpy` in `_js_ux`, `spyPin`): a tab the reader chose stays lit until they scroll by hand (wheel, touch, a scrolling key, a press in the body - `goToModal` and `openWorkings` pin it); scrolling freely, the reading line sits 24 px under the top and over the sheet's last screen slides to the bottom, so every shown tab lights in order. Measured: every tab on APA and JPM at 1280 and 375 lights itself when clicked |
+| 2 | Company snapshot had no tab | A **Financials** tab between Price targets and Peers (the strip already scrolls, with arrows and a fade, so one more tab costs nothing it did not already pay) |
+| 3 | **The first sheet open was a cold layout.** Chrome trace at 375 px, CPU 4x: the first open's layout ~337 ms against ~100 ms later, ~200 ms of it `InlineNode::ShapeTextIncludingFirstLine` - the browser shaping the sheet's words at its type sizes for the first time | `sheetPrewarm` (`_js_drilldown`): once the page is idle, the fonts are in and the context payload has loaded, the top-ranked stock's sheet is written into the closed sheet by `renderSheet` (split out of `openStockDetail`, the same writer) and laid out unseen, one section per idle slice (`.sheet-warm`: visibility hidden, no pointer, `sheetOpen()` still false; `.warm-skip`: `content-visibility: hidden` until its slice). Nothing is computed; every open rewrites the sheet; opening a stock first ends it. **First open, median of 8 fresh loads to the next frame: 176 -> 58 ms (min 107 -> 43)**; one quiet trace: layout 337 -> 71 ms, shaping 200 -> under 50. The machine was shared with other agents' suites, so wall-clock moved +-3x run to run; the trace's shaping time is the steadier figure |
+| 4 | **An unscored category said only "Not scored: no data"** | The tile says "Not scored: none of its 3 metrics has data" (or "its one metric has no data"), and the workings name them: "None of the 3 metrics this category weights for this stock has data in this run (Volatility, Beta and Max Drawdown (13M)), so ..." - read from the published weight table and percentiles (`unscoredWhy`, `_js_workings`), which is exactly the engine's rule (`compute_category_scores`: a category with no weighted metric with data is NaN). Where the run **rejected the stock's daily price history** (`_price_series_rejected`), Momentum and Risk say so with the engine's own reason: new display-only payload field **`stock_detail[t].flags.px_rejected`** (null for every stock today). Claim `drilldown.unscored_category`. **Not claimed:** "a new listing" or "a missing filing" - the engine records neither per stock (FDXF's momentum is missing because it has no close a year back, but nothing in the run says so), so the sheet does not guess |
+| 5 | ERIE's Analyst price targets was a heading over an empty body (and so would Company snapshot and Sector peers be, for a stock without them) | Each says what is missing: "No analyst price target was published for this stock in this run." |
+| 6 | **Sector peers could not be opened** from the table, and had no rank - a student comparing a stock with its peers had to search for each one | Each peer's ticker is a button that opens its sheet (named "Open PKG, Packaging Corporation of America"); a **Rank** column (the published rank, `stock_detail[t].rank`) after the ticker |
+| 7 | The peers table's last column was announced as "Open" but held remove buttons read aloud as "times" | Header "Remove"; each button "Remove PKG from the comparison"; 24 px (44 px on touch) |
+| 8 | On a phone the peers table scrolls sideways and the ticker scrolled away with it | the ticker column is sticky below 760 px |
+| 9 | Small touch targets in the sheet (audit at 375): About's toggle 19 px, the insider table's filing-date links 16 px | 44 px / 32 px on a coarse pointer |
+
+**The payload change only reaches the site through the next full data run** (`flags.px_rejected` is
+added by `prepare_dashboard_data`); the committed `dashboard_data.js` is untouched and
+`scripts/rehearse_publish.py` was run against the working tree.
+
+Seen, not changed: the peer median row is computed in the page (it predates this pass; a median of five
+reported values, not a score); the strip now holds eleven tabs, which on a 1280 px desktop shows about
+eight at once; a Back gesture after opening a peer's sheet closes the sheet rather than returning to the
+first stock (stepping replaces the history entry, as it always has).
