@@ -219,7 +219,7 @@ def test_the_trading_rule_sentence_follows_each_period_s_sign_and_t():
         word = "below" if st["mean"] < 0 else "above"
         verdict = "larger than chance readily produces" if X.p_value(st) < 0.05 else "within the noise"
         assert re.search(rf"In {re.escape(lab)} it returned <span class=\"num\">[0-9.]+%</span> a month {word} "
-                         rf"that average \(t&nbsp;{st['t']:+.2f}\), a gap {verdict}\.", page), k
+                         rf"that average \(t&nbsp;{re.escape(rp.num(st['t'], 2))}\), a gap {verdict}\.", page), k
     flipped = copy.deepcopy(b)
     flipped["discovery"]["excess"].update({"t": -0.5, "mean": -0.001})
     assert "2020 &ndash; mid-2023 it returned" in rp.bot_sentence(flipped, [("discovery", "2020 &ndash; mid-2023")], X.p_value)
@@ -405,3 +405,14 @@ def test_one_banner_one_main_one_footer_and_links_in_sentences_are_underlined():
             assert outside == []
         finally:
             browser.close()
+
+
+def test_every_t_statistic_carries_a_real_minus_as_the_means_beside_it_do():
+    """Round three, 2026-10-27: the t-statistics printed a hyphen ("t -0.67") beside means printed with
+    a real minus ("&minus;0.09%"), so two signs on one row differed in shape and width."""
+    page = _rebuilt()
+    body = re.sub(r"<style.*?</style>", " ", page, flags=re.S)
+    # the generator's own t-statistics (prose quoted from the registry is the registry's, untouched here)
+    assert not re.search(r'\(t&nbsp;-\d|t <span class="num">-\d|<span class="t">t -\d|aria-label="[^"]*, t -\d', body)
+    assert not re.search(r'<span class="t">\((?:t )?-\d', body)
+    assert re.search(r"\(t(?:&nbsp;| )&minus;\d", body)                     # and the negative ones are there to check

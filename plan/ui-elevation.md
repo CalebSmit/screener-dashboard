@@ -173,6 +173,34 @@ a second one).
 - `tests/test_case_against.py::test_each_line_opens_the_section_that_shows_it` (dashboard, untouched
   here) failed once under the parallel suite on a loaded machine and passed alone.
 
+### Same day, round three - the lab and the research page: the 153 factors' wait, and what a student still tripped on
+
+Owner: *"please keep making improvements!! anything you can find"*. Load order, presentation and one
+self-check made progressive; no figure changed (the reassembled lab payload equals round two's,
+3,153,295 sorted-key bytes), no ledger, registry or `summary.json` touched. `ASSET_VERSION` 28. Scratch
+measurements and screenshots in the gitignored `logs/round3-lab/`.
+
+| # | Page | What was wrong | What it is now | Tested in |
+|---|---|---|---|---|
+| 1 | Lab | **153 factors took 5.03 s to open on the phone profile** (median of 5 from a tap; 375 px, 4x CPU, slow 4G): one 716 KB part with three universes, all checked at open - round two's worst offender | each size group its own part (`LAZY_INTO`); opens on all stocks in **1.98 s**, the opening chart (which sets mega caps beside all stocks) complete at **3.53 s**; large caps load when chosen. A figure whose series is not here yet is printed as the build's, labelled "not yet re-run in this browser", never counted as checked or as drift, and re-run when it lands; the line under the table counts the re-run figures (claim `lab.replication_check`); a failed group says so with Try again | `test_factor_lab.py` (+1), `test_lab_reading_and_access.py` (+3) |
+| 2 | Lab | On a phone the 153 factors' thirteen theme names, set at an angle under 26 bars in 340 px, ran into one another | below 520 px the chart is a row per theme - name, then its two bars on the same fixed 0-100% scale, each with its figure; read by pointer, tap or arrows (Up/Down too). Wide screens unchanged | `test_lab_reading_and_access.py` (+1) |
+| 3 | Lab | The eight sorts shared one 212 KB part though each reads one (10-38 KB) | one part each; earnings yield, the largest, opens in **0.99 s** against 2.04 s | `test_factor_lab.py` (the parts tests, generalised) |
+| 4 | Research | t-statistics printed a hyphen beside means printed with a real minus ("&minus;0.09% (t -0.67)") | every t through `num()`: a real minus; zero unsigned | `test_research_page.py` (+1) |
+| 5 | Lab | On the overview a card's count sat beside a short meter and under a long one, so counts never lined up across a row or down a column | always under its meter, at every width | `test_lab_reading_and_access.py` (+1) |
+
+**Seen, not fixed**
+
+- Month counts print without a thousands separator ("Over 1140 months") in about ten sentences, several
+  pinned verbatim by tests - a one-helper change worth doing with those tests in one pass.
+- On a phone the scorecard and the category map list the same experiment links per category twice, a
+  section apart (round two's note). Merging them is the owner's content decision.
+- The research page's per-period figures for the trading rule are a stack of label/value pairs on a
+  phone (about 1,000 px for three periods); a compact three-column table would read faster. Not
+  started: the stop-loss block beside it would have to move with it.
+- The first 1-2 s of the 153 factors on a phone are now the `jkp` part (243 KB gz) itself: the
+  all-stocks series is already integer basis points; a further cut would mean shipping the paper's
+  window first and the post-2020 months after - not worth its complexity today.
+
 ### Same day, night - the drilldown pass (owner-run)
 
 The stock sheet audited as a student would use it - EXPE (#1), JPM (bank), VICI (REIT), ED (utility),
@@ -310,3 +338,76 @@ if any cross-reference names a heading that does not exist.
 
 Seen, not changed: the guide's "What each column means" link (guide owned elsewhere tonight); an unscored
 category tile still says "Not scored: no data" without a reason (optional item 4, not attempted).
+
+### Round three - the shell (2026-10-27, owner-run)
+
+Owner: *"please keep making improvements!! anything you can find throughout these tools."* The page shell and
+platform: head, fonts, load and failure handling, hero, footer, print, and the files a browser asks for beside
+the page. Presentation only - payload byte-identical (`scripts/rebuild_page.py`); `tests/test_page_shell.py`
+(22, browser + static) asserts each item as behaviour, serving the repository locally and refusing every other
+host, so the suite never reaches the network (Google's fonts included). Scratch measurements in the gitignored
+`logs/round3-shell/` (a gzip server, Playwright, CDP 4x CPU; the machine was shared with other agents' suites,
+so wall-clock numbers move +-30% - the counts below do not).
+
+| # | What was wrong (measured first) | What it is now |
+|---|---|---|
+| 1 | **The Inter swap moved the page.** Held back until the rankings had drawn (what a phone on slow 4G sees: Inter finished at 10.2-10.6 s, after the payload at ~9.2 s), the swap from Segoe UI / Roboto - **7.5% narrower than Inter** on this page's own text - resized **49 of 579** text boxes at 375 px, grew the page **100 px** and shifted the first screen by **0.0020**; at 1280 px **205** boxes resized, **209** moved, shift **0.0037** | `'Inter Fallback'`: local Arial (Arial Bold for 600/700), one `@font-face` a weight, `size-adjust` 104.99 / 105.99 / 101.94 / 102.87% so the page's text is Inter's width **to within 0.005%** at every weight, and Inter's own ascent/descent (1984 / 494 of 2048; no line gap). At 375: **25** boxes resized, page **+41 px** (one guide paragraph still breaks a line differently), shift **0.0004**; at 1280: **135** resized, **113** moved, shift **0.0007**. Once Inter has loaded nothing changes. Not `font-display: optional`. *Not* reduced: the relayout itself (the browser re-shapes every text run; 0.5-1.3 s at 4x either way, inside the noise) - only arriving before the payload would avoid it |
+| 2 | **No payload: a developer's note over skeletons that pulsed for good.** "No screener data payload was loaded. Try a hard refresh (Ctrl+F5). If this persists, redeploy dashboard.html and dashboard_data.js together." in hard-coded red above the header; KPI, dot-picture and leader skeletons stayed `aria-busy` for good; every nav link pointed at an empty section | The hero says which failure it was - offline, a download that failed, a file that arrived incomplete, or one with no stocks - with **Reload the page** and the two pages that work without it; every section that would have drawn from the file steps aside (`html.data-failed`). Offline reloads itself when the connection returns. A drawing exception says "Part of this page could not be drawn" and is **rethrown**, so it still reaches every `pageerror` check |
+| 3 | **A slow payload said nothing**: skeletons pulsed with no word while 1.3 MB arrived | After 4 s without the data (an inline timer runs while the parser waits on the script), "Still loading the rankings ..." in a status region; it leaves when the data lands |
+| 4 | **A failed context file** was told tile by tile ("not loaded") with no retry | One notice near the top, in the caveat colour - what is missing, and that the rankings and every score are complete without it - with **Try again**, which re-runs `loadContext`; a returning connection retries by itself |
+| 5 | **Nothing said the figures were old.** The data loop publishes every weekday (NYSE holidays included - the Labor Day 2026-09-07 run published like any other) | `runStaleness`: weekdays after the run's date whose run was due by the reader's clock (from 14:00 UTC, six hours after the 02:00 Central start); at **two or more**, "These figures are from the run of Monday, Oct 26. A new run normally appears every weekday morning, and N weekday runs since then have not, so prices and scores may be behind the market." Claim `page.freshness`, two behavioural checks (eight cases incl. a weekend and Labor Day; the page on the run's afternoon and two weekdays later) |
+| 6 | **The run's time was wrong outside Central.** `new Date(kpis.run_timestamp)` read the run machine's offset-less wall clock in the *reader's* zone: London saw "2:00 AM GMT" for a run at 07:00 GMT | `runInstant` reads it as America/Chicago wall time (two passes, so a stamp beside a clock change settles); the hero and footer print the true instant in the reader's zone; tested in four zones |
+| 7 | **Printing printed ~37 rows and eleven blank pages.** The table is windowed (spacer rows stand in for the rest), and a printed page is laid out at the paper's portrait width - a phone's, so card rows. 17 pages, every section expanded, dark tokens | Ctrl+P with no sheet open builds **every** row the filters and sort produce, says which in a caption ("All 498 stocks, by Rank, ascending." / "46 of 498 stocks (Trap flags: Value trap), ..."), prints ink on white in landscape: the statement and its date, the four figures, the open sections (leaders five across), the rankings as a table whose header repeats on each page, the disclaimer. Navigation, search, filters, the dot picture, the guide, collapsed sections and the Menu pill are left off. **16 pages, all 498 rows**; the window comes back afterwards. The sheet's print path is untouched |
+| 8 | **No 404 page** - a mistyped address got GitHub's generic one | `404.html` in the site's look: the three pages, links rooted at `/screener-dashboard/` so it works at any depth; an address ending in something ticker-shaped (`/screener-dashboard/MSFT`) offers "Open MSFT in the rankings" (`#stock=MSFT`) |
+| 9 | **No home-screen icon or manifest** - iOS "Add to Home Screen" used a screenshot of the page (it ignores SVG icons) | `icon-180.png` (apple-touch-icon), `manifest.webmanifest` (standalone, the page's colours) with 192 / 512 icons and a maskable 512, drawn from the favicon's own geometry by `scripts/make_icons.py`. **No service worker**: a cached payload that outlived its run would be worse than none, and the bot reads these files |
+
+| 10 | **The phone sector cards cleared the screen's edge by under a pixel.** With Inter the card scrolled sideways by 1 px at 375 (the test allows 1); found because the suite renders in the fallback face (Inter never loads from `file://`), where "COMPOSITE" pushed it to 4 px | The composite's label is untracked and every label is held inside its column (ellipsis as a last resort): 0 px with Inter, the stand-in and the system face |
+
+**Runners and gates:** the new root files are source, not data artifacts - an HTML page, a manifest and PNGs,
+none regenerated by a run and none a `.js` payload - so neither runner's `$DataArtifacts`, parse checks or
+`PUBLISHED_ARTIFACTS` needs them (a test pins that). `tests/test_page_shell.py` joins the data loop's claims
+gate through `page.freshness`'s `checked_by`, as every claim's module does.
+
+**Test pin changed, as strictly:** `tests/test_dashboard_interaction.py::test_web_fonts_do_not_block_first_paint`
+pinned `--font-body: 'Inter', system-ui`; it now pins `'Inter', 'Inter Fallback', system-ui`.
+
+**Seen, not fixed**
+- The relayout when Inter arrives (point 1) is still the load's biggest task on a slow phone. Self-hosting Inter
+  (OFL, ~50 KB latin woff2) and preloading it from the same origin would let it arrive before the payload; that
+  adds a binary font to the repository and was not attempted unattended.
+- Where Arial is not installed (most Android phones) the stand-in face does not load and the system stack takes
+  over, unmatched, as before. A Roboto face needs Roboto to measure against.
+- Today's committed footer still reads "02:00 UTC" for a 07:00 UTC run (for readers without JavaScript): the
+  generator was corrected earlier today and the 02:00 data run will publish the true label; `rebuild_page.py`
+  carries the committed label over by design.
+- On a data failure the footer's "How to read this" link opens a guide the failure hides.
+
+### Round three - the sheet (owner-run, 2026-10-27, late)
+
+Owner: *"please keep making improvements!! anything you can find throughout these tools."* The stock
+sheet and how it behaves when data is missing; another agent had the page shell. Audited at 375 and
+1280 px on MU (#2), KEY (bank), HST (REIT, #4), AMCR (both trap flags), ERIE (sparse coverage, no
+analyst targets), TSLA (#490), plus APA, JPM, FDXF and DPZ for the known items. Presentation only
+except one display-only payload field (item 4); `tests/test_sheet_round_three.py` (12) asserts each
+as behaviour. Scratch scripts and screenshots in the gitignored `logs/round3-sheet/`.
+
+| # | What was wrong | What it is now |
+|---|---|---|
+| 1 | **The scroll-spy lit the wrong tab at the end of the sheet.** The last sections cannot reach the top of a sheet that ends below them, so the rule "at the bottom, light the last section" won: on APA at 1280, clicking Price targets lit Data, and so did Peers; on a phone, Price targets lit Data | Two rules (`modalSpy` in `_js_ux`, `spyPin`): a tab the reader chose stays lit until they scroll by hand (wheel, touch, a scrolling key, a press in the body - `goToModal` and `openWorkings` pin it); scrolling freely, the reading line sits 24 px under the top and over the sheet's last screen slides to the bottom, so every shown tab lights in order. Measured: every tab on APA and JPM at 1280 and 375 lights itself when clicked |
+| 2 | Company snapshot had no tab | A **Financials** tab between Price targets and Peers (the strip already scrolls, with arrows and a fade, so one more tab costs nothing it did not already pay) |
+| 3 | **The first sheet open was a cold layout.** Chrome trace at 375 px, CPU 4x: the first open's layout ~337 ms against ~100 ms later, ~200 ms of it `InlineNode::ShapeTextIncludingFirstLine` - the browser shaping the sheet's words at its type sizes for the first time | `sheetPrewarm` (`_js_drilldown`): once the page is idle, the fonts are in and the context payload has loaded, the top-ranked stock's sheet is written into the closed sheet by `renderSheet` (split out of `openStockDetail`, the same writer) and laid out unseen, one section per idle slice (`.sheet-warm`: visibility hidden, no pointer, `sheetOpen()` still false; `.warm-skip`: `content-visibility: hidden` until its slice). Nothing is computed; every open rewrites the sheet; opening a stock first ends it. **First open, median of 8 fresh loads to the next frame: 176 -> 58 ms (min 107 -> 43)**; one quiet trace: layout 337 -> 71 ms, shaping 200 -> under 50. The machine was shared with other agents' suites, so wall-clock moved +-3x run to run; the trace's shaping time is the steadier figure |
+| 4 | **An unscored category said only "Not scored: no data"** | The tile says "Not scored: none of its 3 metrics has data" (or "its one metric has no data"), and the workings name them: "None of the 3 metrics this category weights for this stock has data in this run (Volatility, Beta and Max Drawdown (13M)), so ..." - read from the published weight table and percentiles (`unscoredWhy`, `_js_workings`), which is exactly the engine's rule (`compute_category_scores`: a category with no weighted metric with data is NaN). Where the run **rejected the stock's daily price history** (`_price_series_rejected`), Momentum and Risk say so with the engine's own reason: new display-only payload field **`stock_detail[t].flags.px_rejected`** (null for every stock today). Claim `drilldown.unscored_category`. **Not claimed:** "a new listing" or "a missing filing" - the engine records neither per stock (FDXF's momentum is missing because it has no close a year back, but nothing in the run says so), so the sheet does not guess |
+| 5 | ERIE's Analyst price targets was a heading over an empty body (and so would Company snapshot and Sector peers be, for a stock without them) | Each says what is missing: "No analyst price target was published for this stock in this run." |
+| 6 | **Sector peers could not be opened** from the table, and had no rank - a student comparing a stock with its peers had to search for each one | Each peer's ticker is a button that opens its sheet (named "Open PKG, Packaging Corporation of America"); a **Rank** column (the published rank, `stock_detail[t].rank`) after the ticker |
+| 7 | The peers table's last column was announced as "Open" but held remove buttons read aloud as "times" | Header "Remove"; each button "Remove PKG from the comparison"; 24 px (44 px on touch) |
+| 8 | On a phone the peers table scrolls sideways and the ticker scrolled away with it | the ticker column is sticky below 760 px |
+| 9 | Small touch targets in the sheet (audit at 375): About's toggle 19 px, the insider table's filing-date links 16 px | 44 px / 32 px on a coarse pointer |
+
+**The payload change only reaches the site through the next full data run** (`flags.px_rejected` is
+added by `prepare_dashboard_data`); the committed `dashboard_data.js` is untouched and
+`scripts/rehearse_publish.py` was run against the working tree.
+
+Seen, not changed: the peer median row is computed in the page (it predates this pass; a median of five
+reported values, not a score); the strip now holds eleven tabs, which on a 1280 px desktop shows about
+eight at once; a Back gesture after opening a peer's sheet closes the sheet rather than returning to the
+first stock (stepping replaces the history entry, as it always has).

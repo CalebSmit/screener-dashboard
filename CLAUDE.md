@@ -489,8 +489,9 @@ outcome.
   screener cites on public data and lets the reader change the conditions. `factor_lab.py` is
   the reference implementation and builds `lab_data.js` (**generated**: `python factor_lab.py
   --build`); `lab_engine.js` is the same arithmetic for the browser and must reproduce the Python
-  (`tests/test_factor_lab.py`). The six heavy series are built as `lab_data_<key>.js`
-  (`factor_lab.LAZY_KEYS`) and `lab.html` loads one only when an experiment that reads it opens
+  (`tests/test_factor_lab.py`). The heavy series are built as `lab_data_<key>.js` - one part per key in `factor_lab.LAZY_KEYS` (15 since
+  2026-10-27: 153 factors split by universe, each sort its own part; `LAZY_INTO` says where a part goes back),
+  and `lab.html` loads one only when an experiment that reads it opens
   (`PARTS`) - a new experiment kind that reads one needs a `PARTS` entry; `lab_data.js` has a
   200 KB gzipped budget (`FIRST_PAINT_BUDGET_GZ`; phone-profile menu 6.3 s -> 0.95 s, 2026-10-26).
   `lab.html` is hand-written source. The library's own files live

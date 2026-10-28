@@ -1320,6 +1320,11 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "ltm_rolled_labels": _str_list(row.get("_ltm_rolled_labels")),
             # display-only: why the flows are the last fiscal year's (factor_engine.quarterly_statement_defect)
             "q_rejected": row.get("_quarterly_rejected") if isinstance(row.get("_quarterly_rejected"), str) else None,
+            # display-only: why the run withheld every measure built from the daily price history
+            # (factor_engine.check_price_series_integrity -> `_price_series_rejected`, e.g. a series
+            # mixing pre- and post-split prices). An unscored Momentum or Risk tile names it
+            # (round three, 2026-10-27; claim drilldown.unscored_category). Never scored.
+            "px_rejected": row.get("_price_series_rejected") if isinstance(row.get("_price_series_rejected"), str) else None,
             "stale_data": bool(row.get("_stale_data")) if pd.notna(row.get("_stale_data")) else False,
             "stmt_age_days": _safe(row.get("_stmt_age_days")),
         }
@@ -1856,6 +1861,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
+    <!-- A phone's home screen (round three, 2026-10-27): the mark as a PNG, which iOS needs, and a
+         manifest so "Add to Home Screen" opens the site full-screen under its own name. No service
+         worker: a stale cached payload would be worse than none, and a bot reads these files. -->
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="apple-mobile-web-app-title" content="Screener">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- The web fonts never block first paint: preloaded, then swapped in when they arrive. With the
@@ -1926,6 +1937,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <h2 class="hero-title" id="hero-title">The S&amp;P&nbsp;500, ranked on eight factors</h2>
                 <p class="hero-sub">Every company is scored against its own sector on eight factors, from valuation and profitability to analyst revisions. Each score traces back to its inputs, weights and formulas.</p>
                 <p class="hero-note">For research and education. Not investment advice.</p>
+                <!-- What the page has to say about its own loading (round three, 2026-10-27): data that
+                     is still arriving, never arrived, is older than the schedule allows, or a context
+                     file that failed. Filled by the page's script; empty when all is well. -->
+                <div class="page-notices" id="page-notices">
+                    <p class="page-notice pn-wait" id="load-wait" role="status" hidden>Still loading the rankings. The scores arrive as one large file, which can take a little while on a slow connection.</p>
+                </div>
             </div>
             <div class="hero-actions">
                 <button type="button" class="hero-btn hero-btn-primary" onclick="goToSection('sec-universe')">Browse the rankings</button>
@@ -2285,6 +2302,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <a href="#section-context" onclick="goToModal('section-context');return false">Before you decide</a>
                     <a href="#section-history" onclick="goToModal('section-history');return false" id="mnav-history">History</a>
                     <a href="#section-price-targets" onclick="goToModal('section-price-targets');return false">Price targets</a>
+                    <a href="#section-snapshot" onclick="goToModal('section-snapshot');return false">Financials</a>
                     <a href="#section-peers" onclick="goToModal('section-peers');return false">Peers</a>
                     <a href="#section-provenance" onclick="goToModal('section-provenance');return false">Data</a>
                 </nav>
@@ -2516,7 +2534,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         </footer>
     </div>
 
-    <script src="./dashboard_data.js?v={version}"></script>
+    <!-- While the payload is still arriving the parser waits here, but timers run: after a few seconds
+         the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
+         failed download is recorded so the page can say which of the failures it was. -->
+    <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () {{ var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }}, 4000);</script>
+    <script src="./dashboard_data.js?v={version}" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -2628,7 +2650,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const vt = D.vt_by_sector || {{}}, top = Object.keys(vt).sort((a, b) => vt[b].rate - vt[a].rate)[0];
         const ma = document.getElementById('meta-analytics');
         if (ma && top) ma.textContent = 'Most value\u2011trap flags: ' + top + ', ' + Number(vt[top].rate).toFixed(1) + '% of the sector';
-        const ts = k.run_timestamp ? new Date(k.run_timestamp) : null;
+        // the stamp is the run machine's wall clock (US Central) with no offset; read as the reader's own
+        // zone it put a 02:00 Central run at "2:00 AM GMT" in London (round three, 2026-10-27)
+        const ts = k.run_timestamp ? runInstant(k.run_timestamp) : null;
         const fmtDate = ts ? ts.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric', year: 'numeric' }}) : '';
         const fmtTime = ts ? ts.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }}) : '';
         document.getElementById('run-info').textContent = ts ? `Last updated ${{fmtDate}} at ${{fmtTime}}` : '';
@@ -2866,6 +2890,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         return {{
             ticker: peerTicker,
             company: d.company || '',
+            rank: d.rank,
             rev_growth: d.raw ? d.raw.revenue_growth : null,
             pe_ratio: (ey !== null && ey !== undefined && ey > 0) ? Math.round(10.0 / ey) / 10 : null,
             net_margin: d.financials ? d.financials.net_margin : null,
@@ -3928,7 +3953,21 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     function openStockDetail(ticker) {{
         const s = D.stock_detail[ticker];
         if (!s) return;
+        renderSheet(ticker, s);
 
+        modalReturnFocus = document.activeElement;
+        document.getElementById('stock-modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const mb = document.querySelector('#stock-modal .modal-body');
+        if (mb) mb.scrollTop = 0;
+        const closeBtn = document.querySelector('#stock-modal .modal-close');
+        if (closeBtn) closeBtn.focus({{ preventScroll: true }});
+    }}
+
+    // Everything the sheet shows for one stock, written into the (open or closed) sheet. Split
+    // from openStockDetail in round three (2026-10-27) so the idle-time warm-up (_js_drilldown,
+    // sheetPrewarm) can lay the sheet out once, unseen, without opening it.
+    function renderSheet(ticker, s) {{
         document.getElementById('modal-ticker').textContent = ticker;
         document.getElementById('modal-company').textContent = s.company;
         document.getElementById('modal-sector').textContent = s.sector;
@@ -3960,7 +3999,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const weight = (score === null || score === undefined) ? null : ew[c];
             // Spelled out for a first-year reader (club readiness, 2026-10-19): the category's points
             // out of the most it could add, which is its weight. It was "18.9 pts (22% wt)".
-            const ptsText = weight === null ? 'Not scored: no data' : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+            // An unscored tile says why, from the payload (unscoredWhy, claim drilldown.unscored_category;
+            // it said only "Not scored: no data" until round three, 2026-10-27).
+            const ptsText = weight === null ? escapeHtml(unscoredWhy(c, s).short) : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
             scoreHtml += `<div class="modal-score-card${{weight === null ? ' is-na' : ''}}" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="modal-score-label">${{CAT_LABELS[c]}}</div>
@@ -3994,14 +4035,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         // Context: trend, options, insiders, rates (display only)
         if (typeof renderContext === 'function') renderContext(ticker, s);
-
-        modalReturnFocus = document.activeElement;
-        document.getElementById('stock-modal').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        const mb = document.querySelector('#stock-modal .modal-body');
-        if (mb) mb.scrollTop = 0;
-        const closeBtn = document.querySelector('#stock-modal .modal-close');
-        if (closeBtn) closeBtn.focus({{ preventScroll: true }});
     }}
 
     let modalReturnFocus = null;
@@ -4022,6 +4055,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const el = document.getElementById(id);
         if (!el) return;
         if (el.classList.contains('collapsed')) el.classList.remove('collapsed');
+        // the tab the reader chose stays lit until they scroll by hand (modalSpy, _js_ux)
+        if (typeof spyPin === 'function') spyPin(id);
         scrollSheetTo(el);
     }}
 
@@ -4056,9 +4091,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const ptLow = s.pt_low;
         const nAnalysts = s.num_analysts;
 
-        // If no price target data, hide section
+        // No targets: say so. It used to leave the heading over an empty body (ERIE, 2026-10-27).
         if (!ptMean && !ptHigh && !ptLow) {{
-            container.innerHTML = '';
+            container.innerHTML = '<p class="modal-note sheet-empty">No analyst price target was published for this stock in this run.</p>';
             return;
         }}
 
@@ -4154,7 +4189,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const container = document.getElementById('modal-snapshot');
         if (!container) return;
         const f = s.financials;
-        if (!f) {{ container.innerHTML = ''; return; }}
+        if (!f) {{ container.innerHTML = '<p class="modal-note sheet-empty">No financial figures were published for this stock in this run.</p>'; return; }}
 
         const fmtShares = (v) => {{
             if (v === null || v === undefined) return '\u2014';
@@ -4231,7 +4266,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const container = document.getElementById('modal-peers');
         if (!container) return;
         const self = s.self_metrics;
-        if (!self) {{ container.innerHTML = ''; return; }}
+        if (!self) {{ container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }}
 
         // Initialize peer state on first render for this ticker
         if (peerState.currentTicker !== ticker) {{
@@ -4262,7 +4297,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }};
 
         // Build rows dynamically from peerState
-        const selfRow = {{ ticker: ticker, company: s.company, isSelf: true, ...self }};
+        const selfRow = {{ ticker: ticker, company: s.company, isSelf: true, ...self, rank: s.rank }};
         const peerRows = peerState.customPeers
             .map(t => buildPeerRow(t))
             .filter(r => r !== null);
@@ -4287,6 +4322,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <table class="peer-table">
             <thead><tr>
                 <th class="peer-th-ticker">Ticker</th>
+                <th title="Its place in this run's published ranking, 1 = the highest composite">Rank</th>
                 <th>Mkt Cap</th>
                 <th>P/E</th>
                 <th>Rev Growth</th>
@@ -4295,7 +4331,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <th>D/E</th>
                 <th>Div Yield</th>
                 <th>FCF Yield</th>
-                <th class="peer-th-action"><span class="sr-only">Open</span></th>
+                <th class="peer-th-action"><span class="sr-only">Remove</span></th>
             </tr></thead><tbody>`;
 
         allRows.forEach(r => {{
@@ -4304,9 +4340,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const profitMetric = useROE ? r.roe : r.roic;
             html += `<tr class="${{cls}}">
                 <td class="peer-td-ticker">
-                    <span class="peer-ticker">${{escapeHtml(r.ticker)}}</span>
+                    ${{r.isSelf ? `<span class="peer-ticker">${{escapeHtml(r.ticker)}}</span>`
+                        : `<button type="button" class="peer-ticker peer-open" onclick="openStockDetail('${{escapeHtml(r.ticker)}}')" aria-label="Open ${{escapeHtml(r.ticker)}}, ${{escapeHtml(String(r.company || ''))}}" title="Open this stock's sheet">${{escapeHtml(r.ticker)}}</button>`}}
                     ${{r.isSelf ? '<span class="peer-you">YOU</span>' : ''}}
                 </td>
+                <td class="peer-td-num peer-td-rank">${{r.rank ? '#' + r.rank : '—'}}</td>
                 <td class="peer-td-num">${{fmtBig(r.mcap)}}</td>
                 <td class="peer-td-num">${{fmtPE(r.pe_ratio)}}</td>
                 <td class="peer-td-num">${{fmtRG(r.rev_growth)}}</td>
@@ -4315,7 +4353,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <td class="peer-td-num">${{fmtDE(r.debt_equity)}}</td>
                 <td class="peer-td-num">${{fmtPct1(r.div_yield)}}</td>
                 <td class="peer-td-num">${{fmtPct1(r.fcf_yield)}}</td>
-                <td class="peer-td-action">${{r.isSelf ? '' : `<button class="peer-remove-btn" onclick="removePeer('${{escapeHtml(r.ticker)}}')" title="Remove">&times;</button>`}}</td>
+                <td class="peer-td-action">${{r.isSelf ? '' : `<button type="button" class="peer-remove-btn" onclick="removePeer('${{escapeHtml(r.ticker)}}')" title="Remove from the comparison" aria-label="Remove ${{escapeHtml(r.ticker)}} from the comparison">&times;</button>`}}</td>
             </tr>`;
         }});
 
@@ -4325,6 +4363,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const med = k => median(others.map(r => k === 'profit' ? (useROE ? r.roe : r.roic) : r[k]));
             html += `<tr class="peer-row-median">
                 <td class="peer-td-ticker"><span class="peer-ticker">Peer median</span></td>
+                <td class="peer-td-num"></td>
                 <td class="peer-td-num">${{fmtBig(med('mcap'))}}</td>
                 <td class="peer-td-num">${{fmtPE(med('pe_ratio'))}}</td>
                 <td class="peer-td-num">${{fmtRG(med('rev_growth'))}}</td>
@@ -4995,14 +5034,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // INIT
     // =====================================================================
     const hasCoreData = Array.isArray(D.table_data) && D.table_data.length > 0;
+    clearTimeout(window.SCREENER_WAIT);
+    {{ const w = document.getElementById('load-wait'); if (w) w.hidden = true; }}
     if (!hasCoreData) {{
-        const root = document.querySelector('.dashboard-container');
-        if (root) {{
-            root.insertAdjacentHTML('afterbegin',
-                '<div style="margin:12px 0;padding:12px;border:1px solid rgba(248,81,73,.35);border-radius:8px;background:rgba(248,81,73,.1);color:#ffb3ae">No screener data payload was loaded. Try a hard refresh (Ctrl+F5). If this persists, redeploy dashboard.html and dashboard_data.js together.</div>'
-            );
-        }}
-    }} else {{
+        // the reader is told which failure it was and given a way to retry (round three, 2026-10-27;
+        // it was a developer's note - "redeploy dashboard.html and dashboard_data.js" - over skeletons
+        // that pulsed for good)
+        showLoadFailure(window.SCREENER_DATA_FAILED ? (navigator.onLine === false ? 'offline' : 'network')
+                        : (window.SCREENER_DATA ? 'empty' : 'broken'));
+    }} else try {{
         watchSectionAria();
         renderKPIs();
         const kr = document.getElementById('kpi-row');
@@ -5027,7 +5067,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         applyFilters();
         renderDefensibility();
         initUX();
+        showStaleness();
         loadContext("./dashboard_context.js?v={ctx_version}");
+    }} catch (e) {{
+        // a payload the page cannot draw: say so rather than leave half a page, and still report it
+        showLoadFailure('render');
+        throw e;
     }}
 
     </script>
@@ -5071,6 +5116,37 @@ def _js_workings() -> str:
             }
         });
         return { pid: pid, table: table, total: total, weighted: weighted, withData: withData };
+    }
+
+    // Why a category has no score, from the published payload alone (round three, 2026-10-27; claim
+    // drilldown.unscored_category). The engine scores a category only when at least one metric that
+    // carries weight in this stock's table has a value (factor_engine.compute_category_scores: the
+    // weighted average runs over metrics with data, and a category with none is NaN); so an unscored
+    // category's reason is the list of those metrics. Where the run rejected the stock's daily price
+    // history (flags.px_rejected, factor_engine.check_price_series_integrity), Momentum and Risk -
+    // whose weighted metrics are all built from that history - also say why. Nothing else is
+    // inferred: a short history or a missing filing is not recorded per stock, so it is not claimed.
+    const PRICE_HISTORY_CATS = ['momentum', 'risk'];
+    function unscoredWhy(cat, s) {
+        const wp = weightProfile(cat, s);
+        const fl = s.flags || {};
+        const px = (fl.px_rejected && PRICE_HISTORY_CATS.indexOf(cat) >= 0) ? String(fl.px_rejected) : '';
+        const weighted = wp ? Object.keys(wp.table).filter(m => wp.table[m] > 0).sort((a, b) => wp.table[b] - wp.table[a]) : [];
+        const empty = weighted.filter(m => s.pct[m] === null || s.pct[m] === undefined);
+        // the rule holds only if every weighted metric is empty; otherwise say no more than "no data"
+        const names = (weighted.length && empty.length === weighted.length) ? empty.map(metricLabel) : [];
+        const n = names.length;
+        const listed = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+        const short = px ? 'Not scored: price history rejected'
+            : n === 1 ? 'Not scored: its one metric has no data'
+            : n ? 'Not scored: none of its ' + n + ' metrics has data'
+            : 'Not scored: no data';
+        const shared = ', so the category is not scored and its weight is shared across the others.';
+        const long = (n === 1 ? 'Its one weighted metric, ' + names[0] + ', has no data for this stock in this run' + shared
+            : n ? 'None of the ' + n + ' metrics this category weights for this stock has data in this run (' + listed(names) + ')' + shared
+            : 'No weighted metric has data for this stock' + shared) +
+            (px ? ' The run rejected this stock’s daily price history (' + px + '), and every measure built from that history was left out.' : '');
+        return { short: short, long: long, metrics: names, px: px };
     }
 
     // One category's metric rows: value, percentile, weight used, points.
@@ -5132,7 +5208,7 @@ def _js_workings() -> str:
                     body += `<p class="wk-note">${wk.wp.withData} of the ${wk.wp.weighted} weighted metrics have data for this stock. A metric with no data drops out and the rest are scaled up to 100%, so the weights below are shares of this stock's score.</p>`;
                 }
                 if (!scored) {
-                    body += `<p class="wk-note">No weighted metric has data for this stock, so the category is not scored and its weight is shared across the others.</p>`;
+                    body += `<p class="wk-note wk-unscored">${escapeHtml(unscoredWhy(cat, s).long)}</p>`;
                 }
                 body += `<table class="wk-table"><thead><tr>
                     <th class="wk-metric">Metric</th>
@@ -5483,6 +5559,7 @@ def _js_workings() -> str:
         const section = document.getElementById('section-categories');
         if (section) section.classList.remove('collapsed');
         el.classList.remove('collapsed');
+        if (typeof spyPin === 'function') spyPin('section-categories');
         scrollSheetTo(el);
     }
 """
@@ -5855,6 +5932,8 @@ def _js_table() -> str:
 
     // Build only the rows on screen (plus a margin) between two spacers.
     function renderWindow(force) {
+        // on paper every row is built at once (preparePagePrint); the window waits until afterprint
+        if (window.PRINT_PAGE_ON) return;
         const table = document.getElementById('universe-table');
         const tbody = document.getElementById('universe-tbody');
         if (!table || !tbody || table.offsetParent === null) return;
@@ -5968,12 +6047,12 @@ def _css() -> str:
             --t-fast: 120ms;
             --t-base: 160ms;
             /* type */
-            --font-heading: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-            --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --font-heading: 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --font-body: 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
             --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
             /* the headline voice: Inter at 600 with tightened tracking, the ticker's own style - one
                family across the page (owner, 2026-10-27; plan/ui-elevation.md) */
-            --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --font-display: 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
             /* depth through light: the top edge of a raised card, no shadow */
             --hairline-hi: inset 0 1px 0 rgba(255,255,255,.04);
         }
@@ -9165,27 +9244,54 @@ def _js_ux() -> str:
     }
 
     // Which part of the drilldown you are reading, lit in its nav.
-    let modalSpyBound = false;
+    //
+    // Round three (2026-10-27): two rules, because one could not be right at the end of the sheet.
+    // 1. A tab the reader chose stays lit until they scroll by hand (wheel, touch, a scrolling key, a
+    //    press in the body). The last few sections cannot reach the top of a sheet that ends below
+    //    them, so a click on Price targets or Peers used to light Data (APA at 1280: both did).
+    // 2. Scrolling freely, the reading line sits 24px under the top - and over the sheet's last
+    //    screen it slides to the bottom, so the sections that can never reach the top still take
+    //    their turn in order instead of all jumping to the last one at the final pixel.
+    let modalSpyBound = false, SPY_PIN = null, SPY_UPDATE = null;
+    function spyPin(id) {
+        SPY_PIN = id || null;
+        if (SPY_UPDATE) requestAnimationFrame(SPY_UPDATE);
+    }
     function modalSpy() {
         const body = document.querySelector('#stock-modal .modal-body');
         const links = [...document.querySelectorAll('#stock-modal .modal-nav a')];
         if (!body || !links.length) return;
+        const target = a => document.getElementById(a.getAttribute('href').slice(1));
         const update = () => {
-            const top = body.getBoundingClientRect().top + 24;
-            let cur = links[0];
-            links.forEach(a => {
-                const el = document.getElementById(a.getAttribute('href').slice(1));
-                if (el && el.offsetParent !== null && el.getBoundingClientRect().top <= top) cur = a;
-            });
-            // Scrolled to the end, the last sections can never reach the top line, so their tab never
-            // lit (Data stayed on Peers). At the bottom, the last section showing is the one being read.
-            if (body.scrollTop > 0 && body.scrollTop + body.clientHeight >= body.scrollHeight - 2) {
-                const shown = links.filter(a => { const el = document.getElementById(a.getAttribute('href').slice(1)); return el && el.offsetParent !== null && !a.hidden; });
-                if (shown.length) cur = shown[shown.length - 1];
+            const shown = links.filter(a => { const el = target(a); return !a.hidden && el && el.offsetParent !== null; });
+            if (!shown.length) return;
+            let cur = SPY_PIN ? shown.find(a => a.getAttribute('href') === '#' + SPY_PIN) : null;
+            if (!cur) {
+                const br = body.getBoundingClientRect();
+                const max = body.scrollHeight - body.clientHeight;
+                const span = Math.min(body.clientHeight, max);
+                const remain = max - body.scrollTop;
+                let line = br.top + 24;
+                if (span > 0 && remain < span) line += Math.max(0, body.clientHeight - 48) * (1 - Math.max(0, remain) / span);
+                cur = shown[0];
+                shown.forEach(a => { if (target(a).getBoundingClientRect().top <= line) cur = a; });
             }
             links.forEach(a => a.classList.toggle('active', a === cur));
         };
-        if (!modalSpyBound) { body.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true }); modalSpyBound = true; }
+        SPY_UPDATE = update;
+        if (!modalSpyBound) {
+            body.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+            // the reader taking over the scroll releases the tab they chose
+            const release = () => { if (SPY_PIN) { SPY_PIN = null; requestAnimationFrame(update); } };
+            body.addEventListener('wheel', release, { passive: true });
+            body.addEventListener('touchstart', release, { passive: true });
+            body.addEventListener('pointerdown', release, { passive: true });
+            body.addEventListener('keydown', e => {
+                if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End', ' '].indexOf(e.key) >= 0) release();
+            });
+            modalSpyBound = true;
+        }
+        SPY_PIN = null;     // a sheet just opened or stepped starts from its top
         update();
     }
 
@@ -10556,6 +10662,8 @@ def _js_context() -> str:
             Object.keys(C.ctx || {}).forEach(t => { if (D.stock_detail[t]) D.stock_detail[t].ctx = C.ctx[t]; });
             ['market', 'track', 'ctx_weeks'].forEach(k => { if (C[k] !== undefined) D[k] = C[k]; });
             CTX_LOADED = true;
+            CTX_FAILED = false;
+            if (typeof clearContextFailure === 'function') clearContextFailure();
             SECTOR_R1M = null;
             initContext();
             const sel = document.getElementById('filter-ctx');
@@ -10577,6 +10685,14 @@ def _js_context() -> str:
             const sel = document.getElementById('filter-ctx');
             if (sel && sel.value !== 'all') applyFilters();
             redrawContextSections();
+            // said once near the top, with a retry (round three, 2026-10-27); a retry starts over
+            if (typeof showContextFailure === 'function') showContextFailure(() => {
+                el.remove();
+                CTX_FAILED = false; CTX_LOADED = false;
+                const kv2 = document.getElementById('kpi-track-v'); if (kv2) kv2.innerHTML = '&hellip;';
+                const ks2 = document.getElementById('kpi-track-s'); if (ks2) ks2.innerHTML = 'the top 25 against the equal&#8209;weight S&amp;P 500';
+                loadContext(src);
+            });
         };
         ctxFilterState();
         document.body.appendChild(el);
@@ -11177,6 +11293,169 @@ def _js_page() -> str:
     SVG of a few paths, built after first paint, so the page's 3,000-node budget is not spent on it.
     A plain string, so braces are not doubled."""
     return r"""
+    // =====================================================================
+    // THE PAGE ABOUT ITSELF (round three, 2026-10-27): what a reader sees when the data does not
+    // arrive, arrives broken, or is older than the schedule allows. Every case says what happened in
+    // plain words and offers the one thing that can help; nothing is shown from a partial file.
+    // =====================================================================
+    const LOAD_FAIL = {
+        offline: ['This device is offline', 'The page opened, but the file that holds the scores could not be downloaded because there is no connection. Reconnect, then reload.'],
+        network: ['The rankings did not load', 'The page opened, but the file that holds the scores could not be downloaded. This is usually a dropped connection, and reloading normally fixes it.'],
+        broken: ['The rankings did not load', 'The file that holds the scores arrived incomplete, so nothing is shown rather than a partial ranking. Reloading normally fixes it; if it does not, the site is being updated, so try again in a few minutes.'],
+        empty: ['The rankings did not load', 'The file that holds the scores arrived with no stocks in it, so there is nothing to rank. Reloading normally fixes it; if it does not, the site is being updated, so try again in a few minutes.'],
+        render: ['Part of this page could not be drawn', 'The scores arrived, but the page stopped while drawing them, so some sections may be empty. Reloading normally fixes it.']
+    };
+    function showLoadFailure(kind) {
+        const host = document.getElementById('page-notices');
+        const t = LOAD_FAIL[kind] || LOAD_FAIL.broken;
+        // a missing file hides every section that would have drawn from it, so no skeleton pulses for
+        // good; a drawing failure keeps whatever did draw
+        const root = document.documentElement;
+        if (kind !== 'render' && root && root.classList) root.classList.add('data-failed');
+        const kr = document.getElementById('kpi-row');
+        if (kr && kr.removeAttribute) kr.removeAttribute('aria-busy');
+        if (!host || typeof host.insertAdjacentHTML !== 'function' || document.getElementById('load-fail')) return;
+        host.insertAdjacentHTML('afterbegin',
+            '<div class="load-fail" id="load-fail" role="alert" data-kind="' + kind + '">' +
+            '<h2 class="load-fail-title">' + t[0] + '</h2><p>' + t[1] + '</p>' +
+            '<div class="load-fail-actions"><button type="button" class="hero-btn hero-btn-primary" onclick="location.reload()">Reload the page</button>' +
+            '<a class="hero-btn hero-link" href="research.html">Has it been tested?</a><a class="hero-btn hero-link" href="lab.html">Factor Lab</a></div></div>');
+        if (kind === 'offline' && window.addEventListener)
+            window.addEventListener('online', () => location.reload(), { once: true });
+    }
+
+    // kpis.run_timestamp is written by datetime.now() on the run machine, which keeps US Central time
+    // (the data loop starts at 02:00 Central) - a wall-clock time with no offset. new Date() reads such a
+    // string in the *reader's* zone, so every reader outside Central saw the wrong hour. This reads it
+    // as Central wall time and returns the true instant; a stamp that carries an offset is taken as is.
+    const RUN_ZONE = 'America/Chicago';
+    function runInstant(ts) {
+        const s = String(ts || '');
+        if (/(Z|[+\-]\d{2}:?\d{2})$/.test(s)) { const d = new Date(s); return isNaN(d) ? null : d; }
+        const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(s);
+        if (!m) { const d = new Date(s); return isNaN(d) ? null : d; }
+        const wall = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+        let fmt;
+        try {
+            fmt = new Intl.DateTimeFormat('en-US', { timeZone: RUN_ZONE, hourCycle: 'h23', year: 'numeric', month: '2-digit',
+                                                     day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        } catch (e) { return new Date(wall); }
+        const offsetAt = t => {
+            const p = {};
+            fmt.formatToParts(new Date(t)).forEach(x => { p[x.type] = +x.value; });
+            return Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second) - Math.floor(t / 1000) * 1000;
+        };
+        let t = wall - offsetAt(wall);
+        t = wall - offsetAt(t);          // a second pass settles a stamp near a daylight-saving change
+        return new Date(t);
+    }
+
+    // How many weekday runs are overdue. The data loop publishes once every weekday at about 02:00
+    // US Central, NYSE holidays included (each holiday run carries the previous session's prices - the
+    // Labor Day 2026-09-07 run published like any other), so the schedule is weekdays, not trading
+    // days. A weekday's run counts as overdue from 14:00 UTC that day - 08:00 or 09:00 Central, six
+    // hours after it starts - so a slow run is never called missing. The run's date is the date part
+    // of kpis.run_timestamp, written on the run machine's own clock.
+    const RUN_DUE_UTC_HOUR = 14, STALE_AFTER_MISSED = 2;
+    function runStaleness(runTs, now) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(runTs || ''));
+        if (!m || !isFinite(now)) return null;
+        const run = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+        let missed = 0;
+        for (let d = run + 864e5, i = 0; i < 4000; d += 864e5, i++) {
+            if (d + RUN_DUE_UTC_HOUR * 3600e3 > now) break;
+            const wd = new Date(d).getUTCDay();
+            if (wd >= 1 && wd <= 5) missed++;
+        }
+        return { run: run, missed: missed, stale: missed >= STALE_AFTER_MISSED };
+    }
+    function showStaleness(now) {
+        const k = D.kpis || {};
+        const s = runStaleness(k.run_timestamp, now === undefined ? Date.now() : now);
+        const host = document.getElementById('page-notices');
+        const old = document.getElementById('stale-note');
+        if (old && old.remove) old.remove();
+        if (!s || !s.stale || !host || typeof host.insertAdjacentHTML !== 'function') return s;
+        const day = new Date(s.run).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
+        host.insertAdjacentHTML('beforeend',
+            '<p class="page-notice pn-stale" id="stale-note" role="note"><strong>These figures are from the run of ' + day + '.</strong> ' +
+            'A new run normally appears every weekday morning, and ' + s.missed + ' weekday runs since then have not, ' +
+            'so prices and scores may be behind the market.</p>');
+        return s;
+    }
+
+    // The context file (trends, options, insiders, the backdrop, the track record) failing to load is
+    // said once, near the top, with a retry; the rankings never read it.
+    function showContextFailure(retry) {
+        const host = document.getElementById('page-notices');
+        if (!host || typeof host.insertAdjacentHTML !== 'function' || document.getElementById('ctx-fail')) return;
+        host.insertAdjacentHTML('beforeend',
+            '<div class="page-notice pn-ctx" id="ctx-fail" role="status"><p><strong>Some context did not load.</strong> ' +
+            'Price trends, option-implied moves, insider trades, the market backdrop and the track record come in a second file, which could not be downloaded. ' +
+            'The rankings and every score are complete without it.</p>' +
+            '<button type="button" class="pn-retry" id="ctx-retry">Try again</button></div>');
+        const b = document.getElementById('ctx-retry');
+        if (b) b.onclick = () => { clearContextFailure(); retry(); };
+        if (window.addEventListener) window.addEventListener('online', function again() {
+            window.removeEventListener('online', again);
+            if (document.getElementById('ctx-fail')) { clearContextFailure(); retry(); }
+        });
+    }
+    function clearContextFailure() {
+        const n = document.getElementById('ctx-fail');
+        if (n) n.remove();
+    }
+
+    // On paper (Ctrl+P with no stock sheet open): the rankings as one light table of every row the
+    // filters and sort produce. The table is windowed on screen - about 37 rows between two spacers -
+    // so the page printed those rows and then eleven blank pages of spacer (round three, 2026-10-27).
+    // Every row is built for the print and the window is put back afterwards; a caption says which
+    // rows and in what order, because the filters themselves are not printed.
+    window.PRINT_PAGE_ON = false;
+    function printCaption() {
+        const s = tableState, bits = [];
+        const pick = (id, skip) => { const el = document.getElementById(id); if (!el || el.value === skip) return '';
+            const o = el.options ? el.options[el.selectedIndex] : null; return o ? o.textContent.trim() : el.value; };
+        const sec = pick('filter-sector', 'all'); if (sec) bits.push(sec);
+        const vt = pick('filter-vt', 'all'); if (vt) bits.push('Trap flags: ' + vt);
+        const cx = pick('filter-ctx', 'all'); if (cx) bits.push(cx);
+        const mn = document.getElementById('filter-comp-min'); if (mn && +mn.value > 0) bits.push('composite at least ' + mn.value);
+        const q = (document.getElementById('filter-search') || {}).value; if (q && q.trim()) bits.push('matching "' + q.trim() + '"');
+        const pr = pick('filter-profile', 'balanced'); if (pr) bits.push('weighting: ' + pr);
+        const sortSel = document.getElementById('sort-by');
+        const th = document.querySelector('#universe-table th[data-sort="' + s.sortCol + '"]');
+        const sortName = (sortSel && sortSel.value === s.sortCol) ? sortSel.options[sortSel.selectedIndex].textContent.trim()
+            : (th ? th.textContent.trim() : s.sortCol);
+        const n = s.filtered.length;
+        return (n === s.data.length ? 'All ' + n + ' stocks' : n + ' of ' + s.data.length + ' stocks') +
+            (bits.length ? ' (' + bits.join('; ') + ')' : '') + ', by ' + sortName +
+            (s.sortDir === 'asc' ? ', ascending' : ', descending') + '.';
+    }
+    function preparePagePrint() {
+        if (window.PRINT_PAGE_ON || (typeof sheetOpen === 'function' && sheetOpen())) return;
+        const table = document.getElementById('universe-table'), tbody = document.getElementById('universe-tbody');
+        if (!table || !tbody || typeof tableState === 'undefined' || !tableState.filtered) return;
+        const rows = tableState.filtered;
+        let html = '';
+        for (let i = 0; i < rows.length; i++) html += universeRowHtml(rows[i], i);
+        tbody.innerHTML = html || emptyRowsHtml(visibleCols(table));
+        let cap = document.getElementById('print-caption');
+        if (!cap) { cap = document.createElement('p'); cap.id = 'print-caption'; cap.className = 'print-caption'; table.parentNode.insertBefore(cap, table); }
+        cap.textContent = printCaption();
+        document.documentElement.classList.add('print-page');
+        window.PRINT_PAGE_ON = true;
+    }
+    function restorePagePrint() {
+        if (!window.PRINT_PAGE_ON) return;
+        window.PRINT_PAGE_ON = false;
+        document.documentElement.classList.remove('print-page');
+        renderWindow(true);
+    }
+    if (window.addEventListener) {
+        window.addEventListener('beforeprint', preparePagePrint);
+        window.addEventListener('afterprint', restorePagePrint);
+    }
+
     // =====================================================================
     // PAGE PICTURES (ui-elevation, 2026-10-27) - display only, see _js_page
     // =====================================================================
@@ -11783,12 +12062,18 @@ def _css_page() -> str:
             .sm-table tbody td { border-bottom: 0; padding: 0; min-width: 0; display: flex; flex-direction: column;
                                  align-items: flex-start; text-align: left; font-size: 13px; line-height: 1.2; }
             .sm-table tbody td::before { content: attr(data-l); font-size: 10px; font-weight: 500; letter-spacing: .04em;
-                                         text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+                                         text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;
+                                         /* a label never pushes the card sideways: with Inter it cleared the
+                                            edge by under a pixel at 375, with a slightly wider face it did not
+                                            (round three, 2026-10-27) */
+                                         max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .sm-table td.sm-sector { position: static; grid-column: 1 / span 2; grid-row: 1; max-width: none; background: none;
                                      font-size: 14px; font-weight: 500; white-space: normal; justify-content: center; }
             .sm-table td.sm-sector::before { content: none; }
             .sm-table td.sm-n { grid-column: 3; grid-row: 1; }
             .sm-table td.sm-comp { grid-column: 4; grid-row: 1; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+            /* "COMPOSITE" is the longest label in a quarter-width column: untracked, it fits whole */
+            .sm-table td.sm-comp::before { letter-spacing: 0; }
         }
         /* the header at laptop widths: nine nav items and the wordmark - the search keeps its icon and
            shortcut a little sooner so "Diagnostics" is not clipped */
@@ -11966,6 +12251,117 @@ def _css_page() -> str:
             .cmp-pts { grid-column: 1; }
             .cmp-comp td strong { font-size: 20px; }
             .cmp-meta td { overflow-wrap: anywhere; }
+        }
+
+        /* ---- ROUND THREE, THE SHELL (2026-10-27, plan/ui-elevation.md) ---- */
+
+        /* Inter's stand-in, cut to Inter's measure. Until Inter arrives - on a phone, after the 1.3 MB of
+           scores it shares the connection with - the page is set in the local Arial scaled to Inter's
+           width on this page's own text and given Inter's ascent and descent (2048-unit em: 1984 / 494,
+           no line gap), one face per weight. When Inter swaps in, lines break where they already broke:
+           before this, 566 of 579 text boxes on the first screen moved and the page grew 100 px.
+           Where Arial is not installed (most Android phones) the face does not load and the system
+           stack below it takes over, as before. Once Inter has loaded nothing here is used. */
+        @font-face { font-family: 'Inter Fallback'; font-style: normal; font-weight: 400; src: local('Arial'), local('ArialMT');
+                     size-adjust: 104.99%; ascent-override: 92.27%; descent-override: 22.97%; line-gap-override: 0%; }
+        @font-face { font-family: 'Inter Fallback'; font-style: normal; font-weight: 500; src: local('Arial'), local('ArialMT');
+                     size-adjust: 105.99%; ascent-override: 91.40%; descent-override: 22.76%; line-gap-override: 0%; }
+        @font-face { font-family: 'Inter Fallback'; font-style: normal; font-weight: 600; src: local('Arial Bold'), local('Arial-BoldMT');
+                     size-adjust: 101.94%; ascent-override: 95.04%; descent-override: 23.66%; line-gap-override: 0%; }
+        @font-face { font-family: 'Inter Fallback'; font-style: normal; font-weight: 700; src: local('Arial Bold'), local('Arial-BoldMT');
+                     size-adjust: 102.87%; ascent-override: 94.17%; descent-override: 23.45%; line-gap-override: 0%; }
+
+        /* What the page says about its own loading: the hero's notices */
+        .page-notices:empty { display: none; }
+        .page-notices { display: grid; gap: 10px; margin-top: 18px; max-width: 62ch; }
+        .page-notice { margin: 0; padding: 10px 14px; border-left: 2px solid var(--border-bright); border-radius: 0 var(--radius) var(--radius) 0;
+                       background: var(--bg-card); font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+        .page-notice[hidden] { display: none; }
+        .page-notice strong { color: var(--text-primary); font-weight: 600; }
+        .page-notice p { margin: 0; }
+        .pn-wait { border-left-color: var(--accent); }
+        /* a caveat about the figures, in the caveat colour */
+        .pn-stale, .pn-ctx { border-left-color: var(--amber); }
+        .pn-ctx { display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap; }
+        .pn-ctx p { flex: 1 1 280px; }
+        .pn-retry { min-height: 36px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--border-bright);
+                    background: var(--bg-elevated); color: var(--text-primary); font: 500 13px var(--font-body); cursor: pointer; }
+        .pn-retry:hover { border-color: var(--text-muted); }
+        .pn-retry:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .load-fail { padding: 20px 22px; border: 1px solid var(--border-bright); border-left: 3px solid var(--red-strong);
+                     border-radius: var(--radius); background: var(--bg-card); box-shadow: var(--hairline-hi); }
+        .load-fail-title { margin: 0 0 8px; font-family: var(--font-display); font-weight: 600; font-size: 22px;
+                           letter-spacing: -.022em; line-height: 1.2; color: var(--text-primary); }
+        .load-fail p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-secondary); }
+        .load-fail-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        @media (pointer: coarse) { .pn-retry { min-height: 44px; } }
+        /* no scores: every section that would have drawn from them steps aside - no skeleton pulses for
+           good, no empty frame, no link to a section that is not there - and the hero says why */
+        html.data-failed .page-main > :not(.hero), html.data-failed .guide, html.data-failed .nav-wrap,
+        html.data-failed .cmdk-btn, html.data-failed .hero-actions, html.data-failed .m-nav-btn { display: none !important; }
+        @media (prefers-reduced-motion: reduce) { .page-notice, .load-fail { transition: none; } }
+
+        /* On paper, with no stock sheet open (html.print-page, set by preparePagePrint): ink on white, the
+           statement and its date, the four figures, the sections that are open, and the rankings as a
+           plain table whose header repeats on every page. Navigation, search, filters, the dot picture,
+           the guide and every floating control are left off. Landscape, so all fourteen columns fit. */
+        .print-caption { display: none; }
+        @page rankings { size: landscape; margin: 12mm 10mm; }
+        @media print {
+            html.print-page {
+                --bg-deep: #fff; --bg-primary: #fff; --bg-card: #fff; --bg-card-hover: #fff; --bg-elevated: #f2f2f2;
+                --text-primary: #000; --text-secondary: #333; --text-muted: #555; --border: #d6d6d6; --border-bright: #bbb;
+                --accent-text: #1f5fae; --hairline-hi: none;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            html.print-page body { background: #fff !important; color: #000; page: rankings; }
+            html.print-page .dashboard-container { display: block !important; max-width: none !important; padding: 0 !important; }
+            html.print-page .page-main { display: block !important; }
+            html.print-page .dashboard-header { position: static !important; border: 0; padding: 0 0 6px; background: none !important; backdrop-filter: none !important; }
+            html.print-page .nav-wrap, html.print-page .header-right, html.print-page .run-info, html.print-page .hero-actions,
+            html.print-page .pn-retry, html.print-page .pn-wait, html.print-page #dist, html.print-page .guide, html.print-page .filters-bar,
+            html.print-page .profile-note, html.print-page .score-key, html.print-page .table-more, html.print-page .section-chevron,
+            html.print-page .m-nav-btn, html.print-page .m-nav, html.print-page .cmp-tray, html.print-page .toast,
+            html.print-page .footer-links, html.print-page .kpi-more, html.print-page .t5-key,
+            html.print-page .collapsible-section.collapsed { display: none !important; }
+            html.print-page .hero { padding: 6px 0 10px !important; }
+            html.print-page .hero-title { font-size: 26px !important; max-width: none; }
+            html.print-page .hero-sub { font-size: 12px; max-width: none; }
+            html.print-page .kpi-row { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; margin: 0 0 14px !important;
+                                       break-inside: avoid; border: 1px solid #d6d6d6; }
+            html.print-page .kpi-card { border-bottom: 0 !important; }
+            html.print-page .section, html.print-page .table-section { box-shadow: none !important; border-color: #d6d6d6 !important; background: #fff !important; }
+            html.print-page .section-header { break-after: avoid; }
+            html.print-page .dashboard-header { margin: 0 !important; height: auto !important; }
+            html.print-page .brand-mark { width: 22px; height: 22px; }
+            html.print-page .brand-mark .bm-bg { fill: #fff; }
+            html.print-page .top5-row { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 8px !important; }
+            html.print-page .top5-card { break-inside: avoid; padding: 10px !important; font-size: 11px; }
+            html.print-page .print-caption { display: block; margin: 0 0 6px; font-size: 11px; color: #333; }
+            html.print-page .table-section { overflow: visible !important; max-height: none !important; border: 0 !important; }
+            /* A browser lays a printed page out at the paper's portrait width whatever @page says, which
+               is a phone's width here - so the phone's card rows are undone and the table is a table */
+            html.print-page #universe-table { display: table !important; table-layout: auto !important; width: 100% !important;
+                                              font-size: 9.5px; border-collapse: collapse; --row-h: auto; }
+            html.print-page #universe-table thead { display: table-header-group !important; }
+            html.print-page #universe-table tbody { display: table-row-group !important; }
+            html.print-page #universe-table tr { display: table-row !important; height: auto !important; padding: 0 !important; break-inside: avoid; }
+            html.print-page #universe-table th, html.print-page #universe-table td {
+                display: table-cell !important; position: static !important; width: auto !important; height: auto !important;
+                padding: 2px 5px !important; line-height: 1.35 !important; font-size: 9.5px !important; white-space: nowrap;
+                overflow: visible !important; text-overflow: clip !important; border: 0 !important; border-bottom: 1px solid #e3e3e3 !important;
+                background: none !important; box-shadow: none !important; color: #000 !important; vertical-align: middle; }
+            html.print-page #universe-table thead th { background: #f2f2f2 !important; font-weight: 600; letter-spacing: .02em; }
+            html.print-page #universe-table th:nth-child(4), html.print-page #universe-table td.company { max-width: 190px; overflow: hidden !important; text-overflow: ellipsis !important; }
+            html.print-page #universe-table td.sector { max-width: 140px; overflow: hidden !important; text-overflow: ellipsis !important; }
+            html.print-page #universe-table td.num, html.print-page #universe-table td.sc, html.print-page #universe-table td.comp { text-align: right; }
+            html.print-page #universe-table td.sc::before, html.print-page #universe-table .vt-cell .flag::after { content: none !important; }
+            html.print-page #universe-table td.comp::after, html.print-page #universe-table td.comp i { display: none !important; }
+            html.print-page #universe-table td.comp span { font-weight: 600; }
+            html.print-page #universe-table .vt-cell .flag { border: 1px solid #999; background: none !important; color: #000 !important; padding: 0 3px; font-size: 9px; }
+            html.print-page #universe-table .delta-cell.pos { color: #0a6b0a !important; }
+            html.print-page #universe-table .delta-cell.neg { color: #b02020 !important; }
+            html.print-page .dashboard-footer { margin-top: 14px; padding-top: 8px; break-inside: avoid; }
         }
     """
 def _js_drilldown() -> str:
@@ -12426,6 +12822,76 @@ def _js_drilldown() -> str:
         window.addEventListener('beforeprint', preparePrint);
         window.addEventListener('afterprint', restorePrint);
     }
+
+    // =====================================================================
+    // ROUND THREE - THE SHEET (owner-run, 2026-10-27; plan/ui-elevation.md)
+    // =====================================================================
+
+    // The first sheet open was a cold layout: at 375 px and 4x CPU its layout took ~340 ms against
+    // ~100 ms for every later open, and ~200 ms of that was the browser shaping the sheet's words
+    // for the first time at the sheet's type sizes (Chrome trace, InlineNode::ShapeTextIncludingFirstLine).
+    // Once the page is idle and the context payload is in, the top-ranked stock's sheet is written
+    // into the closed sheet and laid out unseen, one section per idle slice - visibility hidden, no
+    // pointer, no focus, not open by sheetOpen() - so the shaping is done before anyone asks. Nothing
+    // is computed: renderSheet() is the same writer openStockDetail uses, and every open rewrites
+    // the sheet. A reader who opens a stock first simply ends it.
+    const SHEET_WARM = { state: 'wait' };
+    (function sheetPrewarm() {
+        const modal = document.getElementById('stock-modal');
+        // a stand-in DOM (the node harnesses some tests run the page's script in) gets no warm-up
+        const body = modal && typeof modal.querySelector === 'function' ? modal.querySelector('.modal-body') : null;
+        if (!body || !body.children || typeof renderSheet !== 'function' || !window.requestAnimationFrame || !window.addEventListener) { SHEET_WARM.state = 'done'; return; }
+        const idle = window.requestIdleCallback ? (f => requestIdleCallback(f, { timeout: 1500 })) : (f => setTimeout(f, 120));
+        let parts = [];
+        const stop = () => {
+            if (SHEET_WARM.state === 'run') {
+                modal.classList.remove('sheet-warm');
+                parts.concat([...modal.querySelectorAll('.warm-skip')]).forEach(el => el.classList.remove('warm-skip'));
+                parts = [];
+            }
+            SHEET_WARM.state = 'done';
+        };
+        SHEET_WARM.stop = stop;
+        const step = () => {
+            if (SHEET_WARM.state !== 'run') return;
+            if (sheetOpen()) return stop();
+            const el = parts.shift();
+            if (!el) return stop();
+            el.classList.remove('warm-skip');
+            void el.offsetHeight;          // this slice's style and layout, now rather than at the first tap
+            idle(step);
+        };
+        const start = () => {
+            if (SHEET_WARM.state !== 'wait') return;
+            if (sheetOpen()) return stop();
+            const rows = (D.table_data || []).filter(r => D.stock_detail[r.Ticker]);
+            if (!rows.length) return stop();
+            const top = rows.reduce((a, r) => (r.Rank < a.Rank ? r : a), rows[0]).Ticker;
+            SHEET_WARM.state = 'run';
+            SHEET_WARM.ticker = top;
+            const head = modal.querySelector('.modal-header'), nav = modal.querySelector('.mnav-wrap') || modal.querySelector('.modal-nav');
+            parts = [head, nav].concat([...body.children]).filter(Boolean);
+            parts.forEach(el => el.classList.add('warm-skip'));
+            modal.classList.add('sheet-warm');
+            try { renderSheet(top, D.stock_detail[top]); } catch (e) { return stop(); }
+            idle(step);
+        };
+        // after first paint, the fonts and the context payload (Before you decide is most of the sheet)
+        let tries = 0;
+        const ready = () => {
+            if (SHEET_WARM.state !== 'wait') return;
+            if ((typeof CTX_LOADED !== 'undefined' && CTX_LOADED) || ++tries > 20) return idle(start);
+            setTimeout(ready, 250);
+        };
+        const go = () => setTimeout(() => {
+            const f = document.fonts && document.fonts.ready;
+            if (f && f.then) f.then(ready, ready); else ready();
+        }, 600);
+        if (document.readyState === 'complete') go(); else window.addEventListener('load', go);
+        // a reader opening a stock ends it at once; their open rewrites the whole sheet anyway
+        const prev = openStockDetail;
+        openStockDetail = function() { if (SHEET_WARM.state !== 'done') stop(); return prev.apply(this, arguments); };
+    })();
 """
 
 
@@ -12841,6 +13307,40 @@ def _css_drilldown() -> str:
             html.print-sheet #stock-modal .summary-fact { break-inside: avoid; }
             html.print-sheet #stock-modal .collapsible-h, html.print-sheet #stock-modal .summary-title,
             html.print-sheet #stock-modal .case-title { break-after: avoid; }
+        }
+
+        /* Round three (2026-10-27): the idle-time warm-up (sheetPrewarm) lays the closed sheet out
+           unseen - never painted, never hit, never focusable - one section at a time. */
+        #stock-modal.sheet-warm { display: flex !important; visibility: hidden !important; pointer-events: none !important; }
+        #stock-modal .warm-skip { content-visibility: hidden; }
+
+        /* A section with nothing published says so, rather than a heading over an empty body. */
+        #stock-modal .sheet-empty { margin: 4px 0 8px; color: var(--text-muted); font-size: 13px; }
+
+        /* Sector peers: each peer opens its own sheet; its rank sits beside it. */
+        #stock-modal .peer-open {
+            font: inherit; font-weight: 600; color: var(--text-primary); background: none; border: 0; padding: 0;
+            cursor: pointer; text-decoration: underline; text-decoration-color: var(--text-muted); text-underline-offset: 3px;
+        }
+        #stock-modal .peer-open:hover { color: var(--accent-text); text-decoration-color: currentColor; }
+        #stock-modal .peer-open:focus-visible, #stock-modal .peer-remove-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+        #stock-modal .peer-td-rank { color: var(--text-secondary); }
+        #stock-modal .peer-row-self .peer-td-rank { color: var(--text-primary); }
+        #stock-modal .peer-remove-btn { min-width: 24px; min-height: 24px; }
+        @media (max-width: 760px) {
+            /* the table scrolls sideways on a phone; the ticker column stays put so a row keeps its name */
+            #stock-modal .peer-table th:first-child, #stock-modal .peer-table td:first-child {
+                position: sticky; left: 0; z-index: 1; background: var(--bg-primary);
+            }
+            #stock-modal .peer-table .peer-row-self td:first-child { background: linear-gradient(rgba(88,166,255,.06), rgba(88,166,255,.06)), var(--bg-primary); }
+        }
+        @media (pointer: coarse) {
+            /* the last small targets in the sheet (an audit at 375 px, 2026-10-27): peers' open and remove,
+               About's toggle, the insider table's filing links */
+            #stock-modal .peer-open { min-height: 44px; }
+            #stock-modal .peer-remove-btn { min-width: 44px; min-height: 44px; }
+            #stock-modal .about-toggle { min-height: 44px; }
+            #stock-modal #modal-context td a, #stock-modal #modal-context .ctx-src a { display: inline-flex; align-items: center; min-height: 32px; }
         }
 """
 

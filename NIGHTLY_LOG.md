@@ -16293,3 +16293,64 @@ that test runs with reduced motion, and a new test pins smooth-by-default and in
 the call itself. The mutual-exclusion test is older and untouched tonight (no runner script changed);
 **if it fails at a 06:00 baseline, that is the load-sensitive start race, not tonight's work** - read
 its message before anything else.
+
+### Same day, seventh owner pass - round three (`good/2026-10-27-owner-7`)
+
+Owner: *"please keep making improvements!! anything you can find throughout these tools."* Five agents
+(sheet, page shell, Factor Lab, bot, flaky tests); the coordinator reviewed, merged, fixed what the test
+hunt found in production code, and ran the gates on the combined tree. No weight, metric, threshold or
+scored sentence moved; `METHODOLOGY_CHANGELOG.md` untouched.
+
+- **The repo lock had two real races** (`research/2026-10-27-flaky-tests.md`, reproduced by
+  `research/measurements/2026-10-27-repo-lock-races.py`). (1) `Enter-RepoLock` created the lock and
+  only then wrote its PID; a contender reading it in that 70-800 ms window found PID 0, took the live
+  owner for dead and deleted its lock - 4 of 5 trials with the winner paused 0.5 s. (2) Racers
+  reclaiming a crashed run's lock each read-then-deleted and could delete each other's fresh locks -
+  2 to 5 holders in 6 of 16 six-racer trials. This is what
+  `test_exactly_one_of_several_simultaneous_starts_wins` had been catching under load. **Fixed by the
+  coordinator:** `Publish-RepoLockFile` writes a temp file and `File.Move`s it onto the lock (atomic,
+  fails if it exists); a lock naming no owner counts as held for 10 minutes; `Invoke-RepoLockReclaim`
+  deletes a dead or over-age lock only while holding a short reclaim token, after re-reading it.
+  Re-measured with the same script: **0 of 8** and **0 of 6**. Two new behavioural tests; the module
+  passed 3 of 3; all three runner scripts parse (`Parser.ParseFile`, 0 errors). **Tonight's 02:00 data
+  run is the first to use it** - read its log's lock lines.
+- **Flaky tests** (no assertion changed, nothing retried): six root causes - a pointer left over a
+  menu firing the lab's hover prefetch, two mouse moves read as a hover under load, a 200 ms sleep
+  against a 150 ms debounce, a held request that reached pytest late, the header fit measured after a
+  fixed 400 ms, a single-sample sort timing (now best of five against the same 250 ms). All 18
+  browser modules: 2 of 7 loaded runs failed before, 4 of 4 clean after.
+- **Stock sheet** (`tests/test_sheet_round_three.py`, 12; claim `drilldown.unscored_category`):
+  scroll-spy lights the chosen tab and every tab in order (APA lit "Data" for Price targets); a
+  Financials tab; the first open is prewarmed at idle on the #1 stock, unseen, with no history, title
+  or focus change (layout 337 -> 71 ms in a quiet 4x trace); an unscored category says "none of its N
+  metrics has data", the engine's own rule, checked on every published stock; empty sections say so;
+  peers open their own sheet and show their rank. **Payload: one display-only field,
+  `stock_detail[t].flags.px_rejected`** (the engine's `_price_series_rejected` reason or null), tested
+  never to reach raw/pct or a scoring module; the committed payload is untouched and the field
+  publishes from the next data run. Rehearsed twice by the coordinator on the combined tree: both
+  PASSED (claims gate 1,780 tests).
+- **Page shell** (`tests/test_page_shell.py`, 22; claim `page.freshness`): a failed or offline data
+  load names the failure with a reload button and hides the empty sections; "still loading" after 4 s;
+  one notice and a retry when the context file fails; a freshness line when two or more weekday runs
+  are overdue; **a real defect** - the run time was read in the reader's own zone, so London saw
+  "2:00 AM GMT" for a 07:00 GMT run (`runInstant` reads America/Chicago); a metric-matched Arial
+  fallback for Inter (layout shift at 375 px 0.0020 -> 0.0004); a print layout (all filtered rows,
+  light, header repeated - was 37 rows and eleven blank pages); `404.html`; `manifest.webmanifest` and
+  icons (`scripts/make_icons.py`), no service worker. New root files are source, not data artifacts;
+  no runner change needed.
+- **Factor Lab** (claim `lab.replication_check`): "153 factors" split by universe - 5.0 -> 2.0 s to
+  usable on a phone; the eight sorts one part each (earnings yield 2.04 -> 0.99 s); a phone row chart
+  for the 13 themes; real minus signs on the research page's t-statistics. Reassembled lab payload
+  byte-equal to round two's; `ASSET_VERSION` 28. CLAUDE.md's lab line corrected (one part per
+  `LAZY_KEYS` entry, not six).
+- **Bot** (screener-bot `0311be6`, 710 passed, both rehearsals exit 0, CI green): `bot/runstate.py` - a
+  run's outcome in one line for the alert, step summary, REPORT.md and dashboard banner (when and how
+  often alerts fire unchanged); `journal.problems` names a malformed journal row loudly; REPORT.md and
+  the page build separately and a failed build is written into the run record; 15 edge-case journals
+  through both builds; the book table fits at 1280.
+
+Gates on the combined tree: suite **3,496 passed, 1 skipped**; `rehearse_publish.py` PASSED twice; dry
+run OK; `node --check` both payloads, `lab_engine.js` and every `lab_data*.js`; `rebuild_page.py --check`
+clean. Left: self-hosting Inter (a binary font in the repo) would end the font relayout; the sheet's
+strip now has 11 tabs; `test_row_click_to_drilldown_is_fast` failed once under load in an agent's run
+and was deliberately not given best-of-five (it measures the first open a reader feels).

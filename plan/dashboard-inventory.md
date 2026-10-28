@@ -136,6 +136,36 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
   Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
 
+## The shell, round three, 2026-10-27 (owner-run) - `plan/ui-elevation.md` "Round three", `tests/test_page_shell.py`
+
+Presentation and platform only (payload byte-identical). What a later session must know:
+- **`#page-notices`** (inside `.hero-text`, after `.hero-note`) is where the page talks about its own loading:
+  `#load-wait` (static, shown by an inline timer 4 s after the shell parses if `window.SCREENER_DATA` has
+  not arrived), `#load-fail` (`showLoadFailure(kind)`, kinds `offline` / `network` / `broken` / `empty` /
+  `render`), `#stale-note` (`showStaleness`) and `#ctx-fail` (`showContextFailure`, with a working Try again
+  that re-runs `loadContext`). `:empty` hides it. All in `_js_page` / `_css_page`.
+- **A failed payload sets `html.data-failed`**, which hides every section of `.page-main` except the hero, the
+  guide, the header nav, search, the hero's buttons and the Menu pill. The data `<script>` carries
+  `onerror="window.SCREENER_DATA_FAILED = true"`. INIT is wrapped: a drawing exception shows the `render`
+  notice **and is rethrown**, so `pageerror` checks still see it - do not swallow it.
+- **`runInstant(ts)`** reads `kpis.run_timestamp` as US Central wall time (`RUN_ZONE`); the hero eyebrow and
+  footer use it. `new Date(run_timestamp)` is wrong outside Central - never use it for a time of day.
+- **`runStaleness(ts, now)`** counts weekdays after the run date whose run was due (14:00 UTC); the notice
+  shows at >= 2. Claim `page.freshness`. The data loop publishes on NYSE holidays, so it is weekdays, not
+  sessions - do not swap in the NYSE calendar.
+- **Fonts:** `'Inter Fallback'` (four `@font-face`, local Arial / Arial Bold with size-adjust and Inter's
+  ascent/descent) sits between `'Inter'` and `system-ui` in all three font tokens. Re-derive the numbers with
+  a canvas measure of the page's text (`plan/ui-elevation.md`) if the Inter version Google serves changes.
+- **Print, no sheet open:** `preparePagePrint` / `restorePagePrint` on before/afterprint build **every**
+  filtered row (`window.PRINT_PAGE_ON` makes `renderWindow` stand still meanwhile), add `#print-caption`, set
+  `html.print-page`; the `@media print` block in `_css_page` undoes the phone's card rows (the printed page is
+  laid out at the paper's portrait width) and hides collapsed sections. The sheet's own print path
+  (`preparePrint`, `html.print-sheet`) is untouched and wins whenever a sheet is open.
+- **New root files (source, not generated, not data artifacts):** `404.html` (hand-written; links rooted at
+  `/screener-dashboard/`, rewritten to `/` elsewhere), `manifest.webmanifest`, `icon-180.png` /
+  `icon-192.png` / `icon-512.png` / `icon-maskable-512.png` (made by `python scripts/make_icons.py`). No
+  service worker, deliberately.
+
 ## The page, round two, 2026-10-27 (owner-run) - `plan/ui-elevation.md` "Round two", `tests/test_page_round_two.py`
 
 Presentation only (payload byte-identical). What a later session must know before touching these:
@@ -425,7 +455,8 @@ last. `tests/test_drilldown_presentation.py` (10, browser).
   the body scrolls past 140px (`.is-compact`; back at the top it opens); on a phone the folded
   header drops the name, tools, chips and price.
 - **Tabs** are an underline strip; the lit tab is kept in view (`tabFollow`), and at the end of the
-  sheet the last section's tab lights (`modalSpy`, it used to stay on Peers).
+  sheet the last section's tab lights (`modalSpy`, it used to stay on Peers) - *superseded by round
+  three below: a chosen tab holds, and free scrolling slides the reading line over the last screen.*
 - **Score tiles** are a fingerprint: the heat token as the wash, text in ink, a tick at 50 on each bar.
   Tiles, How-it-adds-up rows and the workings' category headers are `role="button"` and work from
   Enter/Space.
@@ -496,6 +527,30 @@ Presentation only; payload byte-identical. What a later session must know before
   on phones), prints the sheet alone: light tokens, every collapsed section open, research unclamped, no
   tabs/tools. `preparePrint` / `restorePrint` on `beforeprint` / `afterprint` (`html.print-sheet`); the
   sheet is put back exactly as it was. The page's own print rules still hide every overlay otherwise.
+
+### Round three - the sheet, 2026-10-27 late (owner-run) - `tests/test_sheet_round_three.py` (12)
+
+`plan/ui-elevation.md` "Round three - the sheet". What a later session must know before touching these:
+- **The scroll-spy has two rules** (`modalSpy` in `_js_ux`). `spyPin(id)` - called by `goToModal` and
+  `openWorkings` - holds the chosen tab lit until the reader scrolls by hand (wheel / touchstart /
+  pointerdown / a scrolling key on `.modal-body` release it; `modalSpy()` on open clears it). Free
+  scrolling uses a reading line 24 px under the top that slides to the bottom over the sheet's last
+  screen. Do not go back to "at the bottom, light the last section": it lit Data for Price targets and Peers.
+- **Eleven tabs**: Financials (`#section-snapshot`) sits between Price targets and Peers.
+- **`renderSheet(ticker, s)`** writes the whole sheet and is what `openStockDetail` calls before showing
+  it. **`sheetPrewarm`** (`_js_drilldown`, state in `SHEET_WARM`) calls it once at idle for the #1 stock and
+  lays the closed sheet out section by section under `#stock-modal.sheet-warm` / `.warm-skip`; any
+  `openStockDetail` ends it. `sheetOpen()` stays false throughout (it reads the inline display, which the
+  class overrides with `!important`). A stand-in DOM without `querySelector` gets no warm-up (the node
+  harnesses in `test_review_cadence.py` / `test_holdings_concentration.py`).
+- **An unscored category** prints `unscoredWhy(cat, s)` (`_js_workings`): `.short` on the score tile,
+  `.long` as `.wk-unscored` in the workings. It names the weighted metrics from the published table
+  (`weightProfile`), and `flags.px_rejected` - display-only, the engine's `_price_series_rejected` string -
+  on Momentum and Risk only (`PRICE_HISTORY_CATS`). Claim `drilldown.unscored_category`.
+- **Empty sections say so** (`.sheet-empty`): price targets, Company snapshot, Sector peers.
+- **Sector peers**: `.peer-open` buttons open the peer's sheet; a Rank column (`r.rank` from
+  `stock_detail[t].rank`, added to `buildPeerRow` and the self row); remove buttons are labelled; the ticker
+  column is sticky below 760 px.
 
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 

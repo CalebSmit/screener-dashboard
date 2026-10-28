@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page not found · Multi-Factor Screener</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0d0d0d">
+<!-- GitHub Pages serves this file for any address under the site that does not exist (round three,
+     2026-10-27, plan/ui-elevation.md). Hand-written source, not generated: it carries no figure. It
+     can be served at any depth (/screener-dashboard/a/b/c), so its links are rooted at the site's
+     path, not relative to the address that was asked for. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/screener-dashboard/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<style>
+  @font-face { font-family: 'Inter Fallback'; font-weight: 400; src: local('Arial'), local('ArialMT');
+               size-adjust: 104.99%; ascent-override: 92.27%; descent-override: 22.97%; line-gap-override: 0%; }
+  @font-face { font-family: 'Inter Fallback'; font-weight: 600; src: local('Arial Bold'), local('Arial-BoldMT');
+               size-adjust: 101.94%; ascent-override: 95.04%; descent-override: 23.66%; line-gap-override: 0%; }
+  :root {
+    color-scheme: dark;
+    --bg-deep: #0d0d0d; --bg-card: #1a1a19; --bg-card-hover: #202020; --border: #262625; --border-bright: #343433;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8e8c86; --accent: #3987e5; --accent-text: #5598e7;
+    --font: 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --radius: 8px; --hairline-hi: inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg-deep); color: var(--text-secondary); font: 400 15px/1.55 var(--font); }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+  .bar { display: flex; align-items: center; padding: 18px 32px; border-bottom: 1px solid var(--border); }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); text-decoration: none;
+           font-weight: 600; font-size: 20px; letter-spacing: -.022em; }
+  .brand svg { width: 28px; height: 28px; }
+  .brand:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  main { flex: 1; width: 100%; max-width: 880px; margin: 0 auto; padding: 72px 32px 48px; }
+  .eyebrow { margin: 0 0 10px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+  h1 { margin: 0 0 14px; color: var(--text-primary); font-weight: 600; font-size: clamp(34px, 5vw, 52px); line-height: 1.06; letter-spacing: -.032em; }
+  .lead { margin: 0 0 32px; max-width: 58ch; font-size: 17px; color: var(--text-secondary); }
+  .lead code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: .9em; color: var(--text-primary); overflow-wrap: anywhere; }
+  .hint { margin: -12px 0 28px; padding: 12px 16px; border-left: 2px solid var(--accent); background: var(--bg-card);
+          border-radius: 0 var(--radius) var(--radius) 0; color: var(--text-secondary); }
+  .hint[hidden] { display: none; }
+  .hint a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+  .ways { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .ways a { display: block; height: 100%; padding: 18px 18px 20px; border: 1px solid var(--border); border-radius: var(--radius);
+            background: var(--bg-card); box-shadow: var(--hairline-hi); color: inherit; text-decoration: none;
+            transition: background-color 120ms ease-out, border-color 120ms ease-out; }
+  .ways a:hover { background: var(--bg-card-hover); border-color: var(--border-bright); }
+  .ways strong { display: block; margin-bottom: 6px; color: var(--text-primary); font-weight: 600; font-size: 17px; letter-spacing: -.011em; }
+  .ways strong span { color: var(--accent-text); }
+  .ways small { display: block; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+  footer { padding: 20px 32px 28px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-muted); }
+  @media (max-width: 760px) {
+    .bar { padding: 14px 16px; }
+    main { padding: 40px 16px 32px; }
+    .ways { grid-template-columns: 1fr; }
+    .ways a { min-height: 44px; }
+    footer { padding: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ways a { transition: none; } }
+  @media print {
+    :root { --bg-deep: #fff; --bg-card: #fff; --text-primary: #000; --text-secondary: #333; --text-muted: #555; --border: #ccc; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" data-path="" href="/screener-dashboard/" aria-label="Multi-Factor Screener, the rankings">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1a1a19"/><rect x="7" y="17" width="4" height="8" rx="1.5" fill="#3987e5" opacity=".55"/><rect x="14" y="12" width="4" height="13" rx="1.5" fill="#3987e5" opacity=".8"/><rect x="21" y="7" width="4" height="18" rx="1.5" fill="#3987e5"/></svg>
+    Multi-Factor Screener
+  </a>
+</header>
+<main id="main">
+  <p class="eyebrow">Page not found</p>
+  <h1>There is no page at this address</h1>
+  <p class="lead" id="lead">It may have been mistyped, or it may have moved. Everything the screener publishes can be reached from one of these three pages.</p>
+  <p class="hint" id="ticker-hint" hidden></p>
+  <ul class="ways" aria-label="Where to go">
+    <li><a data-path="" href="/screener-dashboard/"><strong>The rankings <span aria-hidden="true">&rarr;</span></strong><small>Every S&amp;P&nbsp;500 company scored against its sector on eight factors, with the numbers behind each score.</small></a></li>
+    <li><a data-path="research.html" href="/screener-dashboard/research.html"><strong>Has it been tested? <span aria-hidden="true">&rarr;</span></strong><small>The ranking run over 2012&ndash;2026 history, and what that can and cannot show.</small></a></li>
+    <li><a data-path="lab.html" href="/screener-dashboard/lab.html"><strong>Factor Lab <span aria-hidden="true">&rarr;</span></strong><small>The research the screener cites, rerun on public data.</small></a></li>
+  </ul>
+</main>
+<footer>A screening tool for research and education, not investment advice.</footer>
+<script>
+(function () {
+  // The site lives at /screener-dashboard/ on GitHub Pages; anywhere else (a local preview) it is at /.
+  var p = location.pathname, root = p.indexOf('/screener-dashboard/') === 0 || p === '/screener-dashboard' ? '/screener-dashboard/' : '/';
+  var links = document.querySelectorAll('a[data-path]');
+  for (var i = 0; i < links.length; i++) links[i].setAttribute('href', root + links[i].getAttribute('data-path'));
+  // An address that ends in something shaped like a ticker (/screener-dashboard/AAPL) was probably a
+  // try at one stock's page: the stock's sheet opens from the rankings' own link format, #stock=TICKER.
+  var last = decodeURIComponent(p.replace(/\/+$/, '').split('/').pop() || '');
+  if (/^[A-Za-z]{1,5}([.\-][A-Za-z]{1,2})?$/.test(last) && last.toLowerCase() !== 'screener-dashboard') {
+    var t = last.toUpperCase(), h = document.getElementById('ticker-hint');
+    var a = document.createElement('a');
+    a.href = root + '#stock=' + encodeURIComponent(t);
+    a.textContent = 'Open ' + t + ' in the rankings';
+    h.appendChild(document.createTextNode('Looking for one company? '));
+    h.appendChild(a);
+    h.appendChild(document.createTextNode('. If it is not in this run, the page says so.'));
+    h.hidden = false;
+  }
+})();
+</script>
+</body>
+</html>

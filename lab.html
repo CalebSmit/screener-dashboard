@@ -18,8 +18,8 @@
 <!-- The two files the menu waits for, asked for from the first bytes of the page rather than from
      the script tags 460 lines down (round two, 2026-10-27; plan/factor-lab.md "The first paint").
      Same URLs as the tags, version included - tests/test_lab_reading_and_access.py keeps them equal. -->
-<link rel="preload" href="lab_data.js?v=27" as="script">
-<link rel="preload" href="lab_engine.js?v=27" as="script">
+<link rel="preload" href="lab_data.js?v=28" as="script">
+<link rel="preload" href="lab_engine.js?v=28" as="script">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -195,6 +195,9 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
    many a result of no effect at all would match. */
 .meter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 10px 0 2px; }
 .card .meter { margin-top: 12px; }
+/* the count always under its meter (round three): it sat beside a short meter and under a long one,
+   so down a column of cards, and across a row of two, the counts never lined up to be compared */
+.card .meter .m-l { flex-basis: 100%; }
 .card .take { margin-top: 6px; }
 .meter svg { display: block; flex: none; max-width: 100%; overflow: visible; }
 .meter .m-in { fill: var(--accent); } .meter .m-out { fill: none; stroke: var(--amber); stroke-width: 1; }
@@ -313,12 +316,18 @@ select:hover { border-color: var(--text-muted); }
 /* not .bar: the page's top bar owns that name, and its height would be applied to these */
 .chart .col { fill: var(--rest); } .chart .col-a { fill: var(--accent); }
 .chart text.val { fill: var(--text-secondary); font-size: 11px; font-weight: 500; }
+.chart text.rl { fill: var(--text-primary); font-size: 12.5px; font-weight: 500; }
 .chart svg { touch-action: pan-y; cursor: crosshair; border-radius: 4px; }
 .chart svg:focus-visible { outline-offset: 6px; }
 .chart-read { margin: 8px 0 0; min-height: 1.6em; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .chart-read.on { color: var(--text-primary); }
 .actions { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .where { display: block; font-size: 12px; color: var(--text-muted); }
+/* a figure the page has not re-run yet (its series is still to load): the build's, and labelled so */
+.pend-note { display: block; font-size: 12px; color: var(--text-secondary); }
+.pend-note::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border: 1px solid var(--amber); border-radius: 50%; vertical-align: 1px; }
+tr.pend td:not(:first-child) { color: var(--text-secondary); }
+.checked .reset { margin-left: 8px; vertical-align: middle; }
 .muted { color: var(--text-muted); }
 tr.panic td { background: var(--amber-dim); }
 tr.panic td:first-child { color: var(--text-primary); font-weight: 600; padding-left: 8px; }
@@ -508,8 +517,8 @@ h2[tabindex="-1"]:focus { outline: none; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=27"></script>
-<script src="lab_engine.js?v=27"></script>
+<script src="lab_data.js?v=28"></script>
+<script src="lab_engine.js?v=28"></script>
 <script>
 (function () {
     'use strict';
@@ -696,16 +705,19 @@ h2[tabindex="-1"]:focus { outline: none; }
         out.textContent = idle; out.classList.remove('on');
         el.removeAttribute('role'); el.removeAttribute('aria-label');          // the focusable chart carries both
         svg.setAttribute('tabindex', '0'); svg.setAttribute('role', 'img');
-        svg.setAttribute('aria-label', o.label + ' Use the left and right arrow keys to read one ' + unit + ' at a time; Home and End go to the first and last.');
+        svg.setAttribute('aria-label', o.label + (o.rows ? ' Use the up and down (or left and right) arrow keys to read one row at a time;'
+            : ' Use the left and right arrow keys to read one ' + unit + ' at a time;') + ' Home and End go to the first and last.');
         let at = -1;
         const show = i => { at = i; o.on(i); out.textContent = read(i); out.classList.add('on'); };
         const hide = () => { at = -1; o.off(); out.textContent = idle; out.classList.remove('on'); };
-        const point = ev => { const r = svg.getBoundingClientRect(); show(Math.max(0, Math.min(n - 1, o.at((ev.clientX - r.left) * (o.W / r.width))))); };
+        // a chart of rows (drawRows) is read down its height; every other chart across its width
+        const point = ev => { const r = svg.getBoundingClientRect();
+            show(Math.max(0, Math.min(n - 1, o.at(o.rows ? (ev.clientY - r.top) * (o.H / r.height) : (ev.clientX - r.left) * (o.W / r.width))))); };
         svg.addEventListener('pointermove', point);
         svg.addEventListener('pointerdown', point);
         svg.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse' && document.activeElement !== svg) hide(); });
         svg.addEventListener('keydown', ev => {
-            const step = { ArrowLeft: -1, ArrowRight: 1 }[ev.key];
+            const step = Object.assign({ ArrowLeft: -1, ArrowRight: 1 }, o.rows ? { ArrowUp: -1, ArrowDown: 1 } : {})[ev.key];
             let i;
             if (step) i = at < 0 ? (step > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, at + step * (ev.shiftKey && unit === 'month' ? 12 : 1)));
             else if (ev.key === 'Home') i = 0;
@@ -1232,8 +1244,36 @@ h2[tabindex="-1"]:focus { outline: none; }
     // ------------------------------------------------------------------ factors among small and big companies
     // opt.many (experiment 15's thirteen themes): names tilted so they do not run into each other, values
     // printed only where a bar has room for them, to opt.places decimals.
+    // Thirteen themes on a phone (round three, 2026-10-27): set at an angle under twenty-six bars in a
+    // 340 px frame, their names ran into one another ("Debt Issuance" over "Accruals" and "Investment").
+    // There each theme is a row - its name, then its two bars on the same fixed 0-100% scale, each with
+    // its figure - read by pointer, tap or the arrow keys like every other chart.
+    function drawRows(el, rows, opt) {
+        const places = opt.places !== undefined ? opt.places : 2;
+        const W = Math.max(280, el.clientWidth || 340), L = 2, R = 34, T = 6, rowH = 46, B = 24, H = T + rows.length * rowH + B;
+        const x = v => L + Math.max(0, Math.min(100, v)) / 100 * (W - L - R);
+        let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+        pctTicks([0, 25, 50, 75, 100].map(v => [v, String(v)])).forEach((t, k) => {
+            s += `<line class="grid" x1="${x(t[0]).toFixed(1)}" x2="${x(t[0]).toFixed(1)}" y1="${T}" y2="${H - B}"/>` +
+                `<text class="tick" x="${x(t[0]).toFixed(1)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === 4 ? 'end' : 'middle'}">${t[1]}</text>`; });
+        rows.forEach((r, i) => {
+            const y0 = T + i * rowH;
+            s += `<text class="rl" x="${L}" y="${y0 + 13}">${esc(r.name)}</text>`;
+            [[r.small, 'col', y0 + 19], [r.big, 'col-a', y0 + 31]].forEach(b => {
+                const w = Math.max(1, x(b[0]) - L);
+                s += `<rect class="${b[1]}" data-i="${i}" x="${L}" y="${b[2]}" width="${w.toFixed(1)}" height="9" rx="2"/>` +
+                    `<text class="val" x="${(L + w + 5).toFixed(1)}" y="${b[2] + 8.5}">${b[0].toFixed(places)}</text>`;
+            });
+        });
+        s += `<line class="axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/>`;
+        if (!el.dataset.label) el.dataset.label = el.getAttribute('aria-label') || '';
+        el.innerHTML = s + '</svg>';
+        readable(el, rows.length, 'bar', opt.read, { label: opt.label || el.dataset.label, W: W, H: H, rows: true,
+            at: py => Math.floor((py - T) / rowH), on: barsOn(el.firstChild), off: barsOff(el.firstChild) });
+    }
     function drawPairs(el, rows, opt) {
         const many = !!(opt && opt.many), places = opt && opt.places !== undefined ? opt.places : 2;
+        if (many && (el.clientWidth || 600) < 520) return drawRows(el, rows, opt);
         const W = Math.max(280, el.clientWidth || 600), H = many ? 320 : 260, L = 52, R = 8, T = 22, B = many ? 96 : 34;
         const all = rows.reduce((a, r) => a.concat([r.small, r.big]), []);
         // shares (opt.many) run on a fixed 0-100 scale, so two settings read against the same axis
@@ -1548,6 +1588,7 @@ h2[tabindex="-1"]:focus { outline: none; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (each factor's first month to ${mon(REF.end)}), each figure it reports beside what the public library gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note checked" id="x-checked" role="status"></p>
             <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">CAPM alpha &nbsp;=&nbsp; the intercept of ( factor's monthly return ) on ( the market's excess return ), over the period<small>Its t-statistic is that intercept ÷ its ordinary least-squares standard error.</small></div>
@@ -1555,23 +1596,67 @@ h2[tabindex="-1"]:focus { outline: none; }
             <div class="eq">replication rate &nbsp;=&nbsp; factors that clear the bar ÷ factors counted<small>With no effect anywhere, about 2.5% would clear it by chance.</small></div>`);
         document.getElementById('x-code').textContent = E.jkpRun.toString();
 
-        const now = opts(refState()), rowsNow = E.compareReplication(J, REF);
-        const drift = (Math.abs(now.rate - res0.rate) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
-        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
-            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
+        // Each size group's series is its own file (round three, 2026-10-27): the experiment opens on
+        // all stocks, asks for the mega caps' series because the opening chart draws them, and asks for
+        // the large caps' only when they are chosen or their figure is to be checked. Whatever has
+        // arrived is checked against the build; a figure whose series has not is shown as the build's
+        // and says so, and is re-run the moment its series lands.
+        const ready = u => u in J.series, short = u => G.universe_names[u].replace(/ \(.*\)$/, '');
+        const asked = {}, failed = {};
+        function want(u) {
+            if (ready(u) || asked[u]) return;
+            asked[u] = true; delete failed[u];
+            part('jkp_' + u).then(() => { delete asked[u]; if (mount.isConnected) { check(); render(); } },
+                () => { delete asked[u]; failed[u] = true; if (mount.isConnected) { check(); render(); } });
+        }
+        const pendRow = r => refRow(r).replace(/^<tr>/, '<tr class="pend">')
+            .replace('</td>', ' <span class="pend-note">The build’s figure - not yet re-run in this browser</span></td>');
+        function check() {
+            const now = opts(refState()), rowsNow = E.compareReplication(J, REF);
+            // a row not yet re-run stands as the build's, so it can neither raise the warning nor pass for checked
+            const drift = (Math.abs(now.rate - res0.rate) > 1e-9 ? 1 : 0) + rowDrift(rowsNow.map((r, i) => r.pending ? res0.rows[i] : r), res0);
+            const w = document.getElementById('x-mismatch');
+            w.hidden = !drift;
+            if (drift) w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.';
+            document.querySelector('#t-ref tbody').innerHTML = rowsNow.map((r, i) => r.pending ? pendRow(res0.rows[i]) : refRow(r)).join('');
+            const run = rowsNow.filter(r => !r.pending).length, waiting = ['mega', 'large'].filter(u => !ready(u));
+            const st = document.getElementById('x-checked');
+            st.innerHTML = (run === rowsNow.length ? `All ${run} figures above were re-run in your browser from the published series` : `${run} of the ${rowsNow.length} figures above were re-run in your browser from the published series`) +
+                (drift ? '.' : ', and each agrees with the build.') +
+                waiting.map(u => ` The ${esc(short(u).replace(/s$/, '').replace(' ', '-'))} figure is the build’s until its series loads ` +
+                    (asked[u] ? '(it is loading now).' : failed[u] ? '- it did not load.' : `- when you choose ${esc(short(u).replace(/^./, c => c.toUpperCase()))} above, or now.`)).join('') +
+                (waiting.some(u => !asked[u]) ? ` <button type="button" class="reset" id="x-check-now">Check ${waiting.filter(u => !asked[u]).length > 1 ? 'them' : 'it'} now</button>` : '');
+            const go = document.getElementById('x-check-now');
+            if (go) go.addEventListener('click', () => { waiting.forEach(want); check(); });
+        }
+        // the group the opening scene draws is asked for before the first run, so it downloads while that runs
+        want(S.universe); want(S.universe === 'all' ? 'mega' : S.universe);
+        check();
 
         function render() {
-            const r = last = opts(S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            const read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody'), chart = document.getElementById('ch-bars');
             syncPeriod();
             press('universe', v => v === S.universe); press('test', v => v === S.test); press('set', v => v === S.set);
             document.getElementById('c-reset').hidden = atRef();
+            const holding = (el, u) => {                   // a group's series on its way, or one that did not arrive
+                if (failed[u]) {
+                    el.innerHTML = `<span class="warn" role="alert" style="display:block">The series for ${esc(short(u))} did not load. Check the connection and try again.<button type="button" class="retry">Try again</button></span>`;
+                    el.querySelector('.retry').addEventListener('click', () => { want(u); check(); render(); });
+                } else { el.innerHTML = `<span class="loading">Loading the series for ${esc(short(u))}…</span>`; want(u); }
+            };
+            if (!ready(S.universe)) {
+                last = null; mount.setAttribute('aria-busy', 'true');
+                holding(read, S.universe); body.innerHTML = ''; chart.innerHTML = ''; document.getElementById('x-live-note').textContent = '';
+                writeScene(X.id, S, refState()); return;
+            }
+            const r = last = opts(S);
             if (!r.n) {
+                mount.removeAttribute('aria-busy');
                 read.textContent = 'No factor has 60 months in this period, the paper\'s minimum. Widen the period.';
-                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+                body.innerHTML = ''; chart.innerHTML = ''; document.getElementById('x-live-note').textContent = ''; writeScene(X.id, S, refState()); return;
             }
             const group = S.universe === 'all' ? 'mega' : S.universe, other = opts(Object.assign({}, S, { universe: 'all' }));
-            const sized = S.universe === 'all' ? opts(Object.assign({}, S, { universe: 'mega' })) : r;
+            const sized = !ready(group) ? null : S.universe === 'all' ? opts(Object.assign({}, S, { universe: 'mega' })) : r;
             const span = J.months.filter(m => m >= S.start && m <= S.end);
             read.innerHTML = `Over ${span.length} months, ${mon(span[0])} to ${mon(span[span.length - 1])}, among ${esc(G.universe_names[S.universe])}, <strong>${r.hits} of ${r.n}</strong> factors (<strong>${f2(r.rate)}%</strong>) have ${S.test === 'capm' ? 'a CAPM alpha' : 'an average return'} with a t-statistic above 1.96 in the direction their papers found. Their average CAPM alpha is ${sf2(r.alpha)}% a month. With no effect anywhere, about 2.5% would clear the bar by chance; over a short period, a real effect often will not.`;
             body.innerHTML = r.themes.map(t => `<tr><td>${esc(t.theme)}${G.theme_category[t.theme] ? ` <span class="where">${esc(G.theme_category[t.theme])}</span>` : ''}</td><td>${t.n ? t.hits + ' of ' + t.n : '–'}</td><td>${t.n ? f2(t.rate) + '%' : '–'}</td><td>${t.n ? sf2(t.alpha) + '%' : '–'}</td></tr>`).join('') +
@@ -1581,7 +1666,9 @@ h2[tabindex="-1"]:focus { outline: none; }
                 : 'These settings are yours, so there is no published figure to compare them with.');
             document.getElementById('x-key-a').textContent = G.universe_names[group].replace(/ \(.*\)$/, '').replace(/^./, c => c.toUpperCase());
             const gname = G.universe_names[group].replace(/ \(.*\)$/, '');
-            drawPairs(document.getElementById('ch-bars'), r.themes.map((t, i) => ({ name: t.theme, small: other.themes[i].rate || 0, big: sized.themes[i].rate || 0 })), { many: true, places: 0,
+            if (!sized) { mount.setAttribute('aria-busy', 'true'); holding(chart, group); writeScene(X.id, S, refState()); return; }
+            mount.removeAttribute('aria-busy');
+            drawPairs(chart, r.themes.map((t, i) => ({ name: t.theme, small: other.themes[i].rate || 0, big: sized.themes[i].rate || 0 })), { many: true, places: 0,
                 read: i => { const a = sized.themes[i], b = other.themes[i];
                     return `${r.themes[i].theme}: ${a.n ? a.hits + ' of ' + a.n + ' factors (' + f2(a.rate) + '%)' : 'no factor'} clear the bar among ${gname}; ${b.n ? b.hits + ' of ' + b.n + ' (' + f2(b.rate) + '%)' : 'none counted'} among all stocks.`; } });
             writeScene(X.id, S, refState());
@@ -1692,22 +1779,35 @@ h2[tabindex="-1"]:focus { outline: none; }
     // own file, lab_data_<key>.js, fetched the first time an experiment that reads it is opened, so
     // the menu and the overview wait for none of them (measured 2026-10-26, plan/factor-lab.md).
     // The same ?v= as the lab_data.js tag, so a part never meets a page from another release.
-    const PARTS = { 'size': () => ['size'], 'sort': () => ['sorts'], 'split': X => [(X.split || {}).data || 'split'],
+    const sortPart = name => 'sorts_' + name.replace(/-/g, '_');           // factor_lab.sort_part
+    const PARTS = { 'size': () => ['size'], 'sort': X => [sortPart(X.sort.data)], 'split': X => [(X.split || {}).data || 'split'],
         'combo': () => ['split'], 'replication': () => ['jkp'], 'double': () => ['double'] };
+    // A part that is one branch of an object, and the path it goes back at (factor_lab.LAZY_INTO, round
+    // three): the 153 factors open on all stocks alone, each size group's series its own file, fetched
+    // when the experiment shows or is asked for that group (replication(), below); and each sort is its
+    // own file, put into the empty `sorts` lab_data.js carries.
+    const INTO = { 'jkp_mega': ['jkp', 'series', 'mega'], 'jkp_large': ['jkp', 'series', 'large'] };
+    D.experiments.forEach(x => { if (x.kind === 'sort') INTO[sortPart(x.sort.data)] = ['sorts', x.sort.data]; });
+    const holder = p => p.slice(0, -1).reduce((o, k) => o && typeof o === 'object' && k in o ? o[k] : undefined, D);
+    const has = key => key in D || (key in INTO && !!holder(INTO[key]) && INTO[key][INTO[key].length - 1] in holder(INTO[key]));
+    function attach() {                                  // put every branch that has arrived where it belongs
+        Object.keys(INTO).forEach(k => { const h = holder(INTO[k]);
+            if (k in D && h) { h[INTO[k][INTO[k].length - 1]] = D[k]; delete D[k]; } });
+    }
     const dataTag = document.querySelector('script[src^="lab_data.js"]');
     const VERSION = dataTag ? dataTag.getAttribute('src').split('?')[1] || '' : '';
     const pending = {};
     function part(key) {
-        if (key in D) return Promise.resolve();
+        if (has(key)) return Promise.resolve();
         return pending[key] || (pending[key] = new Promise((ok, fail) => {
             const s = document.createElement('script');
             s.src = 'lab_data_' + key + '.js' + (VERSION ? '?' + VERSION : '');
-            s.onload = () => key in D ? ok() : fail(new Error(key));
+            s.onload = () => { const here = key in D; attach(); here ? ok() : fail(new Error(key)); };
             s.onerror = () => { delete pending[key]; s.remove(); fail(new Error(key)); };
             document.head.appendChild(s);
         }));
     }
-    const missing = X => (PARTS[X.kind] ? PARTS[X.kind](X) : []).filter(k => !(k in D));
+    const missing = X => (PARTS[X.kind] ? PARTS[X.kind](X) : []).filter(k => !has(k));
     // A reader who has started to choose an experiment - a mouse button down on its card or menu entry, a
     // pointer resting on it, the keyboard on it - has its series asked for then, not at the click
     // (round two, 2026-10-27). Only that experiment's own part, only on that sign of intent, so a

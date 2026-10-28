@@ -73,8 +73,32 @@ def _settled(browser, width):
     page.goto(PAGE.as_uri())
     page.wait_for_function("window.SCREENER_DATA && document.querySelector('.header-nav')", timeout=60000)
     page.evaluate("document.fonts ? document.fonts.ready : null")
-    page.wait_for_timeout(400)
+    _wait_until_fitted(page)
     return ctx, page
+
+
+def _wait_until_fitted(page):
+    """Wait for the bar's fit to settle, counted in frames rather than a fixed 400 ms.
+
+    Every trigger of the page's fit (load, fonts ready, a resize or a link's visibility changing)
+    queues it on the next animation frame, and a fit can change a size that queues one more. A
+    loaded machine stretches frames, so 400 ms of wall clock could end before the fit had run and
+    the test read the unfitted bar (2026-10-27, research/2026-10-27-flaky-tests.md). This resolves
+    once the state the tests read has been identical for three consecutive frames (and gives up
+    after 300 frames, leaving the assertions to report what they see) - it waits for the bar to
+    stop changing, never for it to pass.
+    """
+    page.evaluate("""(state) => new Promise(done => {
+        const read = new Function('return (' + state + ')();');
+        let last = null, same = 0, frames = 0;
+        const tick = () => {
+            const now = JSON.stringify(read());
+            same = now === last ? same + 1 : 0;
+            last = now;
+            if (same >= 3 || ++frames > 300) done(); else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    })""", STATE)
 
 
 @pytest.mark.parametrize("width", WIDTHS)

@@ -67,7 +67,9 @@ def label(exp_id: str) -> str:
 
 
 def num(x: float, d: int = 3) -> str:
-    """A signed figure with a real minus sign; one that rounds to zero carries no sign."""
+    """A signed figure with a real minus sign; one that rounds to zero carries no sign. t-statistics
+    too (round three, 2026-10-27): they had printed a hyphen ("t -0.67") beside means printed with
+    a real minus, so the two signs on one row differed in width and shape."""
     if round(abs(x), d) == 0:
         return f"{0:.{d}f}"
     return ("+" if x > 0 else "&minus;") + f"{abs(x):.{d}f}"
@@ -151,7 +153,7 @@ def size_paragraph(row: dict, rel: dict | None, bar: float) -> str:
     else:
         moved = "more than" if rel["pre_r_diff"] < 0 else "less than"
     return (f'<p>{row["label"]} shows the largest 2012&ndash;2019 difference, <span class="num">{num(p["mean"])}</span> '
-            f'(t&nbsp;{p["t"]:+.2f}), {reach} the pass bar. Survivorship could explain it. The test can only include '
+            f'(t&nbsp;{num(p["t"], 2)}), {reach} the pass bar. Survivorship could explain it. The test can only include '
             f"companies that are still in the index today, and among 2012's members the small ones that survived are "
             f"disproportionately the ones that did well. This data cannot separate that explanation from the passage "
             f"of time. The share of each month's members the test could include rose steadily, from "
@@ -176,7 +178,7 @@ def bot_sentence(b: dict, periods: list, p_value) -> str:
         word = "below" if st["mean"] < 0 else "above"
         dist = p_value(st) < 0.05
         out.append(f'In {lab} it returned <span class="num">{abs(st["mean"]) * 100:.2f}%</span> a month {word} that '
-                   f'average (t&nbsp;{st["t"]:+.2f}), '
+                   f'average (t&nbsp;{num(st["t"], 2)}), '
                    + ("a gap larger than chance readily produces." if dist else "a gap within the noise."))
     return " ".join(out)
 
@@ -248,14 +250,14 @@ def control_sentence(c: dict | None) -> str:
                 "Fed the filings as they stand today for every past month &mdash; information nobody "
                 "had at the time &mdash; this test put the cheating ranking "
                 f'<span class="num">{num(c["ic_vs_baseline"])}</span> ahead of the real one '
-                f'(t <span class="num">{c["t"]:+.1f}</span>), which does not clear its own bar. '
+                f'(t <span class="num">{num(c["t"], 1)}</span>), which does not clear its own bar. '
                 "Until that is explained, read every flat result on this page as *this test cannot "
                 "tell*, not as *there was nothing to find*.")
     seen = (f'<strong>The test can see a signal when there is one.</strong> Fed the filings as they '
             f'stand today for every past month &mdash; information nobody had at the time &mdash; the '
             f'same test puts that ranking <span class="num">{num(c["ic_vs_baseline"])}</span> of rank '
             f'correlation a month ahead of the real one over <span class="num">{c["months"]}</span> '
-            f'months (t <span class="num">{c["t"]:+.1f}</span>)')
+            f'months (t <span class="num">{num(c["t"], 1)}</span>)')
     if c.get("detectable") is not None:
         seen += (f', against the <span class="num">{num(c["detectable"])}</span> it could reliably '
                  f'detect')
@@ -572,21 +574,21 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
         dots.append(
             f'<div class="dot-row"><div class="dot-name"' + (f' title="{html.escape(note)}"' if note else "")
             + f'>{r["label"]}</div>'
-            f'<div class="track" role="img" aria-label="{html.escape(label(r["id"]))}: {num(p["mean"])}, t {p["t"]:+.1f}, {where}">'
+            f'<div class="track" role="img" aria-label="{html.escape(label(r["id"]))}: {num(p["mean"])}, t {num(p["t"], 1)}, {where}">'
             f'<span class="see" style="left:{_pos(-d):.2f}%;width:{_pos(d) - _pos(-d):.2f}%"></span>'
             f'<span class="zero"></span>'
             f'<span class="tick" style="left:{_pos(-bar * p["se"]):.2f}%"></span>'
             f'<span class="tick" style="left:{_pos(bar * p["se"]):.2f}%"></span>'
             f'<span class="ci" style="left:{_pos(lo):.2f}%;width:{_pos(hi) - _pos(lo):.2f}%"></span>'
             f'<span class="dot" style="left:{_pos(p["mean"]):.2f}%"></span></div>'
-            f'<div class="dot-val num">{num(p["mean"])} <span class="t">t {p["t"]:+.1f}</span></div></div>')
+            f'<div class="dot-val num">{num(p["mean"])} <span class="t">t {num(p["t"], 1)}</span></div></div>')
 
     table = "".join(
         f'<tr><td>{r["label"]}<div class="src">{html.escape(r["source"])}</div>'
         + (f'<div class="src">How it is built here: {html.escape(r["e"]["construction_note"])}</div>'
            if r["e"].get("construction_note") else "")
-        + f'</td><td class="num" data-l="Mid-2023&ndash;2026 (t)">{num(r["h"]["mean"])} <span class="t">({r["h"]["t"]:+.1f})</span></td>'
-        f'<td class="num" data-l="2012&ndash;2019 (t)">{num(r["p"]["mean"])} <span class="t">({r["p"]["t"]:+.1f})</span></td></tr>'
+        + f'</td><td class="num" data-l="Mid-2023&ndash;2026 (t)">{num(r["h"]["mean"])} <span class="t">({num(r["h"]["t"], 1)})</span></td>'
+        f'<td class="num" data-l="2012&ndash;2019 (t)">{num(r["p"]["mean"])} <span class="t">({num(r["p"]["t"], 1)})</span></td></tr>'
         for r in sorted(rows, key=lambda r: label(r["id"])))
 
     size_html = size_paragraph(rows[0], size_coverage_relation(latest, coverage), bar_p) \
@@ -603,7 +605,7 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
 
         def _ex(st: dict) -> str:
             q = X.t_critical(0.05, st["n"] - 1)
-            return (f'{pct(st["mean"])} <span class="t">(t {st["t"]:+.2f})</span>'
+            return (f'{pct(st["mean"])} <span class="t">(t {num(st["t"], 2)})</span>'
                     f'<div class="t">95%: {pct(st["mean"] - q * st["se"])} to {pct(st["mean"] + q * st["se"])}</div>')
         brows = "".join(
             f'<tr><td class="per">{SHORT[k]}</td><td class="num" data-l="Return a month">{pct(b[k]["ret"]["mean"])}</td>'
