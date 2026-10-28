@@ -1159,6 +1159,13 @@ def test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own():
             # choosing from it closes it again
             page.click("#picker")
             assert page.evaluate("document.getElementById('picker').getAttribute('aria-expanded')") == "true"
+            # Park the pointer off the list first. Left on the picker, it sat over the list while
+            # the click below scrolled the entry into view, which slid another lazy entry
+            # (size-effect) under it; on a loaded machine Playwright's settle before the click
+            # outlasted the page's 150 ms dwell, so the page - correctly - asked for that entry's
+            # series too, and the assertion below read ['jkp', 'size'] (2026-10-27,
+            # research/2026-10-27-flaky-tests.md). (2, 2) is the page gutter: no link under it.
+            page.mouse.move(2, 2)
             page.click("#tabs a[data-id='replication-crisis']")
             assert page.evaluate("document.getElementById('picker').getAttribute('aria-expanded')") == "false"
             page.wait_for_function("window.LAB_STATE().id === 'replication-crisis'", timeout=30000)

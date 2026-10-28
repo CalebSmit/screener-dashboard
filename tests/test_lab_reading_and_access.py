@@ -546,12 +546,17 @@ def test_a_mouse_button_on_a_card_asks_for_its_series_before_the_click(browser):
     try:
         _goto(page, "overview")
         assert page.evaluate("'size' in LAB_DATA") is False
-        # a pointer moved straight across a lazy card and away: no dwell, no request
+        # a pointer moved straight across a lazy card and away: no dwell, no request.
+        # The over and the out are dispatched in one task, so the dwell really is zero. Two
+        # page.mouse.move calls are two round trips, and on a loaded machine the gap between them
+        # passed the page's 150 ms dwell: the pointer *had* rested, the page rightly asked for the
+        # series, and this failed (2026-10-27, research/2026-10-27-flaky-tests.md). The page's
+        # listener reads only mouseover/mouseout here, which is what a real pass fires.
+        page.mouse.move(2, 2)
         other = page.query_selector(".card-a[href='#low-volatility']")
         other.scroll_into_view_if_needed()
-        b = other.bounding_box()
-        page.mouse.move(b["x"] + 10, b["y"] + 10)
-        page.mouse.move(2, 2)
+        other.evaluate("""el => { el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            el.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); }""")
         page.wait_for_timeout(400)                            # longer than the 150 ms dwell it never had
         # (each sort is its own part since round three, put into the empty `sorts` lab_data.js carries)
         assert page.evaluate("'low-volatility' in LAB_DATA.sorts || 'sorts_low_volatility' in LAB_DATA") is False
