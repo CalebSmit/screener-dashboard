@@ -68,6 +68,8 @@ def _page(browser, width=375, touch=False, init=None):
 def _goto(page, scene: str) -> None:
     page.goto(PAGE.as_uri() + "#" + scene, wait_until="load", timeout=60000)
     page.wait_for_function(f"window.LAB_STATE && window.LAB_STATE() && window.LAB_STATE().id === '{scene}'", timeout=WAIT)
+    # and the opening scene fully drawn: the 153 factors' chart waits on a second part (round three)
+    page.wait_for_function("!document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
 
 
 def test_every_bar_chart_can_be_read_from_the_keyboard(browser):
@@ -565,6 +567,93 @@ def test_a_mouse_button_on_a_card_asks_for_its_series_before_the_click(browser):
         page.mouse.up()
         page.wait_for_function("window.LAB_STATE().id === 'size-effect' && document.querySelector('#ch-bars svg rect')", timeout=WAIT)
         assert page.evaluate("document.querySelectorAll('script[src^=\"lab_data_size.js\"]').length") == 1
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+# --------------------------------------------------------------------------- round three: the 153 factors by universe
+# The 153 factors' part carried all three universes (716 KB gzipped) and the page checked all three
+# against the build before showing anything: 4.9-5.1 s to open on the phone profile. Each size group is
+# now its own part (factor_lab.LAZY_INTO). The experiment opens on all stocks, fetches the mega caps
+# because its opening chart draws them, and fetches the large caps only when chosen. A figure whose
+# series has not arrived is never dropped and never passed off as checked: it stands as the build's,
+# says so, and is re-run when its series lands.
+PARTS_ON_PAGE = "[...document.querySelectorAll('script[src^=\"lab_data_\"]')].map(s => s.getAttribute('src').split('?')[0])"
+PEND = "[...document.querySelectorAll('#t-ref tr.pend')].map(tr => tr.cells[0].textContent)"
+
+
+def test_the_153_factors_open_on_all_stocks_and_check_each_group_when_it_arrives(browser):
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "replication-crisis")
+        assert page.evaluate(PARTS_ON_PAGE) == ["lab_data_jkp.js", "lab_data_jkp_mega.js"]
+        assert page.evaluate("Object.keys(LAB_DATA.jkp.series)") == ["all", "mega"]
+        assert page.evaluate("document.querySelectorAll('#t-ref tbody tr').length") == 10        # every figure still listed
+        pend = page.evaluate(PEND)
+        assert len(pend) == 1 and pend[0].startswith("Large caps only") and "not yet re-run in this browser" in pend[0]
+        # the pending row prints the build's own figure, so nothing on the page is a number the page made up
+        built = next(r for r in next(x for x in fl.load_published()["experiments"] if x["id"] == "replication-crisis")["result"]["rows"]
+                     if r["key"] == "rate_capm_large")
+        assert page.evaluate("document.querySelector('#t-ref tr.pend').cells[2].textContent") == f"{built['here']:.2f}"
+        said = page.inner_text("#x-checked")
+        assert "9 of the 10 figures above were re-run in your browser" in said and "each agrees with the build" in said
+        assert "large-cap figure is the build’s until its series loads" in said
+        assert page.get_attribute("#x-checked", "role") == "status"
+        assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+        assert page.evaluate("document.getElementById('x-check-now').getBoundingClientRect().height") >= 43.5
+        page.click("#x-check-now")
+        page.wait_for_function("!document.querySelector('#t-ref tr.pend')", timeout=WAIT)
+        assert page.evaluate(PARTS_ON_PAGE)[-1] == "lab_data_jkp_large.js"
+        assert page.inner_text("#x-checked").startswith("All 10 figures above were re-run in your browser")
+        assert page.evaluate("document.getElementById('x-check-now')") is None
+        assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_a_link_to_the_large_caps_opens_on_them_and_leaves_the_mega_figure_pending(browser):
+    ctx, page, errors = _page(browser, width=1280)
+    try:
+        page.goto(PAGE.as_uri() + "#replication-crisis?universe=large", wait_until="load", timeout=60000)
+        page.wait_for_function("window.LAB_STATE && window.LAB_STATE() && window.LAB_STATE().id === 'replication-crisis'"
+                               " && window.LAB_STATE().result && !document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
+        assert sorted(page.evaluate(PARTS_ON_PAGE)) == ["lab_data_jkp.js", "lab_data_jkp_large.js"]
+        assert "among large caps" in page.inner_text("#x-read")
+        assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 26
+        pend = page.evaluate(PEND)
+        assert len(pend) == 1 and pend[0].startswith("Mega caps only")
+        assert "mega-cap figure is the build’s" in page.inner_text("#x-checked")
+        # choosing the mega caps fetches their series, redraws on them, and the last figure is checked
+        page.click("#c-universe button[data-v='mega']")
+        page.wait_for_function("window.LAB_STATE().result && !document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
+        assert "among mega caps" in page.inner_text("#x-read")
+        assert page.evaluate(PEND) == []
+        assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+SABOTAGE_LARGE = SABOTAGE.replace("lab_data_size\\.js", "lab_data_jkp_large\\.js")
+
+
+def test_a_group_whose_series_fails_to_load_says_so_and_can_be_tried_again(browser):
+    assert SABOTAGE_LARGE != SABOTAGE
+    ctx, page, errors = _page(browser, init=SABOTAGE_LARGE)
+    try:
+        _goto(page, "replication-crisis")
+        page.click("#c-universe button[data-v='large']")
+        page.wait_for_selector("#x-read .warn .retry", timeout=WAIT)
+        assert "did not load" in page.inner_text("#x-read") and page.get_attribute("#x-read .warn", "role") == "alert"
+        assert "factors hold up" in page.inner_text("#x-title")                               # the experiment stays
+        assert "it did not load" in page.inner_text("#x-checked")
+        assert len(page.evaluate(PEND)) == 1                                                 # still listed, still pending
+        page.click("#x-read .retry")
+        page.wait_for_function("window.LAB_STATE().result && !document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
+        assert "among large caps" in page.inner_text("#x-read")
+        assert page.evaluate(PEND) == []
         assert errors == []
     finally:
         ctx.close()

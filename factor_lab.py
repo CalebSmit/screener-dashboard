@@ -459,8 +459,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 25 = size inside each profitability fifth (queue row 4b; a new kind, double) and the note's pre-registered rule;
 # 26 = Piotroski on Open Source Asset Pricing's portfolios, and a second data attribution (merged 2026-10-20 night);
 # 27 = the heavy series moved to lab_data_<key>.js, loaded when an experiment opens (LAZY_KEYS) - the page
-#      builds their addresses with this same ?v=, read off its lab_data.js tag.
-ASSET_VERSION = 27
+#      builds their addresses with this same ?v=, read off its lab_data.js tag;
+# 28 = the 153 factors' size groups in parts of their own (LAZY_INTO), loaded when shown or chosen, and
+#      lab_engine.js's compareReplication marks a figure whose series has not loaded as pending.
+ASSET_VERSION = 28
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -3547,11 +3549,38 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
 # fetched 1.18 MB gzipped before the menu appeared - 6.4 s on a throttled phone, of which the 153
 # JKP factors were 0.71 MB. Content is unchanged by the split: load_published() puts it back
 # together, and tests/test_factor_lab.py checks the parts against the build.
-LAZY_KEYS = ("jkp", "sorts", "size", "double", "split", "quintiles")
+LAZY_KEYS = ("jkp", "jkp_mega", "jkp_large", "sorts", "size", "double", "split", "quintiles")
+# A part that is one branch of another part's object, and where it is put back (round three,
+# 2026-10-27). The 153 factors carried all three universes in one 716 KB gzipped part, and opening
+# the experiment took 4.9-5.1 s on the phone profile. It now opens on "all" alone, draws the
+# mega-cap bars when their series arrives, and loads the large-cap series only when it is chosen.
+# lab.html's INTO restates this map; a parent part is always listed before its branches.
+LAZY_INTO = {"jkp_mega": ("jkp", "series", "mega"), "jkp_large": ("jkp", "series", "large")}
 
 
 def part_path(key: str, out: Path = OUT) -> Path:
     return out.with_name(f"lab_data_{key}.js")
+
+
+def split_parts(payload: dict) -> dict:
+    """Each lazy part's content, with every branch LAZY_INTO names taken out of its parent."""
+    parts = {}
+    for key in LAZY_KEYS:
+        if key in LAZY_INTO:
+            a, b, c = LAZY_INTO[key]
+            parts[key] = payload[a][b][c]
+        else:
+            parts[key] = payload[key]
+    for a, b, c in LAZY_INTO.values():
+        parts[a] = {**parts[a], b: {k: v for k, v in parts[a][b].items() if k != c}}
+    return parts
+
+
+def _parse_js_value(path: Path):
+    """The value a part file assigns - an object, or a list for a LAZY_INTO branch."""
+    text = path.read_text(encoding="utf-8")
+    body = text[text.index(" = ") + 3:].rstrip()
+    return json.loads(body[:-1] if body.endswith(";") else body)
 
 
 def _parse_js_object(path: Path) -> dict:
@@ -3564,8 +3593,8 @@ def write(payload: dict, out: Path = OUT) -> Path:
         return json.dumps(o, separators=(",", ":"))
     first = {k: v for k, v in payload.items() if k not in LAZY_KEYS}
     out.write_text("window.LAB_DATA = " + dump(first) + ";\n", encoding="utf-8")
-    for key in LAZY_KEYS:
-        part_path(key, out).write_text(f"window.LAB_DATA.{key} = " + dump(payload[key]) + ";\n", encoding="utf-8")
+    for key, content in split_parts(payload).items():
+        part_path(key, out).write_text(f"window.LAB_DATA.{key} = " + dump(content) + ";\n", encoding="utf-8")
     return out
 
 
@@ -3573,7 +3602,11 @@ def load_published(path: Path = OUT) -> dict:
     """The whole published payload: lab_data.js with each lab_data_<key>.js put back."""
     data = _parse_js_object(path)
     for key in LAZY_KEYS:
-        if key not in data and part_path(key, path).exists():
+        if key in LAZY_INTO:
+            a, b, c = LAZY_INTO[key]
+            if a in data and c not in data[a][b] and part_path(key, path).exists():
+                data[a][b][c] = _parse_js_value(part_path(key, path))
+        elif key not in data and part_path(key, path).exists():
             data[key] = _parse_js_object(part_path(key, path))
     return data
 

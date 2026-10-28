@@ -483,13 +483,18 @@
 
     // Experiment 15 (reproduce_replication / jkp_figures): five replication rates and the paper's
     // out-of-sample test, at its sample (each factor's first month to 2020).
+    // The page loads the size groups' series on demand (factor_lab.LAZY_INTO). A figure whose series
+    // is not there yet is not computed from anything else: its row comes back `pending`, with no
+    // figure and no verdict, and the page says it has not been checked. With every series present the
+    // rows are exactly compareFigures' - no `pending` key at all.
     function compareReplication(jkp, ref) {
         const start = ref.start === 'FIRST' ? jkp.months[0] : ref.start, end = ref.end;
-        const rate = (u, t, w) => jkpRun(jkp, { start: start, end: end, universe: u, test: t, which: w }).rate;
+        const rate = (u, t, w) => u in jkp.series ? jkpRun(jkp, { start: start, end: end, universe: u, test: t, which: w }).rate : undefined;
         const got = Object.assign({ rate_raw_all: rate('all', 'raw', 'all'), rate_raw_sig: rate('all', 'raw', 'sig'),
             rate_capm: rate('all', 'capm', 'sig'), rate_capm_mega: rate('mega', 'capm', 'sig'),
             rate_capm_large: rate('large', 'capm', 'sig') }, jkpOutside(jkp, end));
-        return compareFigures(ref.figures, got);
+        return compareFigures(ref.figures, got).map(r => r.here === undefined
+            ? Object.assign(r, { here: null, diff: null, within: null, pending: true }) : r);
     }
 
     // Size inside each profitability fifth (reproduce_double / double_figures).

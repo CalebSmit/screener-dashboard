@@ -18,8 +18,8 @@
 <!-- The two files the menu waits for, asked for from the first bytes of the page rather than from
      the script tags 460 lines down (round two, 2026-10-27; plan/factor-lab.md "The first paint").
      Same URLs as the tags, version included - tests/test_lab_reading_and_access.py keeps them equal. -->
-<link rel="preload" href="lab_data.js?v=27" as="script">
-<link rel="preload" href="lab_engine.js?v=27" as="script">
+<link rel="preload" href="lab_data.js?v=28" as="script">
+<link rel="preload" href="lab_engine.js?v=28" as="script">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -319,6 +319,11 @@ select:hover { border-color: var(--text-muted); }
 .chart-read.on { color: var(--text-primary); }
 .actions { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .where { display: block; font-size: 12px; color: var(--text-muted); }
+/* a figure the page has not re-run yet (its series is still to load): the build's, and labelled so */
+.pend-note { display: block; font-size: 12px; color: var(--text-secondary); }
+.pend-note::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border: 1px solid var(--amber); border-radius: 50%; vertical-align: 1px; }
+tr.pend td:not(:first-child) { color: var(--text-secondary); }
+.checked .reset { margin-left: 8px; vertical-align: middle; }
 .muted { color: var(--text-muted); }
 tr.panic td { background: var(--amber-dim); }
 tr.panic td:first-child { color: var(--text-primary); font-weight: 600; padding-left: 8px; }
@@ -508,8 +513,8 @@ h2[tabindex="-1"]:focus { outline: none; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=27"></script>
-<script src="lab_engine.js?v=27"></script>
+<script src="lab_data.js?v=28"></script>
+<script src="lab_engine.js?v=28"></script>
 <script>
 (function () {
     'use strict';
@@ -1548,6 +1553,7 @@ h2[tabindex="-1"]:focus { outline: none; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (each factor's first month to ${mon(REF.end)}), each figure it reports beside what the public library gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note checked" id="x-checked" role="status"></p>
             <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">CAPM alpha &nbsp;=&nbsp; the intercept of ( factor's monthly return ) on ( the market's excess return ), over the period<small>Its t-statistic is that intercept ÷ its ordinary least-squares standard error.</small></div>
@@ -1555,23 +1561,67 @@ h2[tabindex="-1"]:focus { outline: none; }
             <div class="eq">replication rate &nbsp;=&nbsp; factors that clear the bar ÷ factors counted<small>With no effect anywhere, about 2.5% would clear it by chance.</small></div>`);
         document.getElementById('x-code').textContent = E.jkpRun.toString();
 
-        const now = opts(refState()), rowsNow = E.compareReplication(J, REF);
-        const drift = (Math.abs(now.rate - res0.rate) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
-        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
-            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
+        // Each size group's series is its own file (round three, 2026-10-27): the experiment opens on
+        // all stocks, asks for the mega caps' series because the opening chart draws them, and asks for
+        // the large caps' only when they are chosen or their figure is to be checked. Whatever has
+        // arrived is checked against the build; a figure whose series has not is shown as the build's
+        // and says so, and is re-run the moment its series lands.
+        const ready = u => u in J.series, short = u => G.universe_names[u].replace(/ \(.*\)$/, '');
+        const asked = {}, failed = {};
+        function want(u) {
+            if (ready(u) || asked[u]) return;
+            asked[u] = true; delete failed[u];
+            part('jkp_' + u).then(() => { delete asked[u]; if (mount.isConnected) { check(); render(); } },
+                () => { delete asked[u]; failed[u] = true; if (mount.isConnected) { check(); render(); } });
+        }
+        const pendRow = r => refRow(r).replace(/^<tr>/, '<tr class="pend">')
+            .replace('</td>', ' <span class="pend-note">The build’s figure - not yet re-run in this browser</span></td>');
+        function check() {
+            const now = opts(refState()), rowsNow = E.compareReplication(J, REF);
+            // a row not yet re-run stands as the build's, so it can neither raise the warning nor pass for checked
+            const drift = (Math.abs(now.rate - res0.rate) > 1e-9 ? 1 : 0) + rowDrift(rowsNow.map((r, i) => r.pending ? res0.rows[i] : r), res0);
+            const w = document.getElementById('x-mismatch');
+            w.hidden = !drift;
+            if (drift) w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.';
+            document.querySelector('#t-ref tbody').innerHTML = rowsNow.map((r, i) => r.pending ? pendRow(res0.rows[i]) : refRow(r)).join('');
+            const run = rowsNow.filter(r => !r.pending).length, waiting = ['mega', 'large'].filter(u => !ready(u));
+            const st = document.getElementById('x-checked');
+            st.innerHTML = (run === rowsNow.length ? `All ${run} figures above were re-run in your browser from the published series` : `${run} of the ${rowsNow.length} figures above were re-run in your browser from the published series`) +
+                (drift ? '.' : ', and each agrees with the build.') +
+                waiting.map(u => ` The ${esc(short(u).replace(/s$/, '').replace(' ', '-'))} figure is the build’s until its series loads ` +
+                    (asked[u] ? '(it is loading now).' : failed[u] ? '- it did not load.' : `- when you choose ${esc(short(u).replace(/^./, c => c.toUpperCase()))} above, or now.`)).join('') +
+                (waiting.some(u => !asked[u]) ? ` <button type="button" class="reset" id="x-check-now">Check ${waiting.filter(u => !asked[u]).length > 1 ? 'them' : 'it'} now</button>` : '');
+            const go = document.getElementById('x-check-now');
+            if (go) go.addEventListener('click', () => { waiting.forEach(want); check(); });
+        }
+        // the group the opening scene draws is asked for before the first run, so it downloads while that runs
+        want(S.universe); want(S.universe === 'all' ? 'mega' : S.universe);
+        check();
 
         function render() {
-            const r = last = opts(S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            const read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody'), chart = document.getElementById('ch-bars');
             syncPeriod();
             press('universe', v => v === S.universe); press('test', v => v === S.test); press('set', v => v === S.set);
             document.getElementById('c-reset').hidden = atRef();
+            const holding = (el, u) => {                   // a group's series on its way, or one that did not arrive
+                if (failed[u]) {
+                    el.innerHTML = `<span class="warn" role="alert" style="display:block">The series for ${esc(short(u))} did not load. Check the connection and try again.<button type="button" class="retry">Try again</button></span>`;
+                    el.querySelector('.retry').addEventListener('click', () => { want(u); check(); render(); });
+                } else { el.innerHTML = `<span class="loading">Loading the series for ${esc(short(u))}…</span>`; want(u); }
+            };
+            if (!ready(S.universe)) {
+                last = null; mount.setAttribute('aria-busy', 'true');
+                holding(read, S.universe); body.innerHTML = ''; chart.innerHTML = ''; document.getElementById('x-live-note').textContent = '';
+                writeScene(X.id, S, refState()); return;
+            }
+            const r = last = opts(S);
             if (!r.n) {
+                mount.removeAttribute('aria-busy');
                 read.textContent = 'No factor has 60 months in this period, the paper\'s minimum. Widen the period.';
-                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+                body.innerHTML = ''; chart.innerHTML = ''; document.getElementById('x-live-note').textContent = ''; writeScene(X.id, S, refState()); return;
             }
             const group = S.universe === 'all' ? 'mega' : S.universe, other = opts(Object.assign({}, S, { universe: 'all' }));
-            const sized = S.universe === 'all' ? opts(Object.assign({}, S, { universe: 'mega' })) : r;
+            const sized = !ready(group) ? null : S.universe === 'all' ? opts(Object.assign({}, S, { universe: 'mega' })) : r;
             const span = J.months.filter(m => m >= S.start && m <= S.end);
             read.innerHTML = `Over ${span.length} months, ${mon(span[0])} to ${mon(span[span.length - 1])}, among ${esc(G.universe_names[S.universe])}, <strong>${r.hits} of ${r.n}</strong> factors (<strong>${f2(r.rate)}%</strong>) have ${S.test === 'capm' ? 'a CAPM alpha' : 'an average return'} with a t-statistic above 1.96 in the direction their papers found. Their average CAPM alpha is ${sf2(r.alpha)}% a month. With no effect anywhere, about 2.5% would clear the bar by chance; over a short period, a real effect often will not.`;
             body.innerHTML = r.themes.map(t => `<tr><td>${esc(t.theme)}${G.theme_category[t.theme] ? ` <span class="where">${esc(G.theme_category[t.theme])}</span>` : ''}</td><td>${t.n ? t.hits + ' of ' + t.n : '–'}</td><td>${t.n ? f2(t.rate) + '%' : '–'}</td><td>${t.n ? sf2(t.alpha) + '%' : '–'}</td></tr>`).join('') +
@@ -1581,7 +1631,9 @@ h2[tabindex="-1"]:focus { outline: none; }
                 : 'These settings are yours, so there is no published figure to compare them with.');
             document.getElementById('x-key-a').textContent = G.universe_names[group].replace(/ \(.*\)$/, '').replace(/^./, c => c.toUpperCase());
             const gname = G.universe_names[group].replace(/ \(.*\)$/, '');
-            drawPairs(document.getElementById('ch-bars'), r.themes.map((t, i) => ({ name: t.theme, small: other.themes[i].rate || 0, big: sized.themes[i].rate || 0 })), { many: true, places: 0,
+            if (!sized) { mount.setAttribute('aria-busy', 'true'); holding(chart, group); writeScene(X.id, S, refState()); return; }
+            mount.removeAttribute('aria-busy');
+            drawPairs(chart, r.themes.map((t, i) => ({ name: t.theme, small: other.themes[i].rate || 0, big: sized.themes[i].rate || 0 })), { many: true, places: 0,
                 read: i => { const a = sized.themes[i], b = other.themes[i];
                     return `${r.themes[i].theme}: ${a.n ? a.hits + ' of ' + a.n + ' factors (' + f2(a.rate) + '%)' : 'no factor'} clear the bar among ${gname}; ${b.n ? b.hits + ' of ' + b.n + ' (' + f2(b.rate) + '%)' : 'none counted'} among all stocks.`; } });
             writeScene(X.id, S, refState());
@@ -1694,20 +1746,29 @@ h2[tabindex="-1"]:focus { outline: none; }
     // The same ?v= as the lab_data.js tag, so a part never meets a page from another release.
     const PARTS = { 'size': () => ['size'], 'sort': () => ['sorts'], 'split': X => [(X.split || {}).data || 'split'],
         'combo': () => ['split'], 'replication': () => ['jkp'], 'double': () => ['double'] };
+    // A part that is one branch of another's object, and where it goes (factor_lab.LAZY_INTO, round
+    // three): the 153 factors open on all stocks alone; each size group's series is its own file,
+    // fetched when the experiment shows or is asked for that group (replication(), below).
+    const INTO = { 'jkp_mega': ['jkp', 'series', 'mega'], 'jkp_large': ['jkp', 'series', 'large'] };
+    const has = key => key in D || (key in INTO && INTO[key][0] in D && INTO[key][2] in D[INTO[key][0]][INTO[key][1]]);
+    function attach() {                                  // put every branch that has arrived where it belongs
+        Object.keys(INTO).forEach(k => { const p = INTO[k];
+            if (k in D && p[0] in D) { D[p[0]][p[1]][p[2]] = D[k]; delete D[k]; } });
+    }
     const dataTag = document.querySelector('script[src^="lab_data.js"]');
     const VERSION = dataTag ? dataTag.getAttribute('src').split('?')[1] || '' : '';
     const pending = {};
     function part(key) {
-        if (key in D) return Promise.resolve();
+        if (has(key)) return Promise.resolve();
         return pending[key] || (pending[key] = new Promise((ok, fail) => {
             const s = document.createElement('script');
             s.src = 'lab_data_' + key + '.js' + (VERSION ? '?' + VERSION : '');
-            s.onload = () => key in D ? ok() : fail(new Error(key));
+            s.onload = () => { const here = key in D; attach(); here ? ok() : fail(new Error(key)); };
             s.onerror = () => { delete pending[key]; s.remove(); fail(new Error(key)); };
             document.head.appendChild(s);
         }));
     }
-    const missing = X => (PARTS[X.kind] ? PARTS[X.kind](X) : []).filter(k => !(k in D));
+    const missing = X => (PARTS[X.kind] ? PARTS[X.kind](X) : []).filter(k => !has(k));
     // A reader who has started to choose an experiment - a mouse button down on its card or menu entry, a
     // pointer resting on it, the keyboard on it - has its series asked for then, not at the click
     // (round two, 2026-10-27). Only that experiment's own part, only on that sign of intent, so a
