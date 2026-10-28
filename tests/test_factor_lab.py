@@ -46,7 +46,7 @@ NODE_LOAD = (
     "  const d = read(process.argv[3]), part = k => path.join(path.dirname(process.argv[3]), 'lab_data_' + k + '.js');\n"
     f"  const INTO = {json.dumps(fl.LAZY_INTO)};\n"
     f"  for (const k of {json.dumps(list(fl.LAZY_KEYS))}) {{\n"
-    "    if (k in INTO) { const p = INTO[k]; d[p[0]][p[1]][p[2]] = value(part(k)); }\n"
+    "    if (k in INTO) { const p = INTO[k]; p.slice(0, -1).reduce((o, q) => o[q], d)[p[p.length - 1]] = value(part(k)); }\n"
     "    else if (!(k in d)) d[k] = read(part(k)); }\n"
     "  return d; })();\n")
 
@@ -1052,7 +1052,8 @@ FIRST_PAINT_BUDGET_GZ = 200_000
 
 def _parts_for(exp: dict) -> list[str]:
     """What each kind of experiment needs, beyond lab_data.js, before it can open - lab.html's PARTS, restated."""
-    return {"size": ["size"], "sort": ["sorts"], "split": [(exp.get("split") or {}).get("data", "split")],
+    return {"size": ["size"], "sort": [fl.sort_part((exp.get("sort") or {}).get("data", ""))],
+            "split": [(exp.get("split") or {}).get("data", "split")],
             "combo": ["split"], "replication": ["jkp"], "double": ["double"]}.get(exp["kind"], [])
 
 
@@ -1070,11 +1071,15 @@ def test_the_first_screen_waits_for_none_of_the_heavy_series(published, tmp_path
     assert not set(first) & set(fl.LAZY_KEYS)
     assert set(first) | tops == set(published)                                # nothing lost in the split
     assert len(gzip.compress(fl.OUT.read_bytes(), 9)) < FIRST_PAINT_BUDGET_GZ
-    # each branch part is listed after its parent, and its parent's file no longer carries it
-    for key, (a, b, c) in fl.LAZY_INTO.items():
-        assert fl.LAZY_KEYS.index(a) < fl.LAZY_KEYS.index(key)
-        assert c not in fl._parse_js_object(fl.part_path(a))[b], key
-        assert c in published[a][b], key
+    # each branch is listed after the part that holds it, and whatever holds it no longer carries it
+    for key, path in fl.LAZY_INTO.items():
+        *up, last = path
+        in_part = up[0] in fl.LAZY_KEYS
+        if in_part:
+            assert fl.LAZY_KEYS.index(up[0]) < fl.LAZY_KEYS.index(key)
+        held = fl._parse_js_object(fl.part_path(up[0]) if in_part else fl.OUT)
+        assert last not in fl._at(held, tuple(up[1:] if in_part else up)), key
+        assert last in fl._at(published, tuple(up)), key
     # the committed files are exactly what the build's writer produces from the published content
     fl.write(published, tmp_path / fl.OUT.name)
     for path in [fl.OUT] + [fl.part_path(k) for k in fl.LAZY_KEYS]:
@@ -1089,9 +1094,13 @@ def test_the_first_screen_waits_for_none_of_the_heavy_series(published, tmp_path
     parts_js = html.split("const PARTS = ", 1)[1].split("};", 1)[0]
     for kind in {x["kind"] for x in fl.EXPERIMENTS if _parts_for(x)}:
         assert f"'{kind}':" in parts_js, kind
-    # the page's map of branch parts is the build's
+    # the page's map of branch parts is the build's: its written entries, and one per sort experiment
     into_js = html.split("const INTO = ", 1)[1].split("};", 1)[0] + "}"
-    assert json.loads(into_js.replace("'", '"')) == {k: list(v) for k, v in fl.LAZY_INTO.items()}
+    page_into = json.loads(into_js.replace("'", '"'))
+    assert ("D.experiments.forEach(x => { if (x.kind === 'sort') INTO[sortPart(x.sort.data)] = ['sorts', x.sort.data]; });"
+            in html)
+    page_into.update({fl.sort_part(x["sort"]["data"]): ["sorts", x["sort"]["data"]] for x in fl.EXPERIMENTS if x["kind"] == "sort"})
+    assert page_into == {k: list(v) for k, v in fl.LAZY_INTO.items()}
 
 
 @pytest.mark.skipif(NODE is None, reason="node not installed")
@@ -1101,7 +1110,7 @@ def test_the_parts_run_as_the_page_runs_them_and_rebuild_the_payload(published, 
     where the page's attach() puts it - and it is run before its parent here, the order a slow
     parent and a quick branch would arrive in, so the rebuild cannot lean on the build's order."""
     html = PAGE.read_text(encoding="utf-8")
-    attach = html[html.index("    function attach() {"):html.index("    const dataTag = ")]
+    attach = html[html.index("    const holder = "):html.index("    const dataTag = ")]
     script = tmp_path / "parts.js"
     script.write_text(
         "const fs = require('fs'), vm = require('vm');\n"
@@ -1124,7 +1133,8 @@ def test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own():
     lazy = json.dumps(list(fl.LAZY_KEYS))
     # a branch part (factor_lab.LAZY_INTO) counts once it is where it belongs, or waiting at the top level
     loaded = (f"(() => {{ const D = window.LAB_DATA, INTO = {json.dumps(fl.LAZY_INTO)}; return {lazy}.filter(k => k in D"
-              " || (k in INTO && INTO[k][0] in D && INTO[k][2] in D[INTO[k][0]][INTO[k][1]])); })()")
+              " || (k in INTO && (h => !!h && INTO[k][INTO[k].length - 1] in h)(INTO[k].slice(0, -1)"
+              ".reduce((o, q) => o && typeof o === 'object' && q in o ? o[q] : undefined, D)))); })()")
     with sync_api.sync_playwright() as pw:
         browser, page, errors = _open(pw, width=375)
         try:

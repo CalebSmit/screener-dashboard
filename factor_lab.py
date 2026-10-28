@@ -460,8 +460,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 26 = Piotroski on Open Source Asset Pricing's portfolios, and a second data attribution (merged 2026-10-20 night);
 # 27 = the heavy series moved to lab_data_<key>.js, loaded when an experiment opens (LAZY_KEYS) - the page
 #      builds their addresses with this same ?v=, read off its lab_data.js tag;
-# 28 = the 153 factors' size groups in parts of their own (LAZY_INTO), loaded when shown or chosen, and
-#      lab_engine.js's compareReplication marks a figure whose series has not loaded as pending.
+# 28 = the 153 factors' size groups and each of the eight sorts in parts of their own (LAZY_INTO),
+#      loaded when shown or chosen, and lab_engine.js's compareReplication marks a figure whose series
+#      has not loaded as pending.
 ASSET_VERSION = 28
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
@@ -3549,31 +3550,54 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
 # fetched 1.18 MB gzipped before the menu appeared - 6.4 s on a throttled phone, of which the 153
 # JKP factors were 0.71 MB. Content is unchanged by the split: load_published() puts it back
 # together, and tests/test_factor_lab.py checks the parts against the build.
-LAZY_KEYS = ("jkp", "jkp_mega", "jkp_large", "sorts", "size", "double", "split", "quintiles")
-# A part that is one branch of another part's object, and where it is put back (round three,
-# 2026-10-27). The 153 factors carried all three universes in one 716 KB gzipped part, and opening
-# the experiment took 4.9-5.1 s on the phone profile. It now opens on "all" alone, draws the
-# mega-cap bars when their series arrives, and loads the large-cap series only when it is chosen.
-# lab.html's INTO restates this map; a parent part is always listed before its branches.
-LAZY_INTO = {"jkp_mega": ("jkp", "series", "mega"), "jkp_large": ("jkp", "series", "large")}
+def sort_part(name: str) -> str:
+    """The part holding one sort's series (a valid identifier: lab_data_<key>.js assigns LAB_DATA.<key>)."""
+    return "sorts_" + name.replace("-", "_")
+
+
+# A part that is one branch of an object, and the path it is put back at (round three, 2026-10-27).
+# The 153 factors carried all three universes in one 716 KB gzipped part, and opening the experiment
+# took 4.9-5.1 s on the phone profile: it now opens on "all" alone, draws the mega-cap bars when their
+# series arrives, and loads the large-cap series only when chosen. The eight sorts shared one 212 KB
+# part though each experiment reads one of them (1.4-1.55 s to open any): each is now its own, and
+# `sorts` in lab_data.js is the empty object they are put back into. lab.html's INTO restates this
+# map (the sorts' entries derived from the experiments, as here from SORTS); a branch of a part is
+# listed after that part.
+LAZY_INTO = {"jkp_mega": ("jkp", "series", "mega"), "jkp_large": ("jkp", "series", "large"),
+             **{sort_part(name): ("sorts", name) for name in SORTS}}
+LAZY_KEYS = ("jkp", "jkp_mega", "jkp_large", *(sort_part(name) for name in SORTS), "size", "double", "split", "quintiles")
 
 
 def part_path(key: str, out: Path = OUT) -> Path:
     return out.with_name(f"lab_data_{key}.js")
 
 
-def split_parts(payload: dict) -> dict:
-    """Each lazy part's content, with every branch LAZY_INTO names taken out of its parent."""
-    parts = {}
-    for key in LAZY_KEYS:
-        if key in LAZY_INTO:
-            a, b, c = LAZY_INTO[key]
-            parts[key] = payload[a][b][c]
+def _without(obj: dict, path: tuple) -> dict:
+    """A copy of obj with the value at path taken out, copying only the dicts along the path."""
+    if len(path) == 1:
+        return {k: v for k, v in obj.items() if k != path[0]}
+    return {**obj, path[0]: _without(obj[path[0]], path[1:])}
+
+
+def _at(obj: dict, path: tuple):
+    for p in path:
+        obj = obj[p]
+    return obj
+
+
+def split_parts(payload: dict) -> tuple[dict, dict]:
+    """lab_data.js's content and each lazy part's, with every branch LAZY_INTO names taken out of
+    whatever holds it - a part, or lab_data.js itself."""
+    tops = [k for k in LAZY_KEYS if k not in LAZY_INTO]
+    first = {k: v for k, v in payload.items() if k not in tops}
+    parts = {k: payload[k] for k in tops}
+    for key, path in LAZY_INTO.items():
+        parts[key] = _at(payload, path)
+        if path[0] in parts:
+            parts[path[0]] = _without(parts[path[0]], path[1:])
         else:
-            parts[key] = payload[key]
-    for a, b, c in LAZY_INTO.values():
-        parts[a] = {**parts[a], b: {k: v for k, v in parts[a][b].items() if k != c}}
-    return parts
+            first = _without(first, path)
+    return first, {k: parts[k] for k in LAZY_KEYS}
 
 
 def _parse_js_value(path: Path):
@@ -3591,9 +3615,9 @@ def _parse_js_object(path: Path) -> dict:
 def write(payload: dict, out: Path = OUT) -> Path:
     def dump(o) -> str:
         return json.dumps(o, separators=(",", ":"))
-    first = {k: v for k, v in payload.items() if k not in LAZY_KEYS}
+    first, parts = split_parts(payload)
     out.write_text("window.LAB_DATA = " + dump(first) + ";\n", encoding="utf-8")
-    for key, content in split_parts(payload).items():
+    for key, content in parts.items():
         part_path(key, out).write_text(f"window.LAB_DATA.{key} = " + dump(content) + ";\n", encoding="utf-8")
     return out
 
@@ -3603,9 +3627,13 @@ def load_published(path: Path = OUT) -> dict:
     data = _parse_js_object(path)
     for key in LAZY_KEYS:
         if key in LAZY_INTO:
-            a, b, c = LAZY_INTO[key]
-            if a in data and c not in data[a][b] and part_path(key, path).exists():
-                data[a][b][c] = _parse_js_value(part_path(key, path))
+            *up, last = LAZY_INTO[key]
+            try:
+                holder = _at(data, tuple(up))
+            except KeyError:
+                continue
+            if last not in holder and part_path(key, path).exists():
+                holder[last] = _parse_js_value(part_path(key, path))
         elif key not in data and part_path(key, path).exists():
             data[key] = _parse_js_object(part_path(key, path))
     return data

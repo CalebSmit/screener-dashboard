@@ -553,7 +553,9 @@ def test_a_mouse_button_on_a_card_asks_for_its_series_before_the_click(browser):
         page.mouse.move(b["x"] + 10, b["y"] + 10)
         page.mouse.move(2, 2)
         page.wait_for_timeout(400)                            # longer than the 150 ms dwell it never had
-        assert page.evaluate("'sorts' in LAB_DATA") is False
+        # (each sort is its own part since round three, put into the empty `sorts` lab_data.js carries)
+        assert page.evaluate("'low-volatility' in LAB_DATA.sorts || 'sorts_low_volatility' in LAB_DATA") is False
+        assert page.evaluate("document.querySelectorAll('script[src^=\"lab_data_\"]').length") == 0
         page.evaluate("""document.querySelector(".card-a[href='#replication-crisis']")
             .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }))""")
         page.wait_for_timeout(400)

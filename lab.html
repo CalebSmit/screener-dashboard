@@ -1776,16 +1776,20 @@ h2[tabindex="-1"]:focus { outline: none; }
     // own file, lab_data_<key>.js, fetched the first time an experiment that reads it is opened, so
     // the menu and the overview wait for none of them (measured 2026-10-26, plan/factor-lab.md).
     // The same ?v= as the lab_data.js tag, so a part never meets a page from another release.
-    const PARTS = { 'size': () => ['size'], 'sort': () => ['sorts'], 'split': X => [(X.split || {}).data || 'split'],
+    const sortPart = name => 'sorts_' + name.replace(/-/g, '_');           // factor_lab.sort_part
+    const PARTS = { 'size': () => ['size'], 'sort': X => [sortPart(X.sort.data)], 'split': X => [(X.split || {}).data || 'split'],
         'combo': () => ['split'], 'replication': () => ['jkp'], 'double': () => ['double'] };
-    // A part that is one branch of another's object, and where it goes (factor_lab.LAZY_INTO, round
-    // three): the 153 factors open on all stocks alone; each size group's series is its own file,
-    // fetched when the experiment shows or is asked for that group (replication(), below).
+    // A part that is one branch of an object, and the path it goes back at (factor_lab.LAZY_INTO, round
+    // three): the 153 factors open on all stocks alone, each size group's series its own file, fetched
+    // when the experiment shows or is asked for that group (replication(), below); and each sort is its
+    // own file, put into the empty `sorts` lab_data.js carries.
     const INTO = { 'jkp_mega': ['jkp', 'series', 'mega'], 'jkp_large': ['jkp', 'series', 'large'] };
-    const has = key => key in D || (key in INTO && INTO[key][0] in D && INTO[key][2] in D[INTO[key][0]][INTO[key][1]]);
+    D.experiments.forEach(x => { if (x.kind === 'sort') INTO[sortPart(x.sort.data)] = ['sorts', x.sort.data]; });
+    const holder = p => p.slice(0, -1).reduce((o, k) => o && typeof o === 'object' && k in o ? o[k] : undefined, D);
+    const has = key => key in D || (key in INTO && !!holder(INTO[key]) && INTO[key][INTO[key].length - 1] in holder(INTO[key]));
     function attach() {                                  // put every branch that has arrived where it belongs
-        Object.keys(INTO).forEach(k => { const p = INTO[k];
-            if (k in D && p[0] in D) { D[p[0]][p[1]][p[2]] = D[k]; delete D[k]; } });
+        Object.keys(INTO).forEach(k => { const h = holder(INTO[k]);
+            if (k in D && h) { h[INTO[k][INTO[k].length - 1]] = D[k]; delete D[k]; } });
     }
     const dataTag = document.querySelector('script[src^="lab_data.js"]');
     const VERSION = dataTag ? dataTag.getAttribute('src').split('?')[1] || '' : '';
