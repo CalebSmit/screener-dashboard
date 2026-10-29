@@ -250,6 +250,38 @@ Two things still outrank this file, and neither is negotiable:
      a mutation finds. Nothing about scoring, no published text, and no production code changed.
      The plan's next list is three items, one of them the three *unregistered* computational
      sentences this pass found on the research page.
+     **Fifth pass DONE 2026-10-29 (06:00 session) - those three sentences are claims now, and the
+     measurement is that nothing in the project could see them change.** Rows 106-117 of
+     `plan/claims-mutation-audit.md`. The research page's "How long would it take to prove an
+     edge?" section prints the ranking's monthly swing (`se x sqrt(n)` over 2020-2026), three
+     "months of record" counts, and the smallest difference the test could see in each era. All
+     three say how a number is computed and **none was in `claims.py`**, so the loop that
+     publishes them had never run a check of them. They are registered now with checks on both
+     sides of every figure, and **12 mutations produce 12 catches**.
+     **The number worth your attention is the other one.** 12 of 12 is the expected result for
+     tests written the same day, so the question asked instead was: before today, would *anything*
+     have noticed? One mutation per claim, with the page regenerated the way
+     `python v2_experiments.py report` publishes it, then the **whole** suite with only today's
+     four new tests deselected: **3,506 passed, 1 skipped - three times out of three.** Not
+     under-checked; invisible. Taking the swing off the wrong era would have moved the published
+     figure from 0.10 to 0.12 and all three month counts with it, and shipped.
+     **Two things generalise, both about what "caught" means.** Two of the twelve *were* caught
+     before today - by a test no claim named, so the publish gate (whose membership is derived from
+     `checked_by`) never ran it; "something in the suite fails" and "the loop refuses to publish"
+     are different facts. And the test that caught them asserted
+     `months_needed(...) == round(((3.0 + 0.84) * 0.12 / 0.05) ** 2)`, the function's own
+     expression copied, which survived only because those two mutations changed the code *beside*
+     the copied line rather than the line itself. So a copied-expression check reads as coverage
+     until a mutation happens to land on the copied part. It is literals now (85 and 45).
+     **One structural fix:** `claims.RESEARCH` is a `detect` surface at last, and the **generated**
+     page rather than the committed one, so a reworded research-page sentence goes stale on the
+     session that rewords it. The register could not carry a pattern for that surface before today.
+     **No weight, metric, threshold or published sentence changed** - the diff is the register,
+     tests and the write-up. The plan's next list is three items, and its first is the sweep this
+     pass argues for: the sentences that are not registered **at all**, which is the gap
+     `claims.py`'s own docstring names and which this audit cannot reach by mutation. Three more on
+     the research page are named there with what each needs (the difference chart's band and
+     pass-bar geometry, the overlap figures, the bot table's intervals).
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).
