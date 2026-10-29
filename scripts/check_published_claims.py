@@ -85,6 +85,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -285,6 +286,23 @@ def pytest_command(parallel: bool) -> list[str]:
     return cmd + ["-n", XDIST_WORKERS] if parallel else cmd
 
 
+# pytest's own result line: "1781 passed, 3 skipped in 120.53s (0:02:00)". stderr is appended
+# after stdout, so the last line printed is not necessarily pytest's - on 2026-10-29 the gate
+# logged "PASS (ConnectionAbortedError: [WinError 10053] ...)", a browser test's teardown noise,
+# on a run whose checks had all passed (pytest exit 0). The verdict was always the exit code;
+# this is only what the log says about it.
+RESULT_LINE = re.compile(r"\b\d+ (passed|failed|errors?|skipped|xfailed|xpassed|deselected)\b.* in [\d.]+s")
+
+
+def result_line(stdout: str, stderr: str = "") -> str:
+    """The line in which pytest reports its count, or the last line printed if it gave none."""
+    for ln in reversed((stdout or "").splitlines()):
+        if RESULT_LINE.search(ln):
+            return ln.strip().strip("=").strip()
+    tail = [ln for ln in ((stdout or "") + (stderr or "")).splitlines() if ln.strip()]
+    return tail[-1] if tail else "no output"
+
+
 def run(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Verify the claims in the artifacts about to be published.")
     ap.add_argument("--list", action="store_true", help="print the modules and exit")
@@ -358,15 +376,14 @@ def run(argv: list[str] | None = None) -> int:
 
     mode = f"parallel, -n {XDIST_WORKERS}" if parallel else "serial"
     if proc.returncode == 0:
-        summary = tail[-1] if tail else "no output"
-        print(f"PUBLISHED CLAIMS: PASS ({summary}) [{mode}]")
+        print(f"PUBLISHED CLAIMS: PASS ({result_line(proc.stdout, proc.stderr)}) [{mode}]")
         return 0
 
     print(f"PUBLISHED CLAIMS: FAIL (pytest exit {proc.returncode}) [{mode}]")
     for ln in [ln for ln in tail if ln.startswith("FAILED") or ln.startswith("ERROR")][-12:]:
         print(f"    {ln}")
     if tail:
-        print(f"    {tail[-1]}")
+        print(f"    {result_line(proc.stdout, proc.stderr)}")
     return 1
 
 
