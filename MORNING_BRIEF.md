@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 28 October 2026, 14:03
+# Morning Brief - Thursday 29 October 2026, 02:22
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,28 +7,24 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **stopped deliberately** - last ran today |
+| Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-10-27T02:00:05.759618 |
+| Dashboard data from | 2026-10-29T02:00:05.052320 |
 | Stocks scored | 498 |
 | With a price | 498/498 |
 | With an analyst target | 496/498 |
-| Top 5 | EXPE, MU, APA, HST, EG |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (38 rows, but overlapping windows are not independent; 99 rows across all horizons), newest 2026-10-19 |
-| Context signals | Context signals: 14 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 412/413 within 0.5%; operating cash flow 397/401 within 0.5%; net income 387/409 within 0.5%; market value 443/484 within 5%; filings cached 5 days ago |
-| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#17: net income 16% off the filing); WDC (#18: net income 2.13x after-tax operating income) |
-| Data run timing | **18 min** total; slowest `fetch.tickers` 651 s, `fetch.retry` 144 s, `context.sec_insider` 98 s; **44 tickers rate-limited** |
-| Context coverage | options usable 485/498 (13 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
-
-## Things that needed attention
-
-- The regenerated artifacts contradict claims this project asserts about them.
-- Refusing to publish. The live site keeps the last good version.
-- Run discarded: published-claims check failed - fix the generator, not the file.
+| Top 5 | EXPE, VLO, MU, APA, HST |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (39 rows, but overlapping windows are not independent; 103 rows across all horizons), newest 2026-10-21 |
+| Context signals | Context signals: 15 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
+| Inputs vs SEC filings | total assets 396/397 within 0.5%; operating cash flow 381/385 within 0.5%; net income 373/393 within 0.5%; market value 443/484 within 5%; filings cached 6 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#5: net income 1.46x after-tax operating income); CF (#17: net income 16% off the filing); WDC (#22: net income 2.13x after-tax operating income) |
+| Data run timing | **18 min** total; slowest `fetch.tickers` 646 s, `fetch.retry` 140 s, `snapshot` 129 s; **45 tickers rate-limited** |
+| Context coverage | options usable 489/498 (9 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
 
 ## What changed in the repo
 
+- `3170a19 data: screener run 2026-10-29 - 498 scored, top: EXPE VLO MU APA HST`
+- `bee8f89 brief: code session 2026-10-28-midday`
 - `0d20410 log: the fourth mutation pass - the research surface, and a drift tripwire that is green in the state the change ships in`
 - `9f46655 plan/OWNER_FOCUS: the fourth mutation pass - the research surface's statistics and the last three residuals`
 - `6c815b3 wip: pin the Sahm rule's prior-12 window and its 0.50 bar (audit rows 102-103)`
@@ -42,8 +38,6 @@ history is in `NIGHTLY_LOG.md`.
 - `b7ff1f4 log: the seventh owner pass - the repo lock's two races fixed, flaky tests, sheet, shell, lab, bot`
 - `ab2a172 test_sheet_round_three: the tab tests wait for the context payload and for the jump to land, not for a fixed position (flaked twice in five parallel runs)`
 - `763e791 repo lock: publish the lock whole and reclaim only under a token - both measured races fixed`
-- `a22a01b page shell, round three: failure states, freshness, true run time, Inter stand-in, print, 404, home screen (payload byte-identical)`
-- `8b9b0fc research: flaky tests - three full suites green on the final tree`
 
 ## The session's own account
 
