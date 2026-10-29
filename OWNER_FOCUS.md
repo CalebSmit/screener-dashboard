@@ -282,6 +282,36 @@ Two things still outrank this file, and neither is negotiable:
      `claims.py`'s own docstring names and which this audit cannot reach by mutation. Three more on
      the research page are named there with what each needs (the difference chart's band and
      pass-bar geometry, the overlap figures, the bot table's intervals).
+     **Sixth pass DONE 2026-10-29 (13:00 session) - that sweep is built, and the number to read is
+     that a brand-new sentence stating the arithmetic of a published figure is invisible to 3,515
+     tests.** Rows 118-126 of `plan/claims-mutation-audit.md`. The three sentences registered this
+     morning were found by *reading one section of one page*, which is attention, not a method -
+     and this audit cannot reach that class at all, because mutation can only mutate what the
+     register names. So `tests/test_claims_register.py` now sweeps `research_page.py` the way it
+     has always swept `stock_summary.py`: it enumerates **every sentence the page prints that puts
+     a number this repo computed into prose - 32 of them** - and each must carry a verdict
+     (`claim:`, `checked:`, `reported:` or `open:`). A new or reworded one fails the suite until it
+     gets one. `checked:` means *every* computed figure in the sentence is pinned by the named
+     test; one unpinned figure makes the row `open:`, and every verdict was assigned by reading the
+     assertion rather than its name.
+     **What it found: 12 of the 32 sentences have at least one figure pinned by nothing.** They are
+     listed by literal slug, the set only ever shrinks, and the plan carries what each needs. The
+     sharpest ones: the pass bar is printed **twice** on the page and nothing pins either copy or
+     that the two agree; the overfitting section's PBO words are probed at 0.21/0.5/0.73 and
+     **never at their own bars, 0.45 and 0.55**; and the trading rule's monthly figure is matched
+     as `[0-9.]+%`, so its sign, words and t-statistic are pinned and **the percentage itself is a
+     wildcard**.
+     **One closed the same session** - the universe paragraph, which this morning named as a
+     residual. `research.pairing_overlap`, five checks, including the branch threshold at exactly
+     99% of the screen's universe and the record the overlap mean is taken over.
+     **9 mutations, 9 caught, and 9 of 9 blind to everything else** (apply, regenerate the page the
+     way `v2_experiments.py report` publishes it, then the whole suite minus today's eight tests:
+     3,515 passed, eight times out of eight). Two of the nine are the sweep's own teeth: adding a
+     new computed sentence, and rewording an existing one. The ninth breaks the sweep itself and
+     confirms the floor fires rather than passing vacuously.
+     **No weight, metric, threshold or published sentence changed.** The plan's next list leads
+     with the rest of this item - the same sweep over `build_screener_overview` and
+     `generate_dashboard.py`, one surface per session - and the twelve open rows as a queue.
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).

@@ -634,3 +634,109 @@ def test_the_months_to_prove_an_edge_are_that_swing_at_eighty_percent_power():
         ("59", "months for the same with a t-statistic of 3"),
         ("164", "months to show 0.03 with a t-statistic of 3"),
     ]
+
+
+# --------------------------------------------------------------- the overlap (2026-10-29, 13:00)
+# Claim ``research.pairing_overlap``. Found by the sweep in
+# ``tests/test_claims_register.py`` section 5 and named before that in
+# ``plan/claims-mutation-audit.md``: the paragraph states four figures and
+# ``test_the_page_says_the_pairing_is_on_the_shared_stocks_and_states_the_universe_difference``
+# pinned one of them (the baseline's stocks a month) plus the words around the rest.
+
+NARROW_ID = "fcf-yield-only"
+
+
+def _overlap_fixture(tmp_path, monkeypatch, *, baseline=440.0, narrow=400.0, decoy=430.0,
+                     common=None, outside=None):
+    """A controlled ``PER_CONFIG`` and ledger for the universe paragraph.
+
+    ``decoy`` is a second alternative ranked *wider* than ``narrow``, so a page that
+    took the first, the last or the widest alternative would name the wrong screen.
+    ``outside`` is an overlap figure dated outside ``X.SAMPLE``; it must not move the
+    mean, which is the "wrong record" mutation rows 89-105 found twice.
+    """
+    reg, latest = X.load_registry(), copy.deepcopy(_latest())
+    assert NARROW_ID in latest and "equal-categories" in latest, "fixture ids left the ledger"
+    per = {"configs": {
+        "baseline": {"sample": {"months": 80, "mean_stocks": baseline}},
+        NARROW_ID: {"sample": {"months": 80, "mean_stocks": narrow}},
+        "equal-categories": {"sample": {"months": 80, "mean_stocks": decoy}},
+    }}
+    path = tmp_path / "per_config.json"
+    path.write_text(json.dumps(per), encoding="utf-8")
+    monkeypatch.setattr(rp, "PER_CONFIG", path)
+    months = {"2020-01-31": common[0], "2020-02-29": common[1]} if common else {}
+    if outside is not None:
+        months["2019-12-31"] = outside            # before X.SAMPLE[0]
+        months["2026-09-30"] = outside            # after X.SAMPLE[1]
+    latest[NARROW_ID]["n_common_by_month"] = months
+    page = rp.build(reg, latest, X.summary_for_page(reg, _latest()), X.detectable,
+                    X.load_evaluations())
+    return page[page.index("A weighting can only rank what it has enough data to score"):][:1200]
+
+
+def test_the_universe_paragraph_names_the_narrowest_screen_and_both_its_own_figures(tmp_path, monkeypatch):
+    """The two counts the sentence states: what the current weighting can rank, and what the
+    *narrowest* alternative can. 440 and 400 against a decoy at 430 - so picking the widest
+    alternative, or the first in the file, prints 430 and names Equal weight on every category.
+    """
+    para = _overlap_fixture(tmp_path, monkeypatch, common=[300.0, 300.0])
+    assert 'ranked <span class="num">440</span> stocks a month on average' in para
+    assert 'alternative, Free-cash-flow yield alone (within sector), <span class="num">400</span>.' in para
+    assert "430" not in para and "Equal weight on every category" not in para
+
+
+def test_the_overlap_is_the_mean_of_the_screens_own_monthly_counts_inside_the_record(tmp_path, monkeypatch):
+    """"The two had N companies a month in the overlap" is the mean of that screen's
+    ``n_common_by_month`` over ``X.SAMPLE`` - not its month count, not the screen's own universe,
+    and not the baseline's.
+
+    290 and 310 give 300. The two months dated outside the record carry 999 each: including them
+    would print 650, and taking the maximum 999. 400 (the screen's universe) and 440 (the
+    baseline's) are both present in the paragraph for other reasons, so this assertion pins the
+    *overlap* position specifically.
+    """
+    para = _overlap_fixture(tmp_path, monkeypatch, common=[290.0, 310.0], outside=999.0)
+    assert 'The two had <span class="num">300</span> companies a month in the overlap' in para
+    assert "999" not in para and "650" not in para
+
+
+def test_a_near_subset_says_which_side_the_pairing_holds_and_what_it_gives_up(tmp_path, monkeypatch):
+    """The other branch, and the point of it: when the overlap is essentially the screen's own
+    universe, the sentence says pairing holds the *baseline* to the smaller set, and states the
+    stocks only the baseline can score - the baseline's universe minus the overlap.
+
+    Overlap 396 of the screen's 400: 440 - 396 = 44. The screen's own 400 - 396 = 4 is the
+    other subtraction available and prints as "4 a month are unique to it", so a swap of the
+    two is visible. The narrower-screen clause must not claim fewer than one when four are.
+    """
+    para = _overlap_fixture(tmp_path, monkeypatch, common=[396.0, 396.0])
+    assert '(<span class="num">4</span> a month are unique to it)' in para
+    assert ('so pairing on the overlap holds the current weighting to that smaller set instead of '
+            'crediting it with the <span class="num">44</span> only it can score.') in para
+    assert "companies a month in the overlap" not in para
+    assert "fewer than one a month is unique to it" not in para
+
+
+def test_the_near_subset_branch_turns_at_ninety_nine_percent_of_the_screens_universe(tmp_path, monkeypatch):
+    """The threshold itself, at and either side of it - the state that separates ``>=`` from ``>``.
+
+    0.99 x 400 = 396. At 396 exactly the page takes the near-subset branch; at 395.9 it reports
+    the overlap instead. Both branches are reachable, which is what makes the sentence a statement
+    about the data rather than a fixed piece of prose.
+    """
+    at = _overlap_fixture(tmp_path, monkeypatch, common=[396.0, 396.0])
+    assert "pairing on the overlap holds" in at and "in the overlap, and that" not in at
+    below = _overlap_fixture(tmp_path, monkeypatch, common=[395.8, 396.0])
+    assert "in the overlap, and that" in below and "pairing on the overlap holds" not in below
+    above = _overlap_fixture(tmp_path, monkeypatch, common=[400.0, 400.0])
+    assert "fewer than one a month is unique to it" in above
+
+
+def test_the_paragraph_says_nothing_when_the_screens_months_are_missing(tmp_path, monkeypatch):
+    """A row with no ``n_common_by_month`` must leave the overlap sentence out rather than print a
+    mean of nothing - the universe counts still stand, because they come from the committed
+    measurement and not from the ledger."""
+    para = _overlap_fixture(tmp_path, monkeypatch, common=None)
+    assert 'ranked <span class="num">440</span> stocks a month' in para
+    assert "in the overlap" not in para and "unique to it" not in para

@@ -486,3 +486,354 @@ def test_the_recorded_caveats_say_whether_fixed_or_which_stage_extends_them():
     for claim in recorded:
         assert ("Fixed" in claim.caveat) or _re.search(r"\bT[0-6][ab]?\b|\bD[2-8]\b", claim.caveat), (
             f"{claim.id}: caveat neither says it is fixed nor names the stage that closes it")
+
+
+# ---------------------------------------------------------------------------
+# 5. the same sweep, for a *generated page* rather than stock_summary.py
+# ---------------------------------------------------------------------------
+# `test_every_sentence_builder_is_registered` above works because
+# `stock_summary.py` has a naming convention: a new `_sentence_*` cannot ship
+# unregistered. No generated page has one, and that is the gap this module's own
+# docstring names - "nothing enumerated the set of computational claims the site
+# makes". It cost three claims on 2026-10-29: the research page's "How long would
+# it take to prove an edge?" section printed a monthly swing, three month counts
+# and two detectable differences, every one of them arithmetic this repo
+# performs, and the measurement that session recorded is that **one mutation per
+# figure passed the entire suite** (3,506 passed, three times out of three). They
+# were not under-checked; nothing anywhere could see them change
+# (`plan/claims-mutation-audit.md`, rows 106-117).
+#
+# Mutation cannot find that class, because it can only mutate what the register
+# names. So this sweep enumerates the other direction: every sentence a generated
+# page prints that puts a number *this repo computed* into prose. Each one needs a
+# verdict, and a new or reworded one fails the suite until it gets one.
+#
+# **Scope, stated so it cannot drift.** A sentence is in scope when it
+# interpolates a value that the generator formats as a number (a numeric format
+# spec) or computes (arithmetic, or a call to one of its own statistics helpers).
+# A figure read verbatim out of the ledger or the registry with no formatting is
+# a *reported* number, not a computed one - the page-matches-its-source tests are
+# what cover those, and `reported:` records it. Two classes of published number
+# are deliberately **outside** this sweep because they are not sentences: the
+# headline chart's dot, band and tick positions (`_pos`), and the bot table's
+# cells (`_ex`). Both are named in `plan/claims-mutation-audit.md` with what they
+# need; they are not covered here and this comment is the only place that says so.
+
+_TAG = re.compile(r"</?([A-Za-z][\w-]*)[^>]*>|<[^>]*>")
+# inline tags sit *inside* a sentence - a figure is wrapped in <span class="num">,
+# so breaking on them would separate every number from the words around it. Every
+# other tag is block-level and ends the unit, which is what keeps one key from
+# swallowing a whole section (the first draft of this sweep produced a key running
+# from the chart legend through the table to the next heading).
+_INLINE = frozenset({"span", "a", "em", "strong", "code", "i", "b", "sup", "sub", "br", "small"})
+_BREAK = "\x01"
+_PROSE = re.compile(r"[A-Za-z][\w'&;-]*(?:\s+[A-Za-z][\w'&;-]*){2,}")
+_HOLE = re.compile(r"\x00(\d+)\x00")
+_NUMERIC_SPEC = re.compile(r"[fdeg,%]")
+# the generator's own number helpers and statistics - a call to one of these is
+# arithmetic performed here, whatever the value's provenance
+_NUMBER_CALLS = frozenset({
+    "num", "pct", "_pos", "months_needed", "detectable", "pass_bar", "t_critical",
+    "p_value", "abs", "len", "sum", "round", "min", "max", "mean", "sqrt", "int", "float",
+})
+
+
+def _is_computed(fv: ast.FormattedValue) -> bool:
+    """Whether this interpolation is a number the generator formatted or computed."""
+    if fv.format_spec is not None:
+        spec = "".join(c.value for c in fv.format_spec.values
+                       if isinstance(c, ast.Constant) and isinstance(c.value, str))
+        if _NUMERIC_SPEC.search(spec):
+            return True
+    if isinstance(fv.value, ast.BinOp):
+        return True
+    if isinstance(fv.value, ast.Call):
+        func = fv.value.func
+        name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+        return name in _NUMBER_CALLS
+    return False
+
+
+def computed_sentences(path: Path) -> list[str]:
+    """Every sentence in a generator that puts a computed number into prose.
+
+    The key is the sentence as published, tag-stripped and whitespace-normalised,
+    with each interpolation left in place as its own source expression. So a
+    reword fires (as a `detect` pattern does, deliberately) **and** swapping which
+    expression is printed fires - the second is the one a `{}` placeholder would
+    miss, and it is how a figure gets taken off the wrong era.
+    """
+    out: list[str] = []
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if not isinstance(node, ast.JoinedStr):
+            continue
+        parts, holes = [], []
+        for v in node.values:
+            if isinstance(v, ast.Constant) and isinstance(v.value, str):
+                parts.append(v.value)
+            elif isinstance(v, ast.FormattedValue):
+                parts.append(f"\x00{len(holes)}\x00")
+                holes.append(v)
+        text = _TAG.sub(
+            lambda m: " " if (m.group(1) or "").lower() in _INLINE else _BREAK, "".join(parts))
+        for entity, plain in (("&mdash;", "-"), ("&ndash;", "-"), ("&nbsp;", " ")):
+            text = text.replace(entity, plain)
+        units = re.split(r"(?<=[.!?:])\s+|" + _BREAK, text)
+        # A stat card is a figure in one element and its caption in the next
+        # (`<div class="v">{months_needed(...)}</div><div class="k">months of record
+        # to show a monthly correlation of 0.05 ...</div>`). Block-splitting leaves
+        # the figure with no words and the caption with no figure, so neither half
+        # is a sentence and the claim disappears - which it did on the first run of
+        # this sweep, for all three of the month counts registered the same morning.
+        # A figure-only unit therefore takes the following unit's words.
+        merged: list[str] = []
+        for unit in units:
+            if merged and _HOLE.search(merged[-1]) and not _PROSE.search(_HOLE.sub(" ", merged[-1])):
+                merged[-1] += " " + unit
+            else:
+                merged.append(unit)
+        for raw in merged:
+            idx = [int(m.group(1)) for m in _HOLE.finditer(raw)]
+            if not any(_is_computed(holes[i]) for i in idx):
+                continue
+            if not _PROSE.search(_HOLE.sub(" ", raw)):
+                continue                       # a bare figure with no words anywhere
+            out.append(re.sub(r"\s+", " ", _HOLE.sub(
+                lambda m: "{" + ast.unparse(holes[int(m.group(1))].value) + "}", raw)).strip())
+    return out
+
+
+# Every computed-number sentence on research.html, swept 2026-10-29 (13:00
+# session), with what pins its arithmetic. The verdicts:
+#
+#   claim:<id>       a registered claim covers it, checked both ways
+#   checked:<ref>    no claim, but that test recomputes the figure independently
+#   reported:<ref>   the figure is read verbatim from the ledger/registry and
+#                    that test pins the page against the source
+#   open:<what>      at least one computed figure in the sentence is pinned by
+#                    nothing. Dated below; a new sentence may not be filed here
+#                    (see KNOWN_OPEN).
+#
+# `checked:` and `reported:` mean **every** computed figure in the sentence is
+# pinned by that test. One unpinned figure makes the whole row `open:`, with a
+# note saying which - otherwise a row reads as coverage it does not have, which is
+# the failure this register exists to catch. Every verdict below was assigned by
+# reading the named assertion, not by its name.
+RESEARCH_PAGE_SENTENCES: dict[str, str] = {
+    # --- the headline, and what the record could show -----------------------
+    "The ranking's average monthly rank correlation with the next month's return was "
+    "{num(pre_ic)} over 2012-2019":
+        "checked:tests/test_research_page.py::test_its_headline_numbers_are_the_engine_s_summary",
+    "Pooled over all {summary['months']['pooled']} months it was "
+    "{num(summary['baseline_ic']['pooled'])} {_interval('pooled')}.":
+        "checked:tests/test_research_page.py::test_every_headline_figure_carries_its_interval_from_the_ledger",
+    "The pooled record could reliably detect an average of about "
+    "{summary['pooled_detectable']} at a t-statistic of 3, and no smaller.":
+        "checked:tests/test_research_page.py::test_every_headline_figure_carries_its_interval_from_the_ledger",
+    "{months_needed(0.05, ic_sd, 1.96)} months of record to show a monthly correlation "
+    "of 0.05 at the usual 5% level": "claim:research.months_to_prove",
+    "{months_needed(0.05, ic_sd, 3.0)} months for the same with a t-statistic of 3":
+        "claim:research.months_to_prove",
+    "{months_needed(0.03, ic_sd, 3.0)} months to show 0.03 with a t-statistic of 3":
+        "claim:research.months_to_prove",
+    "The ranking's monthly correlation swings by about {ic_sd} from one month to the next, "
+    "so any monthly ranking of large companies needs years of record before a realistic "
+    "edge can be told apart from luck.": "claim:research.ic_swing",
+    "Here, the smallest difference the test could reliably see was about {mde_p} over "
+    "2012-2019 and {mde_h} over the held-out months.": "claim:research.detectable_difference",
+
+    # --- the pass bar, printed twice ---------------------------------------
+    "With p from Student's t, that means a t-statistic of at least {bar_p} over 2012-2019's "
+    "{mid_p.get('n')} months and {bar_h} over the {mid_h.get('n')} held-out months.":
+        "open:pass-bar-printed:2026-10-29 - nothing asserts the page's own bar_p/bar_h. "
+        "test_the_bar_at_38_held_out_months... pins X.pass_bar as a function, not that the "
+        "page prints pass_bar(n, the median row's months) for each era",
+    "a difference counts only if it reaches beyond them, a t-statistic of {bar_p} over these "
+    "{mid_p.get('n')} months, in the same direction as 2020-2026.":
+        "open:pass-bar-under-chart:2026-10-29 - the same figure, printed a second time under the chart; "
+        "nothing pins either, and nothing pins that the two agree",
+
+    # --- the chart ----------------------------------------------------------
+    "{''.join(dots)} {num(-LIM, 2)} {num(-LIM / 2, 2)} 0 {num(LIM / 2, 2)} {num(LIM, 2)} "
+    "difference 95% interval pass bar smallest difference the test could reliably detect":
+        "open:chart-axis-and-geometry:2026-10-29 - the axis ticks (+/-LIM and its halves) and, in the same block, the "
+        "dot/band/tick geometry `_pos` puts on that axis. plan/claims-mutation-audit.md names "
+        "`_pos`: a sign error would put every dot on the wrong side of zero with every printed "
+        "number still correct",
+
+    # --- the positive control ----------------------------------------------
+    "Fed the filings as they stand today for every past month - information nobody had at the "
+    "time - the same test puts that ranking {num(c['ic_vs_baseline'])} of rank correlation a "
+    "month ahead of the real one over {c['months']} months (t {num(c['t'], 1)} )":
+        "claim:research.positive_control",
+    "Fed the filings as they stand today for every past month - information nobody had at the "
+    "time - this test put the cheating ranking {num(c['ic_vs_baseline'])} ahead of the real one "
+    "(t {num(c['t'], 1)} ), which does not clear its own bar.":
+        "claim:research.positive_control",
+    ", against the {num(c['detectable'])} it could reliably detect":
+        "claim:research.positive_control",
+    "{num(c['ic_vs_baseline'])} ahead of the real one": "claim:research.positive_control",
+
+    # --- the universe the comparisons are measured on -----------------------
+    "over 2020-2026 the current weighting ranked {b0['mean_stocks']} stocks a month on average "
+    "and the narrowest alternative, {display_label(next((r['e'] for r in rows if r['id'] == "
+    "m_id)))}, {m_n} .{overlap}": "claim:research.pairing_overlap",
+    "The two had {c} companies a month in the overlap, and that is what each comparison is "
+    "measured on.": "claim:research.pairing_overlap",
+    "so pairing on the overlap holds the current weighting to that smaller set instead of "
+    "crediting it with the {b0['mean_stocks'] - c} only it can score.":
+        "claim:research.pairing_overlap",
+    "( {only_narrow} a month are unique to it),": "claim:research.pairing_overlap",
+
+    # --- the Size hypothesis ------------------------------------------------
+    "{row['label']} shows the largest 2012-2019 difference, {num(p['mean'])} "
+    "(t {num(p['t'], 2)}), {reach} the pass bar.":
+        "open:size-row-mean-t-and-bar-word:2026-10-29 - the Size row's own mean and t, and the word choosing 'short of' or "
+        "'beyond' the pass bar at |t| = bar. test_the_size_sentence... pins the coverage "
+        "correlations in the next sentence and not these",
+    "The share of each month's members the test could include rose steadily, from "
+    "{rel['first_cov'] * 100}% in {rel['first_year']} to {rel['last_cov'] * 100}% in "
+    "{rel['last_year']} (its correlation with the calendar is {rel['r_time']} ), and within "
+    "2012-2019 the Size screen's monthly result moved with that share {moved} the current "
+    "weighting's did (correlations of {num(rel['pre_r_size'])} and {num(rel['pre_r_base'])} ).":
+        "open:size-coverage-percentages:2026-10-29 - the two yearly coverage percentages are pinned by nothing; "
+        "test_the_size_sentence... recomputes r_time and both within-era correlations",
+
+    # --- if you had kept the best backtest ---------------------------------
+    "Over {a['first_month'][:4]}-{a['last_month'][:4]} the PBO was {a['pbo']} , "
+    "{_pbo_words(a['pbo'])}, and the winner beat the current weighting on the other half in "
+    "{a['winner_beat_current_out_of_sample'] * 100}% of trials.":
+        "open:pbo-all-era-prose:2026-10-29 - the out-of-sample share is pinned by nothing, and _pbo_words is "
+        "probed at 0.21/0.5/0.73 but never at its own bars 0.45 and 0.55. The stat card's PBO "
+        "is pinned (test_the_page_prints_the_ledger_s_reading_all_three_ways), not this copy",
+    "Over {rec['first_month'][:4]}-{rec['last_month'][:4]} alone the PBO was {rec['pbo']} , "
+    "{_pbo_words(rec['pbo'])}, and the winner beat the current weighting out of sample in "
+    "{rec['winner_beat_current_out_of_sample'] * 100}% of trials.":
+        "open:pbo-recent-era-prose:2026-10-29 - as the row above, for the recent era",
+    "Drop {html.escape(label(wo['dropped']))} from the set and the PBO over every year is "
+    "{wo['pbo']} , {_pbo_words(wo['pbo'])}.":
+        "open:pbo-without-winner-prose:2026-10-29 - the prose PBO and its word; the card is pinned, this copy is not",
+    "Its lead over the current weighting was {num(pre['mean'])} over 2012-2019 and "
+    "{num(hold['mean'])} over the held-out months":
+        "open:pbo-top-winner-lead:2026-10-29 - the top winner's two era means, and the clause 'where it fell "
+        "behind' that depends on their signs",
+    "split the history into equal blocks of months, and for every way of picking half of them "
+    "( {a['splits']} ways here, from {a['blocks']} blocks), take the weighting that did best on "
+    "that half and see where it ranks on the other half.":
+        "checked:tests/test_overfitting.py::test_the_page_prints_the_ledger_s_reading_all_three_ways",
+    "This uses the current weighting and the {a['configurations'] - 1} alternatives above, each "
+    "scored month by month against the current one on the stocks both ranked, and reruns nothing.":
+        "open:pbo-configuration-count:2026-10-29 - the count of alternatives the PBO was computed over is this page's "
+        "own subtraction and is pinned by nothing; summary['alternatives'] is a different number "
+        "from a different source",
+
+    # --- the trading rule ---------------------------------------------------
+    "In {lab} it returned {abs(st['mean']) * 100}% a month {word} that average "
+    "(t {num(st['t'], 2)}),":
+        "open:bot-monthly-excess-figure:2026-10-29 - test_the_trading_rule_sentence_follows_each_period_s_sign_and_t pins "
+        "the words, the sign and the t, and matches the percentage as `[0-9.]+%` - so the "
+        "monthly figure itself is a wildcard",
+    "{yc(ys[0])}% of each month's members in {ys[0]}, rising to {yc(ys[-1])}% in {ys[-1]}, so "
+    "the average leans toward the companies that survived.":
+        "open:bot-coverage-by-year:2026-10-29 - the first and last year's mean coverage. "
+        "test_the_trading_rule_sentence... pins only 'members still listed today'",
+    "The same rule with a {sev['rule']['stop_loss_pct']}% stop-loss":
+        "reported:tests/test_research_page.py::"
+        "test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_it_failed",
+    "a holding whose adjusted close ends a day {sev['rule']['stop_loss_pct']}% or more below "
+    "its price at the start of the month is closed out at that close, and its slot stays in "
+    "cash until the next monthly rebalance.":
+        "reported:tests/test_research_page.py::"
+        "test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_it_failed",
+    "The paper waits a day and exits at a limit a further {sev['rule']['stop_loss_pct'] / 2}% "
+    "down, where this exits at the triggering close.":
+        "reported:tests/test_research_page.py::"
+        "test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_it_failed",
+}
+
+# The twelve sentences above whose arithmetic nothing pins, as of 2026-10-29, by
+# the slug in their verdict. **Literals, not a comprehension over the table** -
+# `frozenset(s for s, v in ... if v.startswith("open:"))` is the table compared
+# with itself and passes at any value (`plan/claims-mutation-audit.md` row 59).
+# This set only ever shrinks: closing one means deleting its slug and giving the
+# sentence a claim. A session that has to add one says why in `NIGHTLY_LOG.md`.
+KNOWN_OPEN: frozenset[str] = frozenset({
+    "pass-bar-printed", "pass-bar-under-chart", "chart-axis-and-geometry",
+    "size-row-mean-t-and-bar-word", "size-coverage-percentages",
+    "pbo-all-era-prose", "pbo-recent-era-prose", "pbo-without-winner-prose",
+    "pbo-top-winner-lead", "pbo-configuration-count",
+    "bot-monthly-excess-figure", "bot-coverage-by-year",
+})
+
+
+def test_every_computed_sentence_on_the_research_page_has_a_verdict():
+    """A new or reworded computed-number sentence fails until it is classified.
+
+    This is `test_every_sentence_builder_is_registered` for a page with no naming
+    convention. It does not assert the numbers are right - the verdicts say what
+    does - it asserts that none of them is *invisible*, which is the state all
+    three of 2026-10-29's registrations were in.
+    """
+    found = computed_sentences(ROOT / "research_page.py")
+    assert len(found) >= 25, (
+        f"the sweep found only {len(found)} computed-number sentences in "
+        "research_page.py - it found 29 on 2026-10-29. A sweep that stops matching "
+        "passes vacuously; fix `computed_sentences`, do not trim the table."
+    )
+    assert len(set(found)) == len(found), "two identical sentence keys - make the key finer"
+
+    new = [s for s in found if s not in RESEARCH_PAGE_SENTENCES]
+    assert not new, (
+        "these sentences put a number this repo computed into prose on research.html "
+        "and have no verdict in RESEARCH_PAGE_SENTENCES. Add one - claim:, checked:, "
+        "reported: or open: - after reading what actually pins the figure. If you only "
+        f"reworded an existing sentence, move its line.\n\n" + "\n\n".join(new)
+    )
+    stale = [s for s in RESEARCH_PAGE_SENTENCES if s not in found]
+    assert not stale, (
+        "RESEARCH_PAGE_SENTENCES has verdicts for sentences the page no longer "
+        f"prints - delete them:\n\n" + "\n\n".join(stale)
+    )
+
+
+def test_no_sentence_is_quietly_filed_as_unchecked():
+    """`open:` is a dated list, not a bucket. A sentence born unchecked has to be
+    added to KNOWN_OPEN in its own commit, where the diff shows it.
+    """
+    bad = {v for v in RESEARCH_PAGE_SENTENCES.values()
+           if v.split(":")[0] not in {"claim", "checked", "reported", "open"}}
+    assert not bad, f"unknown verdict kind: {sorted(bad)}"
+    opened = {v.split(":")[1] for v in RESEARCH_PAGE_SENTENCES.values()
+              if v.startswith("open:")}
+    assert len(opened) == sum(1 for v in RESEARCH_PAGE_SENTENCES.values()
+                              if v.startswith("open:")), "two open rows share a slug"
+    assert opened == KNOWN_OPEN, (
+        "the set of unchecked computed sentences has changed. Closing one: delete its "
+        "slug from KNOWN_OPEN and give the sentence a claim. Opening one: say in "
+        f"NIGHTLY_LOG.md why it shipped unchecked.\nnewly open: {sorted(opened - KNOWN_OPEN)}\n"
+        f"no longer open: {sorted(KNOWN_OPEN - opened)}"
+    )
+
+
+def test_every_verdict_names_a_test_or_claim_that_exists():
+    """The 2026-10-06 lesson, applied to the verdicts: eleven of the register's
+    first twenty-six `checked_by` references named tests that did not exist."""
+    problems = []
+    ids = {c.id for c in claims.CLAIMS}
+    cache: dict[str, set[str] | None] = {}
+    for sentence, verdict in RESEARCH_PAGE_SENTENCES.items():
+        kind, _, ref = verdict.partition(":")
+        if kind == "claim":
+            if ref not in ids:
+                problems.append(f"{ref} is not a claim id ({sentence[:60]!r})")
+        elif kind in ("checked", "reported"):
+            filename, _, func = ref.partition("::")
+            if filename not in cache:
+                path = ROOT / filename
+                cache[filename] = _test_functions(path) if path.exists() else None
+            names = cache[filename]
+            if names is None:
+                problems.append(f"{filename} does not exist ({sentence[:60]!r})")
+            elif func not in names:
+                problems.append(f"{filename} has no {func} ({sentence[:60]!r})")
+    assert not problems, "\n".join(problems)

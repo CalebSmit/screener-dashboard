@@ -428,6 +428,97 @@ under-checked sentences; nothing anywhere in the project could see them change.
   `check_published_claims.py` had never run it before publishing the page that quotes it. 23s,
   synthetic, fixed seed, no network.
 
+## Results, 2026-10-29 (13:00 session): the sweep, and what it costs to find a sentence by reading
+
+The three sentences registered this morning were found by **reading one section of one page**, and
+the morning's own measurement was that each was invisible to the whole suite. That is not a method -
+it is luck plus attention, and this audit cannot reach the class at all, because **mutation can only
+mutate what the register names.** This pass builds the other direction, item 3 of the 2026-10-28
+next list.
+
+**`tests/test_claims_register.py` section 5 sweeps `research_page.py` the way
+`test_every_sentence_builder_is_registered` sweeps `stock_summary.py`.** It enumerates every
+sentence the generator prints that puts a number *this repo computed* into prose - 32 of them - and
+requires each to carry a verdict: `claim:`, `checked:`, `reported:` or `open:`. A new or reworded
+one fails the suite until it gets one.
+
+**The scope rule, stated so it cannot drift.** A sentence is in scope when it interpolates a value
+the generator formats as a number (a numeric format spec) or computes (arithmetic, or a call to one
+of its own statistics helpers). A figure read verbatim out of the ledger or the registry with no
+formatting is a *reported* number - the page-matches-its-source tests cover those, and `reported:`
+records which. `checked:`/`reported:` mean **every** computed figure in the sentence is pinned by
+the named test; one unpinned figure makes the whole row `open:`, because a row that reads as
+coverage it does not have is the failure the register exists to catch. Every verdict was assigned by
+reading the named assertion.
+
+**Two implementation facts worth keeping**, both found by the sweep's own output being wrong:
+
+- **Inline tags are inside a sentence; every other tag ends it.** A figure is wrapped in
+  `<span class="num">`, so breaking on all tags separates every number from its words - and
+  stripping all tags without breaking produced a single key running from the chart legend through
+  the whole alternatives table to the next heading.
+- **A stat card is a figure in one element and its caption in the next.** With block-level
+  breaking, `<div class="v">{months_needed(...)}</div><div class="k">months of record to show
+  ...</div>` leaves a figure with no words and a caption with no figure, so **all three month
+  counts registered this morning vanished from the sweep.** A figure-only unit therefore takes the
+  following unit's words.
+
+**The verdicts: 12 of the 32 are `open:`** - at least one computed figure pinned by nothing. They
+are listed by **literal slug** in `KNOWN_OPEN`, not by a comprehension over the table, which would
+be the table compared with itself (row 59 applied to this file's own ratchet). The set only ever
+shrinks.
+
+**One closed here: the universe paragraph**, named as a residual by the 06:00 session.
+`research.pairing_overlap`, five checks. Until today
+`test_the_page_says_the_pairing_is_on_the_shared_stocks_and_states_the_universe_difference` pinned
+one of its four figures (the baseline's stocks a month) and the words around the other three.
+
+**9 mutations, 9 caught by today's tests, and 9 of 9 blind to everything else.** Same method as the
+morning's: apply one exact single-occurrence replacement, regenerate `research.html` with
+`python v2_experiments.py report` the way the page is actually published, then run the whole suite
+with only today's eight new tests deselected. **3,515 passed, 1 skipped, eight times out of eight.**
+
+| # | Claim | Mutation | Before today | Now |
+|---|---|---|---|---|
+| 118 | `research.pairing_overlap` | `only_narrow = m_n - c` -> `b0["mean_stocks"] - c`: the stocks unique to the screen become the stocks only the baseline can score | **blind - the whole suite, 3,515 passed** | caught: `test_a_near_subset_says_which_side_the_pairing_holds_and_what_it_gives_up` |
+| 119 | same | the same two subtractions swapped the other way | **blind - 3,515 passed** | caught: same test |
+| 120 | same | `c >= 0.99 * m_n` -> `c > 0.99 * m_n`: the near-subset branch turns strictly above 99% instead of at it | **blind - 3,515 passed** | caught: `test_the_near_subset_branch_turns_at_ninety_nine_percent_of_the_screens_universe` |
+| 121 | same | `min(narrow)` -> `max(narrow)`: the page names the *widest* alternative as the narrowest | **blind - 3,515 passed** | caught: `test_the_universe_paragraph_names_the_narrowest_screen_and_both_its_own_figures` |
+| 122 | same | the `X.SAMPLE` filter dropped: the overlap averaged over every month on file, not the record | **blind - 3,515 passed** | caught: `test_the_overlap_is_the_mean_of_the_screens_own_monthly_counts_inside_the_record` |
+| 123 | same | `sum(common) / len(common)` -> `max(common)`: the overlap is the best month, not the mean | **blind - 3,515 passed** | caught: same test |
+| 124 | the sweep itself | a **new** computed-number sentence appended to the published paragraph | **blind - 3,515 passed** | caught: `test_every_computed_sentence_on_the_research_page_has_a_verdict` |
+| 125 | the sweep itself | a registered sentence **reworded** ("The two had" -> "The two shared") | **blind - 3,515 passed** | caught: same test |
+| 126 | the sweep itself | `_INLINE = frozenset()`: the sweep stops matching and would pass vacuously | n/a | caught: the `>= 25` floor, with its own message |
+
+**Row 124 is the finding.** Adding a brand-new sentence that states the arithmetic of a published
+figure is, before today, invisible to 3,515 tests. That is the class this audit could not reach,
+measured rather than argued, and it is now the one thing the sweep makes impossible.
+
+**Row 125 is why the key is the sentence text with its expressions in place** rather than a `{}`
+placeholder template. A reword is blind to everything else even after the page is regenerated - the
+drift tripwire is green by then (the 2026-10-28 lesson) - and a placeholder key would also miss
+swapping *which* expression is printed, which is exactly how row 106 took a figure off the wrong
+era.
+
+**What the 12 open rows are**, as a queue for later sessions (slug, then what is unpinned):
+
+- `pass-bar-printed`, `pass-bar-under-chart` - the page's own `bar_p`/`bar_h`, printed twice.
+  `test_the_bar_at_38_held_out_months...` pins `X.pass_bar` as a function, not that the page calls
+  it with the median row's month count per era, and nothing pins that the two printings agree.
+- `chart-axis-and-geometry` - the axis ticks and, in the same block, `_pos`. A sign error there puts
+  every dot on the wrong side of zero with every printed number still correct.
+- `size-row-mean-t-and-bar-word`, `size-coverage-percentages` - the Size row's own mean and t, the
+  "short of"/"beyond" word at |t| = bar, and the two yearly coverage percentages.
+  `test_the_size_sentence...` recomputes `r_time` and both within-era correlations, and not these.
+- `pbo-all-era-prose`, `pbo-recent-era-prose`, `pbo-without-winner-prose`, `pbo-top-winner-lead`,
+  `pbo-configuration-count` - the overfitting section's prose copies of its figures (the cards are
+  pinned, the prose is not), the out-of-sample shares, the top winner's two era means, and
+  `_pbo_words`, which is probed at 0.21/0.5/0.73 and **never at its own bars 0.45 and 0.55**.
+- `bot-monthly-excess-figure` - `test_the_trading_rule_sentence_follows_each_period_s_sign_and_t`
+  matches the percentage as `[0-9.]+%`, so the monthly figure is a wildcard while its sign, words
+  and t are pinned.
+- `bot-coverage-by-year` - the first and last year's mean coverage under the trading-rule table.
+
 ## Next claims (for the nightly sessions)
 
 Take them in order; one session can do four to six. Record each in the table above with
@@ -435,8 +526,21 @@ the date, and move this list down.
 
 **The 2026-10-20 list's items 1-8 and 12 are done** (2026-10-25, rows 39-62), **the two
 mechanical searches are done** (2026-10-26, rows 63-88), **items 1-4 of the 2026-10-28 list are
-done** (rows 89-105), **and its item 3 - the research page's unregistered sentences - is done**
-(2026-10-29, rows 106-117). What is left:
+done** (rows 89-105), **its item 3 - the research page's unregistered sentences - is done**
+(2026-10-29 06:00, rows 106-117), **and item 3 below - the sweep for sentences that are not
+registered at all - is done for `research_page.py`** (2026-10-29 13:00, rows 118-126). What is
+left:
+
+0. **Run the sweep over the other two generated surfaces**, which is the rest of item 3:
+   `run_screener.build_screener_overview` and `generate_dashboard.py`. `computed_sentences()` in
+   `tests/test_claims_register.py` takes a path and needs nothing new; the work is the table of
+   verdicts, and each verdict means reading the assertion that is supposed to pin the figure.
+   Expect a bigger yield and a bigger table - the overview is the public methodology page and
+   `generate_dashboard.py` is 13,485 lines. Take one surface per session, not both. **The twelve
+   `open:` rows from the research page are a queue in their own right** (listed in the 13:00
+   results above, with what each needs); `_pbo_words` at its own bars 0.45 and 0.55 is the
+   cheapest, and `bot-monthly-excess-figure` - a published percentage matched as `[0-9.]+%` - is
+   the one most likely to be wrong without anyone noticing.
 
 1. **The partly-payload claims.** The 2026-10-26 scan lists 21 claims whose checks *mix* payload
    reads with other tests. A claim is safe only if a non-payload check pins the specific number
@@ -451,8 +555,8 @@ done** (rows 89-105), **and its item 3 - the research page's unregistered senten
    the module under test. Rows 92-94, 97 and 98 all have it, and an `ast` walk can find the
    obvious form - a call to `made_true_by`'s own module whose result is then compared with the
    page. Same caveat as item 6 in 2026-10-26: it over-reports, and only a mutation decides.
-3. **A fourth mechanical search, which 2026-10-29 argues is now the highest-value one: the
-   sentences that are not registered at all.** This audit can only mutate what the register
+3. **DONE for `research_page.py` (2026-10-29, 13:00; rows 118-126). The remaining two surfaces
+   are item 0 above.** A fourth mechanical search: the sentences that are not registered at all.** This audit can only mutate what the register
    names, and the three it added today were found by reading one section of one page. The gap is
    structural and it is the one `claims.py`'s own docstring names ("nothing enumerated the *set*
    of computational claims the site makes"). Every *generated* surface should be swept the way
@@ -463,11 +567,13 @@ done** (rows 89-105), **and its item 3 - the research page's unregistered senten
    the expected yield of the sweep is higher than another hand-picked mutation. Start with
    `research_page.py`, which is small and whose numbers are all statistics.
 
-   Specifically still unregistered on the research page, found while doing rows 106-117 and left
-   deliberately because each needs its own fixture: the per-row chart's band and pass-bar tick
-   positions (`_pos`, which turn a difference into a percentage of a &plusmn;0.06 axis), the
-   "companies a month in the overlap" figures in the universe paragraph, and the bot table's 95%
-   intervals (`_ex`). None of them is covered by rows 106-117.
+   Of the three residuals named here while doing rows 106-117: the **overlap figures are
+   closed** (`research.pairing_overlap`, rows 118-123). The chart's band and tick positions
+   (`_pos`) are now an enumerated `open:` row, `chart-axis-and-geometry`. The bot table's 95%
+   intervals (`_ex`) are **outside the sweep by construction** - "95%: X to Y" in a table cell is
+   a published figure with no prose around it, so it is not a sentence; it needs a decision about
+   whether the register covers table cells, and that decision is not a thing to make in the last
+   hour of a session.
 
 The two scans are not tracked (see "Method" on why harness code stays out of the repo); both
 are about 100 lines - an `ast` walk over `tests/` that resolves `import m as x` / `from m import

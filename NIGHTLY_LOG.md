@@ -16749,3 +16749,162 @@ cannot move the expected figures (0.017 / 0.025).
   this change touches that module or the page. If it fails again under `-n auto`, it is worth a
   look at its wait conditions.
 - `stash@{0}` (the 10-28 refused run's three files) is still there, untouched.
+
+## 2026-10-29 (13:00 midday session) - QUEUE. The sentences nothing was watching: a sweep for computed numbers on the research page that no claim names
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-29 06:00 shipped to main
+(tag `good/2026-10-29`), and an owner-run session merged a claims-gate log fix after it. Data loop
+published? **yes** - 02:00 today ended "Data loop complete", HEALTH: PASS, run `a08c2741a3ca`, 498
+scored. Evidence base at `1m` = **39 rows, newest 2026-09-28 (31 days ago, bound 40), 5
+effective**. Priority 0: `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13,
+the Factor Lab** (opened 2026-10-12, **age 17 days**) - not advanced, and not drifting: the lab's
+day is a Friday, 2026-10-30 is an even ISO week so the runner swaps in the retrospective, and the
+next lab Friday is **2026-11-06**.
+**Tests:** before 3,515 passed / 1 skipped, after **3,523 passed / 1 skipped**.
+**Owner queue / rotation:** the third session today. Carried on from the 06:00 entry's **Next**,
+which specified this work: `OWNER_FOCUS.md` item 3 of the 2026-10-20 block ("Test the tests") and
+`plan/claims-mutation-audit.md`'s next-list item 3. No proposal was waiting
+(`write_brief.open_proposals()` returns `[]`). The stash `auto-rescue 2026-10-28_060001` is still
+empty and still untouched (`git stash show --stat` prints nothing) - left in place, as its own
+entry says. No owner-session marker. The top open item in `OWNER_FOCUS.md` (universe expansion) is
+a Monday research item by its own Next line; nothing else deferred.
+
+### Did
+
+**`claims.py` registers the sentences someone thought to write down. This sweeps for the ones
+nobody did.** Rows 118-126 of `plan/claims-mutation-audit.md`. No production code, no weight, no
+threshold and no published sentence changed; the diff is one new section in
+`tests/test_claims_register.py`, five tests, one claim and the write-ups.
+
+**The argument for doing it.** This morning's session registered three computational sentences on
+the research page and measured that each was invisible to the whole suite. It found them by
+*reading one section of one page*. That is attention, not a method - and the mutation audit this
+item has been running since 2026-10-20 **cannot reach the class at all**, because mutation can
+only mutate what the register names. The gap is the one `claims.py`'s own docstring describes:
+"nothing enumerated the *set* of computational claims the site makes".
+
+**So the register now sweeps a generated page the way it has always swept `stock_summary.py`.**
+`test_every_sentence_builder_is_registered` works because a new `_sentence_*` cannot ship
+unregistered; no generated page has a naming convention to hang that on. `computed_sentences()`
+supplies one structurally: it walks `research_page.py`'s f-strings, reconstructs each as the text
+the page prints, splits it into sentences, and keeps those that interpolate a number **this repo
+computed** - a numeric format spec, arithmetic, or a call to one of the generator's own statistics
+helpers. **32 sentences.** Each must carry a verdict - `claim:`, `checked:`, `reported:` or
+`open:` - and a new or reworded one fails the suite until it gets one.
+
+**Two rules in it that are worth more than the code.** `checked:` and `reported:` mean *every*
+computed figure in the sentence is pinned by the named test; **one unpinned figure makes the whole
+row `open:`**, because a row that reads as coverage it does not have is the exact failure the
+register exists to catch. And every verdict was assigned by reading the named assertion, not its
+name - which is how the trading-rule row below was found.
+
+**What the sweep found: 12 of the 32 sentences have at least one computed figure pinned by
+nothing.** Each is listed by a literal slug in `KNOWN_OPEN` with what it needs. The three sharpest:
+
+- **The pass bar is printed twice on the page and nothing pins either copy.**
+  `test_the_bar_at_38_held_out_months...` pins `X.pass_bar` as a function; nothing says the page
+  calls it with the median row's own month count per era, and nothing says the two printings agree.
+- **`_pbo_words` is probed at 0.21, 0.5 and 0.73 and never at its own bars, 0.45 and 0.55.** That
+  is the fourth time this audit has found a threshold tested either side of itself and not at it.
+- **The trading rule's monthly figure is a wildcard.**
+  `test_the_trading_rule_sentence_follows_each_period_s_sign_and_t` matches it as `[0-9.]+%`, so
+  the sign, the words and the t-statistic are pinned and the percentage - the number a reader
+  actually takes away - is not.
+
+**One closed the same session: the universe paragraph**, which the 06:00 entry named as a residual.
+It states four figures and until today one of them was pinned (the baseline's stocks a month) plus
+the words around the other three. It is `research.pairing_overlap` now, with five checks: the
+narrowest alternative is the *minimum*, against a decoy ranked wider; the overlap is the mean of
+that screen's own monthly counts **inside** the 2020-2026 record, against two months dated outside
+it carrying 999; the two subtractions either side of the overlap are different numbers (44 and 4 in
+the fixture, so a swap shows); the branch turns at **exactly** 99% of the screen's universe; and a
+row with no monthly counts prints no overlap sentence rather than a mean of nothing.
+
+**9 mutations, 9 caught by today's tests, and 9 of 9 blind to everything else.** Method as this
+morning's: one exact single-occurrence replacement, then `python v2_experiments.py report` to
+regenerate the page the way it is actually published - without that step the drift tripwire fires
+and tells you nothing, the 2026-10-28 lesson - then the whole suite with only today's eight tests
+deselected. **3,515 passed, 1 skipped, eight times out of eight.**
+
+**The number to read is row 124.** Appending a brand-new sentence that states the arithmetic of a
+published figure - "and that is what each comparison is measured on, N figures in all" - is
+**invisible to 3,515 tests**. That is the class the audit could not reach, measured rather than
+argued, and the sweep is the one thing that makes it impossible.
+
+**Row 125 is why the key is the sentence with its expressions in place** rather than a `{}`
+template: rewording a registered sentence is also blind to everything else once the page is
+regenerated, and a placeholder key would additionally miss swapping *which* expression is printed -
+which is exactly how row 106 took a figure off the wrong era.
+
+**And row 126 is the sweep pointed at itself.** Break `computed_sentences` so it stops matching and
+the `>= 25` floor fires with its own message ("a sweep that stops matching passes vacuously; fix
+`computed_sentences`, do not trim the table"). A sweep with no floor is CLAUDE.md rule 8's
+decoration.
+
+**Two implementation facts, both found because the sweep's first output was wrong** - worth
+carrying to the other two surfaces:
+
+- **Inline tags are inside a sentence; every other tag ends it.** A figure is wrapped in
+  `<span class="num">`, so breaking on all tags separates every number from its words - and
+  stripping all tags without breaking produced one key running from the chart legend through the
+  whole alternatives table to the next heading.
+- **A stat card is a figure in one element and its caption in the next.** Block-level breaking
+  leaves the figure wordless and the caption numberless, and **all three month counts registered
+  this morning disappeared from the sweep** until a figure-only unit was made to take the following
+  unit's words.
+
+### Evidence / research
+
+- The nine mutations, applied one at a time as a single exact-string replacement required to occur
+  exactly once, each followed by a regeneration and then (a) only today's tests and (b) the whole
+  suite minus them; `git checkout` and a clean `git status --porcelain` between every one. Harness
+  outside the repo per the plan's Method - a mutation tool in the tree is one bad `finally` away
+  from committing a mutant.
+- The blindness measurement is the one that justifies the work: 9 of 9 caught now, 8 of 8 blind
+  before (the ninth is the sweep's own floor and has no "before"). Commands and figures in
+  `plan/claims-mutation-audit.md`, "Results, 2026-10-29 (13:00 session)".
+- Coverage arithmetic for the publish gate: the new tests add **no module**. All five live in
+  `tests/test_research_page.py` and the three structural ones in `tests/test_claims_register.py`,
+  both already in `scripts/check_published_claims.py`'s derivation - and the new claim's
+  `checked_by` keeps them there by construction, so the gate runs them whether or not the curated
+  list ever mentions them.
+- Nothing here quotes an engine or backtest number as evidence for anything (rules 4 and 5). The
+  subject is the checks, not the results.
+
+### Methodology changed
+
+- None. `claims.py` gained one claim (`research.pairing_overlap`) and no `FORBIDDEN` or `asserts`
+  text moved. `research_page.py` is untouched.
+
+### Tried and rejected
+
+- **Requiring a claim for every number in prose, with no `reported:` verdict.** The honest line is
+  that a figure read verbatim out of the ledger with no formatting is a *reported* number, and the
+  page-matches-its-source tests are what cover it. Collapsing that into "needs a claim" would have
+  put ~20 more rows in the table for no gain in coverage, and a table nobody can read gets
+  rubber-stamped - which is how a register becomes documentation (this file's first line).
+- **Deriving `KNOWN_OPEN` from the table** (`frozenset(s for s, v in ... if v.startswith("open:"))`),
+  which is what I wrote first. It is the table compared with itself and passes at any value - row
+  59's rule applied to the ratchet instead of to a constant. The slugs are literals now, which also
+  means rewording a sentence does not churn the ratchet; only opening or closing one does.
+- **Bringing the bot table's 95% intervals (`_ex`) into the sweep.** "95%: X to Y" in a table cell
+  is a published figure with no prose around it, so it is not a sentence, and the register's stated
+  scope is sentences. Widening that scope to table cells is a real decision with a real cost in
+  table size, and the last hour of a session is not where to make it. Recorded in the plan with
+  what it needs; the chart's geometry, the other named residual, **is** now an enumerated `open:`
+  row rather than out of scope.
+- **Sweeping `generate_dashboard.py` in the same session.** 13,485 lines, and the value of this
+  mechanism is entirely in the verdicts being read rather than guessed. One surface per session is
+  in the plan as item 0.
+
+### Next
+
+- **The rest of the sweep: `run_screener.build_screener_overview`, then `generate_dashboard.py`,
+  one surface per session** (`plan/claims-mutation-audit.md` item 0). `computed_sentences()` takes
+  a path and needs nothing new; the work is the table, and a verdict means reading the assertion.
+  The overview is the public methodology page, so expect the larger yield there.
+- Or take from the twelve open rows, which are a queue with the work specified. `_pbo_words` at
+  0.45 and 0.55 is the cheapest; `bot-monthly-excess-figure` is the one most likely to be wrong
+  without anyone noticing.
+- 2026-10-30 is a **retrospective** (even ISO week). Phase 0 of the universe plan on research
+  Monday **2026-11-02**; the next lab Friday is **2026-11-06**.
