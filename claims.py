@@ -831,6 +831,41 @@ CLAIMS: tuple[Claim, ...] = (
                 r"and <span class=\"num\">[\d.]+</span> over the held-out months"),
     ),
     Claim(
+        id="research.pairing_overlap",
+        surface=RESEARCH,
+        asserts=(
+            "The universe paragraph's four figures are each what they say. The two counts are "
+            "the stocks a month the current weighting and the **narrowest** alternative could "
+            "rank, from the committed per-configuration measurement. The overlap is the mean of "
+            "that screen's own `n_common_by_month` over the 2020-2026 record and nothing else. "
+            "And where the overlap is at least 99% of the screen's universe the sentence says "
+            "pairing holds the *current weighting* down to that smaller set, quoting the stocks "
+            "only it can score (the baseline's universe minus the overlap) and, separately, the "
+            "stocks unique to the screen (the screen's universe minus the overlap) - two "
+            "different subtractions, never the same number printed twice."
+        ),
+        made_true_by="research_page:build",
+        checked_by=(
+            "tests/test_research_page.py::test_the_universe_paragraph_names_the_narrowest_screen_and_both_its_own_figures",
+            "tests/test_research_page.py::test_the_overlap_is_the_mean_of_the_screens_own_monthly_counts_inside_the_record",
+            "tests/test_research_page.py::test_a_near_subset_says_which_side_the_pairing_holds_and_what_it_gives_up",
+            "tests/test_research_page.py::test_the_near_subset_branch_turns_at_ninety_nine_percent_of_the_screens_universe",
+            "tests/test_research_page.py::test_the_paragraph_says_nothing_when_the_screens_months_are_missing",
+            # the words either side of the figures, and that the pairing is described as on the
+            # shared stocks at all (method version 2, 2026-10-17)
+            "tests/test_research_page.py::test_the_page_says_the_pairing_is_on_the_shared_stocks_and_states_the_universe_difference",
+        ),
+        caveat=(
+            "The overlap is read from the ledger row, which records it per month, so it is the "
+            "record the comparison was actually measured on. It is **not** a statement about "
+            "every alternative: the paragraph names the narrowest one, and each other screen's "
+            "own overlap is unstated. Fixed in the chart, where every row's interval is drawn "
+            "from its own standard error over its own months."
+        ),
+        detect=(r"ranked <span class=\"num\">[\d.]+</span> stocks a month on average and the "
+                r"narrowest alternative"),
+    ),
+    Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,
         asserts=(
