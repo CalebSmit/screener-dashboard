@@ -2250,16 +2250,16 @@
     "SubIndustry": "Life & Health Insurance"
   },
   {
-    "Ticker": "PEG",
-    "Company": "Public Service Enterprise Group",
-    "Sector": "Utilities",
-    "SubIndustry": "Electric Utilities"
-  },
-  {
     "Ticker": "PTC",
     "Company": "PTC Inc.",
     "Sector": "Information Technology",
     "SubIndustry": "Application Software"
+  },
+  {
+    "Ticker": "PEG",
+    "Company": "Public Service Enterprise Group",
+    "Sector": "Utilities",
+    "SubIndustry": "Electric Utilities"
   },
   {
     "Ticker": "PSA",
