@@ -268,6 +268,28 @@ def test_passing_tests_report_safe_to_publish(monkeypatch, capsys):
     assert "PASS" in capsys.readouterr().out
 
 
+def test_the_pass_line_reports_pytests_count_not_the_last_thing_printed(monkeypatch, capsys):
+    """2026-10-29: the data loop logged "PASS (ConnectionAbortedError: ...)" because stderr noise
+    from a browser test followed pytest's result line. The log must carry the count."""
+    noise = "ConnectionAbortedError: [WinError 10053] An established connection was aborted\n"
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _Proc(
+        0, "....\n1781 passed, 3 skipped, 352 warnings in 120.53s (0:02:00)\n", noise))
+    assert gate.run([]) == 0
+    out = capsys.readouterr().out
+    assert "PASS (1781 passed, 3 skipped, 352 warnings in 120.53s (0:02:00))" in out
+    assert "ConnectionAborted" not in out
+
+
+@pytest.mark.parametrize("stdout, expected", [
+    ("==== 12 failed, 900 passed in 30.1s ====\n", "12 failed, 900 passed in 30.1s"),
+    ("1 passed in 0.01s\n", "1 passed in 0.01s"),
+    ("no result line here\n", "no result line here"),
+    ("", "no output"),
+], ids=["full-summary", "quiet", "no-count-falls-back", "empty"])
+def test_result_line(stdout, expected):
+    assert gate.result_line(stdout) == expected
+
+
 def test_failing_tests_refuse_the_publish(monkeypatch, capsys):
     monkeypatch.setattr(
         subprocess, "run",
