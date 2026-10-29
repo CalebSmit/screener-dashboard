@@ -51,7 +51,12 @@ def test_its_headline_numbers_are_the_engine_s_summary():
 
 def test_signs_and_zero_are_printed_honestly():
     assert rp.num(0.00003) == "0.000" and rp.num(-0.0028) == "&minus;0.003" and rp.num(0.028) == "+0.028"
-    assert rp.months_needed(0.05, 0.12, 3.0) == round(((3.0 + 0.84) * 0.12 / 0.05) ** 2)
+    # 2026-10-29: this line read `== round(((3.0 + 0.84) * 0.12 / 0.05) ** 2)`, which is the
+    # function's own expression copied - it passes whatever that expression becomes
+    # (plan/claims-mutation-audit.md, row 59). The figure is a literal now: (3.84 x 0.12 / 0.05)^2
+    # = 84.93 -> 85, against 36 with the power term dropped and 23 at the 5% level.
+    assert rp.months_needed(0.05, 0.12, 3.0) == 85
+    assert rp.months_needed(0.05, 0.12, 1.96) == 45
 
 
 def test_the_page_gives_no_advice_and_says_so():
@@ -92,6 +97,7 @@ def test_the_dashboard_sends_readers_to_the_evidence_and_the_lab():
 
 # --------------------------------------------------------------------------- the 2026-10-16 audit
 import copy  # noqa: E402
+import math  # noqa: E402
 
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
@@ -476,3 +482,155 @@ def test_every_t_statistic_carries_a_real_minus_as_the_means_beside_it_do():
     assert not re.search(r'\(t&nbsp;-\d|t <span class="num">-\d|<span class="t">t -\d|aria-label="[^"]*, t -\d', body)
     assert not re.search(r'<span class="t">\((?:t )?-\d', body)
     assert re.search(r"\(t(?:&nbsp;| )&minus;\d", body)                     # and the negative ones are there to check
+
+
+# ---------------------------------------- "How long would it take to prove an edge?" (2026-10-29)
+# The three sentences in that section each say how a number is computed and none of them was in
+# `claims.py`, so they sat outside the publish gate's derivation and outside the mutation audit
+# (plan/claims-mutation-audit.md, next-list item 3). They are registered now as
+# `research.ic_swing`, `research.months_to_prove` and `research.detectable_difference`, and these
+# are their checks. Every expected figure below is a literal: reading it back out of
+# `research_page` or `v2_experiments` is what made the audit's row 59 class of check blind.
+
+SWING = re.compile(r"swings by about <span class=\"num\">([\d.]+)</span>")
+MDE = re.compile(r"reliably see was about <span class=\"num\">([\d.]+)</span> over 2012&ndash;2019 "
+                 r"and <span class=\"num\">([\d.]+)</span> over the held-out months")
+STAT = re.compile(r'<div class="stat"><div class="v">(\d+)</div><div class="k">([^<]+)</div>')
+
+
+def _row_ids(reg: list, latest: dict) -> list[str]:
+    """The alternatives `build` keeps, in id order - the rows whose standard errors decide the
+    two "smallest difference" figures."""
+    return sorted(e["id"] for e in reg
+                  if e["id"] != "baseline" and not e.get("void") and latest.get(e["id"])
+                  and "ic_vs_baseline" in latest[e["id"]]["summary"].get("presample", {}))
+
+
+def _spread(ids: list[str], plateau: float, below: tuple, above: tuple, mean_middle: float) -> dict:
+    """A standard error per row, chosen so the *median* of them is a figure written here.
+
+    A plateau wide enough to cover the middle index whatever the row count, two rows below it and
+    two above - so the median is ``plateau`` while the mean, the smallest and the largest are all
+    something else. The row sitting in the middle of the **mean** ordering (the order ``build``
+    sorts the rows into) gets its own value, so a pick that takes the middle row without
+    re-sorting by standard error reads a different number.
+    """
+    se = {i: plateau for i in ids}
+    se[ids[0]], se[ids[1]] = below
+    se[ids[-2]], se[ids[-1]] = above
+    se[ids[len(ids) // 2]] = mean_middle
+    return se
+
+
+P_SE, P_N = 0.004, 38           # 2012-2019: the median alternative's standard error and months
+H_SE, H_N = 0.006, 41           # the held-out months: a different figure and a different count
+
+
+def _mde_fixture(latest: dict, reg: list, baseline_ic: dict | None = None) -> dict:
+    """Every alternative's comparison statistics replaced with hand-chosen ones. Everything else
+    on the page - the registry, the control, the bot rule, the coverage - is the real thing, so
+    this exercises the generator the data loop runs and not a reduced copy of it."""
+    lat = copy.deepcopy(latest)
+    ids = _row_ids(reg, latest)
+    p_se = _spread(ids, P_SE, (0.001, 0.002), (0.050, 0.100), 0.030)
+    h_se = _spread(ids, H_SE, (0.0005, 0.0008), (0.060, 0.120), 0.040)
+    for k, i in enumerate(ids):
+        s = lat[i]["summary"]
+        for period, mean, se, n in (("presample", round(0.05 - 0.001 * k, 5), p_se[i], P_N),
+                                    ("holdout", round(-0.05 + 0.001 * k, 5), h_se[i], H_N)):
+            s[period]["ic_vs_baseline"] = {
+                "n": n, "mean": mean, "se": se, "t": round(mean / se, 2), "p": 0.5,
+                "ci95": [round(mean - 2 * se, 5), round(mean + 2 * se, 5)]}
+    if baseline_ic:
+        lat["baseline"]["summary"].update({p: {"ic": st} for p, st in baseline_ic.items()})
+    return lat
+
+
+def test_the_smallest_difference_the_test_could_see_is_the_median_alternatives_own_error():
+    """Claim ``research.detectable_difference``. The pair of figures is the engine's
+    ``detectable`` applied to the **median** alternative's standard error *in each period*, over
+    that period's own month count, with the multiple-testing correction taken over the registered
+    count the page was handed.
+
+    Checked by watching what the generator asks for: the injected ``detectable`` returns a value
+    that encodes both arguments, so a figure built from the mean, the smallest or the largest
+    standard error, from the wrong period, or over the wrong number of months prints differently.
+    """
+    reg, latest = X.load_registry(), _latest()
+    summary = X.summary_for_page(reg, latest)
+    seen = []
+
+    def spy(se, n_tests, n=None):
+        seen.append((se, n_tests, n))
+        return round(se * 100 + ((n or 0) - P_N) * 0.001, 6)
+
+    page = rp.build(reg, _mde_fixture(latest, reg), summary, spy, X.load_evaluations())
+    # 0.004 x 100 + 0 = 0.400; 0.006 x 100 + 3 x 0.001 = 0.603. Swapping the periods' standard
+    # errors gives 0.600/0.403 and swapping their month counts 0.403/0.600; the mean standard
+    # error (0.0062/0.0076) gives 0.620/0.763, the smallest 0.100/0.050 and the largest
+    # 10.000/12.003; the middle row of the mean ordering gives 3.000/4.003.
+    assert MDE.search(page).groups() == ("0.400", "0.603")
+    assert (P_SE, summary["registered"], P_N) in seen            # the Bonferroni count is the
+    assert (H_SE, summary["registered"], H_N) in seen            # registered one the page was given
+
+
+def test_the_smallest_difference_the_test_could_see_is_the_engines_own_bar():
+    """The same claim's arithmetic, against figures written here rather than recomputed.
+
+    At 29 registered comparisons the bar is Bonferroni-corrected Student's t and the power term
+    is the one-sided 80% quantile on the same degrees of freedom: (3.37935 + 0.85144) x 0.004 =
+    0.01692 over 38 months, and (3.35978 + 0.85070) x 0.006 = 0.02526 over 41. Printed to three
+    decimals that is 0.017 and 0.025 - against 0.014/0.020 if the power term were dropped and
+    0.012/0.018 with no correction for the number of comparisons.
+    """
+    reg, latest = X.load_registry(), _latest()
+    summary = copy.deepcopy(X.summary_for_page(reg, latest))
+    summary["registered"] = 29                   # a literal, so the ledger growing cannot move it
+    page = rp.build(reg, _mde_fixture(latest, reg), summary, X.detectable, X.load_evaluations())
+    assert MDE.search(page).groups() == ("0.017", "0.025")
+
+
+BASELINE_IC = {
+    # se x sqrt(n) per period, each rounding to a different two-decimal figure, so the sentence
+    # names which record it is taken over: 2020-2026 is the one the claim states.
+    "all": {"n": 100, "mean": -0.0003, "se": 0.01, "t": -0.03, "p": 0.98},         # -> 0.10
+    "presample": {"n": 36, "mean": -0.00188, "se": 0.02, "t": -0.09, "p": 0.93},   # -> 0.12
+    "holdout": {"n": 25, "mean": 0.00417, "se": 0.03, "t": 0.14, "p": 0.89},       # -> 0.15
+    "discovery": {"n": 49, "mean": -0.00434, "se": 0.04, "t": -0.11, "p": 0.91},   # -> 0.28
+}
+
+
+def test_the_monthly_swing_is_the_standard_deviation_of_the_2020_2026_record():
+    """Claim ``research.ic_swing``: "the ranking's monthly correlation swings by about X from one
+    month to the next" is the **standard deviation** of the baseline's monthly rank correlation
+    over 2020-2026, recovered from the ledger row's own standard error as se x sqrt(n).
+
+    0.01 x sqrt(100) = 0.10. The other three periods in the fixture print 0.12, 0.15 and 0.28, so
+    the figure names its record; se / sqrt(n) would print 0.00 and se x n 1.00.
+    """
+    reg, latest = X.load_registry(), _latest()
+    lat = _mde_fixture(latest, reg, baseline_ic=BASELINE_IC)
+    page = rp.build(reg, lat, X.summary_for_page(reg, latest), X.detectable, X.load_evaluations())
+    assert SWING.search(page).group(1) == "0.10"
+    # the fixture really does discriminate: four periods, four printed figures
+    assert len({f"{st['se'] * math.sqrt(st['n']):.2f}" for st in BASELINE_IC.values()}) == 4
+
+
+def test_the_months_to_prove_an_edge_are_that_swing_at_eighty_percent_power():
+    """Claim ``research.months_to_prove``: each count is ((z + 0.84) x the monthly swing / the
+    correlation being shown)^2, at 80% power, with z = 1.96 for "the usual 5% level" and 3 for a
+    t-statistic of 3 - and each stat is paired with the figures its own label names.
+
+    At a swing of 0.10: (2.80 x 0.10 / 0.05)^2 = 31.36 -> 31, (3.84 x 0.10 / 0.05)^2 = 58.98 ->
+    59, (3.84 x 0.10 / 0.03)^2 = 163.84 -> 164. Dropping the power term gives 15/36/100; reading
+    the swing off 2012-2019 instead gives 45/85/236; the two z values swapped would swap the
+    first two.
+    """
+    reg, latest = X.load_registry(), _latest()
+    lat = _mde_fixture(latest, reg, baseline_ic=BASELINE_IC)
+    page = rp.build(reg, lat, X.summary_for_page(reg, latest), X.detectable, X.load_evaluations())
+    assert STAT.findall(page) == [
+        ("31", "months of record to show a monthly correlation of 0.05 at the usual 5% level"),
+        ("59", "months for the same with a t-statistic of 3"),
+        ("164", "months to show 0.03 with a t-statistic of 3"),
+    ]

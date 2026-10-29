@@ -67,6 +67,29 @@ def generated_overview(cfg) -> str:
 
 
 @pytest.fixture(scope="module")
+def generated_research() -> str:
+    """The research page `python v2_experiments.py report` would publish from the committed
+    ledger (2026-10-29). The generator's output rather than the committed `research.html`, for
+    the reason in this module's docstring: a reword in the generator has to go stale here on the
+    session that makes it, not on the one that happens to regenerate the page.
+
+    Needed because `research.html` gained registered sentences with `detect` patterns; the two
+    research claims that predate them are one of three mutually exclusive states each, so they
+    carry no pattern and this fixture is not built for them.
+    """
+    import research_page
+    import v2_experiments as X
+    latest = {}
+    for line in X.LEDGER.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            latest[row["id"]] = row
+    reg = X.load_registry()
+    return research_page.build(reg, latest, X.summary_for_page(reg, latest),
+                               X.detectable, X.load_evaluations())
+
+
+@pytest.fixture(scope="module")
 def payload() -> dict:
     if not PAYLOAD.exists():
         pytest.skip("dashboard_data.js not present")
@@ -184,12 +207,13 @@ def test_every_claim_is_complete_and_uniquely_identified():
             f"{claim.id}: unknown surface {claim.surface!r}"
 
 
-def test_every_detect_pattern_still_matches_its_surface(generated_overview):
+def test_every_detect_pattern_still_matches_its_surface(generated_overview, generated_research):
     """A registered sentence that has been reworded away leaves the register
     describing a page that no longer says it."""
     surfaces = {
         claims.OVERVIEW: generated_overview,
         claims.README: README.read_text(encoding="utf-8"),
+        claims.RESEARCH: generated_research,
     }
     for claim in claims.CLAIMS:
         if not claim.detect:
