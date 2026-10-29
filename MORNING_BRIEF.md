@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 29 October 2026, 02:22
+# Morning Brief - Thursday 29 October 2026, 06:49
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -23,6 +23,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `5d1bf72 log: the fifth mutation pass - three sentences the page publishes that nothing could see change`
+- `f9f0fca OWNER_FOCUS: the fifth mutation pass - three unregistered sentences, and what "caught" means`
+- `93fad41 plan: rows 106-117, and the measurement that the three sentences were blind to the whole suite`
+- `036dd1e wip: register the research page's three "prove an edge" sentences, with checks on both sides`
+- `439a8b9 brief: data run 2026-10-29`
 - `3170a19 data: screener run 2026-10-29 - 498 scored, top: EXPE VLO MU APA HST`
 - `bee8f89 brief: code session 2026-10-28-midday`
 - `0d20410 log: the fourth mutation pass - the research surface, and a drift tripwire that is green in the state the change ships in`
@@ -33,59 +38,54 @@ history is in `NIGHTLY_LOG.md`.
 - `c87757f log: the third casualty of the refused run, and the gates`
 - `639e1d6 test_investor_profiles: pair the payload with the run it names, not the newest folder`
 - `ac294b1 The refused 2026-10-28 data run: a signed 'case against' trend line, a discard that leaves no files, a stash judged by the tree; the universe-expansion plan`
-- `a63a914 brief: code session 2026-10-28`
-- `9f9fda7 brief: data run 2026-10-28`
-- `b7ff1f4 log: the seventh owner pass - the repo lock's two races fixed, flaky tests, sheet, shell, lab, bot`
-- `ab2a172 test_sheet_round_three: the tab tests wait for the context payload and for the jump to land, not for a fixed position (flaked twice in five parallel runs)`
-- `763e791 repo lock: publish the lock whole and reclaim only under a token - both measured races fixed`
 
 ## The session's own account
 
-> 2026-10-28 (13:00 midday session) - QUEUE. The research page's statistics mutation-tested: six of its eight unchecked claims were seen only by a tripwire that is green in the state the change ships in
+> 2026-10-29 (06:00 session) - BUILD. Three sentences the research page publishes every run, that nothing in the project could see change
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-27 13:00 shipped
-> (`good/2026-10-27-1338`); today's 06:00 stood down and the owner-run morning session fixed both
-> causes (its entry above). Data loop published? **no, correctly** - 02:00 today was HEALTH: PASS
-> and then refused by the published-claims gate on a real false sentence; the live site keeps
-> 2026-10-27's figures and the fix is committed, so tonight's run publishes. Evidence base at `1m`
-> = **38 rows, newest 2026-09-25 (33 days ago, bound 40), 4 effective**. Priority 0:
-> `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened
-> 2026-10-12, **age 16 days**) - not advanced, and not drifting: the lab's day is a Friday, 10-30 is
-> an even ISO week so the runner swaps in the retrospective, and the next lab Friday is **2026-11-06**.
-> **Tests:** before 3,500 passed / 1 skipped, after **3,506 passed / 1 skipped**.
+> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-28 13:00 ended "shipped to
+> main", tag `good/2026-10-28`. Data loop published? **yes** - 02:00 today ended "Data loop complete"
+> (498 scored, 45 tickers rate-limited on the retry pass, 18 min). Evidence base at `1m` = **39 rows,
+> newest 2026-09-28 (31 days ago, bound 40), 5 effective**. Priority 0: `allow_auto_apply` **false**,
+> unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 17 days**) -
+> not advanced, and not drifting: the lab's day is a Friday, 2026-10-30 is an even ISO week so the
+> runner swaps in the retrospective, and the next lab Friday is **2026-11-06**.
+> **Tests:** before 3,506 passed / 1 skipped, after **3,510 passed / 1 skipped**.
 > **Owner queue / rotation:** took `OWNER_FOCUS.md` item 3 of the 2026-10-20 block, "Test the
-> tests" - the fourth mutation pass, `plan/claims-mutation-audit.md`'s queue items 4 then 1-3. No
-> proposal was waiting (`write_brief.open_proposals()` returns `[]`). The top open item in that file
-> (universe expansion) is a Monday research item by its own Next line; nothing else deferred.
+> tests" - the fifth mutation pass, and specifically the item the 2026-10-28 session deferred with
+> the work specified (`plan/claims-mutation-audit.md`, next-list item 3). No proposal was waiting
+> (`write_brief.open_proposals()` returns `[]`). The stash `auto-rescue 2026-10-28_060001` is
+> **empty** (`git stash show -p` prints nothing, `--stat` nothing): the 2026-10-28 morning session's
+> fix cleaned the refused run's files through `Undo-RunArtifacts`, so there was nothing left for the
+> stash to hold - and its own entry says not to pop it. Left in place, nothing lost. The top open
+> item in `OWNER_FOCUS.md` (universe expansion) is a Monday research item by its own Next line;
+> nothing else deferred. Thursday's focus is BUILD and the week's research justified no methodology
+> change (2026-10-26's proposal was refused on 10-26 and again confirmed 10-27), so by the rotation's
+> own rule this is the top open owner item instead of an invented change.
 > 
 > ### Did
 > 
-> **17 mutations across 6 claims: 11 caught, 6 gaps. Every gap now fails a registered check.**
-> Rows 89-105 of `plan/claims-mutation-audit.md`, which closes its queue items 1-4. No production
-> code changed and no published sentence moved; the whole diff is tests, the register, and the
+> **The research page's "How long would it take to prove an edge?" section states three numbers, and
+> `claims.py` registered none of them.** They are registered now - `research.ic_swing`,
+> `research.months_to_prove`, `research.detectable_difference` - each with checks on both sides of
+> its figure. Rows 106-117 of `plan/claims-mutation-audit.md`. No weight, metric, threshold or
+> published sentence moved; the diff is the register, four tests, one test strengthened, and the
 > write-up.
 > 
-> **The research surface was the one no pass had touched, and it had a kind of unchecked claim this
-> audit had not met.** `research.html`'s sentences quote intervals, t-statistics and a
-> "smallest difference the test could reliably detect" figure. Ten mutations of that arithmetic - the
-> 80%-power quantile, the power term itself, the t-distribution for the bar, the interval boundary at
-> zero, the intervals' confidence level in both places that builds them, the record the pooled
-> estimate covers, the multiple-testing bar, the alternatives count, and the rule deciding what
-> "cleared its bar" means - produced **two** caught and **eight** gaps.
+> The three sentences:
 > 
-> **The thing worth carrying forward: for six of those eight, the only test that failed was a drift
-> tripwire** - `test_the_committed_page_is_what_the_generator_makes_from_the_ledger`, or
-> `test_the_methodology_page_quotes_the_engine_s_own_summary`, which asserts the committed
-> `summary.json` equals a recomputation. Both of those fail under *any* numeric change and assert
-> nothing about the arithmetic - **and both are green in exactly the state the change ships in.**
-> That is measured rather than argued: every mutation was re-run with `python v2_experiments.py
-> report` in between, which is how `research.html` and `summary.json` are actually published, and
-> **all seven gaps stayed green.** It is CLAUDE.md rule 10 one level up ("assert claims against the
-> generator's output, not the committed file"): a check that compares a generated artifact with its
-> own regeneration cannot see a change to the generator.
+> - **"The ranking's monthly correlation swings by about 0.12 from one month to the next"** - the
+>   standard *deviation* of the baseline's monthly rank correlation over 2020-2026, recovered from
+>   that ledger row's standard error as `se x sqrt(n)`.
+> - **"31 / 59 / 164 months of record"** to show a correlation of 0.05 at the usual 5% level, the
+>   same at a t of 3, and 0.03 at a t of 3 - `((z + 0.84) x the swing / the correlation)^2`, the
+>   record needed to see it 80% of the time.
+> - **"The smallest difference the test could reliably see was about 0.037 over 2012-2019 and 0.062
+>   over the held-out months"** - the engine's `detectable` applied to the **median** alternative's
+>   standard error *in each period*, over that period's own month count, corrected for the number of
+>   registered comparisons.
 > 
-> **Underneath that, two claims were checked by a test that recomputes the rule out of the code and
-> then asks the page to agree with it.** `research.plain_answer`'s only check opened with
+> **12 mutations, 12 caught.** That is the expected result for tests written the same day and it is
 > ...
 
 ---
