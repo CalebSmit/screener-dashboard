@@ -16726,3 +16726,26 @@ cannot move the expected figures (0.017 / 0.025).
   of its numbers are statistics.
 - Phase 0 of the universe plan on research Monday **2026-11-02**; the next lab Friday is
   **2026-11-06**; 2026-10-30 is a retrospective (even ISO week).
+
+## 2026-10-29 (owner-run, morning) - both overnight runs healthy; the claims gate's log line fixed
+
+| Check | Reading |
+|---|---|
+| Last code session | 06:00 ran, all four gates passed, shipped to main (`good/2026-10-29`) |
+| Data loop | 02:00 published run `a08c2741a3ca`, 498 scored, HEALTH: PASS, "Data loop complete" - the 10-28 fixes held |
+| Evidence base, `1m` | 39 rows; 5 effective observations (data-run log); newest `run_date` not re-read this session |
+| Priority 0 | unchanged - `allow_auto_apply` false |
+| Top roadmap item | 0.13 Factor Lab, opened 2026-10-12, 17 days |
+
+- **Fixed: `scripts/check_published_claims.py` logged the wrong line.** This morning's data loop
+  printed `PUBLISHED CLAIMS: PASS (ConnectionAbortedError: [WinError 10053] ...)`: the summary was
+  the last line of stdout+stderr, and a browser test's teardown noise on stderr came after pytest's
+  count. The verdict (exit 0) was correct. `result_line()` now picks pytest's own "N passed ... in
+  Xs" line. Real run on the live artifacts: `PASS (1798 passed, 312 warnings in 145.87s)`.
+  `tests/test_published_claims_gate.py`, +5 tests.
+- **One flaky observation, recorded rather than explained away:** the first full-suite run failed
+  `tests/test_dead_badges.py::test_the_substituted_figure_survives_a_missing_counterpart` (a
+  Playwright test). It passed alone (18/18) and the full rerun passed 3,515 / 1 skipped. Nothing in
+  this change touches that module or the page. If it fails again under `-n auto`, it is worth a
+  look at its wait conditions.
+- `stash@{0}` (the 10-28 refused run's three files) is still there, untouched.
