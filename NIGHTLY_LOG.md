@@ -16579,3 +16579,150 @@ charges the break-even cost on both sides of a trade).
   clean (the owner-run morning session's fix, first exercise tonight).
 - Phase 0 of the universe plan on research Monday **2026-11-02**; the next lab Friday is
   **2026-11-06**.
+
+## 2026-10-29 (06:00 session) - BUILD. Three sentences the research page publishes every run, that nothing in the project could see change
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-28 13:00 ended "shipped to
+main", tag `good/2026-10-28`. Data loop published? **yes** - 02:00 today ended "Data loop complete"
+(498 scored, 45 tickers rate-limited on the retry pass, 18 min). Evidence base at `1m` = **39 rows,
+newest 2026-09-28 (31 days ago, bound 40), 5 effective**. Priority 0: `allow_auto_apply` **false**,
+unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 17 days**) -
+not advanced, and not drifting: the lab's day is a Friday, 2026-10-30 is an even ISO week so the
+runner swaps in the retrospective, and the next lab Friday is **2026-11-06**.
+**Tests:** before 3,506 passed / 1 skipped, after **3,510 passed / 1 skipped**.
+**Owner queue / rotation:** took `OWNER_FOCUS.md` item 3 of the 2026-10-20 block, "Test the
+tests" - the fifth mutation pass, and specifically the item the 2026-10-28 session deferred with
+the work specified (`plan/claims-mutation-audit.md`, next-list item 3). No proposal was waiting
+(`write_brief.open_proposals()` returns `[]`). The stash `auto-rescue 2026-10-28_060001` is
+**empty** (`git stash show -p` prints nothing, `--stat` nothing): the 2026-10-28 morning session's
+fix cleaned the refused run's files through `Undo-RunArtifacts`, so there was nothing left for the
+stash to hold - and its own entry says not to pop it. Left in place, nothing lost. The top open
+item in `OWNER_FOCUS.md` (universe expansion) is a Monday research item by its own Next line;
+nothing else deferred. Thursday's focus is BUILD and the week's research justified no methodology
+change (2026-10-26's proposal was refused on 10-26 and again confirmed 10-27), so by the rotation's
+own rule this is the top open owner item instead of an invented change.
+
+### Did
+
+**The research page's "How long would it take to prove an edge?" section states three numbers, and
+`claims.py` registered none of them.** They are registered now - `research.ic_swing`,
+`research.months_to_prove`, `research.detectable_difference` - each with checks on both sides of
+its figure. Rows 106-117 of `plan/claims-mutation-audit.md`. No weight, metric, threshold or
+published sentence moved; the diff is the register, four tests, one test strengthened, and the
+write-up.
+
+The three sentences:
+
+- **"The ranking's monthly correlation swings by about 0.12 from one month to the next"** - the
+  standard *deviation* of the baseline's monthly rank correlation over 2020-2026, recovered from
+  that ledger row's standard error as `se x sqrt(n)`.
+- **"31 / 59 / 164 months of record"** to show a correlation of 0.05 at the usual 5% level, the
+  same at a t of 3, and 0.03 at a t of 3 - `((z + 0.84) x the swing / the correlation)^2`, the
+  record needed to see it 80% of the time.
+- **"The smallest difference the test could reliably see was about 0.037 over 2012-2019 and 0.062
+  over the held-out months"** - the engine's `detectable` applied to the **median** alternative's
+  standard error *in each period*, over that period's own month count, corrected for the number of
+  registered comparisons.
+
+**12 mutations, 12 caught.** That is the expected result for tests written the same day and it is
+not the measurement worth keeping. This is:
+
+**Before today, one mutation per claim passes the entire suite.** Not "passes the claim's checks" -
+they had none. Each mutation was applied, the research page regenerated the way
+`python v2_experiments.py report` publishes it, and then `tests/ test_screener.py` run with only
+today's four new tests deselected: **3,506 passed, 1 skipped, three times out of three.** So these
+were not under-checked sentences. Nothing anywhere in the project could see them change. Taking the
+swing off the wrong era moves the published figure from 0.10 to 0.12 and all three month counts
+with it (45 / 85 / 236), and would have shipped.
+
+**Two findings generalise, and both are about what "caught" means.**
+
+- **A test the register does not name is not coverage.** Two of the twelve *were* caught before
+  today, by `test_signs_and_zero_are_printed_honestly` - which no claim named, so
+  `scripts/check_published_claims.py`, whose membership is derived from `checked_by`, had never run
+  it before publishing. "Something in the suite fails" and "the loop refuses to publish" are
+  different facts, and only the second protects a reader.
+- **A copied expression can catch a mutation, and that is the trap.** The test that caught those
+  two asserted `rp.months_needed(0.05, 0.12, 3.0) == round(((3.0 + 0.84) * 0.12 / 0.05) ** 2)` -
+  the function's own expression, copied, so it passes whatever that expression becomes. It survived
+  only because both mutations changed the code *beside* the copied line (`int(round(` and the
+  `+ 0.84`) rather than the line itself; a mutation of `** 2`, or of both sides together, would
+  have gone straight through. So the 2026-10-25 rule needs its corollary: a row-59 check does not
+  reliably read as a gap, it reads as coverage until a mutation happens to land on the copied part.
+  Do not take "this mutation was caught" as evidence a check is sound - look at whether the
+  expected value is a literal. That line is literals now: 85 and 45.
+
+**One structural fix: `claims.RESEARCH` is a `detect` surface at last, and the generated page.**
+The register could not carry a pattern for a research-page sentence before today -
+`test_every_detect_pattern_still_matches_its_surface` had text for two surfaces and asserts
+`text is not None` - and nothing had forced the question, because both pre-existing research claims
+are one of three mutually exclusive states each and legitimately carry `detect=None`. The new
+`generated_research` fixture builds the page from the committed ledger, so a reword goes stale on
+the session that makes it rather than on whichever session next regenerates the page (rule 10).
+
+**How the checks are built, since this is the part that decides whether they are worth having.**
+Every alternative's comparison statistics are replaced in a deep copy of the committed ledger and
+everything else on the page is left real, so the tests exercise the function the 02:00 loop calls.
+The standard errors are a *plateau* wide enough to cover the median index whatever the row count,
+with two rows below it, two above, and a distinctive value on the row that sits in the middle of
+the **mean** ordering - so the figure the test demands cannot be produced by the mean (0.0062), the
+smallest (0.001), the largest (0.100), or the row `build` happens to have at that index (0.030).
+The injected `detectable` returns a value encoding **both** of its arguments, which is what makes
+"the wrong period" and "the wrong month count" separately visible: the page must print
+0.400 / 0.603, against 0.600 / 0.403 and 0.403 / 0.600 for those two mistakes. A second test uses
+the real `detectable` with the registered count pinned to a literal 29, so the ledger growing
+cannot move the expected figures (0.017 / 0.025).
+
+### Evidence / research
+
+- The mutations themselves, 12 of them, applied one at a time as a single exact-string replacement
+  that had to occur exactly once, each followed by running **only** that claim's `checked_by` (the
+  coverage the register actually buys, and what the publish gate derives), then `git checkout` and
+  a clean `git status` before the next. Harness outside the repo, per the plan's Method.
+- The blindness measurement is the new one and it is the reason to believe the work was needed:
+  mutate, regenerate, run the whole suite minus today's tests. 3 of 3 blind. Recorded with the
+  exact commands in `plan/claims-mutation-audit.md`, "Results, 2026-10-29".
+- `research/2026-10-15-research-engine-first-batch.md` and `research/2026-10-25-positive-control.md`
+  for what the figures being pinned are. Nothing here uses or quotes an engine number as evidence
+  for anything (rule 5); the subject is the checks, not the results.
+- Gate arithmetic: the four new tests enter `scripts/check_published_claims.py` by derivation
+  without adding a module - all four live in `tests/test_research_page.py`,
+  `tests/test_v2_experiments.py` and `tests/test_engine_calibration.py`, which the gate already ran
+  (68 modules, `EXCLUDED` empty). Measured: the gate is **1,798 passed** in 123 s, against 1,781 on
+  2026-10-28, and the full suite 3:01 before and after - the four tests cost nothing in parallel.
+
+### Methodology changed
+
+- None. No weight, metric, threshold or published sentence moved. `claims.py` gained three claims
+  and `tests/test_claims_register.py` one fixture; `research_page.py` is untouched.
+
+### Tried and rejected
+
+- **Registering the difference chart's geometry in the same session.** Each row of the headline
+  chart maps its difference, its 95% interval, the two pass-bar ticks and the detectable band onto
+  a fixed +/-0.06 axis through `_pos`, and the suite pins none of it: the only assertions are that
+  the row count matches `summary["alternatives"]` and that there are two ticks per row
+  (`tests/test_research_page.py:49,205`). A sign error in `_pos` would put every dot on the wrong
+  side of zero while every printed number stayed correct. I did not register it today for a reason
+  that is also a scope question worth leaving on the record: the register's stated scope is
+  *sentences* that state the arithmetic of a published number, a chart is not a sentence, and
+  deciding that question in the last hour of a session is how a register stops being maintainable.
+  It is written into the plan's next list with what it needs, beside the two other unregistered
+  research-page figures (the overlap counts, the bot table's intervals).
+- **Treating "12 of 12 caught" as the result.** It is the weakest number in this entry: the tests
+  were written against those mutations. The pass is only worth reporting because the *prior* state
+  was measured against the whole suite, and a session that reports the first number without the
+  second is reporting that it wrote tests.
+
+### Next
+
+- **The plan's next-list item 1, which this pass rewrote and now argues is the highest-value one:
+  the sweep for computational sentences that are not registered at all.** This audit can only
+  mutate what the register names, and the three added today were found by reading one section of
+  one page. Sweep each generated surface the way `test_every_sentence_builder_is_registered` sweeps
+  `stock_summary.py`: every f-string in `research_page.py`,
+  `run_screener.build_screener_overview` and `generate_dashboard.py` that interpolates a number
+  into prose needs a claim or an explicit exemption. Start with `research_page.py` - small, and all
+  of its numbers are statistics.
+- Phase 0 of the universe plan on research Monday **2026-11-02**; the next lab Friday is
+  **2026-11-06**; 2026-10-30 is a retrospective (even ISO week).

@@ -754,6 +754,82 @@ CLAIMS: tuple[Claim, ...] = (
         # absent by design the day an interval leaves zero, so no regex can be required of the page
         detect=None,
     ),
+    # The "How long would it take to prove an edge?" section, registered 2026-10-29. All three of
+    # these sentences state the arithmetic of a published number and none of them was in this
+    # register, so they were outside `check_published_claims.py`'s derivation - the data loop
+    # published them every run without running a check of them (the 2026-10-28 mutation pass found
+    # them and recorded the gap as item 3 of `plan/claims-mutation-audit.md`'s next list).
+    Claim(
+        id="research.ic_swing",
+        surface=RESEARCH,
+        asserts=(
+            "\"The ranking's monthly correlation swings by about X from one month to the next\" is "
+            "the *standard deviation* of the baseline weighting's own monthly rank correlation "
+            "over the 2020-2026 record, recovered from that ledger row's standard error as "
+            "se x sqrt(n) - not the standard error itself, and not a different period's."
+        ),
+        made_true_by="research_page:build",
+        checked_by=(
+            "tests/test_research_page.py::test_the_monthly_swing_is_the_standard_deviation_of_the_2020_2026_record",
+        ),
+        # No `caveat`: that field carries limits a named stage will close, and this figure's two
+        # are permanent properties of it. It is recovered from a standard error the ledger stores
+        # to five decimals, so it is exact to about a thousandth of the two it prints; and it is
+        # the dispersion of the *monthly* correlation, which says nothing about dependence between
+        # months - the row's own `ac1` and Newey-West t carry that, and the page quotes them where
+        # it discusses independence.
+        detect=r"swings by about <span class=\"num\">[\d.]+</span> from one month to the next",
+    ),
+    Claim(
+        id="research.months_to_prove",
+        surface=RESEARCH,
+        asserts=(
+            "Each 'months of record' figure is ((z + 0.84) x the monthly swing above / the "
+            "correlation being shown)^2 - the record needed to detect that correlation 80% of the "
+            "time - with z = 1.96 for \"the usual 5% level\" and z = 3 for \"a t-statistic of 3\", "
+            "and the correlation each figure names (0.05, 0.05, 0.03)."
+        ),
+        made_true_by="research_page:months_needed",
+        checked_by=(
+            "tests/test_research_page.py::test_the_months_to_prove_an_edge_are_that_swing_at_eighty_percent_power",
+            "tests/test_research_page.py::test_signs_and_zero_are_printed_honestly",
+        ),
+        # No `caveat`, for the reason above. The 0.84 is the *normal* 80% quantile where
+        # `v2_experiments.detectable` uses Student's t on the record's own degrees of freedom, and
+        # that difference is deliberate rather than unfinished: this figure is about a record that
+        # does not exist yet, so there are no degrees of freedom to take it on. It also assumes
+        # independent months, which the baseline row's `ac1` says is roughly right for this series
+        # and would not be for an overlapping-window one.
+        detect=r"months of record to show a monthly correlation of 0\.05 at the usual 5% level",
+    ),
+    Claim(
+        id="research.detectable_difference",
+        surface=RESEARCH,
+        asserts=(
+            "\"The smallest difference the test could reliably see was about X over 2012-2019 and "
+            "Y over the held-out months\" is the engine's `detectable` applied to the **median** "
+            "alternative's standard error in each period - taken over that period's own month "
+            "count, with the multiple-testing correction over the number of registered "
+            "comparisons - so the 2012-2019 figure comes from the 2012-2019 comparisons and the "
+            "held-out figure from the held-out ones."
+        ),
+        made_true_by="research_page:build",
+        checked_by=(
+            "tests/test_research_page.py::test_the_smallest_difference_the_test_could_see_is_the_median_alternatives_own_error",
+            "tests/test_research_page.py::test_the_smallest_difference_the_test_could_see_is_the_engines_own_bar",
+            # `detectable`'s own arithmetic - the 80%-power quantile, the power term and the
+            # t-distribution behind the bar - is pinned by the control's checks (rows 89-91).
+            "tests/test_v2_experiments.py::test_the_bar_at_38_held_out_months_is_the_exact_t_and_detectable_uses_it",
+            "tests/test_engine_calibration.py::test_the_detectable_figure_is_honest",
+        ),
+        # No `caveat`, for the reason above: the *median* comparison is the point of the figure,
+        # not a limitation of it. It is a typical alternative's resolution and neither the best
+        # nor the worst - a narrow screen with a large standard error sees less than it says and a
+        # broad one more - and the per-alternative figure is drawn as a band on every row of the
+        # chart above, which is where a reader checks an individual one.
+        detect=(r"reliably see was about <span class=\"num\">[\d.]+</span> over 2012&ndash;2019 "
+                r"and <span class=\"num\">[\d.]+</span> over the held-out months"),
+    ),
     Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,

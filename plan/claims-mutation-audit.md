@@ -345,6 +345,68 @@ series, where the prior-12 low and the inclusive-12 low are the same month.
 | 104 | `context.track_turnover` | `0.5 * sum(abs(...))` -> `sum(abs(...))` (one-way turnover doubled) | caught | - |
 | 105 | same | the break-even's `1 - 2 c TO` -> `1 - c TO` (cost charged on one side) | caught | - |
 
+## Results, 2026-10-29 (06:00 session): three sentences that were not claims at all
+
+The 2026-10-28 pass found the research page's "How long would it take to prove an edge?" section
+printing **three computational sentences that `claims.py` did not register** and left them as item
+3 of its next list, with the work specified. They are registered now - `research.ic_swing`,
+`research.months_to_prove`, `research.detectable_difference` - each with checks on both sides of
+its number, and then mutated like any other claim.
+
+**12 mutations, 12 caught.** That is the expected result for tests written the same day and is not
+the measurement worth keeping. This is:
+
+**Before today, three of these mutations - one per claim - pass the entire suite.** Not "pass the
+claim's checks", which they had none of: mutate, run `python v2_experiments.py report` the way the
+page is actually published, then run `tests/ test_screener.py` with only today's four new tests
+deselected. **3,506 passed, 1 skipped, three times out of three.** So these were not
+under-checked sentences; nothing anywhere in the project could see them change.
+
+| # | Claim | Mutation (`research_page.py`) | Before today | Now |
+|---|---|---|---|---|
+| 106 | `research.ic_swing` | the swing taken over `presample` instead of `all` (0.10 -> 0.12, and all three month counts with it) | **blind - the whole suite, 3,506 passed** | caught: `test_the_monthly_swing_is_the_standard_deviation_of_the_2020_2026_record` |
+| 107 | same | `se * math.sqrt(n)` -> `se / math.sqrt(n)` | no claim | caught: same test |
+| 108 | same | `se * math.sqrt(n)` -> `se * n` | no claim | caught: same test |
+| 109 | `research.months_to_prove` | `((z + 0.84) * ic_sd / ic) ** 2` -> `((z) * ...)`: the 80%-power term dropped | caught, by an **unregistered** test | caught: `test_the_months_to_prove_an_edge_are_that_swing_at_eighty_percent_power`, and the registered `test_signs_and_zero_are_printed_honestly` |
+| 110 | same | `int(round(x))` -> `int(x)` | caught, by the same unregistered test | caught: same two |
+| 111 | same | the 5%-level stat printing `months_needed(0.05, ic_sd, 3.0)` | no claim | caught: the stat/label pairing |
+| 112 | same | the 0.03 stat printing `months_needed(0.05, ic_sd, 3.0)` | **blind - the whole suite, 3,506 passed** | caught: the stat/label pairing |
+| 113 | `research.detectable_difference` | `sorted(rows, key=...["p"]["se"])[len // 2]` -> `rows[len // 2]`: the middle of the *mean* ordering | no claim | caught: both new tests |
+| 114 | same | `[len(rows) // 2]` -> `[0]`: the smallest standard error, not the median | no claim | caught: both |
+| 115 | same | `mid_h = mid_p`: the held-out figure built from the 2012-2019 comparisons | **blind - the whole suite, 3,506 passed** | caught: both |
+| 116 | same | `detectable(mid_h["se"], n, mid_p.get("n"))`: the right standard error over the wrong month count | no claim | caught: the spy test |
+| 117 | same | `detectable(mid_p["se"], 1, ...)`: no correction for the number of comparisons | no claim | caught: the literal-figure test |
+
+### What this pass adds to the method
+
+- **An unregistered test is not nothing, and it is not coverage either.** Rows 109 and 110 were
+  *caught* before today, by `test_signs_and_zero_are_printed_honestly` - which no claim named, so
+  the publish gate never ran it. The formula was watched; **which figure goes with which label was
+  not** (111, 112), and that is the half a reader actually reads. Both halves are registered now.
+- **The check that caught them was itself the row-59 shape.** Its assertion read
+  `rp.months_needed(0.05, 0.12, 3.0) == round(((3.0 + 0.84) * 0.12 / 0.05) ** 2)` - the function's
+  own expression copied - so it passes whatever that expression becomes. It survived mutations 109
+  and 110 only because they changed the function *around* the copied line (`int(round(` and the
+  `+ 0.84`) rather than the line itself. A mutation of `** 2` -> `** 2.0`, or of both sides
+  together, would have gone straight through. It is literals now: 85 and 45.
+- **`claims.RESEARCH` is a `detect` surface now**, and it is the **generated** page, not the
+  committed one (`generated_research` in `tests/test_claims_register.py`). The register could not
+  carry a pattern for a research-page sentence before today, because
+  `test_every_detect_pattern_still_matches_its_surface` had text for only two surfaces and asserts
+  `text is not None`; both pre-existing research claims legitimately have `detect=None` (each is
+  one of three mutually exclusive states), so nothing had forced the question. A reword now goes
+  stale on the session that makes it.
+- **The fixture is the real generator with hand-chosen inputs.** Every alternative's comparison
+  statistics are replaced in a deep copy of the committed ledger - a plateau of standard errors
+  wide enough to cover the median index whatever the row count, two rows below it, two above, and
+  a distinctive value on the row that sits in the middle of the *mean* ordering - and everything
+  else on the page (the registry, the control, the bot rule, the coverage) is left real. So the
+  tests exercise the function the data loop calls, and the median pick they assert cannot be
+  satisfied by the mean, the smallest, the largest, or the row `build` happens to have at that
+  index. The injected `detectable` returns a value encoding **both** its arguments, which is what
+  makes "the wrong period" and "the wrong month count" separately visible (0.400/0.603 against
+  0.600/0.403 and 0.403/0.600).
+
 ### What the 2026-10-28 gaps have in common
 
 - **A check that restates the rule and then asks the page to agree (92-94, 97, 98).** Not a
@@ -372,8 +434,9 @@ Take them in order; one session can do four to six. Record each in the table abo
 the date, and move this list down.
 
 **The 2026-10-20 list's items 1-8 and 12 are done** (2026-10-25, rows 39-62), **the two
-mechanical searches are done** (2026-10-26, rows 63-88), **and items 1-4 of the list below are
-done** (2026-10-28, rows 89-105). What is left:
+mechanical searches are done** (2026-10-26, rows 63-88), **items 1-4 of the 2026-10-28 list are
+done** (rows 89-105), **and its item 3 - the research page's unregistered sentences - is done**
+(2026-10-29, rows 106-117). What is left:
 
 1. **The partly-payload claims.** The 2026-10-26 scan lists 21 claims whose checks *mix* payload
    reads with other tests. A claim is safe only if a non-payload check pins the specific number
@@ -388,17 +451,23 @@ done** (2026-10-28, rows 89-105). What is left:
    the module under test. Rows 92-94, 97 and 98 all have it, and an `ast` walk can find the
    obvious form - a call to `made_true_by`'s own module whose result is then compared with the
    page. Same caveat as item 6 in 2026-10-26: it over-reports, and only a mutation decides.
-3. `research.*`'s remaining unregistered sentences, which this pass found but did not fix: the
-   research page prints "the ranking's monthly correlation swings by about X from one month to the
-   next" (`ic_sd`, the standard deviation recovered as `se * sqrt(n)`), "the smallest difference
-   the test could reliably see was about X over 2012-2019 and Y over the held-out months" (the
-   *median* row's standard error, `mde_p`/`mde_h`), and "N months of record to show a monthly
-   correlation of 0.05 at the usual 5% level" (`months_needed`). All three say how a number is
-   computed, and **none is registered in `claims.py`** - so they are outside the publish gate's
-   derivation and outside this audit. `test_signs_and_zero_are_printed_honestly` pins
-   `months_needed`'s formula with literals, which is the good half; the choice of the *median*
-   experiment's standard error for the two headline figures is pinned nowhere. Register them, then
-   mutate them.
+3. **A fourth mechanical search, which 2026-10-29 argues is now the highest-value one: the
+   sentences that are not registered at all.** This audit can only mutate what the register
+   names, and the three it added today were found by reading one section of one page. The gap is
+   structural and it is the one `claims.py`'s own docstring names ("nothing enumerated the *set*
+   of computational claims the site makes"). Every *generated* surface should be swept the way
+   `test_every_sentence_builder_is_registered` sweeps `stock_summary.py`: for each f-string in
+   `research_page.py`, `run_screener.build_screener_overview` and `generate_dashboard.py` that
+   interpolates a number into prose, decide whether its sentence states arithmetic, and require a
+   claim or an explicit exemption. The three registered today were blind to the whole suite, so
+   the expected yield of the sweep is higher than another hand-picked mutation. Start with
+   `research_page.py`, which is small and whose numbers are all statistics.
+
+   Specifically still unregistered on the research page, found while doing rows 106-117 and left
+   deliberately because each needs its own fixture: the per-row chart's band and pass-bar tick
+   positions (`_pos`, which turn a difference into a percentage of a &plusmn;0.06 axis), the
+   "companies a month in the overlap" figures in the universe paragraph, and the bot table's 95%
+   intervals (`_ex`). None of them is covered by rows 106-117.
 
 The two scans are not tracked (see "Method" on why harness code stays out of the repo); both
 are about 100 lines - an `ast` walk over `tests/` that resolves `import m as x` / `from m import
@@ -422,6 +491,16 @@ Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metri
 - **A check may not import the number it is checking** (added 2026-10-25, row 59). Write the
   stated figure as a literal in the test and probe both sides of it. `rel=M.TOLERANCE` and
   `assert x == M.THRESHOLD` are not checks of the claim; they are restatements of the code.
+- **A copied expression can still catch a mutation, and that is the trap** (added 2026-10-29,
+  rows 109-112). `months_needed(...) == round(((3.0 + 0.84) * 0.12 / 0.05) ** 2)` caught two of
+  the three mutations aimed at it, because they changed the code *around* the copied line rather
+  than the line itself. So a row-59 check does not reliably read as a gap - it reads as coverage
+  until the mutation happens to land on the part that was copied. Do not take "this mutation was
+  caught" as evidence the check is sound; look at whether the expected value is a literal.
+- **A test the register does not name is not coverage** (same rows). Two mutations here were
+  caught before today by an unregistered test, so the publish gate - whose membership is derived
+  from `checked_by` - never ran it. "Something in the suite fails" and "the loop that publishes
+  the page would refuse" are different facts, and only the second one protects a reader.
 - **A test's name is read far more often than its body.** If it is called
   `..._is_strict_and_configurable`, the next session will not re-derive whether it tests
   strictness (row 44). Either make the name true or make the body match it.
