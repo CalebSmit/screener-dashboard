@@ -299,9 +299,11 @@ the change small.
   it - a growth rate, a prior-year comparison, a history - is impossible without a second source.
   15 of 15, 26 of 26.
 - **Having a column is not being scored on it.** Section 2 reports the quarterly balance sheet
-  reaching the filed quarter for 7 of 15; all eight one-quarter stocks are nonetheless published
-  today with `asof.bs = 2026-03-31`. A column the source lists and a column the engine can read
-  are different facts, which is the whole shape of this problem one level up.
+  reaching the filed quarter for 7 of 15; all six one-quarter stocks are nonetheless published
+  today with `asof.bs = 2026-03-31` (checked in the payload: AEE, APH, CHD, CHRW, CPT, ES). A
+  column the source lists and a column the engine can read are different facts, which is the whole
+  shape of this problem one level up - and it means the fill really would create the one-quarter
+  income/balance-sheet mismatch §5.2 licenses, for all six.
 - **Mixed statement periods are already published and are correct practice.** FedEx carries
   `cf 2026-05-31` against `is 2025-11-30`; DuPont `bs 2026-06-30` against `is 2025-12-31`. §5.2's
   two sources say to pair the latest of each. Do not "fix" this by holding a company to one
