@@ -164,7 +164,33 @@ Two things still outrank this file, and neither is negotiable:
      either way. And the two skips shipped that night delivered **169 s, ~2.8 min** against ~4
      predicted; `context.options_pass` is 1.0 s against the 178 s removed. The count now has a
      place a session reads it (the brief's At-a-glance), which is what the month of watching needs.
-     **No weight, metric or threshold changed. No proposal is now waiting for a decision**
+     **No weight, metric or threshold changed.**
+     **A sixth proposal arrived 2026-10-29 (owner-run, evening) and was DECIDED 2026-10-30 (13:00)
+     - REFUSED as written, and the opportunity it describes is bigger than it measured.**
+     `research/2026-10-29-ttm-fills-the-empty-quarter.md` §5 is the review; it is kept there rather
+     than here on purpose (the 2026-10-30 retrospective named a refused proposal's full argument
+     under Open as one of the two sources of `CLAUDE.md` regrowth). In one paragraph: when a
+     stock's newest quarterly income column is empty, score it from the source's trailing-twelve-month
+     series instead. The review measured the two things the note asked for and both favour it -
+     the trailing series is **definitionally identical** to the engine's own four-quarter sum
+     (median relative difference **0.000000** across all nine labels on 12 control stocks, which
+     preserves the 2026-10-15 operating-income decision), and **MSCI and S&P DJI both pair a
+     trailing-12-month income numerator with the *latest* book value**, so the mixed-period worry
+     does not stand. What refuses it is the rule: it keys on the newest SEC filing rather than on
+     the column the engine actually reads, and the source's trailing series returns **exactly one
+     period end, 15 of 15**. Restated correctly the opportunity is **13 of 15 stocks, not 9** - but
+     **7 of those 13 are two quarters past anything the quarterly table can check them against**,
+     and that uncheckable half contains every stock whose fill would move a score materially,
+     Amazon and Bank of America included. Amazon is also the proof that the note's table was one
+     morning's data: recorded as a match on 10-29, and under its own rule the build would fill
+     nothing for it on 10-30. Plus the prior-year half cannot be built from this source at all, so
+     shipping the numerator alone would turn `revenue_growth` into a **fifteen-month** growth rate
+     for exactly the stocks being fixed. §5.5 pre-registers the narrow version (gap of exactly one
+     quarter, reconciled, prior-year anchor moved with it: **6 of 14** stocks, no top-25 name) and
+     says plainly that whether it is worth building is still open.
+     **Five of six proposals have now been refused by their reviewer, and this is the first whose
+     review found the note *understating* its own case.** No weight, metric, threshold or published
+     sentence changed. **No proposal is waiting for a decision**
      (`write_brief.open_proposals()` returns `[]`).
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in

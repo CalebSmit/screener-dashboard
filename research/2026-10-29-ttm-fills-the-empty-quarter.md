@@ -4,7 +4,11 @@ Owner-run session, evening. A finding with a measurement and a proposal; **no co
 Measurement: `research/measurements/2026-10-29-ttm-carries-the-missing-quarter.py` (read-only,
 about 45 requests, re-runnable).
 
-**Proposal status: OPEN** - fill an empty newest quarter from the source's own trailing series (9 of 15 lagging stocks, Amazon among them); answer section 4 first.
+**Proposal status: DECIDED 2026-10-30 (13:00 session) - REFUSED as written.** The substitution
+itself is sound and the opportunity is larger than this note measured (13 of 15, not 9), but the
+rule is specified against the wrong reference period and the prior-year half cannot be built from
+this source at all. Section 5 has the review, the two measurements behind it, and the narrower
+rule with its criteria written down.
 
 In full: when a stock's newest quarterly income-statement column is empty, score its
 income-statement inputs on the source's own trailing-twelve-month series where that series reaches
@@ -108,3 +112,197 @@ This is a change to what the score reads, so it follows the route in CLAUDE.md: 
 `METHODOLOGY_CHANGELOG.md` entry, one change at a time, with the scoring change and its
 `metric_lineage` lines in the same commit (row 0.8c). It is **not** a change to a weight, and it
 needs no backtest.
+
+---
+
+## 5. Review - 2026-10-30, 13:00 session. REFUSED as written
+
+Reviewed by a session that did not write the note, as `OWNER_FOCUS.md` item 1 requires. Nothing
+changed: no weight, metric, threshold, formula or published sentence. Measurements:
+`research/measurements/2026-10-30-trailing-series-review.py` (+ `.json`) and
+`research/measurements/2026-10-30-trailing-column-moves.py` (+ `.json`), read-only, about 75
+requests between them, re-runnable.
+
+Section 4 nominates five things to answer before building. Three are now measured. **Two come out
+in the proposal's favour and decisively so; the third kills the rule as written.**
+
+### 5.1 Item 2, row names: the trailing series is the same rows under different names
+
+The note asked whether `TotalRevenue`, `OperatingIncome` and `NetIncome` in the trailing series
+are the rows the engine reads from the quarterly table, flagging operating income in particular
+because the 2026-10-15 decision keeps the source's pre-special-items `Operating Income` row on
+purpose (`DECISIONS.md`, "0.14, the three input definitions settled against the filings").
+
+Measured on the twelve highest-ranked stocks that are **not** flagged - so their quarterly
+statement is the one `_stmt_val_ltm` actually sums - for all nine income-statement labels the
+engine reads, the trailing series' value against the engine's own four-quarter sum:
+
+| Label | n | median \|rel diff\| | max \|rel diff\| | within 0.5% |
+|---|---|---|---|---|
+| Total Revenue | 12 | 0.000000 | 0.000669 | 12/12 |
+| Gross Profit | 11 | 0.000000 | 0.000212 | 11/11 |
+| Operating Income | 12 | 0.000000 | 0.000614 | 12/12 |
+| EBITDA | 11 | 0.000000 | 0.000000 | 11/11 |
+| Net Income | 12 | 0.000000 | 0.000523 | 12/12 |
+| Tax Provision | 12 | 0.000000 | 0.001458 | 12/12 |
+| Pretax Income | 12 | 0.000000 | 0.000344 | 12/12 |
+| Cost Of Revenue | 11 | 0.000000 | 0.000121 | 11/11 |
+| Interest Expense | 11 | 0.000000 | 0.006803 | 10/11 |
+
+Nine of twelve stocks agree **exactly** on every label; the three that do not (EG, ED, APA) differ
+by at most 0.07% except for one figure, EG's interest expense at 0.68%. So substituting the
+trailing series does **not** change a metric's definition, and in particular it preserves the
+operating-income decision. That was the largest risk in the proposal and it is measured away.
+
+**Coverage is also fine.** Of the eight flagged stocks whose trailing column sits on the newest
+filed period, **seven carry all nine labels**; CHRW is missing Interest Expense alone. The
+within-stock label mixture this review expected to find is one metric on one stock.
+
+### 5.2 Item 1, mixed periods: practice pairs each item at its own latest period
+
+The note asked, with a quoted source, whether index and data vendors hold a company to one common
+period or use each item's latest filed value. **They use the latest value, explicitly, and for
+exactly the ratio the note worried about.**
+
+- **MSCI**, *Fundamental Data Methodology*, June 2024, §1.2.2 (p. 14): earnings per share is used
+  for, among others, "**Return on Equity (ROE), which is calculated using the trailing 12-month
+  earnings per share figure and latest book value per share**"; and §1.2.5 (p. 15) defines book
+  value as "shareholders' equity available to shareholders **at the latest period end date**".
+  https://www.msci.com/indexes/documents/methodology/0_MSCI_Fundamental_Data_Methodology_20240625.pdf
+- **S&P Dow Jones Indices**, *S&P Quality Indices Methodology*, Appendix A, "Fundamental Ratios
+  Calculation" (p. 16): "**Return on Equity (ROE). This is calculated as a company's trailing
+  12-month earnings per share divided by its latest book value per share**", and the financial
+  leverage ratio uses "a company's **latest total debt** divided by its book value".
+  https://www.spice-indices.com/idpfiles/spice-assets/resources/public/documents/methodology-sp-quality-indices.pdf
+  (S&P's own `spglobal.com/spdji` copy answers 403 to a scripted request; read from S&P's
+  `spice-indices.com` copy, and `data/papers/invesco-sp-quality-indices-methodology.pdf` from an
+  earlier session is a third copy of the same document.)
+
+Two independent providers, same construction: a trailing-twelve-month income numerator over a
+*latest*-period balance-sheet denominator. **A one-quarter mismatch between a June income
+statement and a March balance sheet is the professional norm, not a defect** - so item 1's worry
+about ROE, ROIC and asset turnover does not stand, and the engine already does this anyway
+(FedEx is published today with `cf 2026-05-31` against `is 2025-11-30`, two quarters apart).
+
+Two things read the other way and belong on the record:
+
+- MSCI **normalizes** earnings - §1.2.2 excludes "extraordinary items or non-recurring items" and
+  lists impairments, disposal gains, restructuring and litigation among them. This screener scores
+  earnings **as reported** by its own settled decision (`research/2026-10-15-earnings-definition.md`
+  §8.6, refused 2026-10-16). So practice supports the *period mixing* and does **not** support
+  section 3's Amazon figure, whose $62.65 bn quarter the note itself calls "very likely a one-off
+  gain" - MSCI would strip it. That is not an argument against the fill; it is an argument against
+  quoting Amazon's 49% as the benefit.
+- MSCI §1.1.5, *Sources and Updates*: MSCI reflects public information "**provided that the
+  information is complete**", by "updating company information **only upon availability of complete
+  information**, such as official filings with stock exchanges or regulators **or upon dual vendor
+  validation**." That is the professional version of what the engine does today when it refuses a
+  sparse column, and it is the source of the guard in §5.5 - *corroborate before you score*.
+
+### 5.3 Item 3, the prior year: impossible from this source, and three weighted metrics break
+
+The note guessed that the same call "returns [the year earlier] for some stocks and not others".
+Measured: **the trailing series returns exactly one period end, for 15 of 15 flagged stocks and
+26 of 26 tested.** For none.
+
+That is not a gap in the proposal, it is a defect the proposal would ship.
+`_stmt_val_ltm_year_ago` anchors the prior-year window on the quarterly statement's newest
+**populated** period, which would still be March. Fill only the numerator and
+`revenue_growth` - a weighted metric - plus the gross-profit and net-income prior-year
+comparisons become **fifteen-month** growth rates for precisely the stocks being fixed. Trading a
+one-quarter-stale input for a wrong one is not an improvement.
+
+It is fixable: only the newest column is sparse, so the quarterly table can still supply the
+twelve months to June **2025** by date. But the prior-year anchor has to move with the fill, and
+the note does not say so.
+
+### 5.4 The rule is specified against the wrong reference, and its own table is one morning's data
+
+The proposal's rule is "fill where the trailing series reaches the newer quarter", with the newer
+quarter taken from the newest filing in the weekly SEC companyfacts cache. Those two things update
+on different clocks, and the three period ends that actually matter are not the two the rule
+compares. Measured 2026-10-30, 24 hours after the note, on the fifteen stocks its table names
+(`gap` = quarters between what the stock **is scored on** and the trailing column):
+
+| gap | n | stocks |
+|---|---|---|
+| 0 quarters | 2 | DD, TFC |
+| 1 quarter | 6 | AEE, APH, CHD, CHRW, CPT, ES |
+| 2 quarters | 7 | AMZN, BAC, BNY, EXR, FDXF, FLEX, ILMN |
+
+Three consequences, in order of how much they matter.
+
+1. **The opportunity is bigger than the note claimed: 13 of 15, not 9.** The trailing column is
+   newer than the column the engine scores for thirteen of the fifteen. The note's 9-of-15 /
+   6-of-15 split came from comparing the trailing column against the newest *SEC filing* instead
+   of against what the engine actually reads, and the six "no" rows are not stocks the trailing
+   series cannot help - they are stocks where it had already moved **past** the period being
+   compared.
+2. **The note's section-2 table is a snapshot of one morning.** Amazon is recorded there as a
+   match; on 2026-10-30 its trailing column is **2026-09-30** while the SEC cache still holds June,
+   so under the rule as written today's build would fill **nothing for Amazon** - the case the
+   proposal is written around. TFC, listed as a "no", is not flagged at all today: it is published
+   scored to 2026-09-30, resolved by itself in a day. This is the class of defect this project's
+   own retrospective named *this morning* - a premise that is a property of one morning's data
+   (`prompts/nightly.md` section 2, process change 2 of `NIGHTLY_LOG.md` 2026-10-30).
+3. **Half of the thirteen cannot be checked at all.** At a one-quarter gap the implied newest
+   quarter is computable from the quarterly table - TTM less the three populated quarters before
+   it - which is exactly how section 2 checked eight of them against the companies' own 10-Qs and
+   found six exact. At a two-quarter gap there is nothing to check it against: for Amazon,
+   `TTM(Sep) - (Jun + Mar + Dec)` is not computable *because June is the empty column*. FedEx is
+   the extreme case - its trailing column is 2026-05-31 against a newest quarterly column of
+   2025-11-30, two quarters past anything the statement carries, and section 2's own table could
+   only print "-" for it.
+
+So the uncheckable half is not a tail case; **it contains every stock whose fill would move a
+score materially**, Amazon and Bank of America included.
+
+### 5.5 What to build instead, with the criteria written down first
+
+Refusing the rule is not refusing the finding. The narrower version, pre-registered here so that
+whoever builds it cannot widen it to taste:
+
+- **Reference period.** Compare the trailing column against the newest quarterly column that
+  **carries the label being filled**, never against the SEC cache or the newest filing. The SEC
+  cache may not gate a scoring input at all (CLAUDE.md 0.14: a test fails if `sec_crosscheck`
+  appears in a scoring module), so the corroboration has to come from the source's own data.
+- **Gap of exactly one quarter.** Fill only when the trailing column is one quarter past that
+  reference, so the implied newest quarter is `TTM - (three populated quarters)` and can be
+  checked. A gap of two or more is refused and the stock stays where it is. Measured today this
+  admits **6 of 14** flagged stocks (AEE, APH, CHD, CHRW, CPT, ES - ranks 52, 85, 116, 139, 204,
+  352) and refuses 7. It also happens to coincide, 6 for 6, with the stocks whose filing the
+  weekly cache actually holds, which is why §5.2's completeness rule and this guard point the
+  same way.
+- **The implied quarter must survive the checks the quarterly path already applies**, including
+  `quarterly_statement_defect`'s negative-revenue signature - DuPont is in this list precisely
+  because that guard fired (§2), and a fill that bypasses it re-opens a defect already found.
+- **The prior-year anchor moves with the fill or the fill does not happen.** `revenue_growth` and
+  the two other `*_prior` comparisons must be re-anchored on the filled period from the quarterly
+  table; if the twelve months one year before the filled period is not available from four
+  adjacent populated quarters, that stock is not filled.
+- **One change at a time** (CLAUDE.md route): the scoring change, its `metric_lineage` `LINEAGE` /
+  `RECOMPUTE` / `EQUATIONS` lines and a `claims.py` registration for any sentence saying a figure
+  came from the trailing series, in the same commit (row 0.8c), with a `METHODOLOGY_CHANGELOG.md`
+  entry.
+- **The honest statement of the benefit**: six of 498 stocks, one quarter fresher, no top-25 name,
+  and the two cases with the largest effect excluded by the guard. Not "Amazon's earnings yield
+  goes 3.31% to 4.9%".
+
+**Whether that is worth building at all is a real question**, and this review deliberately does
+not answer it by building it. The reconciliation step is the part with lasting value - it is the
+only thing that distinguishes a fresher input from an unverifiable one, and it is also what makes
+the change small.
+
+### 5.6 Three things settled so nobody re-measures them
+
+- **The trailing series carries one period and only one.** Any design that needs two periods from
+  it - a growth rate, a prior-year comparison, a history - is impossible without a second source.
+  15 of 15, 26 of 26.
+- **Having a column is not being scored on it.** Section 2 reports the quarterly balance sheet
+  reaching the filed quarter for 7 of 15; all eight one-quarter stocks are nonetheless published
+  today with `asof.bs = 2026-03-31`. A column the source lists and a column the engine can read
+  are different facts, which is the whole shape of this problem one level up.
+- **Mixed statement periods are already published and are correct practice.** FedEx carries
+  `cf 2026-05-31` against `is 2025-11-30`; DuPont `bs 2026-06-30` against `is 2025-12-31`. §5.2's
+  two sources say to pair the latest of each. Do not "fix" this by holding a company to one
+  period.
