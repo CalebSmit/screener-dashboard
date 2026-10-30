@@ -16908,3 +16908,37 @@ carrying to the other two surfaces:
   without anyone noticing.
 - 2026-10-30 is a **retrospective** (even ISO week). Phase 0 of the universe plan on research
   Monday **2026-11-02**; the next lab Friday is **2026-11-06**.
+
+## 2026-10-29 (owner-run, evening) - the evidence engine kept dropping stocks the price source stopped serving
+
+| Check | Reading |
+|---|---|
+| Last code session | 13:00 ran, all four gates passed, shipped (`good/2026-10-29-1403`) |
+| Data loop | 02:00 published `a08c2741a3ca`, HEALTH: PASS, "Data loop complete" |
+| Evidence base, `1m` | 39 rows, newest 2026-09-28 (31 days, bound 40), 5 effective |
+| Priority 0 | unchanged - `allow_auto_apply` false |
+| Top roadmap item | 0.13 Factor Lab, opened 2026-10-12, 17 days |
+
+Owner: "find some improvements you could make now before the next session".
+
+- **Evidence-base correction (changelog 2026-10-29 evening).** Traced the yfinance "possibly
+  delisted" lines every data run has logged since 2026-10-20 to `compute_forward_returns`: a
+  snapshot ticker missing from the download was skipped, and the free source drops a renamed or
+  taken-over company's whole history. 96 stock-dates were missing across all 39 measured `1m`
+  dates (1-3 each), up to 8 on a `3m` date. The engine now calls the track record's own rules
+  (renamed -> new symbol by CIK; otherwise recorded closes, held at the last one - the S&P exit
+  rule from `research/2026-09-30-delisted-price-source-cost.md`). Forward-only: no recorded row or
+  IC changes. Dry run on a copy of the real data with 09-28 re-measured: the 499 stocks measured
+  before came out identical and PSKY (-32.8%, its real fall to its last trade on 10-16; Yahoo
+  serves nothing after) and WBD (+0.2%) were added. Offline re-pricing of the 39 dates moves a
+  date's IC by 0.002 on average, 0.0055 at most - supporting colour only.
+  `tests/test_forward_returns_lost_tickers.py` (7; the two behavioural tests fail on the old engine).
+- **Runner log line.** `nightly-screener.ps1` gate 1 logged "PASS ( -- Docs: https://... 3523
+  passed ...)"; a pass now logs pytest's count line (parse-checked, 0 errors; pattern tested in
+  PowerShell and in `tests/test_parallel_suite.py`).
+- **Not fixed, on purpose:** this morning's single `test_dead_badges` failure. No earlier failure
+  in any log and its error text was not kept, so there is nothing to diagnose; tonight's gate 1
+  (3,531 passed, 1 skipped) passed it. If it recurs, keep the traceback.
+- Still open: the second yfinance failure block (CTRA, DAY, MMC, BK, HOLX - "no timezone found")
+  is printed twice per run and some of it is probably the track record's own price download; it
+  costs a few seconds and changes nothing, so it was left.

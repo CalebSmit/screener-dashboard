@@ -4883,3 +4883,59 @@ under both rules.
 
 **Applied by:** owner-run session, 2026-10-27 (owner: "Yes make all changes necessary").
 **Rollback:** revert the commit; tag `good/2026-10-27-owner-3`.
+
+## 2026-10-29 (evening) - Evidence-base correction: stocks the price source stopped serving stay in the forward returns
+
+**Area:** evidence base (`improvement_engine.compute_forward_returns`). No score, weight, rank or
+published number moves; the engine still cannot apply a weight (`allow_auto_apply` false).
+
+**Found.** Every data run since 2026-10-20 logged yfinance "possibly delisted" errors for the same
+symbols. Some come from the forward-return pass: `compute_forward_returns` skipped any snapshot
+ticker missing from the downloaded prices, and the free source stops serving a company that is
+renamed or taken over - it drops the whole history, not just the days after. Measured that day
+against `improvement/performance_history.csv`: **1-3 stocks were missing from every `1m` date from
+2026-08-10 to 2026-09-28 (96 stock-dates over 39 dates), and up to 8 from a `3m` date** - WBD, PSKY,
+BK, CTRA, EA, HOLX, AVB, EQR, SATS. Three had been renamed (by SEC registrant number: BK -> BNY,
+EQR -> VMRK, SATS -> ECHO); the source no longer serves the rest. That is a survivorship gap in the
+one out-of-sample series the engine gates on, and the track record had closed the same gap for
+itself on 2026-10-15 (`track_record.fill_unpriced`) while the engine kept it.
+
+**Changed.** For a snapshot ticker that has **left the universe** (absent from the newest snapshot)
+and that the source no longer serves, the engine now applies the track record's rules, through the
+same functions:
+- renamed -> priced under the symbol its registrant trades as now (the new symbol is added to the
+  download);
+- otherwise -> priced from the closes the screener recorded at each run (`price_at_scoring`, a
+  price return without dividends), and after the last one **held at that close** - the position
+  became cash when trading stopped. Held only if a close on or after the run date was recorded (an
+  entry the reader could have traded at), and never for a renamed stock whose new symbol is missing
+  (it still trades, so its return stays missing rather than invented).
+A ticker still in the universe is never filled: a transient gap in the source stays a gap.
+
+**Evidence.** Holding at the last traded price is the index's own rule, not an assumption: S&P Dow
+Jones Indices removes a constituent delisted by a merger or acquisition "normally at the close of
+the last day of trading", and removes a stock when it moves to the pink sheets, so Shumway's (1997)
+missing performance-delisting returns (the -30% convention) arise after an S&P 500 name has left the
+panel. Both quoted, with the 97.4% of exits that are this easy case, in
+`research/2026-09-30-delisted-price-source-cost.md` section 4. **Two approximations, stated:** the
+last *recorded* close is the close before the last run that listed the stock, so it can be a few
+sessions before the last trade; and a stock-for-stock merger is held as cash rather than followed
+into the acquirer's shares for the rest of the horizon.
+
+**Expected effect.** Rows are measured once and never re-measured, so **no recorded row or IC
+changes**; dates measured from the 2026-10-30 run onward include these stocks. Size, as supporting
+colour only (rule 4 - not evidence for anything): re-pricing the 39 already-measured `1m` dates
+offline from the recorded closes recovers 49 of the 96 missing stock-dates and moves a date's IC by
+**0.002 on average, 0.0055 at most**. Small, and in no particular direction - it removes a bias in
+how the evidence is gathered rather than changing what it says.
+
+**Validated.** `tests/test_forward_returns_lost_tickers.py` (7): a renamed stock is priced under its
+new symbol and the new symbol is downloaded; a stock that stopped trading is held at its last
+recorded close (1w and 1m); no position is held without an observed entry; a stock still in the
+universe is never filled; a renamed stock whose new symbol is missing is not held as cash; the
+stayers are unchanged; the engine calls the track record's functions rather than a second copy. The
+two behavioural tests fail against the previous engine.
+
+**Applied by:** owner-run session, 2026-10-29 evening (owner: "find some improvements you could make
+now before the next session").
+**Rollback:** revert the commit; the tag before it is `good/2026-10-29-1403`.
