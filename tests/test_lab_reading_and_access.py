@@ -719,3 +719,37 @@ def test_every_card_puts_its_count_under_its_meter_so_the_counts_line_up(browser
             assert errors == []
         finally:
             ctx.close()
+
+
+# A figure that rounds to zero carries no sign (2026-10-29). A sweep of every experiment through
+# every setting found "−0.00" in 12 of 17: "Sharpe ratio −0.00", "Momentum averaged −0.00% a
+# month", decile tables, and four experiments opened on a "−0.00" difference beside "within".
+SIGNED_ZERO = re.compile("[\u2212-]0\\.0+(?![0-9])")
+
+
+@pytest.mark.parametrize("scene", ["asset-growth", "five-factors", "big-and-small", "replication-crisis"])
+def test_an_experiment_opens_without_a_signed_zero(browser, scene):
+    ctx, page, errors = _page(browser, width=1280)
+    try:
+        _goto(page, scene)
+        bad = [ln for ln in page.inner_text("#lab").split("\n") if SIGNED_ZERO.search(ln)]
+        assert bad == [], (scene, bad[:5])
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_the_formatters_sign_the_printed_figure_not_the_raw_value(browser):
+    src = PAGE.read_text(encoding="utf-8")
+    f2 = re.search(r"^\s*const f2 = .*$", src, re.M).group(0)
+    sf2 = re.search(r"^\s*const sf2 = .*$", src, re.M).group(0)
+    ctx, page, _ = _page(browser)
+    try:
+        got = page.evaluate(f"""() => {{ {f2} {sf2}
+            return [[-0.001, 0, 0.004, -0.006, 1.234, -1.234].map(f2),
+                    [-0.001, 0, 0.004, -0.006, 1.234, -1.234].map(sf2)]; }}""")
+    finally:
+        ctx.close()
+    assert got[0] == ["0.00", "0.00", "0.00", "\u22120.01", "1.23", "\u22121.23"]
+    assert got[1] == ["0.00", "0.00", "0.00", "\u22120.01", "+1.23", "\u22121.23"]
+    assert not any(SIGNED_ZERO.search(s) for s in got[0] + got[1])
