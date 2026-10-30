@@ -377,3 +377,23 @@ class TestEvidenceLine:
     def test_the_bound_is_rule_8s(self):
         claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
         assert "within 40 days of today" in claude and wb.STALE_AFTER_DAYS == 40
+
+
+class TestRowPolish:
+    """2026-10-29: two rows of the brief read "Context signals | Context signals: 15 daily logs ..."
+    and "Dashboard data from | 2026-10-29T02:00:05.052320"."""
+
+    def test_the_run_time_reads_to_the_minute(self):
+        assert wb.run_stamp("2026-10-29T02:00:05.052320") == "2026-10-29 02:00"
+        assert wb.run_stamp("not a time") == "not a time"
+        assert wb.run_stamp(None) == "?"
+
+    def test_the_context_row_does_not_repeat_its_label(self, monkeypatch):
+        import types
+        fake = types.SimpleNamespace(summary_line=lambda d: "Context signals: 15 daily logs since 2026-10-08.")
+        monkeypatch.setitem(sys.modules, "context_eval", fake)
+        monkeypatch.setattr(wb, "ROOT", ROOT)
+        line = wb.context_record()
+        if line == "no context evaluation yet":
+            pytest.skip("MISSING DATA: no data/context_eval.json")
+        assert line == "15 daily logs since 2026-10-08."
