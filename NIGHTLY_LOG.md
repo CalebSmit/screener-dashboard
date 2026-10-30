@@ -17010,7 +17010,8 @@ Health as the evening entry (nothing scheduled ran since). Owner: "keep finding 
   (`openStockDetail`); nothing writes `#modal-provenance` otherwise; no timer, guide or startup path
   opens a stock without a hash; the module passes 8 of 8 runs at `-n 8` alone and in isolation
   renders the synthetic financial correctly. So the synthetic render did not land, or something
-  restored EXPE, only under full-suite load - unexplained. Not patched: a guess would be a fix in
-  name only. Next: give each `_prov` call its own fresh container check (render, then assert the
-  badge line is the synthetic stock's "Metrics: 25/28" before reading on) so the next failure says
-  which of the two happened.
+  restored EXPE, only under full-suite load - unexplained, and not patched: a guess would be a fix
+  in name only. What changed instead is the test's ability to say which: `_prov` now renders and
+  reads in one browser call, reads again after a task turn, and fails naming both texts if they
+  differ (an overwrite after the render); a wrong first read still fails the sentence assertions as
+  before (a render that did not land). Nothing is loosened - both cases still fail.
