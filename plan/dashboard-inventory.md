@@ -1,5 +1,10 @@
 # Dashboard inventory (as of 2026-10-07, pass 2)
 
+**2026-10-29 (owner-run):** context panels' percents keep their sign when they round to zero
+(`cPlain`; `tests/test_every_panel_reads_clean.py` opens all ~500 sheets and fails on any
+undefined/NaN/signed zero); the methodology glossary spells out its abbreviations; unscored
+members are named in search and My Holdings (`unscored`, under "Other payload keys").
+
 **Header, 2026-10-27 (owner):** every section link is shown in full or listed, in order, under a
 "More" menu (`_js_page`, priority-plus; re-measured on resize, font load and link visibility).
 The "Last updated" line left the bar (the hero and footer state the same time) and the search
@@ -1100,6 +1105,13 @@ the health check's rank-continuity gate compares with the published run's), `wei
 `sectors` (11), `sector_composition`, `histogram`, `vt_by_sector`,
 `gt_by_sector`, `sector_distributions`, `factor_correlation`,
 `weight_sensitivity` (8), `data_quality`, `history`.
+
+`unscored` (2026-10-29): `{ticker: company}` for the S&P 500 members the run fetched and could
+not score - the run's own `universe.json` "failed" list (`_run_unscored`, `_unscored_block`;
+display only, `{}` on any failure). Read by `unscoredMemberText`, which the search, the palette
+and My Holdings use to say "<name> is in the S&P 500, but this run left it unscored" instead of
+"has left the index". `tests/test_unscored_members.py`. Beside it, `share_classes` (2026-10-19)
+covers the second listed class of a company the run did rank.
 
 `portfolio` and `spx_weights` were removed 2026-08-26 - see below.
 `config_traps` was removed 2026-09-08 with the chat that was its only consumer.
