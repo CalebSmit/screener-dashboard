@@ -329,3 +329,38 @@ class TestFilingCheckRow:
         health = (ROOT / "scripts" / "check_run_health.py").read_text(encoding="utf-8")
         assert '"inputs against SEC filings: "' in health and wb.FILING_LINE == "inputs against SEC filings: "
 
+
+
+class TestEvidenceLine:
+    """The newest date is the `1m` one, against rule 8's 40-day bound (2026-10-29). The line read
+    the whole file's newest date against 21 days - "newest 2026-10-21" while the `1m` date sat at
+    2026-09-28 - the tripwire CLAUDE.md rule 8 retired on 2026-09-18 because it cannot stand still."""
+
+    def _ic(self, tmp_path, monkeypatch, rows):
+        d = tmp_path / "improvement"
+        d.mkdir()
+        (d / "live_ic_history.csv").write_text(
+            "run_date,horizon,n_tickers,composite_ic\n"
+            + "".join(f"{r},{h},500,0.01\n" for r, h in rows), encoding="utf-8")
+        monkeypatch.setattr(wb, "ROOT", tmp_path)
+
+    def test_the_newest_date_is_the_1m_one(self, tmp_path, monkeypatch):
+        from datetime import datetime
+        self._ic(tmp_path, monkeypatch, [("2026-09-28", "1m"), ("2026-10-21", "1w")])
+        line = wb.ic_observations(today=datetime(2026, 10, 29))
+        assert "newest 1m run date 2026-09-28 (31 days ago, bound 40)" in line
+        assert "2026-10-21" not in line
+
+    def test_a_1m_date_past_40_days_is_stale_even_when_1w_keeps_moving(self, tmp_path, monkeypatch):
+        from datetime import datetime
+        self._ic(tmp_path, monkeypatch, [("2026-09-10", "1m"), ("2026-10-27", "1w")])
+        line = wb.ic_observations(today=datetime(2026, 10, 29))
+        assert "STALE: over the 40-day bound" in line and "(49 days ago" in line
+
+    def test_no_1m_rows_says_so(self, tmp_path, monkeypatch):
+        self._ic(tmp_path, monkeypatch, [("2026-10-21", "1w")])
+        assert "no 1m rows yet" in wb.ic_observations()
+
+    def test_the_bound_is_rule_8s(self):
+        claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        assert "within 40 days of today" in claude and wb.STALE_AFTER_DAYS == 40

@@ -208,7 +208,10 @@ def _effective_observations(dates: list[str], horizon: str) -> int:
     return n_eff
 
 
-def ic_observations() -> str:
+STALE_AFTER_DAYS = 40     # CLAUDE.md rule 8: the newest `1m` run date within 40 days of today
+
+
+def ic_observations(today: datetime | None = None) -> str:
     p = ROOT / "improvement" / "live_ic_history.csv"
     if not p.exists():
         return "unknown"
@@ -241,23 +244,33 @@ def ic_observations() -> str:
     # "3 of 8 needed" on every brief from February to 2026-08-21 while the data
     # loop ran successfully every weekday, because nothing called
     # compute_live_ic(). A number that never moves looks like slow progress.
-    newest = max(d for d, _ in parsed)
+    #
+    # Read at the optimization horizon and nowhere else (CLAUDE.md rule 8,
+    # corrected 2026-09-18). The newest date across all horizons rises every
+    # weekday as the 1-week horizon gains a row, so it cannot stand still: on
+    # 2026-09-18 the `1m` date had not moved for six sessions while the whole
+    # file's kept rising. This line still read the whole file, against a 21-day
+    # bound, until 2026-10-29 - "newest 2026-10-21" beside a `1m` date of
+    # 2026-09-28. The bound is rule 8's: 40 days (30-day horizon plus a weekend
+    # is 30-33 in steady state; 40 tolerates a week of missed runs).
+    if not at_horizon:
+        return (f"0 of 8 needed at the {OPTIMIZATION_HORIZON} horizon - no "
+                f"{OPTIMIZATION_HORIZON} rows yet ({len(parsed)} rows across all horizons)")
+    newest = max(at_horizon)
     age = ""
     try:
-        # A 1-week observation only matures 7 days after its run date, and
-        # weekends push that out, so the newest date always trails today by
-        # ~7-11 days even when everything is working. 21 days is clear of that
-        # and still catches a real stall inside three weeks.
-        days = (datetime.now() - datetime.strptime(newest, "%Y-%m-%d")).days
-        if days > 21:
-            age = f" - STALE, nothing new in {days} days"
+        days = ((today or datetime.now()) - datetime.strptime(newest, "%Y-%m-%d")).days
+        age = f" ({days} days ago" + (
+            f" - STALE: over the {STALE_AFTER_DAYS}-day bound, find out why)" if days > STALE_AFTER_DAYS
+            else f", bound {STALE_AFTER_DAYS})")
     except ValueError:
         pass
 
     return (
         f"{n_eff} of 8 needed at the {OPTIMIZATION_HORIZON} horizon "
         f"({len(at_horizon)} rows, but overlapping windows are not independent; "
-        f"{len(parsed)} rows across all horizons), newest {newest}{age}"
+        f"{len(parsed)} rows across all horizons), newest {OPTIMIZATION_HORIZON} "
+        f"run date {newest}{age}"
     )
 
 
