@@ -16942,3 +16942,32 @@ Owner: "find some improvements you could make now before the next session".
 - Still open: the second yfinance failure block (CTRA, DAY, MMC, BK, HOLX - "no timezone found")
   is printed twice per run and some of it is probably the track record's own price download; it
   costs a few seconds and changes nothing, so it was left.
+
+## 2026-10-29 (owner-run, night) - sweeps of what the site actually renders: three defects, two false alarms
+
+Same health readings as the evening entry two hours earlier (nothing ran in between). Owner: "keep
+finding improvements. be creative". The method was to read what the site renders, not the code
+that renders it.
+
+- **The brief's evidence line read the wrong horizon.** `write_brief.ic_observations` printed the
+  newest run date across all horizons against a 21-day bound ("newest 2026-10-21" while the `1m`
+  date was 2026-09-28) - the tripwire CLAUDE.md rule 8 retired on 2026-09-18 because it cannot stand
+  still, still live in the brief the owner reads. Now the newest `1m` run date, its age and STALE
+  past 40 days. `tests/test_morning_brief.py::TestEvidenceLine` (4).
+- **Every stock panel opened on the live page (498, no JS errors): two signed zeros.** AMD's
+  five-year earnings-yield range "-0.0% - 3.2%" and INTC's median "-0.0%" - `cPlain`, the context
+  panels' percent formatter, the BXP defect class in another function. One more decimal when a
+  value rounds to zero ("-0.02%"). The sweep is now `tests/test_every_panel_reads_clean.py` (12 s,
+  fails on exactly AMD and INTC without the fix), in the code-loop suite and **deliberately not** in
+  the data loop's publish gate: a cosmetic glitch should cost a fix, not a day of evidence.
+- **The methodology said "NaN" eleven times** - edited in `build_screener_overview`, overview
+  regenerated, page rebuilt, payload byte-identical.
+- **Checked and left:** 8 summary sentences read "Sustainable Growth (0.0%)" - true zeros: 35 of 441
+  stocks sit at the metric's 0 floor (payout above earnings, mostly REITs), documented on the metric
+  row; it belongs to the open Growth-composition question
+  (`research/2026-10-12-growth-category.md` section 11), not a formatting fix. Insider titles with
+  doubled spaces are the filers' own text. The full-text sweep of `research.html` and `lab.html`
+  found nothing; an anchor sweep's two hits were false (the lab's hash routes, and the methodology's
+  `#bank-specific-scoring`, which `methodAnchorClick` resolves by slug).
+- Gates: 3,547 passed / 1 skipped; dry run, both payloads parse, clean tree; `rehearse_publish.py`
+  PASSED.
