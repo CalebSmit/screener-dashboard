@@ -16971,3 +16971,31 @@ that renders it.
   `#bank-specific-scoring`, which `methodAnchorClick` resolves by slug).
 - Gates: 3,547 passed / 1 skipped; dry run, both payloads parse, clean tree; `rehearse_publish.py`
   PASSED.
+
+## 2026-10-29 (owner-run, late) - the lab's signed zeros, and the quarter the source leaves empty
+
+Health as the evening entry (nothing scheduled ran since). Owner: "keep finding improvements to make!"
+
+- **Factor Lab: "-0.00" in 12 of 17 experiments.** A sweep opened every experiment and moved every
+  control through its values (each select option, each range's ends, each toggle): "Sharpe ratio
+  -0.00", "Momentum averaged -0.00% a month", decile tables, and four experiments opened on a
+  "-0.00" difference beside "within". `f2`, `sf2` and `diffText` in `lab.html` took the sign from the
+  raw value and rounded after; now from the printed figure. Re-sweep: 0 of 17.
+  `tests/test_lab_reading_and_access.py` +5, all failing on the old page. (The sweep crashed the
+  test browser twice at the 11th experiment after ~100 rapid control changes each; a reader
+  clicking through all 17 holds about 12 MB of JS heap - measured - so it is the harness, not the page.)
+- **Research finding, proposal OPEN: `research/2026-10-29-ttm-fills-the-empty-quarter.md`.** The 15
+  stocks scored a quarter behind a filing over 30 days old: the source's own trailing-twelve-month
+  income series reaches the filed quarter for 9 of 15, and the implied quarter matches the 10-Q for
+  6 of 8 checkable to $0.01bn. Amazon is scored on $90.8bn of net income where its filings to June
+  give $135.3bn (the June quarter alone $62.65bn). Five questions to answer before building; no
+  code changed. The morning brief lists it with its age.
+- **The brief's filings row now carries that count** ("15 scored a quarter behind a filing over 30
+  days old"); it had kept the four agreement figures and dropped the one about stale scores.
+- **Swept and clean:** every main-page control through every option and 89 column sorts at 1280 and
+  375 px; My Holdings with six names including one that left the index and one unscored; duplicate
+  ids / unnamed buttons / unlabelled controls / images without alt on all three pages with a stock
+  dialog, the methodology and an experiment open; every published price dated the same session.
+  DD's "period behind" is the engine's annual fallback from a source quarter with -$1.87bn revenue -
+  the guard working.
+- Gates: 3,553 passed / 1 skipped; dry run; both payloads parse; clean tree.
