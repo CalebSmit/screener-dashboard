@@ -554,7 +554,26 @@ def _is_computed(fv: ast.FormattedValue) -> bool:
     return False
 
 
-def computed_sentences(path: Path) -> list[str]:
+def _subtree(path: Path, within: str | None):
+    """The module, or the one function named by ``within``.
+
+    `research_page.py` exists only to write its page, so sweeping the file is the
+    same as sweeping the generator. `run_screener.py` is not - it is the pipeline,
+    and `build_screener_overview` is one function in it, so a file-wide sweep would
+    enumerate progress lines and log messages as published sentences. The scope is
+    the generator, never the file that happens to hold it.
+    """
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    if within is None:
+        return tree
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == within:
+            return node
+    raise AssertionError(f"{path.name} has no function {within} - the sweep's scope is gone")
+
+
+def computed_sentences(path: Path, within: str | None = None,
+                       markup: str = "html") -> list[str]:
     """Every sentence in a generator that puts a computed number into prose.
 
     The key is the sentence as published, tag-stripped and whitespace-normalised,
@@ -562,9 +581,24 @@ def computed_sentences(path: Path) -> list[str]:
     reword fires (as a `detect` pattern does, deliberately) **and** swapping which
     expression is printed fires - the second is the one a `{}` placeholder would
     miss, and it is how a figure gets taken off the wrong era.
+
+    ``within`` scopes the walk to one function - see ``_subtree``.
+
+    ``markup`` says what ends a block, and the two surfaces genuinely differ.
+    In **html** a newline is whitespace - the browser collapses it - so only a
+    block-level tag ends a unit. In **markdown** there are no tags to break on and
+    a newline *is* the block boundary: a table row, a list item and a heading are
+    each their own block. Breaking a markdown surface on tags alone produced one
+    key that ran from a three-row table through the sentence after it
+    (`plan/claims-mutation-audit.md`, the 2026-10-30 pass), which is the same
+    swallowed-key failure the html sweep hit on its first run. Note this is safe
+    only because a generator's newlines are the ones it *writes*: prose wrapped
+    across source lines by implicit concatenation carries no newline into the
+    output, so no sentence is split by it.
     """
+    assert markup in ("html", "markdown"), markup
     out: list[str] = []
-    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+    for node in ast.walk(_subtree(path, within)):
         if not isinstance(node, ast.JoinedStr):
             continue
         parts, holes = [], []
@@ -578,6 +612,8 @@ def computed_sentences(path: Path) -> list[str]:
             lambda m: " " if (m.group(1) or "").lower() in _INLINE else _BREAK, "".join(parts))
         for entity, plain in (("&mdash;", "-"), ("&ndash;", "-"), ("&nbsp;", " ")):
             text = text.replace(entity, plain)
+        if markup == "markdown":
+            text = text.replace("\n", _BREAK)
         units = re.split(r"(?<=[.!?:])\s+|" + _BREAK, text)
         # A stat card is a figure in one element and its caption in the next
         # (`<div class="v">{months_needed(...)}</div><div class="k">months of record
@@ -586,6 +622,16 @@ def computed_sentences(path: Path) -> list[str]:
         # is a sentence and the claim disappears - which it did on the first run of
         # this sweep, for all three of the month counts registered the same morning.
         # A figure-only unit therefore takes the following unit's words.
+        # A markdown table row is not a sentence, and must not be merged into one.
+        # `| Earnings yield (E/P) | **+{bank_net_ep:.1f}** |` has a figure and no
+        # three-word run (the "(E/P)" breaks it), so the stat-card merge below
+        # swallowed the separator and the next two rows and emitted the whole table
+        # as one "sentence". Table cells are already outside this sweep on the html
+        # side by the same reasoning - a published figure with no prose around it -
+        # and both surfaces now need the same decision about whether the register
+        # covers cells (`plan/claims-mutation-audit.md`).
+        if markup == "markdown":
+            units = [u for u in units if not u.lstrip().startswith("|")]
         merged: list[str] = []
         for unit in units:
             if merged and _HOLE.search(merged[-1]) and not _PROSE.search(_HOLE.sub(" ", merged[-1])):
@@ -821,7 +867,7 @@ def test_every_verdict_names_a_test_or_claim_that_exists():
     problems = []
     ids = {c.id for c in claims.CLAIMS}
     cache: dict[str, set[str] | None] = {}
-    for sentence, verdict in RESEARCH_PAGE_SENTENCES.items():
+    for sentence, verdict in {**RESEARCH_PAGE_SENTENCES, **OVERVIEW_SENTENCES}.items():
         kind, _, ref = verdict.partition(":")
         if kind == "claim":
             if ref not in ids:
@@ -837,3 +883,186 @@ def test_every_verdict_names_a_test_or_claim_that_exists():
             elif func not in names:
                 problems.append(f"{filename} has no {func} ({sentence[:60]!r})")
     assert not problems, "\n".join(problems)
+
+
+# ---------------------------------------------------------------------------
+# 6. the same sweep, for the public methodology page
+# ---------------------------------------------------------------------------
+# `SCREENER_OVERVIEW.md` is the second generated surface (the third,
+# `generate_dashboard.py`, is the next session's - `plan/claims-mutation-audit.md`
+# takes one per session). The yield is smaller than the research page's because
+# most of this page's figures are config constants printed verbatim, which the
+# scope rule calls *reported* rather than computed and the overview-claims modules
+# already pin against config.
+#
+# Two things about markdown, both found by this sweep's own output being wrong and
+# both recorded in `computed_sentences`: a newline **is** a block boundary here
+# where in html it is whitespace, and a table row is not a sentence. Before the
+# first fix one key ran from a three-row table through the sentence after it;
+# before the second, the stat-card merge chained the table's separator and its
+# three rows into a single "sentence".
+#
+# Verdict kinds and the one-unpinned-figure rule are the same as section 5's.
+OVERVIEW_SENTENCES: dict[str, str] = {
+    # --- the bank P/B-ROE pairing (2026-10-21) ------------------------------
+    # The three *table* figures are pinned, cell by cell, against an independent
+    # recomputation from config
+    # (test_bank_pb_roe_identity.py::test_the_first_order_arithmetic_the_page_prints_comes_from_the_config
+    # parses each net-points row and compares it with its own `first_order_points`).
+    # The prose below restates them, and nothing reads the prose figures.
+    "So the {_bp('pb_ratio') + _bp('earnings_yield') + _bp('roe') + _bp('roa') + _bp('equity_ratio')} points those five metrics carry rank a bank on **its ROE relative to its price-to-book** - which, by the identity above, is its earnings yield - and on how much equity backs each dollar of assets, with {_bank_pb_clause}.":
+        "open:bank-five-metric-point-total",
+    "P/B's {_bp('pb_ratio')} points are offset by ROE's {_bp('roe')} and ROA's {_bp('roa')}, because a bank that earns well on its book trades at a higher multiple of it.":
+        "open:bank-pb-offset-by-roe-roa",
+    "a deliberate net **{abs(bank_net_pb)} points {'against' if bank_net_pb < 0 else 'on'} price-to-book**":
+        "open:bank-pb-residual-clause",
+
+    # --- the data loop's input gates (2026-10-22) ---------------------------
+    # Every one of the ten figures is asserted against the gate module's own
+    # constants, on the *generated* page. That pins the claim this sentence makes -
+    # "the page states the thresholds the gate applies" - which is page-to-code
+    # agreement; the values themselves are pinned by the replay in the same module.
+    'Since 2026-10-22 it also refuses a run that ranks fewer than {_crh.MIN_SCORED} stocks or leaves more than {_crh.MAX_EXCLUDED_SHARE} of the universe unscored for missing data; one where fewer than {_crh.MIN_PRICE_ON_SESSION} of prices are dated on the latest NYSE session, or more than {_crh.MAX_UNCHANGED_ACROSS_SESSION} are unchanged from the last published run after a session has closed; and one whose ranking breaks from the last published one - a rank correlation below {_crh.RANK_MIN_SPEARMAN}, more than {_crh.RANK_MAX_NEW_IN_TOP} new names in the top {_crh.RANK_TOP_N}, or more than {_crh.RANK_MAX_FALLEN} of the top {_crh.RANK_TOP_N} falling below #{_crh.RANK_FALL_LINE} - unless the methodology version changed and the methodology changelog records the change.':
+        "checked:tests/test_input_gates.py::test_the_methodology_page_states_the_thresholds_the_gate_applies",
+
+    # --- the glossary's worked example -------------------------------------
+    # Both figures: the weight from config and 60 x w / 100 recomputed in the test.
+    'A Valuation score of 60 at a {_pts_example_w}% weight adds {_pts_example} points.':
+        "checked:tests/test_overview_reading_order.py::test_the_glossary_points_example_and_rank_are_the_engines",
+
+    # --- the momentum panic rule (2026-10-09) ------------------------------
+    # 24, 126, 20.6% and 0.70 are literals in the test, and it re-renders the page
+    # from a different config to prove the page follows it rather than agreeing by
+    # coincidence - which is the strongest form in this file.
+    "the index's return over the past {mr_months} months is negative, and its realised volatility over the past {mr_days} trading days is above {mr_thr}% a year (the 80th percentile of that figure over 1988-2026, fixed in `config.yaml` rather than re-estimated).":
+        "checked:tests/test_momentum_panic_rule.py::test_the_overview_states_the_rule_the_engine_applies",
+    "When they do, Momentum's weight is multiplied by {mr_scale} for that run and the freed weight is split equally between Quality and Valuation.":
+        "checked:tests/test_momentum_panic_rule.py::test_the_overview_states_the_rule_the_engine_applies",
+
+    # --- Data quality safeguards -------------------------------------------
+    # `test_the_clamps_and_floors_on_the_page_are_the_ones_applied` says in its own
+    # docstring that "the metric rows hard-code their clamps; the Data quality
+    # bullet reads config. Both must be config's" - and then matches only the
+    # metric-table rows (`^\| \*\*Forward EPS Growth\*\* \|`). This bullet is the
+    # second printing and nothing reads it, so nothing would notice the two
+    # disagreeing. Same shape as section 5's `pass-bar-printed`.
+    "- **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.5, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.5, 1.0])[1] * 100)}%].":
+        "open:clamp-bullet-second-printing",
+
+    # The threshold (both printings) and the rate ARE pinned, and well - read off
+    # this sentence and then applied through `compute_composite` on stocks either
+    # side of the bar. The *worked example* that follows is a second derivation of
+    # the same formula (`_ex_k` of `_n_gen`, its coverage percentage, the discount
+    # it loses) and so is the deepest-cut figure, and nothing reads any of them.
+    "Below {int(cov_disc.get('threshold', 0.8) * 100)}% metric coverage, the composite is multiplied by 1 − ({int(cov_disc.get('threshold', 0.8) * 100)}% − coverage) × {int(cov_disc.get('penalty_rate', 0.15) * 100)}% (e.g., a stock with {_ex_k} of {_n_gen} metrics, {_cov_pct(_ex_k, _n_gen)}% coverage, loses {_ex_disc}% of its composite; the deepest cut the coverage filter leaves possible is {_max_disc}%, at {_bars[_floor_n]} of {_floor_n}).":
+        "open:coverage-discount-worked-example",
+
+    # `test_confidence_metric_count_is_the_discount_coverage` pins both counts
+    # against `weighted_metric_sets` - but on the page only as `f"{bank}" in
+    # generated_overview`, a bare substring anywhere on a 1,000-line page, and it
+    # does not look for the other-financials count at all.
+    '**"Coverage" here means the share of the metrics that carry weight in that stock\'s score** - {len(_w_bank)} for a bank-like stock and {len(_w_gen)} for every other ({len(_w_gen) - 1} for other financials, which are never given the Beneish score); a metric with no weight (a candidate, or one shown for reference) cannot lower it (since 2026-10-09).':
+        "open:coverage-sentence-metric-counts",
+
+    # --- share classes (2026-10-21) ----------------------------------------
+    # The margin is pinned in config and in `share_classes.CHALLENGE_MARGIN`, both
+    # as literals - and no test in the suite reads the figure off this page. The
+    # module has no page test at all (no `build_screener_overview` call).
+    "The choice of line is declared in `config.yaml` rather than re-picked from each run's trading volume, and a run only reports when the other line leads by more than {_sc_margin} (S&P DJI's own switching margin):":
+        "open:share-class-switching-margin",
+}
+
+# The six open slugs above, as of 2026-10-30. Literals, not a comprehension over
+# the table - see KNOWN_OPEN. This set only ever shrinks.
+OVERVIEW_KNOWN_OPEN: frozenset[str] = frozenset({
+    "bank-five-metric-point-total", "bank-pb-offset-by-roe-roa", "bank-pb-residual-clause",
+    "clamp-bullet-second-printing", "coverage-discount-worked-example",
+    "coverage-sentence-metric-counts", "share-class-switching-margin",
+})
+
+
+def test_every_computed_sentence_on_the_methodology_page_has_a_verdict():
+    """Section 5's sweep, for `build_screener_overview`.
+
+    The scope is the generator, not `run_screener.py` - the file is the pipeline,
+    and a file-wide sweep would enumerate progress lines as published sentences.
+    """
+    found = computed_sentences(ROOT / "run_screener.py",
+                               within="build_screener_overview", markup="markdown")
+    assert len(found) >= 9, (
+        f"the sweep found only {len(found)} computed-number sentences in "
+        "build_screener_overview - it found 11 on 2026-10-30. A sweep that stops "
+        "matching passes vacuously; fix `computed_sentences`, do not trim the table."
+    )
+    assert len(set(found)) == len(found), "two identical sentence keys - make the key finer"
+
+    new = [s for s in found if s not in OVERVIEW_SENTENCES]
+    assert not new, (
+        "these sentences put a number this repo computed into prose on "
+        "SCREENER_OVERVIEW.md and have no verdict in OVERVIEW_SENTENCES. Add one - "
+        "claim:, checked:, reported: or open: - after reading what actually pins the "
+        "figure. If you only reworded an existing sentence, move its line.\n\n"
+        + "\n\n".join(new)
+    )
+    stale = [s for s in OVERVIEW_SENTENCES if s not in found]
+    assert not stale, (
+        "OVERVIEW_SENTENCES has verdicts for sentences the page no longer prints - "
+        "delete them:\n\n" + "\n\n".join(stale)
+    )
+
+
+def test_no_methodology_sentence_is_quietly_filed_as_unchecked():
+    """`open:` is a dated list here too, and the ratchet only turns one way."""
+    bad = {v for v in OVERVIEW_SENTENCES.values()
+           if v.split(":")[0] not in {"claim", "checked", "reported", "open"}}
+    assert not bad, f"unknown verdict kind: {sorted(bad)}"
+    opened = {v.split(":")[1] for v in OVERVIEW_SENTENCES.values() if v.startswith("open:")}
+    assert len(opened) == sum(1 for v in OVERVIEW_SENTENCES.values()
+                              if v.startswith("open:")), "two open rows share a slug"
+    assert opened == OVERVIEW_KNOWN_OPEN, (
+        "the set of unchecked computed sentences on the methodology page has changed. "
+        "Closing one: delete its slug from OVERVIEW_KNOWN_OPEN and give the sentence a "
+        "claim. Opening one: say in NIGHTLY_LOG.md why it shipped unchecked.\n"
+        f"newly open: {sorted(opened - OVERVIEW_KNOWN_OPEN)}\n"
+        f"no longer open: {sorted(OVERVIEW_KNOWN_OPEN - opened)}"
+    )
+
+
+def test_the_markdown_sweep_breaks_on_blocks_and_skips_table_rows(tmp_path):
+    """The two markdown fixes, as a negative control.
+
+    Both were real defects in this sweep's first run, and both produced a key that
+    *looked* like coverage: a sentence glued to the table above it, and a table
+    read as a sentence. A later session tidying `computed_sentences` would not
+    otherwise find out.
+    """
+    src = tmp_path / "g.py"
+    src.write_text(
+        "def build():\n"
+        "    n = 3\n"
+        "    return (\n"
+        "        f'| Coordinate | Net points |\\n|---|---|\\n'\n"
+        "        f'| Earnings yield (E/P) | **+{n:.1f}** |\\n\\n'\n"
+        "        f'So the {n * 2} points those metrics carry rank a bank on its own book.\\n'\n"
+        "    )\n", encoding="utf-8")
+    got = computed_sentences(src, within="build", markup="markdown")
+    assert got == ["So the {n * 2} points those metrics carry rank a bank on its own book."], got
+    # in html the same source is one unit, because a newline there is whitespace -
+    # which is why the surfaces take different `markup`
+    assert len(computed_sentences(src, within="build", markup="html")) == 1
+    assert "Coordinate" in computed_sentences(src, within="build", markup="html")[0]
+
+
+def test_the_sweeps_scope_is_the_generator_not_the_file():
+    """`within` must fail loudly if the generator is renamed, rather than silently
+    sweeping the whole pipeline (or nothing)."""
+    with pytest.raises(AssertionError, match="no function build_screener_overview_renamed"):
+        computed_sentences(ROOT / "run_screener.py",
+                           within="build_screener_overview_renamed", markup="markdown")
+    whole_file = computed_sentences(ROOT / "run_screener.py", markup="markdown")
+    scoped = computed_sentences(ROOT / "run_screener.py",
+                                within="build_screener_overview", markup="markdown")
+    assert len(whole_file) > len(scoped), (
+        "scoping to the generator should be narrower than the whole pipeline; if it "
+        "is not, `within` is not doing anything"
+    )
