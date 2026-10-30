@@ -94,9 +94,17 @@ def _prov(page, stock: dict) -> str:
     s = {"metric_count": 25, "metric_total": 28, "data_source": "quarterly",
          "sector": "Industrials", "asof": {}, "inp": {}, "flags": {}}
     s.update(stock)
-    page.evaluate("s => renderProvenance(s)", s)
-    return re.sub(r"\s+", " ",
-                  page.evaluate("document.getElementById('modal-provenance').textContent"))
+    # Render and read in one call, then read again (2026-10-29). Under full-suite load this module
+    # once read EXPE's real panel - the stock the previous test rendered - instead of the synthetic
+    # stock just rendered (NIGHTLY_LOG 2026-10-29 late). Two separate calls could not say whether the
+    # render failed to land or something wrote the panel afterwards; these two reads do, and a
+    # difference between them fails here, naming both, rather than as a wrong sentence below.
+    now, later = page.evaluate("""s => { renderProvenance(s);
+        const now = document.getElementById('modal-provenance').textContent;
+        return new Promise(r => setTimeout(() => r([now, document.getElementById('modal-provenance').textContent]), 0)); }""", s)
+    assert now == later, ("the provenance panel was rewritten after the render - "
+                          f"rendered {now[:80]!r}, then held {later[:80]!r}")
+    return re.sub(r"\s+", " ", now)
 
 
 FOUR_QUARTERS = "the sum of the last four reported quarters"

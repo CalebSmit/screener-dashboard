@@ -16971,3 +16971,47 @@ that renders it.
   `#bank-specific-scoring`, which `methodAnchorClick` resolves by slug).
 - Gates: 3,547 passed / 1 skipped; dry run, both payloads parse, clean tree; `rehearse_publish.py`
   PASSED.
+
+## 2026-10-29 (owner-run, late) - the lab's signed zeros, and the quarter the source leaves empty
+
+Health as the evening entry (nothing scheduled ran since). Owner: "keep finding improvements to make!"
+
+- **Factor Lab: "-0.00" in 12 of 17 experiments.** A sweep opened every experiment and moved every
+  control through its values (each select option, each range's ends, each toggle): "Sharpe ratio
+  -0.00", "Momentum averaged -0.00% a month", decile tables, and four experiments opened on a
+  "-0.00" difference beside "within". `f2`, `sf2` and `diffText` in `lab.html` took the sign from the
+  raw value and rounded after; now from the printed figure. Re-sweep: 0 of 17.
+  `tests/test_lab_reading_and_access.py` +5, all failing on the old page. (The sweep crashed the
+  test browser twice at the 11th experiment after ~100 rapid control changes each; a reader
+  clicking through all 17 holds about 12 MB of JS heap - measured - so it is the harness, not the page.)
+- **Research finding, proposal OPEN: `research/2026-10-29-ttm-fills-the-empty-quarter.md`.** The 15
+  stocks scored a quarter behind a filing over 30 days old: the source's own trailing-twelve-month
+  income series reaches the filed quarter for 9 of 15, and the implied quarter matches the 10-Q for
+  6 of 8 checkable to $0.01bn. Amazon is scored on $90.8bn of net income where its filings to June
+  give $135.3bn (the June quarter alone $62.65bn). Five questions to answer before building; no
+  code changed. The morning brief lists it with its age.
+- **The brief's filings row now carries that count** ("15 scored a quarter behind a filing over 30
+  days old"); it had kept the four agreement figures and dropped the one about stale scores.
+- **Swept and clean:** every main-page control through every option and 89 column sorts at 1280 and
+  375 px; My Holdings with six names including one that left the index and one unscored; duplicate
+  ids / unnamed buttons / unlabelled controls / images without alt on all three pages with a stock
+  dialog, the methodology and an experiment open; every published price dated the same session.
+  DD's "period behind" is the engine's annual fallback from a source quarter with -$1.87bn revenue -
+  the guard working.
+- Gates: 3,553 passed / 1 skipped; dry run; both payloads parse; clean tree.
+- **The `test_dead_badges` flake recurred, and this time the traceback was kept.** The final gate-1
+  run on this tree failed `test_the_wider_tolerance_is_stated_for_a_financial` once ([gw4]); the
+  run ten minutes earlier on code-identical files (only this log differed) passed 3,553. The panel
+  the test read held **EXPE's real provenance** ("Metrics: 27/27 ... Filing Age: 121 days") - EXPE is
+  the first key in `stock_detail`, i.e. the `other` stock the preceding test,
+  `test_the_four_annualised_stocks_in_the_published_run_say_so`, renders last - not the synthetic
+  financial the failing test had just rendered. Ruled out: `renderProvenance` is synchronous with one
+  write (`container.innerHTML = html`) and no memo or early exit for that input; it has one caller
+  (`openStockDetail`); nothing writes `#modal-provenance` otherwise; no timer, guide or startup path
+  opens a stock without a hash; the module passes 8 of 8 runs at `-n 8` alone and in isolation
+  renders the synthetic financial correctly. So the synthetic render did not land, or something
+  restored EXPE, only under full-suite load - unexplained, and not patched: a guess would be a fix
+  in name only. What changed instead is the test's ability to say which: `_prov` now renders and
+  reads in one browser call, reads again after a task turn, and fails naming both texts if they
+  differ (an overwrite after the render); a wrong first read still fails the sentence assertions as
+  before (a render that did not land). Nothing is loosened - both cases still fail.

@@ -344,6 +344,13 @@ def filing_check(lines: list[str]) -> str:
         m = re.search(re.escape(label) + r" (\d+)/(\d+) within (\S+)", body)
         if m:
             keep.append(f"{short} {m.group(1)}/{m.group(2)} within {m.group(3)}")
+    # The stocks scored a quarter behind a filing over a month old (2026-10-29): 15 that morning,
+    # Amazon and Bank of America among them, printed on the health line and dropped here - the one
+    # figure on the line about scores that are out of date rather than inputs that disagree.
+    # research/2026-10-29-ttm-fills-the-empty-quarter.md.
+    late = re.search(r"(\d+) stocks scored a period behind a filing over 30 days old", body)
+    if keep and late:
+        keep.append(f"{late.group(1)} scored a quarter behind a filing over 30 days old")
     age = re.search(r"SEC cache (\d+) days old", body)
     if keep and age:
         keep.append(f"filings cached {age.group(1)} days ago")

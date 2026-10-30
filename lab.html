@@ -527,8 +527,12 @@ h2[tabindex="-1"]:focus { outline: none; }
     const M = D.momentum, MK = D.market;
     const FIRST = M.months[0], LAST = M.months[M.months.length - 1];
     const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const f2 = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
-    const sf2 = v => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(2);
+    // The sign is the printed figure's, not the raw value's: -0.001 is "0.00", never "−0.00".
+    // A sweep of every experiment and setting (2026-10-29) found "Sharpe ratio −0.00", "Momentum
+    // averaged −0.00% a month" and the like in 12 of 17 experiments - a reader takes "−0.00" for a
+    // loss the figure cannot show. A figure that rounds to zero carries no sign.
+    const f2 = v => { const t = Math.abs(v).toFixed(2); return (v < 0 && +t !== 0 ? '−' : '') + t; };
+    const sf2 = v => { const t = Math.abs(v).toFixed(2); return (+t === 0 ? '' : v < 0 ? '−' : '+') + t; };
     const mon = k => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+k.slice(4) - 1] + ' ' + k.slice(0, 4);
     // the hero's three figures: the overview's own counts, from the same record
     (() => {
@@ -605,10 +609,13 @@ h2[tabindex="-1"]:focus { outline: none; }
     // difference of 0.0325 against ±0.03 reads +0.033 and "outside", never +0.03 and "outside".
     function diffText(r) {
         const sign = r.diff < 0 ? '−' : '+', a = Math.abs(r.diff);
-        if (r.count) return sign + Math.round(a);
+        // a difference that prints as zero is zero: "0.00", not "−0.00" (asset growth, five factors,
+        // large companies and 153 factors all opened on "−0.00" beside "within", 2026-10-29)
+        const signed = t => (+t === 0 ? '' : sign) + t;
+        if (r.count) return signed(String(Math.round(a)));
         const places = (String(r.tolerance).split('.')[1] || '').length;
-        for (let d = Math.max(2, places); d <= 12; d++) { const t = a.toFixed(d); if ((+t <= r.tolerance) === r.within) return sign + t; }
-        return sign + String(a);
+        for (let d = Math.max(2, places); d <= 12; d++) { const t = a.toFixed(d); if ((+t <= r.tolerance) === r.within) return signed(t); }
+        return signed(String(a));
     }
     // The row's verdict drawn beside its word: the tolerance as a band around zero (the middle half
     // of the mark), the difference as a tick on it, held at the edge when it lies beyond twice the band.
