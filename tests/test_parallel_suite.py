@@ -190,6 +190,20 @@ def test_gate_1_falls_back_to_the_exact_serial_command_if_the_helper_is_gone():
     assert "Invoke-Native 'python' $gate1Args" in block
 
 
+def test_gate_1_logs_pytests_count_line_on_a_pass():
+    """2026-10-29: the log read "PASS ( -- Docs: https://... 3523 passed, ...)" - the last three
+    lines put the warnings footer's URL in front of the count. The pattern the runner matches
+    picks the count line, and only a pass uses it."""
+    import re
+    block = CODE[CODE.index("Invoke-Native 'python' $gate1Args"):CODE.index("GATE 2 dry-run")]
+    pattern = re.search(r"-match '([^']+)'", block).group(1)
+    output = ["....", "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+              "3523 passed, 1 skipped, 352 warnings in 219.50s (0:03:39)"]
+    assert [ln for ln in output if re.search(pattern, ln)] == [output[-1]]
+    assert 'Write-Log "GATE 1 tests: PASS ($passLine)"' in block
+    assert 'Write-Log "GATE 1 tests: FAIL ($tail)"' in block
+
+
 def test_gate_1_still_decides_on_the_exit_code_alone():
     block = CODE[CODE.index("Invoke-Native 'python' $gate1Args"):CODE.index("GATE 2 dry-run")]
     assert "if ($t.ExitCode -eq 0)" in block

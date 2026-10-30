@@ -670,7 +670,14 @@ try {
     }
     $t = Invoke-Native 'python' $gate1Args
     $tail = ($t.Output | Select-Object -Last 3) -join ' '
-    if ($t.ExitCode -eq 0) { Write-Log "GATE 1 tests: PASS ($tail)" }
+    # A pass logs pytest's own count line. The last three lines carried the warnings footer's
+    # docs URL in front of it ("PASS ( -- Docs: https://... 3523 passed, ...)", 2026-10-29) -
+    # the same fault scripts/check_published_claims.py had. A failure keeps the last three,
+    # which hold the FAILED lines. Logging only: the verdict is the exit code below.
+    $count = $t.Output | Where-Object { "$_" -match '\b\d+ (passed|failed|errors?)\b.* in [\d.]+s' } |
+        Select-Object -Last 1
+    if ($count) { $passLine = "$count".Trim().Trim('=').Trim() } else { $passLine = $tail }
+    if ($t.ExitCode -eq 0) { Write-Log "GATE 1 tests: PASS ($passLine)" }
     else { Write-Log "GATE 1 tests: FAIL ($tail)" 'ERROR'; $gateFailures += 'tests' }
 
     # Gate 2: pipeline wiring
