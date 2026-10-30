@@ -314,6 +314,19 @@ class TestFilingCheckRow:
             "total assets 425/426 within 0.5%; operating cash flow 406/411 within 0.5%; "
             "net income 397/421 within 0.5%; market value 447/487 within 5%; filings cached 6 days ago")
 
+    def test_the_stocks_scored_a_quarter_behind_are_counted(self):
+        """2026-10-29: the health line said "15 stocks scored a period behind a filing over 30 days
+        old (AEE, AMZN, ...)" and the brief's row left it out."""
+        line = self.LINE.replace("; SEC cache 6 days old",
+                                 "; 15 stocks scored a period behind a filing over 30 days old "
+                                 "(AEE, AMZN, APH, BAC, BNY, CHD, CHRW, CPT...); SEC cache 6 days old")
+        assert wb.filing_check([line]) == (
+            "total assets 425/426 within 0.5%; operating cash flow 406/411 within 0.5%; "
+            "net income 397/421 within 0.5%; market value 447/487 within 5%; "
+            "15 scored a quarter behind a filing over 30 days old; filings cached 6 days ago")
+        health = (ROOT / "scripts" / "check_run_health.py").read_text(encoding="utf-8")
+        assert "stocks scored a period behind a filing over 30 days old" in health
+
     def test_an_attention_note_is_pointed_to(self):
         lines = [self.LINE, "[02:20:31] [INFO]     ok   ATTENTION - total assets differs from the companies' filings"]
         assert wb.filing_check(lines).endswith("see the ATTENTION note below**")
