@@ -164,6 +164,58 @@ def test_the_continuation_is_upstream_of_every_gate_and_publishes_nothing():
         assert banned not in block, banned
 
 
+def test_the_baseline_runs_before_the_session_and_cannot_decide_anything():
+    """2026-10-30: the runner takes gate 1's baseline before invoking the session.
+
+    CLAUDE.md's gate 1 is "no NEW failures vs the baseline you took at session start", and the
+    runner - the real gate since 2026-09-04 - never took one, so it could not tell a failure the
+    session caused from one it inherited. On 2026-10-30 the 02:21 data run published a correct
+    payload that turned two tests in `tests/test_unscored_members.py` red (they named the two
+    stocks one morning's fetch had failed), and the 06:00 session would have had its gate 1 fail
+    on a defect it did not cause.
+
+    The baseline is reporting only, and these assertions are what keep it that way: it runs
+    before the session, it uses *exactly* gate 1's command, and nothing in its block can merge,
+    push, tag or mark the day a success.
+    """
+    base = CODE.index("$BaselineFailures = @()")
+    session = CODE.index("Invoking Claude Code...")
+    gates = CODE.index('Write-Log "--- Ship gates ---"')
+    assert base < session < gates, "the baseline must be taken before the session runs"
+
+    # one resolution of the command, shared - a baseline on different flags would mislabel
+    assert CODE.count("@('scripts/run_tests.py', 'tests/', 'test_screener.py', '-q')") == 1
+    assert CODE.index("$gate1Args = @(") < base
+    assert CODE.count("Invoke-Native 'python' $gate1Args") == 2, (
+        "the baseline and gate 1 both run $gate1Args, and nothing else should"
+    )
+
+    end = CODE.index("Restore-Artifacts 'left by the baseline test run'")
+    assert base < end < session, "the baseline cleans up before the session starts"
+    block = CODE[base:end]
+    for banned in ("'merge'", "'push'", "'tag'", "SuccessMarker", "Stop-Run", "$gateFailures"):
+        assert banned not in block, f"the baseline must not touch {banned}"
+
+
+def test_a_red_baseline_does_not_soften_gate_1():
+    """The attribution line is allowed to explain a failure; it may never excuse one.
+
+    Section 4 of prompts/retrospective.md forbids weakening a gate, and "it was already broken"
+    is the most tempting possible excuse to wire in. So: gate 1's verdict is still the exit code
+    alone, and the attribution block sits inside the failure branch that has already appended to
+    $gateFailures.
+    """
+    fail = CODE.index('$gateFailures += \'tests\'')
+    attribution = CODE.index("GATE 1 attribution:")
+    assert fail < attribution, "the gate must record the failure before it explains it"
+
+    block = CODE[attribution:CODE.index("GATE 2 dry-run")]
+    for banned in ("$gateFailures = ", "-ne 'tests'", "Remove", "$t.ExitCode = "):
+        assert banned not in block, f"the attribution block must not alter the verdict ({banned})"
+    # and the verdict itself is still read off pytest, in one place
+    assert CODE.count("if ($t.ExitCode -eq 0) { Write-Log \"GATE 1 tests: PASS") == 1
+
+
 def test_the_gate_failure_path_still_stops_the_run():
     """A failed gate must exit non-zero, not fall through to the merge."""
     tail = CODE[CODE.index("SHIP GATES FAILED"):CODE.index("All gates passed")]
