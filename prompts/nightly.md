@@ -218,11 +218,21 @@ confirm the workings match, especially after a week with a methodology change.
 **Read `plan/dashboard-inventory.md` first.** A broken surface is a defect to fix;
 a surface that merely could look different is not work.
 
-**Wednesday - synthesis.** How does Monday's research fit the *rest* of the
-screener? What does it overlap with or make redundant? What does it imply for
-the other seven categories? Is the screener coherent after the change, or just
-differently arranged? Record any methodology change in
-`METHODOLOGY_CHANGELOG.md` with its sources.
+**Wednesday - synthesis.** How does the week's change fit the *rest* of the screener? What does
+it overlap with or make redundant? What does it imply for the other seven categories? Is the
+screener coherent after the change, or just differently arranged? Record any methodology change
+in `METHODOLOGY_CHANGELOG.md` with its sources.
+
+**Its subject is whatever changed the methodology since the last synthesis session, not only
+Monday's note** - widened 2026-10-30. The old wording assumed Monday produced the change, so on a
+week when the changes came from the proposal queue or an owner item Wednesday had nothing in its
+remit and was the easiest day to give away. Measured over 2026-10-16..10-30: **four proposals were
+ACCEPTED, three of them changing how banks are scored** (P/B on common equity, ROE and ROA on net
+income to common, and the two guarded as a pair), and **not one synthesis session ran in the whole
+fortnight** - both Wednesdays went elsewhere, defensibly each time. Four accepted changes to one
+cohort's Valuation and Quality is precisely the case for asking whether the result is coherent.
+So: read `METHODOLOGY_CHANGELOG.md` back to the last session whose focus was synthesis, and take
+the accumulated changes as the subject if Monday's note does not need you more.
 
 **Thursday - build.** Implement what the week justified. Tests alongside, not
 after.
