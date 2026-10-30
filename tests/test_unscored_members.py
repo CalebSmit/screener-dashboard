@@ -6,6 +6,14 @@ either, or held one, was told only that a company "that has left the index, or w
 not be fetched" is not in the ranking - the first half false for both. The run records them in its
 own ``universe.json`` ("failed"); the generator now publishes them as ``unscored`` and the search,
 the palette and My Holdings say what is true.
+
+**The page tests use stand-in tickers, not HONA and VYLR** - corrected 2026-10-30. They named the
+two real tickets, and being unscored is a property of one morning's fetch: the 2026-10-30 run
+scored HONA, ``notInRunText('hona')`` correctly returned '' because the stock *is* in the run, and
+both page tests failed on a payload that was right. A red ``main`` blocks every merge, so a test
+that pins which stock the source happened to fail yesterday costs the project a day. The branch
+under test is "this ticker is in ``D.unscored``", which any ticker can stand for;
+``test_the_stand_ins_are_absent_from_the_published_run`` fails if a stand-in ever stops standing in.
 """
 from __future__ import annotations
 
@@ -64,6 +72,11 @@ def test_the_payload_carries_the_block():
 
 
 # --------------------------------------------------------------------------- the page
+# Stand-ins for the two real cases, so the assertions do not depend on which stock the source
+# failed to serve this morning. QZZA has a recorded name, QZZB has none, ZZZZ is not a member.
+MEMBER_NAMED, MEMBER_UNNAMED, NOT_A_MEMBER = "QZZA", "QZZB", "ZZZZ"
+
+
 @pytest.fixture(scope="module")
 def page(tmp_path_factory):
     if sync_api is None:
@@ -82,34 +95,55 @@ def page(tmp_path_factory):
         except Exception as exc:  # noqa: BLE001
             pytest.skip(f"no usable chromium: {exc}")
         ctx = b.new_context(viewport={"width": 1280, "height": 900})
-        ctx.add_init_script("try { localStorage.setItem('screener_holdings_v1', JSON.stringify(['HONA', 'ZZZZ'])); } catch (e) {}")
+        ctx.add_init_script(
+            "try { localStorage.setItem('screener_holdings_v1', JSON.stringify(%s)); } catch (e) {}"
+            % json.dumps([MEMBER_NAMED, NOT_A_MEMBER])
+        )
         pg = ctx.new_page()
         errors: list[str] = []
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.goto((d / "index.html").as_uri(), wait_until="load", timeout=60000)
         pg.wait_for_function("typeof notInRunText === 'function' && typeof D !== 'undefined'", timeout=60000)
-        pg.evaluate("D.unscored = {HONA: 'Honeywell Aerospace Inc.', VYLR: null}; renderHoldings();")
+        pg.evaluate(
+            "u => { D.unscored = u; renderHoldings(); }",
+            {MEMBER_NAMED: "Quartz Zenith Aerospace Inc.", MEMBER_UNNAMED: None},
+        )
         yield pg
         b.close()
         assert not errors, errors
 
 
+def test_the_stand_ins_are_absent_from_the_published_run(page):
+    """The three tickers above must match no scored stock, or every assertion below is vacuous.
+
+    This is the guard the original tests lacked: they named HONA and VYLR, the two stocks the
+    2026-10-29 fetch happened to fail on, and went red the morning the source served HONA again.
+    """
+    for t in (MEMBER_NAMED, MEMBER_UNNAMED, NOT_A_MEMBER):
+        assert page.evaluate(
+            "t => !(D.stock_detail || {})[t] && !(D.share_classes || {})[t]"
+            " && !(D.table_data || []).some(r => r.Ticker === t)",
+            t,
+        ), f"{t} is in the published run; pick a stand-in that is not"
+
+
 def test_a_search_for_an_unscored_member_names_it_and_says_why(page):
-    txt = page.evaluate("notInRunText('hona')")
-    assert txt.startswith("Honeywell Aerospace Inc. is in the S&amp;P 500, but this run left it unscored")
+    txt = page.evaluate("t => notInRunText(t.toLowerCase())", MEMBER_NAMED)
+    assert txt.startswith("Quartz Zenith Aerospace Inc. is in the S&amp;P 500, but this run left it unscored")
     assert "left the index" not in txt
     # no name recorded: the ticker stands in for it
-    assert page.evaluate("notInRunText('VYLR')").startswith("VYLR is in the S&amp;P 500")
+    assert page.evaluate("t => notInRunText(t)", MEMBER_UNNAMED).startswith(
+        f"{MEMBER_UNNAMED} is in the S&amp;P 500")
 
 
 def test_a_ticker_that_is_not_a_member_keeps_the_general_reason(page):
-    assert "has left the index" in page.evaluate("notInRunText('ZZZZ')")
+    assert "has left the index" in page.evaluate("t => notInRunText(t)", NOT_A_MEMBER)
 
 
 def test_a_held_unscored_member_says_why_and_a_departed_one_keeps_its_reason(page):
     cards = page.evaluate("[...document.querySelectorAll('.holding-note-unscored')].map(e => e.textContent)")
-    hona = next(c for c in cards if c.startswith("HONA"))
-    zzzz = next(c for c in cards if c.startswith("ZZZZ"))
-    assert "Honeywell Aerospace Inc. is in the S&P 500, but this run left it unscored" in hona
-    assert "left the S&P 500" not in hona
-    assert "has left the S&P 500 or its data could not be fetched" in zzzz
+    held = next(c for c in cards if c.startswith(MEMBER_NAMED))
+    gone = next(c for c in cards if c.startswith(NOT_A_MEMBER))
+    assert "Quartz Zenith Aerospace Inc. is in the S&P 500, but this run left it unscored" in held
+    assert "left the S&P 500" not in held
+    assert "has left the S&P 500 or its data could not be fetched" in gone
