@@ -519,6 +519,96 @@ era.
   and t are pinned.
 - `bot-coverage-by-year` - the first and last year's mean coverage under the trading-rule table.
 
+## Results, 2026-10-30 (13:00 session): the sweep over the public methodology page
+
+Item 0 of the 2026-10-29 next list, one surface as that list requires. `SCREENER_OVERVIEW.md` is
+the public methodology page and is **generated on every full run**, so the 02:00 loop publishes
+whatever the generator says five mornings a week.
+
+**`tests/test_claims_register.py` section 6 sweeps `run_screener.build_screener_overview`.**
+Scoped to the *generator*, not the file: `run_screener.py` is the pipeline, and a file-wide sweep
+enumerates progress lines as published sentences (`computed_sentences(..., within=...)`, with a
+test that fails loudly if the generator is renamed rather than silently sweeping nothing).
+
+**The yield is 11 sentences: 4 `checked:`, 7 `open:`.** Smaller than the research page's 32,
+because most figures here are config constants printed verbatim - *reported* under the scope rule,
+and already pinned against config by the overview-claims modules.
+
+**Two markdown facts, both found by this sweep's own output being wrong, and both now in
+`computed_sentences`' docstring:**
+
+- **A newline is a block boundary in markdown where in html it is whitespace.** The html sweep
+  breaks on block-level tags; markdown has none to break on, so the first run produced one key
+  running from a three-row table straight through the sentence after it. This is safe only because
+  a generator's newlines are the ones it *writes* - prose wrapped across source lines by implicit
+  concatenation carries no newline into the output - so no sentence is split by the rule.
+- **A markdown table row is not a sentence, and must not be merged into one.**
+  `| Earnings yield (E/P) | **+{bank_net_ep:.1f}** |` has a figure and no three-word run (the
+  "(E/P)" breaks `_PROSE`), so the stat-card merge rule treated it as a figure-only unit and
+  chained the separator and the next two rows into a single "sentence". Table cells were already
+  outside the sweep on the html side by the same reasoning, and **both surfaces now need the same
+  decision about whether the register covers cells** - the bank coordinate table's three figures
+  are in that class, and they *are* pinned, cell by cell, by
+  `test_the_first_order_arithmetic_the_page_prints_comes_from_the_config`.
+
+**The 7 open rows**, as a queue, with what each needs:
+
+- `bank-five-metric-point-total`, `bank-pb-offset-by-roe-roa`, `bank-pb-residual-clause` - the
+  bank P/B-ROE section's **prose** restatements of its table. The table's three cells are pinned
+  against an independent recomputation from config; the prose sum of five weights, the
+  "P/B's X offset by ROE's Y and ROA's Z" line and the residual clause are read by nothing. The
+  clause also prints a **word** chosen on `bank_net_pb < 0`, and nothing probes that boundary -
+  the same shape as `_pbo_words` never being probed at its own bars.
+- `clamp-bullet-second-printing` - **the sharpest one.**
+  `test_the_clamps_and_floors_on_the_page_are_the_ones_applied` says in its own docstring that
+  "the metric rows hard-code their clamps; the Data quality bullet reads config. Both must be
+  config's", and then matches only the metric-table rows. The bullet is the second printing of all
+  four figures and nothing reads it, so the two disagreeing would publish. Same shape as
+  `pass-bar-printed`, and here a docstring asserts the coverage it does not have.
+- `coverage-discount-worked-example` - the threshold (both printings) and the rate *are* pinned,
+  and well: read off this sentence and then applied through `compute_composite` on stocks either
+  side of the bar. The **worked example** that follows is a second derivation of the same formula
+  (`_ex_k` of `_n_gen`, its coverage percentage, the discount it loses) and so is the deepest-cut
+  figure; none of those five is read.
+- `coverage-sentence-metric-counts` - `test_confidence_metric_count_is_the_discount_coverage`
+  pins both counts against `weighted_metric_sets`, but on the page only as
+  `f"{bank}" in generated_overview` - a bare substring anywhere on a 1,000-line page - and it does
+  not look for the other-financials count (`len(_w_gen) - 1`) at all.
+- `share-class-switching-margin` - the margin is pinned in `config.yaml` and in
+  `share_classes.CHALLENGE_MARGIN`, both as literals, and **no test in the suite reads the figure
+  off this page**: `tests/test_share_classes.py` never calls `build_screener_overview`.
+
+**4 mutations. The two that matter are the sweep's own teeth, and both are blind to everything
+else.** Method as before: one exact single-occurrence replacement, then regenerate the way the
+publish does, then the whole suite with only today's four new tests deselected.
+
+| # | Claim | Mutation | Before today | Now |
+|---|---|---|---|---|
+| 127 | the sweep itself | a **new** computed-number sentence appended to the markdown `build_screener_overview` returns | **blind - the whole suite, 3,566 passed** | caught: `test_every_computed_sentence_on_the_methodology_page_has_a_verdict` |
+| 128 | the sweep itself | a registered sentence **reworded** ("those five metrics" -> "these five metrics") | **blind - 3,566 passed** | caught: same test |
+| 129 | the markdown rules | `markup="markdown"`'s newline break removed, and the table-row skip removed | n/a | caught: `test_the_markdown_sweep_breaks_on_blocks_and_skips_table_rows`, which asserts the exact key both ways |
+| 130 | the sweep's scope | `within=` pointed at a renamed generator | n/a | caught: `test_the_sweeps_scope_is_the_generator_not_the_file`, plus the `>= 9` floor |
+
+**What generalises, and it is a correction to this file's own method.** Row 128 was *first*
+measured as **caught**, by `tests/test_rebuild_page.py::test_committed_page_is_what_the_generator_builds` -
+and that was an artefact of the harness. The methodology page is embedded in `index.html`, so
+regenerating `SCREENER_OVERVIEW.md` alone leaves the page drifted and a drift tripwire fires. On
+the day the change actually ships the 02:00 run rewrites **both**, and the tripwire is green - the
+2026-10-28 lesson, met again from the other direction. So:
+
+> **Regenerate every artifact the publish rewrites, not just the one the generator is named for.**
+> A mutation that reads as caught because a second artifact was left stale is a false negative for
+> this audit: it says "something sees this" when nothing would on the day.
+
+The harness now runs `scripts/rebuild_page.py` after rewriting the markdown, and restores
+`index.html` and `dashboard.html` as well. Row 127 was re-run for the same reason: its first form
+assigned the new sentence to an unused variable, so the sweep (which reads the AST) saw it while
+the published page did not - which would have made "blind" trivially true. It is appended to the
+returned markdown now.
+
+**Nothing about scoring, no published text and no production code changed** - the diff is
+`tests/test_claims_register.py`, this file and the log.
+
 ## Next claims (for the nightly sessions)
 
 Take them in order; one session can do four to six. Record each in the table above with
@@ -531,16 +621,21 @@ done** (rows 89-105), **its item 3 - the research page's unregistered sentences 
 registered at all - is done for `research_page.py`** (2026-10-29 13:00, rows 118-126). What is
 left:
 
-0. **Run the sweep over the other two generated surfaces**, which is the rest of item 3:
-   `run_screener.build_screener_overview` and `generate_dashboard.py`. `computed_sentences()` in
-   `tests/test_claims_register.py` takes a path and needs nothing new; the work is the table of
-   verdicts, and each verdict means reading the assertion that is supposed to pin the figure.
-   Expect a bigger yield and a bigger table - the overview is the public methodology page and
-   `generate_dashboard.py` is 13,485 lines. Take one surface per session, not both. **The twelve
-   `open:` rows from the research page are a queue in their own right** (listed in the 13:00
-   results above, with what each needs); `_pbo_words` at its own bars 0.45 and 0.55 is the
-   cheapest, and `bot-monthly-excess-figure` - a published percentage matched as `[0-9.]+%` - is
-   the one most likely to be wrong without anyone noticing.
+0. **`generate_dashboard.py` is the last of the three generated surfaces.**
+   `build_screener_overview` is **DONE** (2026-10-30, rows 127-130: 11 sentences, 4 `checked:`,
+   7 `open:`). `computed_sentences()` now takes `within=` and `markup=`; the dashboard is html, so
+   `markup="html"` as the research page uses, and it is 13,485 lines, so expect the biggest table
+   of the three - **decide up front whether to scope it with `within=` per generator function
+   rather than sweeping the file**, which is how the overview stayed readable. The work is not the
+   sweep, it is the verdicts: each one means reading the assertion that is supposed to pin the
+   figure, not its name.
+   **The nineteen `open:` rows are a queue in their own right** - twelve from the research page
+   (2026-10-29 13:00) and seven from the methodology page (2026-10-30, above). The cheapest are
+   `_pbo_words` at its own bars 0.45 and 0.55, and `share-class-switching-margin`, whose module
+   has no page test at all. The two most likely to be wrong without anyone noticing are
+   `bot-monthly-excess-figure` (a published percentage matched as `[0-9.]+%`) and
+   `clamp-bullet-second-printing` (a second printing of four clamps that a test's docstring claims
+   to cover and does not).
 
 1. **The partly-payload claims.** The 2026-10-26 scan lists 21 claims whose checks *mix* payload
    reads with other tests. A claim is safe only if a non-payload check pins the specific number
@@ -627,3 +722,13 @@ Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metri
 - **The mutation harness reverts with `git checkout -- <file>`, which reverts to the last
   commit.** Commit, or copy aside, any uncommitted work in a file before mutating it - the
   2026-10-26 pass lost an uncommitted `claims.py` edit that way and restored it from a copy.
+- **Regenerate every artifact the publish rewrites, not just the one the generator is named for**
+  (added 2026-10-30, row 128). The methodology page is embedded in `index.html`, so rewriting
+  `SCREENER_OVERVIEW.md` alone leaves the page drifted and a drift tripwire fires - on a day when
+  the real 02:00 run would have rewritten both and been green. A mutation that reads as *caught*
+  because a second artifact was left stale is a **false negative for this audit**: it says
+  something sees the change when nothing would.
+- **A mutation must change the published output, not only the source the checker reads.** Row 127's
+  first form assigned its new sentence to an unused variable: the AST sweep saw it, the page did
+  not, and "blind to everything else" would have been trivially true. Check the regenerated
+  artifact actually differs before believing either verdict.
