@@ -187,9 +187,21 @@ def test_every_page_or_payload_the_data_loop_stages_is_in_the_gates_scope():
     the difference. Found by the 2026-10-16 retrospective.
 
     The rule is mechanical: a page, payload or document in $DataArtifacts is a
-    thing the public reads, so this gate must speak for it. Evidence and data
-    files (.xlsx, .csv, .json, improvement/, validation/, data/) are a different
-    kind of artifact and are guarded by check_run_health.py.
+    thing the public reads, so this gate must speak for it.
+
+    **The exclusion below used to assert coverage that did not exist** - corrected
+    2026-10-30 by the retrospective. It read "evidence and data files (.xlsx, .csv,
+    .json, improvement/, validation/, data/) are a different kind of artifact and
+    are guarded by check_run_health.py", which is not true of three of them:
+    check_run_health judges fetch evidence, coverage, dispersion, a vanished
+    weighted metric and the 2026-10-22 input gates, and nothing in it looks at
+    whether improvement/dispersion_history.csv, improvement/snapshots/ or
+    factor_vol_history.csv still hold one row per run date. A comment claiming a
+    check exists is exactly what this project calls an unchecked claim, and this
+    one hid the gap for a file that feeds the *next* run's momentum weight. So
+    the exclusion is narrower now: an evidence file is out of PUBLISHED_ARTIFACTS
+    (which is about text the public reads) but a module that speaks for one is in
+    the gate - see test_the_appended_evidence_files_have_a_tripwire_in_this_gate.
     """
     block = _data_artifacts_block()
     staged = re.findall(r"'([^']+)'", block)
@@ -200,6 +212,36 @@ def test_every_page_or_payload_the_data_loop_stages_is_in_the_gates_scope():
         "data-run.ps1 publishes these to the live site, but the published-claims "
         "gate does not list them in PUBLISHED_ARTIFACTS: " + ", ".join(missing)
     )
+
+
+def test_the_appended_evidence_files_have_a_tripwire_in_this_gate():
+    """The other half of the 2026-10-30 finding: the gate runs the one check on the
+    evidence files this loop appends to.
+
+    `improvement/dispersion_history.csv`, `improvement/snapshots/` and
+    `factor_vol_history.csv` are all in $DataArtifacts and all appended to by every
+    full run. `tests/test_one_observation_per_run_date.py` holds the only tripwire on
+    the real committed copies of them, and it sat outside this gate because membership
+    is derived from `claims.py` and `claims.py` registers published *sentences* - an
+    evidence file carries no sentence, so nothing could pull it in.
+
+    Why gating rather than reporting: `factor_vol_history.csv` is read by
+    `factor_engine.adjust_momentum_weight`, so a duplicated row changes the next run's
+    momentum weight (rule 3: no methodology change without a changelog entry), and a
+    double-counted day in `dispersion_history.csv` moves `check_run_health`'s own
+    trailing-median bar.
+    """
+    mods = dict(gate.MODULES)
+    assert "tests/test_one_observation_per_run_date.py" in mods
+
+    staged = re.findall(r"'([^']+)'", _data_artifacts_block())
+    for a in ("factor_vol_history.csv", "improvement"):
+        assert a in staged, f"{a} is no longer staged - re-check what this tripwire is for"
+
+    # and the tripwire itself must still read the real files, not a fixture
+    src = (ROOT / "tests" / "test_one_observation_per_run_date.py").read_text(encoding="utf-8")
+    assert "def test_the_committed_evidence_base_has_one_row_and_one_file_per_date" in src
+    assert 'ROOT / "improvement" / "snapshots"' in src and '"factor_vol_history.csv"' in src
 
 
 # ---------------------------------------------------------------------------
