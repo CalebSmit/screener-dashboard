@@ -1,4 +1,4 @@
-# Morning Brief - Friday 30 October 2026, 02:21
+# Morning Brief - Friday 30 October 2026, 06:40
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -30,6 +30,13 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 
 ## What changed in the repo
 
+- `2a40afc log: 2026-10-30 RETROSPECTIVE - a red main found at baseline, and the blind spot that let it sit`
+- `d00e2f5 rotation: Wednesday's subject is whatever changed the methodology, not only Monday's note`
+- `221b2f4 process: CLAUDE.md 1036 -> 959; the fifth asymmetry scored; the step-1 enumeration as a tool`
+- `5d19c04 runner: take gate 1's baseline before the session, and label the gate's failures against it`
+- `475082f publish gate: the evidence files this loop appends to get their tripwire`
+- `55b7ab0 tests: a red main - the unscored-member tests pinned yesterday's two failed fetches`
+- `1fddb88 brief: data run 2026-10-30`
 - `5c0cfb0 data: screener run 2026-10-30 - 499 scored, top: EXPE VLO MU INCY HST`
 - `f3c5aa8 log: 2026-10-29 owner-run, last before 02:00 - unscored members, glossary, brief`
 - `a5483e8 plan: dashboard inventory - today's surfaces and the unscored payload key`
@@ -38,35 +45,55 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 - `b072c5d methodology: the glossary spells out the abbreviations the page uses`
 - `e8e7bbd test: the dead-badges flake will say which of its two causes it was`
 - `80cc059 log: the dead-badges flake's traceback, and what it rules out`
-- `3c83b1e log: 2026-10-29 owner-run late - lab signed zeros; the empty quarter's trailing series`
-- `93fbd35 brief: count the stocks scored a quarter behind their filings`
-- `e721248 research: the quarter the source leaves empty is in its own trailing series`
-- `7d1c3d5 lab: a figure that rounds to zero carries no sign`
-- `8868d64 log: 2026-10-29 owner-run night - three defects from sweeps of the rendered site`
-- `b7e1698 methodology: plain words for "NaN" on the public page`
-- `ad3e07d page: a small percent in the context panels keeps its sign; every panel swept`
 
 ## The session's own account
 
-> 2026-10-29 (owner-run, last before the 02:00 run) - unscored members named; glossary abbreviations; brief polish
+> 2026-10-30 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
 > 
-> Health as the evening entry. Owner: "keep finding improvements please before the 2 am run".
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-29_130001-midday.log`
+> ends "Run complete: shipped to main" (tag `good/2026-10-29-1403`). Data loop published? **yes** -
+> `logs/datarun-2026-10-30_020001.log` ends "Data loop complete", HEALTH: PASS, run `24d9938b511b`,
+> 499 scored, `signals.json` written with 8 gates all run. Evidence base at `1m` = **40 rows, newest
+> 2026-09-29 (31 days ago, bound 40), 5 effective** - in steady state; the data log's own line
+> agrees. Priority 0: `allow_auto_apply` **false**, unchanged, 5 of 8 effective. Top open roadmap
+> item: **0.13, the Factor Lab** (opened 2026-10-12, **age 18 days**) - not advanced and not
+> drifting: today is an even ISO week so the runner swapped in the retrospective, and the next lab
+> Friday is **2026-11-06**. (0.10 is older - opened 2026-10-07, **age 23 days** - but its remainder
+> is Sharpe and Sortino at weight 0, which CLAUDE.md already calls "do them only if a session has
+> nothing better".)
+> **Tests:** before **2 failed / 3,560 passed / 1 skipped** - a red `main`, see below - after
+> **3,566 passed / 1 skipped** (+6: the 2 fixed, plus 4 new - 1 stand-in guard, 1 in the publish
+> gate's module, 2 in the gate-ordering module). Dry run exits 0.
+> **Owner queue / rotation:** retrospective, so no rotation item, and `OWNER_FOCUS.md`'s two open
+> items (universe expansion phase 0, a Monday; the 2026-10-20 fine-tune block) were read and left
+> open - a retrospective does not work on the screener. **One open proposal is deliberately left**
+> (`research/2026-10-29-ttm-fills-the-empty-quarter.md`, fill an empty newest quarter from the
+> source's trailing series, 1 day old): a retrospective is the wrong session to decide a methodology
+> question, the same call the 2026-10-16 retrospective made and recorded. `git stash list` shows
+> `auto-rescue 2026-10-28_060001`, still empty (`git stash show --stat` prints nothing) and left in
+> place as its own entry asks. No owner-session marker.
 > 
-> - **An S&P 500 member the run could not score is named and told why.** HONA and VYLR (in the
->   index, unscored on 2026-10-29: too little data from the source) were absent from the payload, so a
->   search or a saved holding said a company "that has left the index, or whose data could not be
->   fetched" is not in the ranking - the first half false. The run already records them
->   (`universe.json` "failed"); the generator publishes them as `unscored` (`_run_unscored`, display
->   only, `{}` on any failure) and `unscoredMemberText` feeds the search, the palette and My
->   Holdings. `tests/test_unscored_members.py` (7). **This changes the payload the 02:00 run
->   publishes (+72 bytes); `rehearse_publish.py` PASSED against run `a08c2741a3ca`**, and the
->   regenerated block read `{"HONA": "Honeywell Aerospace Inc.", "VYLR": "Vylor Inc."}`.
-> - **The methodology glossary spells out its abbreviations** - EPS appeared 35 times, ROE 23, P/B 21,
->   ROIC 14, most never expanded. One entry, names only (no formulas, so no new computational claim);
->   generator edited, overview regenerated, page rebuilt, payload byte-identical.
-> - **Brief polish:** the run time reads "2026-10-29 02:00", not the raw ISO stamp with microseconds;
->   the context row no longer repeats its own label.
-> - `plan/dashboard-inventory.md` updated (rule 9).
+> ### Retrospective findings
+> 
+> - **Sessions reviewed: 38** (2026-10-16 to 2026-10-30) - **24 scheduled, 14 owner-run.**
+> - **Genuinely valuable: 35 | Churn: 0 | Lost: 1 | Stood down correctly: 2 | Failed gates: 2.**
+> - **And one finding that was not in the logs at all: `main` was red when this session started.**
+> 
+> **0. The red `main`, found at baseline and fixed first.** `tests/test_unscored_members.py` shipped
+> the evening of 2026-10-29 naming **HONA and VYLR**, the two S&P 500 members that morning's fetch
+> had left unscored. The 02:00 run on 10-30 served HONA, so it is in the payload,
+> `notInRunText('hona')` correctly returns `''` for a stock that *is* in the run, and two tests
+> failed on a page that was right. **`main` was red from 02:21 and nothing said so**: the data run
+> logged HEALTH: PASS, the brief reported a healthy run, and no commit had touched any code.
+> 
+> Without this session looking, the runner's gate 1 would have failed at ~08:00 on a defect the
+> session did not cause, the whole retrospective would have been stranded on a branch, and the log
+> would have read like its fault. Both halves are now fixed - the test, and the blindness (process
+> changes 1 and 2).
+> 
+> **1. What fraction of sessions produced something genuinely valuable? 35 of 38, with 3 that
+> were not sessions' fault.** Nothing in the churn column for the second retrospective running. The
+> ...
 
 ---
 
