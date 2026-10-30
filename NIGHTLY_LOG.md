@@ -17325,3 +17325,206 @@ accepted bank and share-class changes.
   obvious move remains archiving by month with the live file holding the current month. I did not
   do it, for the same reason as last time: splitting the one file every session can find is how the
   memory it preserves gets lost. Your call, and it is becoming the more pressing of the two.
+
+## 2026-10-30 (13:00 midday) - QUEUE. The open proposal decided, then the claims sweep over the public methodology page
+
+**Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 retrospective,
+`logs/nightly-2026-10-30_060001.log`, ends "shipped to main". Data loop published? **yes** -
+`logs/datarun-2026-10-30_020001.log`, "Data loop complete", HEALTH: PASS. Evidence base at `1m` =
+**40 rows, newest 2026-09-29 (31 days ago, bound 40), 5 effective** - steady state, unchanged from
+this morning. Priority 0: `allow_auto_apply` **false**, 5 of 8 effective. Top open roadmap item:
+**0.13, the Factor Lab** (opened 2026-10-12, **age 18 days**) - not advanced and not drifting; the
+next lab Friday is **2026-11-06** and no experiment is half-built. (0.10 is older - opened
+2026-10-07, **age 23 days** - and its remainder is Sharpe and Sortino at weight 0, which CLAUDE.md
+calls "do them only if a session has nothing better".)
+**Tests:** before **3,566 passed / 1 skipped** (green), after **3,570 passed / 1 skipped** (+4,
+all in `tests/test_claims_register.py`). Dry run exits 0.
+**Owner queue / rotation:** `OWNER_FOCUS.md` item 1 sub-item 1 (decide the open proposal) and then
+sub-item 3 (test the tests), in that order, which is the order Orient and the item both give.
+Nothing deferred for a gate or a loop. `git stash list` shows `auto-rescue 2026-10-28_060001`,
+still empty, left in place as its own entry asks. No owner-session marker.
+
+**Second session today - read the 06:00 retrospective's entry first.** Its **Next** was "decide the
+open proposal in `research/2026-10-29-ttm-fills-the-empty-quarter.md`", so that was this session's
+first job; nothing it decided was re-opened or reversed. Its process change 1 had its **first live
+use** on this session: `logs/nightly-2026-10-30_130001-midday.log` logs
+`BASELINE main is GREEN on arrival (3566 passed, 1 skipped ... 0:03:53)`, which matched my own
+baseline exactly, so for the first time a session could tell before starting that it had inherited
+nothing.
+
+### Did
+
+**1. The open proposal, decided: REFUSED as written - and its own case was understated.**
+`research/2026-10-29-ttm-fills-the-empty-quarter.md` §5 (new), measurements
+`research/measurements/2026-10-30-trailing-series-review.py` and
+`...-trailing-column-moves.py` with their JSON. The proposal: when a stock's newest quarterly
+income column is empty (14 stocks on 2026-10-30, Amazon and Bank of America among them), score
+its income-statement inputs from the source's trailing-twelve-month series instead. It named five
+things to answer first; three are now measured.
+
+**Two answer in its favour, and one of them decisively.**
+
+- **The trailing series is definitionally the same rows under different names.** On the twelve
+  highest-ranked stocks that are *not* flagged - so their quarterly statement is the one
+  `_stmt_val_ltm` actually sums - across all nine income-statement labels the engine reads, the
+  trailing series against the engine's own four-quarter sum: **median relative difference
+  0.000000**, max 0.00067 (Total Revenue), 0.00061 (Operating Income), 0.00052 (Net Income); nine
+  of twelve agree **exactly** on every label, and the single worst figure anywhere is EG's interest
+  expense at 0.68%. So the substitution preserves the 2026-10-15 decision to keep the source's
+  pre-special-items `Operating Income` row, which was the largest risk in the proposal. Coverage is
+  fine too: of the eight flagged stocks whose trailing column sits on the newest filed period,
+  **seven carry all nine labels** (CHRW misses Interest Expense alone).
+- **Practice pairs each item at its own latest period, explicitly, for the exact ratio the note
+  worried about.** MSCI uses EPS for "Return on Equity (ROE), which is calculated using the
+  trailing 12-month earnings per share figure **and latest book value per share**" (*Fundamental
+  Data Methodology*, June 2024, §1.2.2 p. 14; §1.2.5 p. 15 defines book value "at the latest period
+  end date"), and S&P DJI: "ROE ... is calculated as a company's **trailing 12-month earnings per
+  share divided by its latest book value per share**" (*S&P Quality Indices Methodology*,
+  Appendix A, p. 16). A June income statement over a March balance sheet is the professional norm,
+  and the engine already publishes wider mismatches (FDXF carries `cf 2026-05-31` against
+  `is 2025-11-30`).
+
+**What refuses the rule, not the idea.**
+
+- **It keys "reaches the newer quarter" on the newest SEC filing, not on the column the engine
+  reads.** Restated against what the stock is actually scored on, the trailing column is newer for
+  **13 of 15, not 9** - so the opportunity is larger than the note claimed, and its 9/6 split was
+  an artefact of comparing against the wrong reference. But **7 of those 13 are two quarters past
+  anything the quarterly table can reconcile them against**: at a one-quarter gap the implied
+  newest quarter is `TTM - (three populated quarters)`, which is how the note checked eight against
+  the companies' own 10-Qs and found six exact; at two quarters there is nothing to check it with
+  (for Amazon `TTM(Sep) - (Jun+Mar+Dec)` is not computable *because June is the empty column*), and
+  FedEx's trailing column is two quarters past anything its statement carries. **That uncheckable
+  half contains every stock whose fill would move a score materially.**
+- **Amazon is the proof that the note's table is one morning's data.** Recorded there as a match on
+  10-29; on 10-30 its trailing column has moved to **2026-09-30** while the project's weekly SEC
+  cache still holds June, so under the rule as written the build would fill **nothing** for the
+  case the proposal is written around. TFC, listed as a miss, is not flagged at all today - it is
+  published scored to 2026-09-30, resolved by itself in a day. This is the class the 06:00
+  retrospective named this morning, from the other side of the repo.
+- **The prior-year half is impossible from this source.** The note guessed the same call returns
+  the year earlier "for some stocks and not others"; measured, the trailing series returns
+  **exactly one period end, 15 of 15 and 26 of 26**. For none. `_stmt_val_ltm_year_ago` anchors on
+  the quarterly statement's newest *populated* period, so filling only the numerator turns
+  `revenue_growth` - a weighted metric - and two other prior-year comparisons into **fifteen-month**
+  growth rates for exactly the stocks being fixed.
+
+**§5.5 pre-registers the narrow version before anyone builds it** (gap of exactly one quarter so
+the implied quarter is computable; the existing negative-revenue guard still applied; the
+prior-year anchor moved with the fill or no fill; one change at a time with its `metric_lineage`
+and `claims.py` lines) and states the benefit honestly: **6 of 14 stocks**, ranks 52-352, **no
+top-25 name**, and not "Amazon's earnings yield goes 3.31% to 4.9%". Whether that is worth building
+is left open on purpose - this review deliberately did not build its own corrected proposal.
+`OWNER_FOCUS.md` item 1 updated; `write_brief.open_proposals()` returns `[]`.
+
+**2. The claims-register sweep over the public methodology page** - `OWNER_FOCUS.md` item 1
+sub-item 3, item 0 of `plan/claims-mutation-audit.md`'s next list, one surface as that list
+requires. `tests/test_claims_register.py` section 6 now sweeps
+`run_screener.build_screener_overview` the way section 5 sweeps `research_page.py`: every sentence
+the generator prints that puts a number this repo computed into prose must carry a verdict
+(`claim:`, `checked:`, `reported:` or `open:`), and a new or reworded one fails the suite until it
+gets one. **11 sentences; 4 `checked:`, 7 `open:`**, every verdict assigned by reading the
+assertion rather than its name. Rows 127-130 of the plan.
+
+**The number to read is that a brand-new sentence stating the arithmetic of a published figure is
+invisible to 3,566 tests.** Applied, both published artifacts regenerated the way the 02:00 run
+rewrites them, then the whole suite with only today's four new tests deselected: **3,566 passed, 1
+skipped.** Same for rewording a registered sentence. `SCREENER_OVERVIEW.md` is regenerated on
+every full run, so this is a sentence the loop would have published five mornings a week with
+nothing able to notice it.
+
+**The sharpest of the seven open rows:** `test_the_clamps_and_floors_on_the_page_are_the_ones_applied`
+says in its own docstring that "the metric rows hard-code their clamps; the Data quality bullet
+reads config. Both must be config's" - and then matches only the metric-table rows, so the bullet
+is a second printing of four clamp figures that nothing reads. And **no test in the suite reads the
+share-class switching margin off this page**: `tests/test_share_classes.py` never calls the
+generator, so the 20% is pinned in config and in `share_classes.CHALLENGE_MARGIN` and nowhere on
+the surface a reader sees. The bank P/B-ROE section's *table* is pinned cell by cell against an
+independent recomputation from config; its three *prose* restatements are not, and one of them
+prints a word chosen on `bank_net_pb < 0` that nothing probes at the boundary.
+
+**Two corrections to the audit's own method**, both now in the plan's "Rules that carry forward",
+and both found by this pass being wrong first:
+
+- **Regenerate every artifact the publish rewrites, not just the one the generator is named for.**
+  The reword first read as **CAUGHT**, by `test_rebuild_page::test_committed_page_is_what_the_generator_builds`.
+  That was an artefact: the methodology page is embedded in `index.html`, so rewriting
+  `SCREENER_OVERVIEW.md` alone leaves the page drifted and a drift tripwire fires - on a day when
+  the real run rewrites both and is green. A mutation that reads as caught because a second
+  artifact was left stale is a **false negative for this audit**.
+- **A mutation must change the published output, not only the source the checker reads.** The
+  new-sentence mutation's first form assigned its sentence to an unused variable: the AST sweep saw
+  it, the page did not, and "blind" would have been trivially true. Re-run properly and verified -
+  the regenerated page gains exactly one line, `The eight categories carry 100 points in total.`
+
+**Two markdown facts the sweep needed**, both from its own output being wrong: a newline **is** a
+block boundary in markdown where in html it is whitespace (the first run produced one key running
+from a three-row table through the sentence after it), and **a markdown table row is not a
+sentence** - `| Earnings yield (E/P) | **+{bank_net_ep:.1f}** |` has a figure and no three-word run,
+so the stat-card merge rule chained the separator and the next two rows into a single "sentence".
+Both are negative-controlled by `test_the_markdown_sweep_breaks_on_blocks_and_skips_table_rows`,
+which asserts the exact key under both `markup` settings, and the scope is guarded by
+`test_the_sweeps_scope_is_the_generator_not_the_file` plus a `>= 9` floor so the sweep cannot pass
+vacuously.
+
+### Evidence / research
+
+- **MSCI**, *MSCI Fundamental Data Methodology*, June 2024, §1.1.5 (p. 11), §1.2.2 (p. 14), §1.2.5
+  (p. 15). Read from the PDF; §1.1.5 is the completeness rule quoted in §5.2 of the note
+  ("updating company information only upon availability of complete information, such as official
+  filings ... or upon dual vendor validation").
+  https://www.msci.com/indexes/documents/methodology/0_MSCI_Fundamental_Data_Methodology_20240625.pdf
+- **S&P Dow Jones Indices**, *S&P Quality Indices Methodology*, Appendix A (p. 16). Read from the
+  PDF. S&P's own `spglobal.com/spdji` copy answers **403** to a scripted request, so it was read
+  from S&P's `spice-indices.com` copy rather than worked around;
+  `data/papers/invesco-sp-quality-indices-methodology.pdf` from an earlier session is a third copy
+  of the same document and agrees.
+  https://www.spice-indices.com/idpfiles/spice-assets/resources/public/documents/methodology-sp-quality-indices.pdf
+- Both providers **normalize** earnings (MSCI §1.2.2 excludes extraordinary and non-recurring
+  items). This screener scores earnings as reported by its own settled decision, so practice
+  supports the *period mixing* and does **not** support §3's Amazon figure, whose $62.65 bn quarter
+  the note itself calls a probable one-off. Recorded in §5.2 rather than used as a refusal.
+- Measurements, all re-runnable: `research/measurements/2026-10-30-trailing-series-review.py`
+  (+`.json`) and `research/measurements/2026-10-30-trailing-column-moves.py` (+`.json`), read-only,
+  ~75 requests between them.
+- `tests/test_claims_register.py` is 1,068 lines, 33 tests, 7.0 s - still affordable inside the
+  data loop's publish gate, which it is already a member of.
+
+### Methodology changed
+
+- **none.** The proposal was refused, so no weight, metric, threshold, formula or published
+  sentence changed, and no changelog entry was due. The sweep is tests and a plan file.
+
+### Tried and rejected
+
+- **Building the corrected version of the proposal today.** Tempting - §5.5 is specific enough to
+  implement - and rejected because a reviewer building its own corrected proposal is the route
+  without its second reader, and because the honest benefit is 6 of 498 stocks with no top-25 name
+  against a scoring change that needs `metric_lineage`, a claim and a prior-year re-anchor in one
+  commit. It is written down with its criteria instead, which is what the route asks for.
+- **Refusing the fill on the ground that a trailing figure cannot be verified against a filing.**
+  Attractive, and wrong twice over: the whole payload comes from this source unverified, and
+  gating a *scoring* input on the SEC cache is forbidden outright (CLAUDE.md 0.14 - a test fails if
+  `sec_crosscheck` appears in a scoring module). The guard in §5.5 therefore uses the source's own
+  data, which is also what MSCI's "complete information ... or dual vendor validation" rule
+  actually asks for.
+- **Registering the methodology page's seven open sentences as claims in the same session.** The
+  enumeration is what makes a *new* one impossible to add unnoticed, and it is the part that cannot
+  be reached by mutation; pinning the existing seven is ordinary work a later session can do from
+  the queue, one or two at a time, each with a test on both sides of its number. Doing both in one
+  session would have meant assigning verdicts I had not read the assertions for, which is the
+  failure mode this audit exists to find.
+- **Sweeping `run_screener.py` rather than `build_screener_overview`.** It enumerates progress
+  lines and log messages as published sentences. `within=` scopes it to the generator, and a test
+  fails loudly if the generator is renamed rather than silently sweeping nothing.
+
+### Next
+
+**`generate_dashboard.py` is the last of the three generated surfaces** (`plan/claims-mutation-audit.md`
+item 0, now rewritten for it) - html like the research page, 13,485 lines, so decide up front
+whether to scope it per generator function with `within=` rather than sweeping the file. Failing
+that, the **nineteen `open:` rows** are a queue in their own right: twelve on the research page and
+seven on the methodology page, with the cheapest and the most load-bearing named in the plan.
+**Monday 2026-11-02 is phase 0 of the universe-expansion plan**, the top open `OWNER_FOCUS.md`
+item, and **Wednesday 2026-11-04 is the first synthesis session under its widened remit** with a
+subject already waiting: the four accepted bank and share-class changes.
