@@ -16999,3 +16999,18 @@ Health as the evening entry (nothing scheduled ran since). Owner: "keep finding 
   DD's "period behind" is the engine's annual fallback from a source quarter with -$1.87bn revenue -
   the guard working.
 - Gates: 3,553 passed / 1 skipped; dry run; both payloads parse; clean tree.
+- **The `test_dead_badges` flake recurred, and this time the traceback was kept.** The final gate-1
+  run on this tree failed `test_the_wider_tolerance_is_stated_for_a_financial` once ([gw4]); the
+  run ten minutes earlier on code-identical files (only this log differed) passed 3,553. The panel
+  the test read held **EXPE's real provenance** ("Metrics: 27/27 ... Filing Age: 121 days") - EXPE is
+  the first key in `stock_detail`, i.e. the `other` stock the preceding test,
+  `test_the_four_annualised_stocks_in_the_published_run_say_so`, renders last - not the synthetic
+  financial the failing test had just rendered. Ruled out: `renderProvenance` is synchronous with one
+  write (`container.innerHTML = html`) and no memo or early exit for that input; it has one caller
+  (`openStockDetail`); nothing writes `#modal-provenance` otherwise; no timer, guide or startup path
+  opens a stock without a hash; the module passes 8 of 8 runs at `-n 8` alone and in isolation
+  renders the synthetic financial correctly. So the synthetic render did not land, or something
+  restored EXPE, only under full-suite load - unexplained. Not patched: a guess would be a fix in
+  name only. Next: give each `_prov` call its own fresh container check (render, then assert the
+  badge line is the synthetic stock's "Metrics: 25/28" before reading on) so the next failure says
+  which of the two happened.
