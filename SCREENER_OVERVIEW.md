@@ -77,6 +77,7 @@ In the order the page builds them up.
 - **Survivorship bias** – a backtest that leaves out the companies that have since failed or left the index, which usually flatters it as well.
 - **Rank correlation and IC** – a rank correlation runs from −1 to +1: at +1 a ranking would have put the next period's returns in exact order, and at 0 it said nothing about them. The information coefficient (IC) is that correlation between a ranking and the returns that followed it.
 - **Percentage point and basis point** – a percentage point is the difference between two percentages (5% to 7% is 2 percentage points); a basis point is a hundredth of a percentage point.
+- **Abbreviations** – EPS: earnings per share. P/E and P/B: price to earnings and price to book value. ROE, ROA and ROIC: return on equity, on assets and on invested capital. EBIT and EBITDA: earnings before interest and taxes, and before depreciation and amortization as well. FCF: free cash flow. NOPAT: net operating profit after tax. CAGR: compound annual growth rate. PEG: price/earnings to growth. FY1: the first fiscal year not yet reported, the year analysts' current estimates are for. GAAP: Generally Accepted Accounting Principles, the US reporting rules. SEC: the Securities and Exchange Commission, where US companies file their accounts. GICS: the Global Industry Classification Standard, the sector scheme. CAPM: the capital asset pricing model.
 
 ---
 
