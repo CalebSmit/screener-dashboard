@@ -157,6 +157,9 @@ USED_AS = {
     "Survivorship bias": ["left the index"],
     "Rank correlation and IC": ["rank correlation", "information-coefficient"],
     "Percentage point and basis point": ["percentage points", "bps"],
+    # 2026-10-29: the page used EPS 35 times, ROE 23, P/B 21 and ROIC 14 and spelled most out nowhere
+    "Abbreviations": ["EPS", "P/E", "P/B", "ROE", "ROA", "ROIC", "EBITDA", "FCF", "NOPAT", "CAGR",
+                      "PEG", "FY1", "GAAP", "SEC", "GICS", "CAPM"],
 }
 
 

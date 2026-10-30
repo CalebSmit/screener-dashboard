@@ -274,13 +274,27 @@ def ic_observations(today: datetime | None = None) -> str:
     )
 
 
+def run_stamp(ts) -> str:
+    """The run's timestamp to the minute: "2026-10-29 02:00", not "2026-10-29T02:00:05.052320".
+    Anything that does not parse is shown as it came, so the row never hides a strange value."""
+    if not ts:
+        return "?"
+    try:
+        return datetime.fromisoformat(str(ts)).strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return str(ts)
+
+
 def context_record() -> str:
     """One line on the record the context signals are building (context_eval.py)."""
     p = ROOT / "data" / "context_eval.json"
     try:
         sys.path.insert(0, str(ROOT))
         import context_eval
-        return context_eval.summary_line(json.loads(p.read_text(encoding="utf-8")))
+        line = context_eval.summary_line(json.loads(p.read_text(encoding="utf-8")))
+        # the line is written for the data-run log, where it names itself; the brief's row label
+        # already says "Context signals" (it read "Context signals | Context signals: ...")
+        return re.sub(r"^Context signals:\s*", "", line)
     except Exception:  # noqa: BLE001 - the brief must still publish
         return "no context evaluation yet"
 
@@ -471,7 +485,7 @@ def main() -> int:
     a(f"| Data run (2 AM) | **{data_state}** - last ran {data_age} |")
     a(f"| Code session (latest) | **{code_state}** - last ran {code_age} |")
     if facts:
-        a(f"| Dashboard data from | {facts.get('timestamp', '?')} |")
+        a(f"| Dashboard data from | {run_stamp(facts.get('timestamp'))} |")
         a(f"| Stocks scored | {facts.get('scored', '?')} |")
         a(f"| With a price | {facts.get('priced', '?')} |")
         a(f"| With an analyst target | {facts.get('targeted', '?')} |")

@@ -283,7 +283,41 @@ def load_run_data(run_dir: Path) -> dict:
         "corr_df": corr_df,
         "cfg": run_cfg,
         "share_classes": share_classes,
+        "unscored": _run_unscored(run_dir, raw_path),
     }
+
+
+def _run_unscored(run_dir: Path, raw_path: Path | None) -> dict:
+    """``{ticker: company}`` for the members this run fetched and could not score - the run's
+    own ``universe.json`` "failed" list, named from the raw fetch where it has a name.
+
+    2026-10-29: HONA and VYLR were S&P 500 members the run left unscored, and absent from the
+    payload altogether, so a reader who searched either was told only that a company "that has
+    left the index, or whose data could not be fetched" is not in the ranking. Display only, and
+    never allowed to stop a build: any failure returns {}."""
+    try:
+        failed = json.loads((run_dir / "universe.json").read_text(encoding="utf-8")).get("failed") or []
+    except (OSError, ValueError, AttributeError):
+        return {}
+    names: dict = {}
+    if failed and raw_path is not None:
+        try:
+            raw = pd.read_parquet(raw_path)
+            for col in ("longName", "shortName"):
+                if col in raw.columns:
+                    for t, n in zip(raw["Ticker"], raw[col]):
+                        if isinstance(n, str) and n.strip():
+                            names.setdefault(str(t), n.strip())
+        except Exception:  # noqa: BLE001 - a missing name is shown as the ticker
+            names = {}
+    return {str(t): names.get(str(t)) for t in failed if isinstance(t, str) and t}
+
+
+def _unscored_block(run_data: dict, table_data: list) -> dict:
+    """The run's unscored members that are really absent from the ranking (a ticker the table
+    does carry is never listed, whatever the run recorded)."""
+    ranked = {str(r.get("Ticker")) for r in (table_data or [])}
+    return {t: n for t, n in ((run_data or {}).get("unscored") or {}).items() if t not in ranked}
 
 
 # ---------------------------------------------------------------------------
@@ -1635,6 +1669,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "table_data": table_data,
         "stock_detail": stock_detail,
         "share_classes": _share_classes_block(run_data, table_data),
+        "unscored": _unscored_block(run_data, table_data),
         "weights": weights,
         "ctx_weeks": _shared_weeks(stock_detail),
         "market": _market_block(stock_detail),
@@ -3464,7 +3499,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
           +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list" aria-label="Remove ' + escapeHtml(t) + ' from your list">&times;</button>'
           + '</div>'
           + '<div class="holding-notes"><p class="holding-note holding-note-unscored">' + escapeHtml(t)
-          +   ' is not in this run&rsquo;s ranking: it has left the S&amp;P 500 or its data could not be fetched.' + last + '</p></div>'
+          +   (unscoredMemberText(t)
+               ? ' is not in this run&rsquo;s ranking. ' + unscoredMemberText(t)
+               : ' is not in this run&rsquo;s ranking: it has left the S&amp;P 500 or its data could not be fetched.') + last + '</p></div>'
           + '</div>';
     }}
 
@@ -5836,6 +5873,17 @@ def _js_table() -> str:
             '<td class="vt-cell">' + flags + '</td></tr>';
     }
 
+    // A member this run fetched and could not score (D.unscored, from the run's universe.json):
+    // named, and told why, rather than "has left the S&P 500 or its data could not be fetched"
+    // (2026-10-29: HONA and VYLR were in the index and absent from the page). '' otherwise.
+    function unscoredMemberText(q) {
+        const m = D.unscored || {};
+        const k = String(q || '').trim().toUpperCase(), k2 = k.replace(/\./g, '-');
+        const hit = Object.prototype.hasOwnProperty.call(m, k) ? k : (Object.prototype.hasOwnProperty.call(m, k2) ? k2 : '');
+        if (!hit) return '';
+        return escapeHtml(m[hit] || hit) + ' is in the S&amp;P 500, but this run left it unscored: the data source returned too little of its data to score it.';
+    }
+
     // A ticker-shaped query that matches no scored stock: say the stock is not in this run, and why
     // a stock can be missing. '' for anything else, so a name fragment keeps the usual message.
     // Shared by the table's empty state and the search palette (club readiness, 2026-10-19).
@@ -5846,6 +5894,9 @@ def _js_table() -> str:
         // A second listed class of a company this run *did* rank has its own true reason.
         const sc = shareClassOf(t);
         if (sc) return shareClassText(t, sc);
+        // A member the run could not score has its own true reason too.
+        const um = unscoredMemberText(t);
+        if (um) return um;
         const rows = D.table_data || [], ql = t.toLowerCase();
         if (rows.some(r => r.Ticker.toLowerCase().startsWith(ql) || (r.Company || '').toLowerCase().includes(ql))) return '';
         const n = (D.kpis && D.kpis.universe_size) || rows.length;

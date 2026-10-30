@@ -5250,6 +5250,7 @@
 <li><strong>Survivorship bias</strong> – a backtest that leaves out the companies that have since failed or left the index, which usually flatters it as well.</li>
 <li><strong>Rank correlation and IC</strong> – a rank correlation runs from −1 to +1: at +1 a ranking would have put the next period's returns in exact order, and at 0 it said nothing about them. The information coefficient (IC) is that correlation between a ranking and the returns that followed it.</li>
 <li><strong>Percentage point and basis point</strong> – a percentage point is the difference between two percentages (5% to 7% is 2 percentage points); a basis point is a hundredth of a percentage point.</li>
+<li><strong>Abbreviations</strong> – EPS: earnings per share. P/E and P/B: price to earnings and price to book value. ROE, ROA and ROIC: return on equity, on assets and on invested capital. EBIT and EBITDA: earnings before interest and taxes, and before depreciation and amortization as well. FCF: free cash flow. NOPAT: net operating profit after tax. CAGR: compound annual growth rate. PEG: price/earnings to growth. FY1: the first fiscal year not yet reported, the year analysts' current estimates are for. GAAP: Generally Accepted Accounting Principles, the US reporting rules. SEC: the Securities and Exchange Commission, where US companies file their accounts. GICS: the Global Industry Classification Standard, the sector scheme. CAPM: the capital asset pricing model.</li>
 </ul>
 <hr />
 <h2>Data sources</h2>
@@ -6750,6 +6751,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '<td class="vt-cell">' + flags + '</td></tr>';
     }
 
+    // A member this run fetched and could not score (D.unscored, from the run's universe.json):
+    // named, and told why, rather than "has left the S&P 500 or its data could not be fetched"
+    // (2026-10-29: HONA and VYLR were in the index and absent from the page). '' otherwise.
+    function unscoredMemberText(q) {
+        const m = D.unscored || {};
+        const k = String(q || '').trim().toUpperCase(), k2 = k.replace(/\./g, '-');
+        const hit = Object.prototype.hasOwnProperty.call(m, k) ? k : (Object.prototype.hasOwnProperty.call(m, k2) ? k2 : '');
+        if (!hit) return '';
+        return escapeHtml(m[hit] || hit) + ' is in the S&amp;P 500, but this run left it unscored: the data source returned too little of its data to score it.';
+    }
+
     // A ticker-shaped query that matches no scored stock: say the stock is not in this run, and why
     // a stock can be missing. '' for anything else, so a name fragment keeps the usual message.
     // Shared by the table's empty state and the search palette (club readiness, 2026-10-19).
@@ -6760,6 +6772,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // A second listed class of a company this run *did* rank has its own true reason.
         const sc = shareClassOf(t);
         if (sc) return shareClassText(t, sc);
+        // A member the run could not score has its own true reason too.
+        const um = unscoredMemberText(t);
+        if (um) return um;
         const rows = D.table_data || [], ql = t.toLowerCase();
         if (rows.some(r => r.Ticker.toLowerCase().startsWith(ql) || (r.Company || '').toLowerCase().includes(ql))) return '';
         const n = (D.kpis && D.kpis.universe_size) || rows.length;
@@ -7406,7 +7421,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
           +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list" aria-label="Remove ' + escapeHtml(t) + ' from your list">&times;</button>'
           + '</div>'
           + '<div class="holding-notes"><p class="holding-note holding-note-unscored">' + escapeHtml(t)
-          +   ' is not in this run&rsquo;s ranking: it has left the S&amp;P 500 or its data could not be fetched.' + last + '</p></div>'
+          +   (unscoredMemberText(t)
+               ? ' is not in this run&rsquo;s ranking. ' + unscoredMemberText(t)
+               : ' is not in this run&rsquo;s ranking: it has left the S&amp;P 500 or its data could not be fetched.') + last + '</p></div>'
           + '</div>';
     }
 
