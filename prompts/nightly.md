@@ -79,14 +79,11 @@ salvage (`research/2026-10-19-session-ended-on-a-background-job.md`). So, as har
   Finish by updating the item's Progress line with what shipped and what is next,
   so the following session does not have to infer it.
 
-  **The UI/UX redesign is closed** (owner, 2026-10-07: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make the nightly sessions just focus on what it was previously focusing on, making sure the methodology is sound. And improving this tool overall every single night."*). It was
-  finished in owner-run sessions that night; `plan/dashboard-redesign-master.md` is
-  history, not a queue. Do not start design passes, restyling or "fine-tuning". The
-  sessions' job is the one in "Your mandate": a methodology that is sound and
-  well-evidenced, and a tool that is measurably better every morning. Two standing
-  rules about the page still bind, because they are about correctness: **a scoring
-  change ships with its frontend in the same commit** (section 3 below, CLAUDE.md
-  0.8c), and **a page that is broken or false is a defect to fix** like any other.
+  **The UI/UX redesign is closed** (owner, 2026-10-07). `plan/dashboard-redesign-master.md` is
+  history, not a queue: do not start design passes, restyling or "fine-tuning". Two rules about
+  the page still bind, because they are about correctness: **a scoring change ships with its
+  frontend in the same commit** (section 3, CLAUDE.md 0.8c), and **a page that is broken or
+  false is a defect to fix** like any other.
 
 - **Check for an open proposal before you choose the day's work.** `MORNING_BRIEF.md`'s
   "Waiting for a decision" section lists every research note ending in
@@ -139,7 +136,26 @@ Note pass/fail counts and any pre-existing failures. `scripts/run_tests.py` runs
 parallel (`-n auto`) where pytest-xdist is installed - about a third of the 6-7 minutes the
 serial run takes, which keeps one call well inside the Bash tool's 600 s ceiling - and runs the
 exact serial command, `python -m pytest tests/ test_screener.py -q`, where it is not. Its exit
-code is pytest's; the pass/skip counts are the same either way.
+code is pytest's; the pass/skip counts are the same either way. The runner takes the same
+baseline before invoking you and logs it (`BASELINE main is GREEN/was RED on arrival`), so you
+can read it there if yours disagrees.
+
+**A red baseline you did not cause is still today's work, ahead of the focus.** The runner's
+gate 1 refuses to merge onto a red `main`, so an inherited failure strands your whole day's work
+on a branch. **The likeliest cause is not a code change at all: it is the 02:00 data run.** It
+republishes the payload every weekday, and a test whose premise is a property of *one morning's
+data* goes red with no commit touching anything - twice in three days:
+
+- **2026-10-30**, `tests/test_unscored_members.py` named HONA and VYLR, the two stocks the
+  2026-10-29 fetch happened to fail; the 10-30 run served HONA, so the page was right and two
+  tests were wrong.
+- **2026-10-28**, `tests/test_investor_profiles.py` compared the published payload with the
+  *newest* `runs/` folder, which was a refused run the page never showed.
+
+So, when you write a test that reads the published payload: **assert its premise in the test**
+(the 10-30 fix uses stand-in tickers plus a test that fails if a stand-in ever appears in a run),
+and never pin which stock, run folder or ticker today's data happened to behave a certain way
+for. Fixing one of these is a defect fix, not a detour - say so in the log.
 
 ## 3. Work the focus
 
@@ -159,14 +175,10 @@ single-digit number of *effective* (non-overlapping) observations against a
 gate of 8. Quote `_n_observations`, never `_n_raw_observations`. Both look like
 evidence and are not.
 
-**That includes backtest v2** (`backtest_v2.py`, `backtest_v2_returns.py`, built
-2026-10-15). It fixes the look-ahead, but it still leaves out every name that has
-left the index and every analyst input, and its first reading - an IC of -0.002
-with an interval of +-0.027 over 80 months - cannot tell "no edge" from a typical
-one. Do not cite it for a change, and in particular do not cut a weight "because
-the backtest shows no edge": that is rule 5's ban read backwards. It is a reason to
-research, on a Monday, which analyst-free categories carried any premium among
-large companies - not a number to act on.
+**That includes backtest v2** (`backtest_v2.py`, `backtest_v2_returns.py`; CLAUDE.md priority 3).
+Its interval (IC -0.002 +-0.027 over 80 months) cannot tell "no edge" from a typical one. Do not
+cite it, and in particular **do not cut a weight "because the backtest shows no edge"** - that is
+rule 5's ban read backwards. It is a reason to research on a Monday, not a number to act on.
 
 Never acceptable: "it's cleaner", "it's more modern", "best practice".
 
@@ -174,14 +186,19 @@ Never acceptable: "it's cleaner", "it's more modern", "best practice".
 threshold, a construction rule. Learn it properly in this one session, from
 *both* sides:
 
-- **The literature.** Real citations - author, title, year, journal, **a DOI or a
-  stable URL**, what the finding actually was, the effect size, and the
-  conditions it held under. The lab has required a DOI since 2026-10-12
-  (`plan/factor-lab.md`); a note is the same evidence at the same bar. Measured
-  2026-10-16: the three most recent notes give journal, volume, pages, sample
-  and table numbers - real research, not filler - and **zero DOIs or URLs**
-  between them, which leaves the sceptical reader doing a lookup the note should
-  have done.
+- **The literature.** Real citations - author, title, year, what the finding actually was, the
+  effect size, the conditions it held under, and **enough for a sceptic to find it: a DOI, a
+  stable URL, or journal + volume(issue) + pages.** Any of the three; the DOI-or-URL rule added
+  2026-10-16 was recalibrated 2026-10-30 because it would have failed the best-sourced note of
+  the fortnight (`research/2026-10-20-size-weight.md`: 703 lines, 13 sources with journal,
+  volume, issue and table numbers, zero DOIs - a 1992 *JF* paper is perfectly findable without
+  one). A DOI is still the cheapest form when the paper has one, and the Factor Lab still
+  requires one (`plan/factor-lab.md`) because an experiment names exactly one paper.
+- **Mark a source you did not read.** That note's own convention, promoted here: a source
+  reached only as an abstract carries `- not read` beside the citation, and the note says what
+  was and was not obtained. Four of its thirteen do. This is the honest half of the citation
+  bar, and it is stricter than asking for a DOI: an unmarked citation reads as "I checked the
+  table" whether or not anyone did.
 - **Documented practice.** How quant shops, institutional screens and index
   providers actually handle it. This is first-class evidence, not a footnote.
 
@@ -201,11 +218,21 @@ confirm the workings match, especially after a week with a methodology change.
 **Read `plan/dashboard-inventory.md` first.** A broken surface is a defect to fix;
 a surface that merely could look different is not work.
 
-**Wednesday - synthesis.** How does Monday's research fit the *rest* of the
-screener? What does it overlap with or make redundant? What does it imply for
-the other seven categories? Is the screener coherent after the change, or just
-differently arranged? Record any methodology change in
-`METHODOLOGY_CHANGELOG.md` with its sources.
+**Wednesday - synthesis.** How does the week's change fit the *rest* of the screener? What does
+it overlap with or make redundant? What does it imply for the other seven categories? Is the
+screener coherent after the change, or just differently arranged? Record any methodology change
+in `METHODOLOGY_CHANGELOG.md` with its sources.
+
+**Its subject is whatever changed the methodology since the last synthesis session, not only
+Monday's note** - widened 2026-10-30. The old wording assumed Monday produced the change, so on a
+week when the changes came from the proposal queue or an owner item Wednesday had nothing in its
+remit and was the easiest day to give away. Measured over 2026-10-16..10-30: **four proposals were
+ACCEPTED, three of them changing how banks are scored** (P/B on common equity, ROE and ROA on net
+income to common, and the two guarded as a pair), and **not one synthesis session ran in the whole
+fortnight** - both Wednesdays went elsewhere, defensibly each time. Four accepted changes to one
+cohort's Valuation and Quality is precisely the case for asking whether the result is coherent.
+So: read `METHODOLOGY_CHANGELOG.md` back to the last session whose focus was synthesis, and take
+the accumulated changes as the subject if Monday's note does not need you more.
 
 **Thursday - build.** Implement what the week justified. Tests alongside, not
 after.
@@ -252,7 +279,8 @@ import it. Three things to know before you start:
   the plan). Apply them as written: a stretch of under twenty years inside two standard
   errors is "not confirmed", not "gone"; large-company evidence outranks all-stock
   evidence; where the lab and the literature disagree, the note says so and the weight
-  stays. Questions 1 and 2 are researched; 3, 4 and 5 are open Mondays.
+  stays. Questions 1, 2 and 4 are answered (Growth 13 and Momentum kept, 2026-10-13; Size kept
+  at 5%, 2026-10-20); **3 and 5 are open Mondays.**
 - **A lab session is one finished experiment**: tolerances written into `factor_lab.py`
   *before* the comparison is run, a failed replication published as one, and five things
   moved together or the suite fails - `EXPERIMENTS`, `TAKEAWAYS`, `CATEGORY_MAP`, the

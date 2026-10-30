@@ -152,6 +152,21 @@ MODULES: tuple[tuple[str, str], ...] = (
      "against Momentum than the SS8.4 bar allows"),
     ("tests/test_momentum_panic_rule.py",
      "the page describes the momentum regime rule the engine actually applies"),
+    # Added 2026-10-30 (retrospective). The first artifact in $DataArtifacts that is not page
+    # text: this module's last test is a tripwire on the *real* committed evidence files this
+    # loop appends to every weekday - improvement/dispersion_history.csv, improvement/snapshots/
+    # and factor_vol_history.csv. Membership here is derived from claims.py, and claims.py
+    # registers published *sentences*, so an evidence file carries no claim and nothing could
+    # bring it in. Two reasons it has to be a gate rather than a report: factor_vol_history.csv
+    # is read by factor_engine.adjust_momentum_weight, so a duplicated row changes the *next*
+    # run's momentum weight - a methodology change with no changelog entry, which rule 3 forbids;
+    # and check_run_health discards a run whose dispersion is 20% below the trailing median of
+    # dispersion_history.csv, so a double-counted day moves this gate stack's own bar. Both files
+    # are written during the run (run_screener.py step calling record_run_snapshot, and
+    # factor_engine) and so are on disk before any gate here. 11 tests, 1.5s, offline.
+    ("tests/test_one_observation_per_run_date.py",
+     "the evidence files this run appended to still hold one row and one snapshot per run "
+     "date - the one that feeds the next run's momentum weight included"),
     # Added 2026-10-15: the point-in-time limitation quotes the measured look-ahead from its JSON.
     ("tests/test_pit_record.py",
      "the page's look-ahead figure is the 2026-10-15 measurement, and the rebuild sets no weight"),

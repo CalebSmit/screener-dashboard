@@ -17035,3 +17035,293 @@ Health as the evening entry. Owner: "keep finding improvements please before the
 - **Brief polish:** the run time reads "2026-10-29 02:00", not the raw ISO stamp with microseconds;
   the context row no longer repeats its own label.
 - `plan/dashboard-inventory.md` updated (rule 9).
+
+## 2026-10-30 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-29_130001-midday.log`
+ends "Run complete: shipped to main" (tag `good/2026-10-29-1403`). Data loop published? **yes** -
+`logs/datarun-2026-10-30_020001.log` ends "Data loop complete", HEALTH: PASS, run `24d9938b511b`,
+499 scored, `signals.json` written with 8 gates all run. Evidence base at `1m` = **40 rows, newest
+2026-09-29 (31 days ago, bound 40), 5 effective** - in steady state; the data log's own line
+agrees. Priority 0: `allow_auto_apply` **false**, unchanged, 5 of 8 effective. Top open roadmap
+item: **0.13, the Factor Lab** (opened 2026-10-12, **age 18 days**) - not advanced and not
+drifting: today is an even ISO week so the runner swapped in the retrospective, and the next lab
+Friday is **2026-11-06**. (0.10 is older - opened 2026-10-07, **age 23 days** - but its remainder
+is Sharpe and Sortino at weight 0, which CLAUDE.md already calls "do them only if a session has
+nothing better".)
+**Tests:** before **2 failed / 3,560 passed / 1 skipped** - a red `main`, see below - after
+**3,566 passed / 1 skipped** (+6: the 2 fixed, plus 4 new - 1 stand-in guard, 1 in the publish
+gate's module, 2 in the gate-ordering module). Dry run exits 0.
+**Owner queue / rotation:** retrospective, so no rotation item, and `OWNER_FOCUS.md`'s two open
+items (universe expansion phase 0, a Monday; the 2026-10-20 fine-tune block) were read and left
+open - a retrospective does not work on the screener. **One open proposal is deliberately left**
+(`research/2026-10-29-ttm-fills-the-empty-quarter.md`, fill an empty newest quarter from the
+source's trailing series, 1 day old): a retrospective is the wrong session to decide a methodology
+question, the same call the 2026-10-16 retrospective made and recorded. `git stash list` shows
+`auto-rescue 2026-10-28_060001`, still empty (`git stash show --stat` prints nothing) and left in
+place as its own entry asks. No owner-session marker.
+
+### Retrospective findings
+
+- **Sessions reviewed: 38** (2026-10-16 to 2026-10-30) - **24 scheduled, 14 owner-run.**
+- **Genuinely valuable: 35 | Churn: 0 | Lost: 1 | Stood down correctly: 2 | Failed gates: 2.**
+- **And one finding that was not in the logs at all: `main` was red when this session started.**
+
+**0. The red `main`, found at baseline and fixed first.** `tests/test_unscored_members.py` shipped
+the evening of 2026-10-29 naming **HONA and VYLR**, the two S&P 500 members that morning's fetch
+had left unscored. The 02:00 run on 10-30 served HONA, so it is in the payload,
+`notInRunText('hona')` correctly returns `''` for a stock that *is* in the run, and two tests
+failed on a page that was right. **`main` was red from 02:21 and nothing said so**: the data run
+logged HEALTH: PASS, the brief reported a healthy run, and no commit had touched any code.
+
+Without this session looking, the runner's gate 1 would have failed at ~08:00 on a defect the
+session did not cause, the whole retrospective would have been stranded on a branch, and the log
+would have read like its fault. Both halves are now fixed - the test, and the blindness (process
+changes 1 and 2).
+
+**1. What fraction of sessions produced something genuinely valuable? 35 of 38, with 3 that
+were not sessions' fault.** Nothing in the churn column for the second retrospective running. The
+losses: **2026-10-28 06:00 never started** - the 10-28 02:00 run was refused by the claims gate
+(correctly: a real `cPct` rounding defect on BXP's "case against" line), its discard left three
+untracked files, and the runner's auto-rescue stash *saved* but exited non-zero on "failed to
+remove output/: Permission denied", so the runner stopped. One refused run cost two sessions. The
+10-28 owner session found and fixed both ends. **2026-10-19 13:00 and 2026-10-22 13:00 stood down**
+because an owner session was marked in progress - designed behaviour, not waste.
+
+The scheduled twenty-four, named: four proposals decided (10-20 bank P/B ACCEPTED - Berkshire's
+P/B was **0.0010, not 1.52**, and had been since March; 10-20 bank ROE/ROA ACCEPTED - 60% of bank
+Quality rested on two ratios with no published definition; 10-21 share classes ACCEPTED, with the
+designated line declared rather than re-picked after measuring that the rule would move Alphabet
+**78 places on a coin flip**; 10-21 bank P/B-ROE pairing ACCEPTED), two refused (10-16 earnings
+yield, 10-26 the revisions candidate at 94% momentum overlap), two Monday research notes, the
+research engine's provenance and positive control, the tradable-signals work, the claims
+register's mutation passes 2-6, the eleven dead badges (one a false sentence on a top-25 stock,
+one a false claim on the public methodology page), the flaky ship gate fixed at the root, and
+2026-10-26's speed night checked on its first live runs. Every one is a defect fixed or a question
+answered.
+
+**2. Which rotation day earns its place? Monday and Thursday clearly; Tuesday once of two;
+and Wednesday did not run at all.** Both Wednesdays went elsewhere - 10-21 to the proposal queue,
+10-28 lost to the stash failure. The 2026-10-16 retrospective checked Wednesday specifically,
+found it earned its place, and recorded that so the next retrospective would not re-litigate it.
+Two weeks later it ran **zero** times.
+
+That is not a decorative day; it is a day whose **remit was too narrow to defend itself.** "How
+does Monday's research fit the rest of the screener" assumes Monday produced the change, so on a
+week when the changes came from the proposal queue Wednesday had nothing of its own and was the
+cheapest thing to give away. And the cost is specific: **four proposals were ACCEPTED this
+fortnight, three of them changing how banks are scored** - P/B on common equity, ROE and ROA on
+net income to common, and the two guarded as a pair - and nothing asked whether one cohort's
+Valuation and Quality are coherent after four changes in two days. Widened, in all three places
+rule 9 requires (process change 4).
+
+**3. Is the evidence standard holding? Yes - and the citation check I inherited was
+miscalibrated.** 11 changelog entries since 10-16; **9 carry an Evidence section**, and the two
+that do not are evidence-base corrections, which is right. 26 research notes. The three that are
+literature reviews all carry DOIs, which is the 2026-10-16 rule working: macro backdrop 14,
+revenue-vs-asset-growth 13, price-target-upside 8.
+
+But `research/2026-10-20-size-weight.md` - 703 lines, 13 sources, the note that settled a weight -
+carries **zero DOIs and zero URLs**, and it is the best-sourced note in the fortnight: Fama &
+French (1992) *JF* 47(2) Table II Panel A, Fama & French (2008) *JF* 63(4) Table IV, Alquist,
+Israel & Moskowitz (2018) *JPM* 45(1), MSCI's Diversified Multiple-Factor methodology sections
+2.3-2.4, FTSE Russell's Ground Rules v8.8 rules 5.2/5.5/6.1-6.3 - **and four sources marked
+`- not read`** where only an abstract was served. A rule that would fail that note while passing a
+note with a DOI and no table numbers is measuring the wrong thing. Recalibrated and made net
+stricter (process change 5).
+
+**4. What keeps going wrong?** Two patterns, and the second is new.
+
+- **The old one, fifth instance: a check written for a class of artifact, and the class grows.**
+  Today's version is the sharpest yet because it is a *consequence of the 2026-10-16 fix.* That
+  retrospective replaced the publish gate's hand-kept module list with a derivation from
+  `claims.py`, which made a missing *page sentence* impossible by construction - and a missing
+  *evidence file* permanent, because `claims.py` registers published sentences and an evidence file
+  has none. **A derived membership rule is only as wide as the thing it derives from.** Closed
+  (process change 3); the prompt now asks what the derivation cannot reach.
+- **The new one: a test whose premise is a property of one morning's data.** Twice in three days -
+  `tests/test_unscored_members.py` (above) and `tests/test_investor_profiles.py` on 10-28, which
+  compared the published payload with the *newest* `runs/` folder, a refused run the page never
+  showed, and failed on a correct payload. Both reddened `main` with no commit touching code.
+  Written into `prompts/nightly.md` section 2 with the rule that closes it: a payload-reading test
+  asserts its own premise.
+
+**5. Is the tool closer to being the place you'd look before buying or selling? Closer in one
+specific way, and the blocker is unchanged.** Since 10-16 the inputs got materially more correct
+where they were worst - a bank's P/B had been wrong by three orders of magnitude for a FTSE-sized
+company since March, and 60% of bank Quality rested on two ratios whose definition was nowhere
+published - and one company is now ranked once rather than twice. Those are the kind of defect that
+makes a screener untrustworthy to someone who knows the sector. But **the blocker is still that
+there is no demonstrated edge**: the research engine's pre-registered experiments over 176
+point-in-time months still beat nothing, and the baseline's own IC is ~0. The page says so, which
+is the right answer, and rules 4 and 5 correctly keep it that way until 2027-02-11.
+
+**6. What is the routine systematically blind to?** Three things.
+
+- **Whether `main` is green between 02:21 and the next session's baseline.** Nothing looked. Now
+  the runner does, and labels gate 1's failures against it. The deeper version is in "Flagged".
+- **The second publish path's *non-text* artifacts.** Every one of the five holes found at a
+  runner read has been on the data loop's side, and the enumeration kept finding page artifacts
+  because the checks are about page claims. The evidence files - which feed the *next* run's
+  scoring - had never been looked at. `scripts/retro_artifact_coverage.py` now prints the list.
+- **The lab's own payload.** `lab_data.js` and its 15 parts are generated by `factor_lab.py
+  --build`, served live, and **neither loop rebuilds them**; the tests check the committed payload's
+  internal consistency and that `lab_engine.js` reproduces it, but nothing can check that the
+  committed payload is what the current `factor_lab.py` would produce, because the library lives in
+  the gitignored `data/lab/`. Not closable today; flagged.
+
+### Process changes made
+
+1. **The runner takes gate 1's baseline before invoking the session** (`scripts/nightly-screener.ps1`).
+   `CLAUDE.md`'s gate 1 is "no **new** failures vs the baseline you took at session start", and
+   the runner - the real gate since 2026-09-04 - never took one, so it could not distinguish a
+   failure the session caused from one it inherited, and the session was never told either. It
+   publishes nothing and decides nothing: the same command as gate 1 resolved **once** so the two
+   cannot drift, `Restore-Artifacts` after it as gate 2 already does, and an unavailable baseline
+   reported as unknown. **Gate 1's verdict is unchanged** - nothing merges onto a red `main`, which
+   section 4 of the retrospective prompt requires - it now also logs how many failures were new and
+   how many inherited. Two new tests pin exactly that: the baseline block may not merge, push, tag
+   or `Stop-Run`, and the attribution block may not alter the verdict.
+   `tests/test_gate_ordering.py` **11 passed, was 9.**
+
+2. **`tests/test_unscored_members.py` no longer names the stocks one fetch failed on.** The page
+   tests use stand-ins (`QZZA` named, `QZZB` unnamed, `ZZZZ` not a member) and a new test fails if
+   a stand-in ever appears in the published run - the premise the originals asserted nowhere.
+   **8 passed, was 5 passed / 2 failed.** `prompts/nightly.md` section 2 carries the rule and both
+   instances.
+
+3. **The evidence files the data loop appends to are gated.** `improvement/dispersion_history.csv`,
+   `improvement/snapshots/` and `factor_vol_history.csv` are all in `$DataArtifacts`, all appended
+   to every weekday, and the publish gate could see none of them.
+   `tests/test_one_observation_per_run_date.py` holds the only tripwire on the real committed
+   copies and now runs in the gate (11 tests, 1.5 s, offline). **Gating rather than reporting
+   because `factor_vol_history.csv` is read by `factor_engine.adjust_momentum_weight`**, so a
+   duplicated row changes the *next* run's momentum weight - a methodology change with no changelog
+   entry, which rule 3 forbids - and a double-counted day in `dispersion_history.csv` moves
+   `check_run_health`'s own trailing-median bar. Both files are written during the run, so they are
+   on disk before any gate.
+
+   Also corrected the converse test's docstring, which **asserted a check that does not exist**:
+   "evidence and data files ... are guarded by `check_run_health.py`". It is not - that gate judges
+   fetch evidence, coverage, dispersion, a vanished weighted metric and the 2026-10-22 input gates,
+   and never one-row-per-run-date. A comment claiming a check exists is what this project calls an
+   unchecked claim, and this one hid the gap.
+   `tests/test_published_claims_gate.py` **36 passed, was 35.**
+
+4. **Wednesday's subject is whatever changed the methodology since the last synthesis session**,
+   not only Monday's note - `CLAUDE.md`'s weekly-cycle table, `prompts/nightly.md`'s Wednesday
+   bullet and the runner's focus string, with the measurement behind it (four accepted proposals,
+   three of them bank scoring, zero synthesis sessions).
+
+5. **A research citation carries a DOI, a stable URL, *or* journal + volume(issue) + pages**, and
+   **a source reached only as an abstract carries `- not read`.** Net stricter: the second half is
+   the honesty requirement the corpus had already invented and the instruction had not asked for,
+   and an unmarked citation reads as "I checked the table" whether or not anyone did.
+
+6. **`CLAUDE.md`: 1036 -> 959 lines**, with +4 lines of new constraint in the Settled table, so
+   ~81 lines of closed record moved verbatim to `DECISIONS.md` (1048 lines). What moved: the lab's
+   experiments 14-17 (a chronology again, exactly as 2026-10-16 found), the four weight questions'
+   reasoning, backtest v2's measurement record, T0b, and 0.14's three settled input definitions -
+   capex refused, operating income kept, earnings yield refused - each now one line plus the
+   section a reopening must answer. **Both sources of regrowth are now named in the retrospective
+   prompt**, because they were the same two as last time: a per-item chronology, and a refused
+   proposal whose full argument sits under Open.
+
+7. **`prompts/retrospective.md`:** the fifth hole is in the score table with its distinct lesson;
+   step 3 asks what the gate's derivation *cannot* reach; the evidence list now says to count the
+   sessions that never started and to read the `BASELINE` lines; the scheduled/owner-run split is
+   recorded as **24/14 against 11/44**, with the point that the ratio is not a stable fact and the
+   rotation's job changes with it. `scripts/retro_artifact_coverage.py` is the throwaway that
+   found today's hole, kept and documented as the tool step 1 names.
+
+### Did
+
+See "Process changes made" - that is the session's work, plus the red-`main` fix that preceded it.
+Five commits, all process, gates and tests. Nothing in the screener's methodology was touched.
+
+### Evidence / research
+
+- No new literature; this session's measurements are of the project itself, all reproducible:
+  38 log entries 10-16..10-30, 24 scheduled / 14 owner-run; 11 changelog entries, 9 with an
+  Evidence section; 26 research notes, the 3 literature reviews carrying 14, 13 and 8 DOIs and
+  `research/2026-10-20-size-weight.md` carrying 13 sources, 0 DOIs and 4 marked `- not read`;
+  2 gate failures (10-18 and 10-19 06:00, both gates 1+4, both the background-job cause fixed by
+  `prompts/continuation.md`, **none since**); 1 lost session, 2 correct stand-downs; 10 data runs
+  logged, all completing, 1 correctly refused.
+- `tests/test_one_observation_per_run_date.py`: 11 tests in **1.52 s**, which is what makes it
+  affordable inside the data loop's gate.
+- `scripts/retro_artifact_coverage.py` on today's tree: **16 `$DataArtifacts` entries against 69
+  gate modules**; the rows that matter are `improvement` (21 modules naming it, all outside the
+  gate before today) and `factor_vol_history.csv` (3, all outside).
+
+### Methodology changed
+
+- none. A retrospective does not change methodology, and nothing here touched a weight, a
+  threshold or a formula. The one open proposal was deliberately left for a normal session.
+
+### Tried and rejected
+
+- **Running the full suite inside `data-run.ps1` after the publish, non-fatally, to catch a red
+  `main` at 02:25 instead of 06:0x.** Attractive - no membership list to go stale, which is the
+  lesson of all five holes - and rejected on the risk it creates: the suite would run *after* the
+  day's commit, and anything it left in the tree would hand the 06:00 session a dirty tree. That is
+  precisely the 2026-10-28 failure, which cost two sessions. Cleaning to `HEAD` afterwards would
+  probably be safe, but "probably" is not good enough for an unattended loop that publishes to a
+  live site, and the runner baseline buys most of the same information with machinery that is
+  already proven. If this is ever revisited, the cheap intermediate step is to run only the
+  payload-reading modules outside the publish gate.
+- **Registering the unscored-member sentence in `claims.py`** so the module would join the publish
+  gate by the derived mechanism. Coherent, and rejected because it changes the *consequence*: a
+  claim failure **discards the run**, and a test pinned to a transient ticker would then have cost
+  a day of evidence rather than four minutes of a session. The gate is for assertions whose failure
+  means *this publish* is unsafe; a stale ticker in a test is not that.
+- **Protecting Wednesday from the proposal queue** by making the queue wait a day. The queue
+  pre-emption was the owner's own direction (`OWNER_FOCUS.md` 2026-10-20, "Decide the OPEN
+  proposals" first) and it produced four accepted changes that fixed real defects, so the problem
+  was never the queue - it was that Wednesday had no subject of its own when Monday did not supply
+  one. Fixed on that side instead.
+- **Changing the retrospective's fortnightly frequency.** Five of five retrospectives have found a
+  live hole on the first runner read, which argues for *more often*, not less; but four of the five
+  were found by the enumeration rather than by elapsed time, and that enumeration is now a script
+  any session can run. Left at a fortnight.
+
+### Next
+
+**Decide the open proposal** in `research/2026-10-29-ttm-fills-the-empty-quarter.md` (fill an empty
+newest quarter from the source's own trailing series; it names section 4 as the thing to answer
+first) - it is the first job in Orient, and four of this routine's proposals have now been refused
+on a measurement the note had not made, so measure before deciding. Then **Monday 2026-11-02 is
+phase 0 of the universe-expansion plan**, which is the top open `OWNER_FOCUS.md` item and says so
+in its own Next line. The next synthesis Wednesday (2026-11-04) now has a subject waiting: the four
+accepted bank and share-class changes.
+
+### Flagged for the owner
+
+- **A red `main` is a four-hour blind spot, and the fix I shipped only shortens it.** The 02:00
+  data run can turn the tree red with no commit touching code, and nothing finds out until a code
+  session takes its baseline. On a weekday that is ~4 hours. The runner baseline tells the session
+  immediately and labels the gate, but it does not tell *you* any sooner, and it cannot act. The
+  honest closure is the one I rejected above - the data loop checking the tree it just created -
+  and it needs a guarantee that the suite leaves the tree clean, which I was not willing to assert
+  unattended on the publishing loop. Worth a decision: accept the window, or spend an owner session
+  proving the suite is tree-clean so the check can move to 02:25.
+- **The Factor Lab's payload has no drift tripwire, and cannot easily have one.** `lab_data.js`
+  plus its 15 parts are served live and generated by `factor_lab.py --build` from the gitignored
+  `data/lab/`. `SCREENER_OVERVIEW.md` and `research.html` both have tests asserting the committed
+  file equals the generator's output; the lab cannot, because the inputs are not in the repo. So a
+  session that changes the lab's arithmetic and does not rebuild publishes stale figures beside
+  correct Python, and every test passes. Options are all costs: commit a small fixture of the
+  library, hash the inputs into the payload and check the hash, or accept it and make rebuilding
+  part of the lab's checklist (it is in `ASSET_VERSION`'s five-things rule, but that pins the
+  *version*, not the *figures*).
+- **24 scheduled against 14 owner-run, reversed from 11/44 a fortnight ago.** The 2026-10-16
+  retrospective concluded the scheduled session's distinctive contribution was "deciding what the
+  owner's sessions left open". That was right for 11/44; at 24/14 the rotation is most of the
+  throughput and has to carry the roadmap itself, which is also why Wednesday's narrow remit
+  started to matter. Nothing to decide unless you expect the split to move back.
+- **`NIGHTLY_LOG.md` is 17,037 lines**, up from 11,779 a fortnight ago. Still not breaking
+  anything - rule 8 asks a session for its last three entries - but a retrospective reads every
+  entry since the last one, and the file is now 45% bigger than when the last one said this. The
+  obvious move remains archiving by month with the live file holding the current month. I did not
+  do it, for the same reason as last time: splitting the one file every session can find is how the
+  memory it preserves gets lost. Your call, and it is becoming the more pressing of the two.

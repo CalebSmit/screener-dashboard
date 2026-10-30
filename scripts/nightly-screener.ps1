@@ -90,7 +90,7 @@ $FocusBySlot = @{
 $FocusByDay = @{
     'Monday'    = 'RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.'
     'Tuesday'   = 'PRODUCT, THROUGH THE NUMBERS. Open the live dashboard as a user would and ask whether it answers what should I look at / should I buy this / should I sell what I hold / how much. The visual design is finished (owner, 2026-10-07), so presentation is not this session''s job. When the page cannot answer something the gap is almost always data or methodology: a number the run does not keep, a question no metric answers. Fix that. Check two or three drilldowns still reproduce the engine. A broken or false surface is a defect; one that merely could look different is not.'
-    'Wednesday' = 'SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.'
+    'Wednesday' = 'SYNTHESIS. Take whatever has changed the methodology since the last synthesis session - read METHODOLOGY_CHANGELOG.md back to it, not only Monday''s note. How does it fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.'
     'Thursday'  = 'BUILD. Implement what the week''s research justified. Write tests alongside the code.'
     'Friday'    = 'THE FACTOR LAB. One finished experiment: a paper the methodology cites, rerun on public data, tolerances written into factor_lab.py BEFORE the comparison runs, a failed replication published as one. plan/factor-lab.md governs; move EXPERIMENTS, TAKEAWAYS, CATEGORY_MAP, the methodology paragraph and ASSET_VERSION together. If the lab has nothing ready, harden and teach instead - tests, docs, error handling, the investment-club experience - and say which you chose.'
     'Saturday'  = 'WEEKEND. Work the single highest-value open item: OWNER_FOCUS.md first, then the top of CLAUDE.md "Current priorities", then the queues in plan/. Finish it end to end.'
@@ -549,6 +549,58 @@ try {
         }
     }
 
+    # --- Baseline: was main already red when this session started? ----------
+    # Added 2026-10-30 by the retrospective. CLAUDE.md's gate 1 is "no NEW failures vs the
+    # baseline you took at session start", but the runner - which has been the real gate since
+    # 2026-09-04 - never took one, so it could not tell a failure the session caused from one it
+    # inherited. It still refuses to merge either way, and that is deliberate: nothing should
+    # land on a red main. What was missing is the *label*, and the cost of its absence is a whole
+    # session.
+    #
+    # The case, measured this morning: at 02:21 the data run published a correct payload in which
+    # the source had served HONA again, and two tests in tests/test_unscored_members.py - shipped
+    # the previous evening naming HONA and VYLR, the two stocks one morning's fetch had failed -
+    # went red. No commit touched any code. main was red from 02:21, the brief said the run was
+    # healthy, and the 06:00 session would have had its gate 1 fail at 08:00 on a defect it did
+    # not cause, stranding the day's work on a branch with the log reading like its fault.
+    #
+    # Non-fatal in every direction: it publishes nothing, it decides nothing, and a baseline that
+    # cannot be taken is reported as unknown. Restore-Artifacts afterwards is the same cleanup
+    # gate 2 does, so the suite cannot hand the session a dirty tree.
+    # The same command gate 1 runs, resolved once so the baseline and the gate cannot drift
+    # apart - a baseline taken with different flags would label the gate wrongly, which is worse
+    # than not labelling it. In parallel since 2026-10-26: scripts/run_tests.py adds `-n auto`
+    # when pytest-xdist is importable and runs the exact serial command when it is not (or when
+    # xdist itself could not run the suite - pytest exit 3/4), so a missing plugin can never
+    # fail this gate. The verdict is still pytest's exit code alone. If the helper itself is
+    # missing, the serial command here is the one gate 1 always ran.
+    $gate1Args = @('-m', 'pytest', 'tests/', 'test_screener.py', '-q')
+    if (Test-Path (Join-Path $RepoPath 'scripts\run_tests.py')) {
+        $gate1Args = @('scripts/run_tests.py', 'tests/', 'test_screener.py', '-q')
+    }
+
+    $BaselineFailures = @()
+    $BaselineKnown = $false
+    $b = Invoke-Native 'python' $gate1Args
+    if ($b.ExitCode -eq 0) {
+        $BaselineKnown = $true
+        $bCount = $b.Output | Where-Object { "$_" -match '\b\d+ (passed|failed|errors?)\b.* in [\d.]+s' } |
+            Select-Object -Last 1
+        Write-Log "BASELINE main is GREEN on arrival ($("$bCount".Trim().Trim('=').Trim()))."
+    } else {
+        $BaselineFailures = @($b.Output | Where-Object { "$_" -match '^FAILED ' } |
+            ForEach-Object { ("$_" -split '\s+')[1] })
+        if ($BaselineFailures.Count -gt 0) {
+            $BaselineKnown = $true
+            Write-Log "BASELINE main was RED on arrival: $($BaselineFailures.Count) pre-existing failure(s). The session did not cause these:" 'WARN'
+            foreach ($f in $BaselineFailures) { Write-Log "    $f" 'WARN' }
+            Write-Log "BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green." 'WARN'
+        } else {
+            Write-Log "BASELINE could not be taken (python/pytest exited $($b.ExitCode) with no FAILED lines) - gate 1 is unlabelled today." 'WARN'
+        }
+    }
+    Restore-Artifacts 'left by the baseline test run'
+
     # --- Prompt -------------------------------------------------------------
     $TemplateName = if ($IsRetro) { 'retrospective.md' } else { 'nightly.md' }
     $TemplatePath = Join-Path $RepoPath "prompts\$TemplateName"
@@ -657,17 +709,7 @@ try {
     $head = (Invoke-Native 'git' @('rev-parse', '--abbrev-ref', 'HEAD')).Text.Trim()
     Write-Log "HEAD is on '$head'"
 
-    # Gate 1: tests
-    #
-    # In parallel since 2026-10-26: scripts/run_tests.py adds `-n auto` when pytest-xdist is
-    # importable and runs the exact serial command when it is not (or when xdist itself could
-    # not run the suite - pytest exit 3/4), so a missing plugin can never fail this gate. The
-    # verdict is still pytest's exit code alone. If the helper itself is missing, the serial
-    # command below is the one this gate always ran.
-    $gate1Args = @('-m', 'pytest', 'tests/', 'test_screener.py', '-q')
-    if (Test-Path (Join-Path $RepoPath 'scripts\run_tests.py')) {
-        $gate1Args = @('scripts/run_tests.py', 'tests/', 'test_screener.py', '-q')
-    }
+    # Gate 1: tests. $gate1Args is resolved before the session, where the baseline uses it too.
     $t = Invoke-Native 'python' $gate1Args
     $tail = ($t.Output | Select-Object -Last 3) -join ' '
     # A pass logs pytest's own count line. The last three lines carried the warnings footer's
@@ -678,7 +720,24 @@ try {
         Select-Object -Last 1
     if ($count) { $passLine = "$count".Trim().Trim('=').Trim() } else { $passLine = $tail }
     if ($t.ExitCode -eq 0) { Write-Log "GATE 1 tests: PASS ($passLine)" }
-    else { Write-Log "GATE 1 tests: FAIL ($tail)" 'ERROR'; $gateFailures += 'tests' }
+    else {
+        Write-Log "GATE 1 tests: FAIL ($tail)" 'ERROR'
+        $gateFailures += 'tests'
+        # Say which of these the session inherited. The gate's verdict does not change - nothing
+        # merges onto a red main - but "the session broke 1 test" and "the session fixed none of
+        # the 2 it inherited" are different days, and until 2026-10-30 the log could not tell
+        # them apart. Reporting only; no branch of this can let a failure through.
+        if ($BaselineKnown) {
+            $now = @($t.Output | Where-Object { "$_" -match '^FAILED ' } | ForEach-Object { ("$_" -split '\s+')[1] })
+            $new = @($now | Where-Object { $BaselineFailures -notcontains $_ })
+            $inherited = @($now | Where-Object { $BaselineFailures -contains $_ })
+            Write-Log "GATE 1 attribution: $($new.Count) new, $($inherited.Count) inherited from a main that was already red." 'ERROR'
+            foreach ($f in $new) { Write-Log "    new: $f" 'ERROR' }
+            foreach ($f in $inherited) { Write-Log "    inherited: $f" 'ERROR' }
+        } else {
+            Write-Log "GATE 1 attribution: unknown - no baseline was taken this run." 'WARN'
+        }
+    }
 
     # Gate 2: pipeline wiring
     $d = Invoke-Native 'python' @('run_screener.py', '--dry-run')

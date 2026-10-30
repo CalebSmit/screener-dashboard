@@ -24,7 +24,15 @@ Do not rely on impressions. Go and look:
   many merges, and how substantial?
 - **`logs/*.log`** - how many runs failed their ship gates, and which gate? Not
   session duration: measured three times now, the range is 14-35 minutes against
-  a 4-hour limit and the worst ever was 93. Stop checking it.
+  a 4-hour limit and the worst ever was 93. Stop checking it. **Also count the
+  sessions that never got to start** - a runner can lose a day before invoking
+  anything (2026-10-28 06:00: "Could not stash the leftovers", a refused data run
+  having left three untracked files behind), and those logs are short enough to
+  skim past.
+- **`BASELINE` in the newest session logs** (added 2026-10-30) - was `main` red
+  when a session arrived, and did the session notice? The 02:00 data run can
+  redden it with no commit touching code, and a session that spends its day on
+  its focus instead gets its work refused by gate 1.
 - **`METHODOLOGY_CHANGELOG.md`** - are methodology changes actually being
   evidenced, or are entries getting thin and formulaic?
 - **`research/`** - are the notes real research with citations, or
@@ -39,21 +47,25 @@ Do not rely on impressions. Go and look:
   points here, and **all four retrospectives that have looked found a live hole
   on the first read.**
 
-  **Do this as an enumeration, not a read-through.** Every one of the four holes
-  was the same shape - *the strongest check guards the path that publishes least
-  often* - and 2026-10-16 found two of them in one file because the check had
-  been written for an artifact that then acquired a sibling. So:
+  **Do this as an enumeration, not a read-through.** So:
 
   1. **List every artifact `data-run.ps1` stages** (`$DataArtifacts`) and, for
      each, name the check that stands between it and the public site **on both
      paths**. An artifact with no check is the finding. Do the converse too: an
      artifact named in a gate's scope that the loop no longer stages.
+     **`python scripts/retro_artifact_coverage.py`** prints the crude version - every test
+     module naming each artifact, and which of them the publish gate runs. It is a
+     prompt for judgement, not a verdict (a module about the runners names every
+     artifact); reading its `improvement` and `factor_vol_history.csv` rows is how
+     2026-10-30 found its hole.
   2. **List every generated thing a session can change** and ask which gate would
      see it. Gates 1 and 3 read *committed* artifacts; only a full run rewrites
      them (this is why `scripts/rehearse_publish.py` exists).
   3. **Check `claims.py` against `scripts/check_published_claims.py`** - every
      `checked_by` module must be inside the gate. It is derived now, so this
-     should be a one-line confirmation rather than an audit.
+     should be a one-line confirmation rather than an audit. **Then ask the
+     question derivation cannot:** `claims.py` registers published *sentences*, so
+     a staged artifact that carries no sentence is invisible to it. Which ones?
 
   Keep score rather than re-finding them:
 
@@ -63,30 +75,41 @@ Do not rely on impressions. Go and look:
   | 2026-09-18 | the data loop published the payload behind a size floor where the code loop had gate 3 | `node --check` on both paths |
   | 2026-10-02 | the data loop published regenerated public docs having run **no tests**, where the code loop had gate 1 | `scripts/check_published_claims.py` |
   | 2026-10-16 | `dashboard_context.js` - a second published payload file since 2026-10-08 - had no floor, no parse and no header check on **either** path; and 15 modules holding 64 of `claims.py`'s own checks were outside the claims gate | both runners' spec lists; the gate's membership derived from `claims.py` |
+  | 2026-10-30 | the three **evidence** files the loop appends to (`dispersion_history.csv`, `improvement/snapshots/`, `factor_vol_history.csv` - the last read by `adjust_momentum_weight`, so it sets the *next* run's weight) had no gate on either path, and the test that excluded them asserted they were "guarded by `check_run_health.py`", which does not look at them | `tests/test_one_observation_per_run_date.py` in the publish gate |
 
-  So gates 1, 3 and the brief have counterparts on both paths. **Gate 2
+  The first four were one shape - *the strongest check guards the path that
+  publishes least often*. **The fifth was a different one and is the more useful
+  lesson: a derived membership rule is only as wide as the thing it derives from.**
+  Deriving the gate from `claims.py` made a missing *page sentence* impossible and
+  a missing *evidence file* permanent. When a list is replaced by a derivation,
+  ask what the derivation cannot reach.
+
+  Gates 1, 3 and the brief have counterparts on both paths. **Gate 2
   (`--dry-run`) and gate 4 (clean tree) deliberately do not**, and that was
   checked on 2026-10-16: the data loop *runs the real pipeline*, which strictly
   dominates a dry-run, and it stashes a dirty tree before starting and stages
   only its own artifact list, which is stronger than a clean-tree check in the
-  direction that matters. Do not "close" either; look for the next sibling
-  artifact instead.
+  direction that matters. Do not "close" either.
 
-- **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 970 lines across four
-  retrospectives. It grows back every fortnight by the same mechanism: an item
-  closes and its record stays in "Open", in the one file every session must read
-  before it starts. **Expect to move 100+ lines every time, and do it whatever
-  the number says** - the test is not "is it longer than last time" but "is
-  anything under Open actually closed". A closed item's reasoning belongs in
+- **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 970 -> 1036 -> 959 lines
+  across five retrospectives. It grows back every fortnight by the same mechanism:
+  an item closes and its record stays in "Open", in the one file every session
+  must read before it starts. **Expect to move 100+ lines every time, and do it
+  whatever the number says** - the test is not "is it longer than last time" but
+  "is anything under Open actually closed". A closed item's reasoning belongs in
   `DECISIONS.md`, its constraint in `CLAUDE.md`, its discovery in
-  `NIGHTLY_LOG.md`.
+  `NIGHTLY_LOG.md`. The two biggest sources, both times: a per-item chronology
+  that should be a table in `DECISIONS.md`, and a *refused* proposal whose
+  full argument sits under Open when one line plus "read section N before
+  reopening" would do.
 
 - **Who is doing the work.** Count `NIGHTLY_LOG.md` entries since the last
-  retrospective, split by scheduled versus owner-run. On 2026-10-16 it was **11
-  scheduled against 44 owner-run**, and that changes what the scheduled sessions
-  are *for*: not "do the next item" but "decide what the owner's sessions left
-  open, and hold the whole thing together". If the split has moved, say what it
-  implies for the rotation.
+  retrospective, split by scheduled versus owner-run. It was **11 scheduled / 44
+  owner-run** on 2026-10-16 and **24 / 14** on 2026-10-30 - so the ratio is not a
+  stable fact and the rotation's job changes with it. Say what the current split
+  implies: at 11/44 the scheduled session's distinctive contribution was *deciding
+  what the owner's sessions left open*; at 24/14 it is most of the throughput and
+  the rotation has to carry the roadmap itself.
 
 ## 2. Answer these honestly
 
