@@ -10093,7 +10093,18 @@ def _js_context() -> str:
     }
     function cPlain(v, d) {
         if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
-        return (v * 100).toFixed(d === undefined ? 1 : d) + '%';
+        d = d === undefined ? 1 : d;
+        let s = (v * 100).toFixed(d);
+        // A small non-zero value that rounds to zero keeps its sign and size: AMD's five-year
+        // low earnings yield, a loss, read "-0.0%" and INTC's median "-0.0%" (all-panel sweep,
+        // 2026-10-29) - the BXP "0.0%" defect of 2026-10-28 in another formatter. One more
+        // decimal, as the case-against trend line takes; if that is still zero the value is zero
+        // to the reader and says so unsigned.
+        if (Number(s) === 0 && v !== 0) {
+            s = (v * 100).toFixed(d + 1);
+            if (Number(s) === 0) s = (0).toFixed(d);
+        }
+        return s + '%';
     }
     function cMoney(v) {
         if (v === null || v === undefined || !isFinite(v)) return '&mdash;';

@@ -363,6 +363,18 @@ def test_a_close_just_below_its_200_day_average_still_reads_as_below(page, data)
         assert line.startswith(f"Its last close is {want} against"), (px, s200, line)
 
 
+def test_a_small_percent_in_the_context_panels_keeps_its_sign(page):
+    """2026-10-29, an all-panel sweep of the live page: AMD's five-year earnings-yield range read
+    "-0.0% – 3.2%" (its low was a loss) and INTC's median "-0.0%". `cPlain` formats every context
+    panel's percent; a value that rounds to zero at its precision now takes one more decimal."""
+    got = page.evaluate("[-0.0003, 0.0002, -0.00049, 0.000001, -0.000001, 0, 0.0123, -0.05, 0.0004]"
+                        ".map(v => cPlain(v))")
+    assert got == ["-0.03%", "0.02%", "-0.05%", "0.0%", "0.0%", "0.0%", "1.2%", "-5.0%", "0.04%"], got
+    assert page.evaluate("cPlain(-0.0003, 2)") == "-0.03%"
+    assert page.evaluate("cPlain(-0.00003, 2)") == "-0.003%"
+    assert not any(s.startswith("-0.0%") for s in got)
+
+
 def test_each_line_opens_the_section_that_shows_it(page, cases):
     """Each kind of line, clicked, brings its section to the top of the sheet (opened if folded),
     and the navigation layer still wraps openStockDetail (UX.current follows it)."""
