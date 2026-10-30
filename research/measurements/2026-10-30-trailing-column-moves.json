@@ -1,0 +1,188 @@
+{
+ "rows": [
+  {
+   "ticker": "AMZN",
+   "quarterly_columns": 7,
+   "quarterly_newest_column": "2026-09-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-09-30"
+   ],
+   "gap_quarters": 2,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-22"
+  },
+  {
+   "ticker": "APH",
+   "quarterly_columns": 6,
+   "quarterly_newest_column": "2026-06-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-06-30"
+   ],
+   "gap_quarters": 1,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-28"
+  },
+  {
+   "ticker": "CHD",
+   "quarterly_columns": 6,
+   "quarterly_newest_column": "2026-06-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-06-30"
+   ],
+   "gap_quarters": 1,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-29"
+  },
+  {
+   "ticker": "CHRW",
+   "quarterly_columns": 6,
+   "quarterly_newest_column": "2026-06-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-06-30"
+   ],
+   "gap_quarters": 1,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-29"
+  },
+  {
+   "ticker": "CPT",
+   "quarterly_columns": 6,
+   "quarterly_newest_column": "2026-06-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-06-30"
+   ],
+   "gap_quarters": 1,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-24"
+  },
+  {
+   "ticker": "DD",
+   "quarterly_columns": 6,
+   "quarterly_newest_column": "2026-06-30",
+   "scored_on": "2026-06-30",
+   "trailing_columns": [
+    "2026-06-30"
+   ],
+   "gap_quarters": 0,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-31"
+  },
+  {
+   "ticker": "AEE",
+   "quarterly_columns": 6,
+   "quarterly_newest_column": "2026-06-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-06-30"
+   ],
+   "gap_quarters": 1,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-30"
+  },
+  {
+   "ticker": "ES",
+   "quarterly_columns": 6,
+   "quarterly_newest_column": "2026-06-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-06-30"
+   ],
+   "gap_quarters": 1,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-31"
+  },
+  {
+   "ticker": "FDXF",
+   "quarterly_columns": 1,
+   "quarterly_newest_column": "2025-11-30",
+   "scored_on": "2025-11-30",
+   "trailing_columns": [
+    "2026-05-31"
+   ],
+   "gap_quarters": 2,
+   "sec_cache_newest_fact_end_any_kind": "2026-08-03"
+  },
+  {
+   "ticker": "BAC",
+   "quarterly_columns": 7,
+   "quarterly_newest_column": "2026-09-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-09-30"
+   ],
+   "gap_quarters": 2,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-30"
+  },
+  {
+   "ticker": "BNY",
+   "quarterly_columns": 7,
+   "quarterly_newest_column": "2026-09-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-09-30"
+   ],
+   "gap_quarters": 2,
+   "sec_cache_newest_fact_end_any_kind": "2026-06-30"
+  },
+  {
+   "ticker": "TFC",
+   "quarterly_columns": 7,
+   "quarterly_newest_column": "2026-09-30",
+   "scored_on": "2026-09-30",
+   "trailing_columns": [
+    "2026-09-30"
+   ],
+   "gap_quarters": 0,
+   "sec_cache_newest_fact_end_any_kind": "2026-06-30"
+  },
+  {
+   "ticker": "EXR",
+   "quarterly_columns": 7,
+   "quarterly_newest_column": "2026-09-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-09-30"
+   ],
+   "gap_quarters": 2,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-24"
+  },
+  {
+   "ticker": "FLEX",
+   "quarterly_columns": 7,
+   "quarterly_newest_column": "2026-09-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-09-30"
+   ],
+   "gap_quarters": 2,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-24"
+  },
+  {
+   "ticker": "ILMN",
+   "quarterly_columns": 7,
+   "quarterly_newest_column": "2026-09-30",
+   "scored_on": "2026-03-31",
+   "trailing_columns": [
+    "2026-09-30"
+   ],
+   "gap_quarters": 2,
+   "sec_cache_newest_fact_end_any_kind": "2026-07-24"
+  }
+ ],
+ "one_period_only": 15,
+ "gap_one_checkable": [
+  "AEE",
+  "APH",
+  "CHD",
+  "CHRW",
+  "CPT",
+  "ES"
+ ],
+ "gap_two_or_more_uncheckable": [
+  "AMZN",
+  "BAC",
+  "BNY",
+  "EXR",
+  "FDXF",
+  "FLEX",
+  "ILMN"
+ ],
+ "newer_at_all": 13
+}
