@@ -725,6 +725,9 @@ already shipped to the live public site.
 | bot | **Only the gated run is tradable** (2026-10-24, owner item 2026-10-21 items 5-6; bot ROADMAP 1.2/1.10). `dashboard_data.js` is published by **two** paths and the seven data-loop gates stand in front of only one of them, so `data-run.ps1` writes **`signals.json`** after the last gate and before the commit, and **`nightly-screener.ps1` never writes or stages it** - that asymmetry *is* the mechanism, and a second writer anywhere reopens the hole. Each gate records `pass`, or **`warn`** where node or pytest was absent; there is no `fail` verdict, because the file exists only after every gate accepted. It is **not a gate**: a failed write leaves the previous file (stale, which the bot declines) rather than discarding a day of evidence. `kpis` carries the four audit identifiers - `run_timestamp`, `methodology_version`, `run_id`, `git_sha`, `raw_sha256` - computed once in `run_fingerprint.py`, which hashes **this run's own** `00_raw_fetch.parquet` and never the copy `_find_raw_fetch` borrows for display, and publishes an absent one as `null`, never as git's `"unknown"`. `scripts/archive_run.py` keeps each published run's raw fetch where the prune cannot reach it (`%LOCALAPPDATA%\ScreenerArchive`, outside OneDrive, **never pruned**), verified by re-hashing against the published hash - without it the hash names a file deleted after four weeks | `tests/test_tradable_signals.py`, `tests/test_run_fingerprint.py`, `tests/test_run_archive.py` |
 | gates | Both publish paths parse **both payload files** (`node --check`) and check each one's opening assignment - `dashboard_data.js` and `dashboard_context.js`; **every `.js` in `$DataArtifacts` must be named in both runners' specs** (2026-10-16, after the context payload published unguarded for eight days). The data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`), and **that gate's membership is derived from `claims.py`'s `checked_by`, never transcribed** (2026-10-16: 15 modules, 64 claim checks, were outside a hand-kept list). Where node or pytest is absent both fall back with a `WARN` rather than jamming; a check left out goes in `EXCLUDED` with a reason that is printed every run. **The overview tripwire counts both routes to the page's text** - the committed `SCREENER_OVERVIEW.md` *and* a call to `build_screener_overview` (2026-10-13) - and `PUBLISHED_ARTIFACTS` is checked in **both** directions against `$DataArtifacts` | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
 
+| data->red | **The data loop can turn `main` red with no commit touching code**, because it republishes the payload every weekday and a test can be pinned to one morning's data. So: **a test that reads the published payload asserts its own premise** - never which stock, run folder or ticker today's data happened to behave a certain way for (2026-10-30, `tests/test_unscored_members.py` named the two stocks the previous morning's fetch failed; 2026-10-28, `tests/test_investor_profiles.py` read the *newest* `runs/` folder rather than the run the payload names). And the runner takes **gate 1's baseline before invoking the session**, with the same command resolved once, so the log can say how many failures were new and how many inherited. The baseline publishes nothing and **never softens the gate**: nothing merges onto a red `main`, and an inherited failure is still that session's work, ahead of its focus | `tests/test_gate_ordering.py` (the baseline block may not merge/push/tag/Stop-Run; the attribution block may not alter the verdict) |
+| evidence | **The evidence files the data loop appends to are gated, not just reported.** `improvement/dispersion_history.csv`, `improvement/snapshots/` and `factor_vol_history.csv` are staged every weekday and the publish gate could not see them, because its membership derives from `claims.py` and `claims.py` registers published *sentences* (2026-10-30). `factor_vol_history.csv` is read by `factor_engine.adjust_momentum_weight`, so a duplicated row changes the **next** run's momentum weight - a methodology change with no changelog entry, which rule 3 forbids - and a double-counted day in `dispersion_history.csv` moves `check_run_health`'s own trailing-median bar. Do not "simplify" the gate back to page text, and do not assert in a comment that `check_run_health` covers these: it does not | `tests/test_one_observation_per_run_date.py` (in the publish gate), `tests/test_published_claims_gate.py` |
+
 **One constraint with no test, kept here because it governs how you spend the
 session:** a weekly usage ceiling exists and silently killed the 2026-08-14
 session with a 429. There is no per-session dollar cost to optimise - the owner
@@ -759,27 +762,16 @@ Defect 3 survived for months because **a test asserted it** - when you correct a
 published claim, grep the tests as well as the prose. `tests/test_claims_register.py`,
 24 tests, in the data loop's publish gate.
 
-**T0b's fourth defect is FIXED** (the "N of 18" badge reads the engine's applicable coverage).
-**Since 2026-10-09 that coverage counts only metrics that carry weight** (28 generic, 25 for
-banks; `factor_engine.weighted_metric_sets`), so a weight-0 candidate cannot move a composite.
-The *coverage filter* that excludes thin stocks reads the same weighted coverage (aligned the same
-day; measured: no stock's inclusion changed).
+**T0b is FIXED.** Coverage counts only metrics that carry weight (28 generic, 25 for banks;
+`factor_engine.weighted_metric_sets`), so a weight-0 candidate cannot move a composite, and the
+coverage filter that excludes thin stocks reads that same number.
 
-**0.11. The context layer - CLOSED 2026-10-20 (opened 2026-10-08).** Technicals, options, insider
-trades, a market backdrop, valuation against its own history and the track record, all
-context-only. Every queue item in `plan/context-layer.md` is done, and the close-out audit fixed
-three defects the queue had hidden (a live "Quotes are the previous close" for mid-session quotes,
-a mid-session run's prices in the evidence log, and the old put skew spliced into the evaluation)
-and registered every remaining computational sentence on the panels. The record moved to
-`DECISIONS.md` ("0.11, closed"); the closing list is `plan/context-layer.md` "CLOSED 2026-10-20".
-**The one remaining item is time, not work** - do not count it as deferred: each signal's first
-`1m` reading arrives with the **2026-11-09** run (the skew's about 11-16) and the engine's gate of
-8 effective observations is about mid-2027; read the brief's `context_eval` line. What still binds:
+**0.11. The context layer - CLOSED 2026-10-20** (record: `DECISIONS.md` "0.11, closed";
+`plan/context-layer.md` "CLOSED 2026-10-20"). **The one remaining item is time, not work** - do
+not count it as deferred: each signal's first `1m` reading arrives with the **2026-11-09** run
+(the skew's about 11-16) and the engine's gate of 8 effective observations is about mid-2027;
+read the brief's `context_eval` line. Three constraints survive it, beyond settled row "ctx":
 
-- **Settled row "ctx"** - never in `raw`, `pct`, a category score or the composite; a signal joins
-  the score only with a research note **and** a measured `1m` record at the engine's own gate.
-  The option-implied signals and the macro backdrop are **not** score candidates (findings, not
-  pending); the track record is never methodology evidence.
 - **A claim whose check tests the plumbing instead of the assertion is an unchecked claim.** Every
   computational sentence on a context panel has a `context.*` claim checked by behaviour
   (`tests/test_context_layer_claims.py` renders the generator's own page).
@@ -788,11 +780,11 @@ and registered every remaining computational sentence on the panels. The record 
   never writes `data/context_log/`** (`context_signals.mid_session_reason`); the skew before
   2026-10-16's log is excluded from `context_eval`, never spliced. Do not loosen `MAX_REL_SPREAD`
   or the IV bounds to raise coverage.
+- The option-implied signals and the macro backdrop are **not** score candidates (findings, not
+  pending); the track record is never methodology evidence.
 
-**0.12. Metric audit residuals - CLOSED 2026-10-12.** Nine defects fixed and four judgement
-calls answered; the record moved to `DECISIONS.md` ("0.12, closed") on 2026-10-16
-(`research/2026-10-09-metric-audit.md`, the changelog's "metric audit" entries). Two
-constraints survive it:
+**0.12. Metric audit residuals - CLOSED 2026-10-12** (`DECISIONS.md` "0.12, closed";
+`research/2026-10-09-metric-audit.md`). Two constraints survive it:
 
 - **The momentum panic rule's three numbers are set in advance and are never re-fitted** -
   S&P 500 total-return 24-month return negative **and** 126-day volatility above a fixed
@@ -804,18 +796,11 @@ constraints survive it:
   13 points in all) - measured, deliberately unchanged. Do not "discover" it again.
 
 **0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
-`plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day**, one finished
-experiment a session; next lab Friday is 2026-10-23. Seventeen experiments as of 2026-10-20,
-**145 of 217 figures within tolerance**; the per-experiment record moved to `DECISIONS.md`
-("0.13, the lab's first thirteen experiments") on 2026-10-16. Experiment 14 (asset growth,
-Cooper, Gulen & Schill 2008; 13 of 24) is in `plan/factor-lab.md` and
-`research/2026-10-19-lab-asset-growth.md`: by market value it has earned about nothing since 2003.
-Three more on 2026-10-20 (owner-run night), each in `plan/factor-lab.md` with its note: **15**, Jensen, Kelly &
-Pedersen (2023) on their own 153 factors (10 of 10; **its data is CC BY-NC 4.0 - teaching page only, never
-anything that trades**); **16**, size inside each profitability fifth - Size's pre-registered rule **not refuted**
-(10 of 17); **17**, Piotroski (2000) on Open Source Asset Pricing's published portfolios (1 of 4, a miss
-explained by the decile cut of a ten-value score). Every new experiment needs a **second reader** before it
-counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2).
+`plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day** - the next one
+that is not a retrospective - one finished experiment a session. **Seventeen experiments as of
+2026-10-20, 145 of 217 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
+("0.13, the lab's first thirteen experiments" and "experiments 14-17"). Every new experiment needs
+a **second reader** before it counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2).
 
 **The rules, which do not move:**
 
@@ -835,26 +820,19 @@ counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2).
 - `prompts/nightly.md` section 3 carries the lab, the route to a weight and how to read a paper -
   keep it true when any of them changes.
 
-**What the first two questions settled** (read the notes before reopening either):
+**Three of the five weight questions are answered. Read `DECISIONS.md` "The four weight
+questions the lab raised" before reopening any of them** - each answer rests on a measurement,
+and the reasoning is there rather than here.
 
-- **Growth's 13% stays** - proposal Growth 13 -> 10 / Quality 22 -> 25 **REFUSED 2026-10-13**
-  (`research/2026-10-12-growth-category.md` section 10). Net growth exposure is monotonic in the
-  weight, crosses zero at **13.5**, and is within 0.05 of neutral only over **11-16**, because
-  Growth is the one category running against the rest (**-0.388** against the mean of the other
-  seven). If growth earns nothing the supported exposure is zero, and 13 points is what delivers
-  it: **cutting an unrewarded-but-offsetting category's weight does not remove a position on
-  growth, it takes one.** `tests/test_growth_category.py` is in the publish gate and fails if the
-  committed ranking leaves 0.05 of growth-neutral. **The open Growth question is composition, not
-  weight** - `revenue_growth` against `asset_growth`, and whether growth in profitability belongs
-  in Quality (note section 11).
-- **Momentum's weight stays** (`research/2026-10-12-value-and-momentum-among-large-companies.md`):
-  large-company value was never reliable on book value and is better supported on the earnings and
-  cash-flow measures this screener uses; large-company momentum is strong in every published
-  sample and flat on public data since 2000. Lab and literature disagree, so the weight stands -
-  **do not cut Momentum on the lab's number alone, and never quote an all-stock premium for either
-  category on the methodology page** (`tests/test_large_company_evidence.py`).
-
-**Question 4 is answered (2026-10-20): Size stays at 5%** (`research/2026-10-20-size-weight.md`) - no unconditional size premium among large companies, but the within-sector small tilt beside Quality is documented practice (MSCI, FTSE Russell, Dimensional) and it is one of the counterweights holding the ranking growth-neutral; the trigger to reopen it is lab experiment 4b, with its refutation criterion written in the note. Questions 3 and 5 are open Mondays.
+- **Growth 13 stays** (REFUSED 2026-10-13). `tests/test_growth_category.py` is in the publish gate
+  and fails if the committed ranking leaves 0.05 of growth-neutral. The open Growth question is
+  **composition, not weight**.
+- **Momentum's weight stays** (2026-10-13). Lab and literature disagree, so it stands: **do not
+  cut Momentum on the lab's number alone, and never quote an all-stock premium for either category
+  on the methodology page** (`tests/test_large_company_evidence.py`).
+- **Size stays at 5%** (2026-10-20). The trigger to reopen it is lab experiment 4b, criterion
+  pre-written in the note.
+- **Questions 3 and 5 are open Mondays.**
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07).**
 A data change, not design - the residual of the transparency work. **(a)-(d) are BUILT**
@@ -863,56 +841,34 @@ CAPM terms, beta its covariance / variance, volatility its daily standard deviat
 and the three surprise metrics show their four quarters. **What remains is Sharpe and Sortino**
 (weight 0, shown for reference) - low value; do them only if a session has nothing better.
 
-Two things to carry forward. **The pattern to copy is `max_drawdown_1y`:** the two closes the
-fall was measured between are computed **where the metric is computed**, stored as
-`_mdd_peak` / `_mdd_trough`, published through `ENGINE_KEYS`, and divided on the row - one
-computation, published, never a second one in the generator or in JS (row 0.8). And the argument
-for finishing it: writing that equation down is what exposed the log-return compounding error -
-*you cannot write a metric's arithmetic down without checking it.* Coverage was measured
-2026-10-08 (`research/measurements/2026-10-08-equation-coverage.py`) at 15 exact equations of 29
-weighted metrics, 58.0% of composite weight; **re-measure rather than trusting that number.**
+**The pattern to copy is `max_drawdown_1y`:** the two closes the fall was measured between are
+computed **where the metric is computed**, stored as `_mdd_peak` / `_mdd_trough`, published
+through `ENGINE_KEYS`, and divided on the row - one computation, published, never a second one in
+the generator or in JS (row 0.8). The argument for finishing it at all: writing that equation down
+is what exposed the log-return compounding error - *you cannot write a metric's arithmetic down
+without checking it.* Coverage measured 2026-10-08 at 15 exact equations of 29 weighted metrics,
+58.0% of composite weight (`research/measurements/2026-10-08-equation-coverage.py`) -
+**re-measure rather than trusting that number.**
 
 **0.14. The inputs against the companies' own filings (opened 2026-10-14, owner-run).**
-`research/2026-10-14-yahoo-vs-sec.md`. Rebuilt from SEC XBRL for the same quarter, the Yahoo
-inputs agree within 0.5% for 99.8% of companies on total assets, 98.8% on operating cash flow,
-97.9% on equity, 94.3% on net income and 88.5% on revenue; the larger disagreements examined are
-definitional (bank revenue, minority interests, excise taxes). **Capex is different by
-construction** (Yahoo's row adds intangibles and finance-arm lease assets) - question 6 in
-`plan/factor-lab.md`, **decided 2026-10-15**: the proposal to subtract a captive's lease
-purchases was **refused** (it would keep the finance arm's operating cash flow and its debt while
-dropping its capex; GM's own 10-K starts from *automotive* operating cash flow of $18.7B against
-the consolidated $26.87B), and the FCF-yield row now decomposes the capex figure from the
-company's own filings instead - display-only, claim `drilldown.capex_lease_note`,
-`tests/test_capex_lease_note.py`. **Do not rebuild the refused rule without answering section 5.7
-of `research/2026-10-14-capex-definition.md`**, and note that any such rule puts 9.9 composite
-points on the weekly SEC cache, which scoring deliberately never reads. `sec_crosscheck.py` (offline, read-only) now runs in the data loop's health
-check as a **note**: per-field counts every morning, and an `ATTENTION -` line, surfaced in the
-brief, when any field disagrees by over 10% for more than **25** stocks (pre-registered; that day's
-counts were 0-13). Market value (market cap / price) against the filed share count is in
-the same note with its own line of **60** (22 over 10% on 2026-10-14: splits after the filed
-quarter, partnership units, filers' tagging errors). **Promote it to a gate only after a few weeks of counts show its normal range**,
-and then only for the fields that sat near zero. **Each stock's Data Provenance panel shows the same check**
-(`stock_detail[t].xchk`, `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`):
-which inputs agree within 2% with the filing. Display-only - a test fails if `xchk` or
-`sec_crosscheck` appears in a scoring module.
-**Operating income is settled (2026-10-15, owner-run): keep the source's "Operating Income" row.** It is
-as-reported less the source's "Special Income Charges"; the "Total Operating Income As Reported" row
-equals the filings 374 of 374. The persistence evidence (Rouen, So & Wang 2021) and MSCI's practice
-support the pre-special-items figure for ROIC and EV/EBITDA, so its disagreement with the filing is the
-definition, not a defect - **do not "fix" it by switching rows or to the filings.**
-**Earnings yield is settled too (2026-10-16): it stays on net income as reported.** The proposal to
-score it on the source's "Normalized Income" was **REFUSED** - the research is good (Rouen, So &
-Wang 2021: persistence 0.810 against 0.637) but the input cannot be put on one basis. At the
-four-quarter window the engine sums, **23 companies have no normalized figure at all** (Amazon, Bank
-of America, Berkshire, Boeing), which re-creates the fallback-cohort defect `factor_engine.py:2094`
-records Phase 13 fixing *in this metric*; and **8 of the 18 fallback companies whose figures are
-known carry annual one-offs worth 10%+ of net income** (Boeing 434%, General Mills 2,193%), so it
-would remove the small distortions and keep the largest. Reading "absent" as zero is false for 70
-companies. **Do not reopen it without answering section 8.6** of
-`research/2026-10-15-earnings-definition.md`. What shipped instead is display-only: the
-earnings-yield row says what one-off charge is inside the figure, from the company's own filings
-(47 of 501 stocks; **37 of those 47 tag one every one of their last four fiscal years**), claim
-`drilldown.special_item_note`, `tests/test_special_item_note.py`.
+`research/2026-10-14-yahoo-vs-sec.md` measured the agreement; **three input definitions are
+settled and the reasoning is in `DECISIONS.md` "0.14, the three input definitions settled against
+the filings"** - capex's lease subtraction REFUSED, operating income kept on the source's
+pre-special-items row, earnings yield kept on net income as reported. Each shipped a
+**display-only** row in its place, and each names the section a reopening must answer first. Do
+not reopen one without reading that entry.
+
+What is still open is the check itself. `sec_crosscheck.py` (offline, read-only) runs in the data
+loop's health check as a **note**: per-field counts every morning, and an `ATTENTION -` line,
+surfaced in the brief, when any field disagrees by over 10% for more than **25** stocks
+(pre-registered; that day's counts were 0-13). Market value (market cap / price) against the filed
+share count has its own line of **60** (22 over 10% on 2026-10-14: splits after the filed quarter,
+partnership units, filers' tagging errors). **Promote it to a gate only after a few weeks of
+counts show its normal range**, and then only for the fields that sat near zero. Each stock's Data
+Provenance panel shows the same check (`stock_detail[t].xchk`,
+`generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`): which inputs agree
+within 2% with the filing. **Display-only** - a test fails if `xchk` or `sec_crosscheck` appears
+in a scoring module.
 
 **0.6. One observation per run date - CLOSED 2026-10-08.** The record moved to `DECISIONS.md`
 ("0.6, closed") on 2026-10-16. The constraint: **every append-once-per-run file holds one row
@@ -921,93 +877,60 @@ per run date** - `dispersion_history.csv`, `improvement/snapshots/` and
 `adjust_momentum_weight`. A fourth such file gets its tripwire in the same module.
 `tests/test_one_observation_per_run_date.py`, 11 tests.
 
-**3. Backtest v2 - step 1 is DONE on both halves; step 3's record layer is BUILT (2026-10-15).**
-`pit_record.py` rebuilds the engine's raw record from SEC filings as of any date, so v2 scores
-history with the engine's own `compute_metrics` (never a second implementation of the formulas);
-validated against today at Spearman 0.885, and it measured **the fundamentals half of v1's look-ahead
-at 72.5% of name-months - larger than the price half (60.1%); 75.8% together**
-(`research/2026-10-15-pit-record-validation.md`). **Do not import it from production or v1**, and
-**do not let `compute_metrics` read a raw field without a class in `pit_record.FIELD_CLASSES`** -
-`tests/test_pit_record.py` fails on either. **`backtest_v2.py` (same day) builds the monthly
-rankings** from those records, the point-in-time universe and the live fetch's own
-`factor_engine.price_history_fields` (one function for both - keep it that way), as the
-filings-and-prices screener (no analyst inputs; `v2_config`). **`backtest_v2_returns.py`** is step 4's
-harness (IC and spreads with month-to-month intervals). *Its first reading, not decision-grade:* IC
--0.002 (+-0.027) over 80 months - against +0.050 (t 4.7) for the same pipeline fed today's filings,
-which is what look-ahead does to a result (`research/2026-10-15-pit-record-validation.md` 5c). Nothing
-either produces decides anything before 2027-02-11, and neither may be imported by production.
-`plan/backtest-v2.md` governs. **Evening, same day: v2 runs 2012-2026 (176 months) and the research
-engine** (`v2_experiments.py`; pre-registered in `research/experiments/registry.yaml`, every run in
-`ledger.jsonl`) has run 27 experiments: **none beats the current weighting, the baseline's IC is ~0 in
-both eras, and the design can only see an IC difference of ~0.04-0.07**
-(`research/2026-10-15-research-engine-first-batch.md`). A new experiment is registered and committed
-**before** it runs, with a source and a prediction; a data fix reruns them all (the report flags mixed
-data versions); never register a variation of a near-miss. **A change to *how* a comparison is measured
-reruns them all too** (2026-10-17): it bumps `METHOD_VERSION`, every ledger row carries it, and `report`
-and `summary_for_page` refuse to mix versions exactly as they refuse to mix data versions. Version 2
-pairs each comparison on the month's **common stocks** - under version 1 a narrow screen was measured
-over its own smaller set, so part of every difference was a difference in who was ranked. **The
-methodology page states the result** (claim
-`overview.research_engine`, read from `research/experiments/summary.json`, which `report` writes - commit it with
-the ledger). The two measurements, both reproducible from
-committed inputs:
+**3. Backtest v2 - step 1 DONE on both halves, step 3's record layer BUILT, step 4's harness
+BUILT (2026-10-15).** `plan/backtest-v2.md` governs; **the measurement record is `DECISIONS.md`
+"3. Backtest v2"** - the two bias sizes, what `pit_record.py` validated at, and the research
+engine's first 27 experiments (none beat the current weighting; the baseline's IC is ~0). Read it
+before quoting any number here, and remember nothing either produces decides anything before
+2027-02-11.
 
-| Bias | Size, on the name-month panel | Source |
-|---|---|---|
-| Look-ahead | **>= 63.2%** (30.3% move >= 2 deciles; only 59.5% of v1's top decile belongs there) | `research/2026-10-01-lookahead-bias-size.md` |
-| Survivorship | **11.4%**; 4.89% would remain after a free-data v2 | `research/2026-09-30-delisted-price-source-cost.md` |
+*The constraints:*
 
-Look-ahead is **5.5x bigger on the same unit**, which reversed the plan's own
-sequencing: **point-in-time fundamentals now outranks the point-in-time
-universe.** `lookahead.weight_buckets()` derives the decomposition from
-`config.yaml` so it cannot go stale - 16.9% of composite weight is honestly
-recomputed per rebalance, **34.1 points of the 83.1 held-constant points are free
-to fix** (28.0 restated exactly by one month-end price, 6.1 recomputed from a
-price history), and 49.0 genuinely needs point-in-time filings and estimates.
-*(Re-derived 2026-10-09 after the Revisions reweight: 34.45 free = 28.35 + 6.1; 48.65 needs
-point-in-time data. `lookahead.weight_buckets(cfg)` is the live figure.)*
+- **Nothing in v1 or v2 may be imported by production**, `lookahead.py` included - it is a
+  diagnostic, and a half-fixed backtest is what the plan forbids.
+- `compute_metrics` may not read a raw field without a class in `pit_record.FIELD_CLASSES`
+  (`tests/test_pit_record.py` fails on either of these).
+- `backtest_v2.py` takes its price fields from the live fetch's own
+  `factor_engine.price_history_fields` - **one function for both, keep it that way** - and is the
+  filings-and-prices screener, no analyst inputs (`v2_config`).
+- **A research-engine experiment is registered in `research/experiments/registry.yaml` and
+  committed *before* it runs**, with a source and a prediction; never a variation of a near-miss.
+  A data fix reruns them all, and so does a change to *how* a comparison is measured - that bumps
+  `METHOD_VERSION`, every ledger row carries it, and `report`/`summary_for_page` refuse to mix
+  versions. The methodology page states the result (claim `overview.research_engine`, read from
+  `research/experiments/summary.json`, which `report` writes - **commit it with the ledger**).
+- `price_target_upside` is rebuilt from `pt_mean`, never by inverting the clamped metric;
+  enterprise value is restated as `ev + mc*(r-1)`, never `ev*r`;
+  `universe_history.validate_membership` refuses a universe outside 495-515; and availability of a
+  delisted price is tested by **coverage of the months the caller will read**, never by row count
+  (`INFO`'s series begins October 2024, two years after IHS Markit was absorbed).
+  `tests/test_lookahead.py` (43), `tests/test_universe_history.py` (59).
+- **Two defects in `backtest.py`, recorded and deliberately not patched:** `dynamic_cols`
+  recomputes **four** metrics where momentum and risk carry **six**, so `jensens_alpha` and
+  `max_drawdown_1y` are frozen; and v1 omits `adjust_momentum_weight()`, so it backtests a
+  weighting the site does not publish. v2 must apply it **per rebalance month from that month's
+  regime** - reading the current run's regime is a third look-ahead vector, inside the weights
+  rather than the metrics.
 
-*Next:* the 34.1 free points first. Then size the 49.0pp fundamentals half via
-SEC EDGAR's XBRL `companyconcept` endpoint, which is free and carries a `filed`
-date per fact; expect the 9.0pp of analyst-estimate metrics to have no free
-retrospective source and to be reportable only as permanently unmeasurable.
-**Do not buy the $199/yr delisted-price feed** - the owner decided 2026-10-15 to use **no paid data**
-(*"not spend any money if possible on top of a claude subscription"*); survivorship is narrowed with free
-sources or stated, never bought.
-
-*Four things not to undo:* `lookahead.py` is a **diagnostic** and must never be
-imported by production code (a half-fixed backtest is what the plan forbids);
-`price_target_upside` is rebuilt from `pt_mean`, never by inverting the clamped
-metric; enterprise value is restated as `ev + mc*(r-1)`, never `ev*r`; and
-`universe_history.validate_membership` refuses a universe outside 495-515.
-Availability of a delisted price must be tested by **coverage of the months the
-caller will read**, never by row count - `INFO`'s series now begins in October
-2024, two years after IHS Markit was absorbed. `tests/test_lookahead.py` (43),
-`tests/test_universe_history.py` (59).
-
-*Two defects in `backtest.py`, recorded and deliberately not patched* (same
-reason): `dynamic_cols` recomputes **four** metrics where momentum and risk carry
-**six**, so `jensens_alpha` and `max_drawdown_1y` are frozen; and v1 omits
-`adjust_momentum_weight()`, so it backtests a weighting the site does not
-publish. v2 must apply it **per rebalance month from that month's regime** -
-reading the current run's regime is a third look-ahead vector, inside the weights
-rather than the metrics.
+*Next:* the **34.1 free points** first (`lookahead.weight_buckets(cfg)` for the live figure). Then
+size the 49.0pp fundamentals half via SEC EDGAR's XBRL `companyconcept` endpoint, which is free
+and carries a `filed` date per fact; expect the 9.0pp of analyst-estimate metrics to have no free
+retrospective source and to be reportable only as permanently unmeasurable. **Do not buy the
+$199/yr delisted-price feed** - the owner decided 2026-10-15 to use **no paid data**; survivorship
+is narrowed with free sources or stated, never bought.
 
 **4's residual - DONE 2026-10-09.** The 2026-08-10 owner directive's pieces are all built
 (`run_overview.py`, Reporting Soon); see `DECISIONS.md` "0.10, 4, 8".
 
-**5's residual: the hold band - settled 2026-09-16 as "not yet", with a date.**
-The strict top-25 rule wastes **31-47%** of the trades it implies at every
-cadence measured, so a band is warranted; its **width is not determinable** yet -
-at 1.4x three cadences report 0.0%, 31.2% and 5.9% wasted. **The pre-registered
-rule binds:** do not commit to a width until there are **>= 8 disjoint
-observation windows at the review cadence the band will govern.** Today **2
-monthly**; roughly **2027-04**. Then take the narrowest band clearing half the
-strict rule's waste and Novy-Marx & Velikov's 50% turnover bound. Do **not** pick
-50 because MSCI doubles, and do **not** reuse the movers panel's threshold (it
-fires for a top-25 name 0.15% of the time). `review_cadence` is a **sentence, not
-a lock** - do not gate, hide or delay a number behind it.
-`research/2026-09-14-sell-discipline-and-hold-bands.md`.
+**5's residual: the hold band - settled 2026-09-16 as "not yet", with a date**
+(`research/2026-09-14-sell-discipline-and-hold-bands.md`). A band is warranted - the strict
+top-25 rule wastes 31-47% of the trades it implies - but its **width is not determinable** yet.
+**The pre-registered rule binds:** do not commit to a width until there are **>= 8 disjoint
+observation windows at the review cadence the band will govern** (today **2** monthly; roughly
+**2027-04**), then take the narrowest band clearing half the strict rule's waste and Novy-Marx &
+Velikov's 50% turnover bound. Do **not** pick 50 because MSCI doubles, and do **not** reuse the
+movers panel's threshold. `review_cadence` is a **sentence, not a lock** - do not gate, hide or
+delay a number behind it.
 
 **One measurement to carry forward:** the largest one-month category move is Risk
 34%, Revisions 29%, Momentum 26% and **Quality 0.2% - one stock in 500**. A

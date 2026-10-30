@@ -873,6 +873,131 @@ unaffected; it was capable of it.
 
 **Constraint kept in `CLAUDE.md`:** every append-once-per-run file holds one row per run date.
 
+## 3. Backtest v2 - the record behind the open item (moved out of `CLAUDE.md` 2026-10-30)
+
+`CLAUDE.md` priority 3 keeps the constraints and the Next; `plan/backtest-v2.md` governs. This is
+the measurement record a session should read before it reopens a sequencing decision.
+
+**Why the sequence is fundamentals-first.** Both biases measured on the same unit, the name-month
+panel, both reproducible from committed inputs:
+
+| Bias | Size | Source |
+|---|---|---|
+| Look-ahead | **>= 63.2%** (30.3% move >= 2 deciles; only 59.5% of v1's top decile belongs there) | `research/2026-10-01-lookahead-bias-size.md` |
+| Survivorship | **11.4%**; 4.89% would remain after a free-data v2 | `research/2026-09-30-delisted-price-source-cost.md` |
+
+Look-ahead is **5.5x bigger**, which reversed the plan's own sequencing: point-in-time
+fundamentals outranks the point-in-time universe. `lookahead.weight_buckets()` derives the
+decomposition from `config.yaml` so it cannot go stale - 16.9% of composite weight is honestly
+recomputed per rebalance, **34.1 of the 83.1 held-constant points are free to fix** (28.0 restated
+exactly by one month-end price, 6.1 recomputed from a price history), and 49.0 genuinely needs
+point-in-time filings and estimates. Re-derived 2026-10-09 after the Revisions reweight: 34.45
+free = 28.35 + 6.1; 48.65 needs point-in-time data. **`lookahead.weight_buckets(cfg)` is the live
+figure** - read it rather than quoting these.
+
+**What `pit_record.py` measured, 2026-10-15** (`research/2026-10-15-pit-record-validation.md`). It
+rebuilds the engine's raw record from SEC filings as of any date, so v2 scores history with the
+engine's own `compute_metrics` rather than a second implementation of the formulas. Validated
+against today at **Spearman 0.885**, and it put the fundamentals half of v1's look-ahead at
+**72.5% of name-months** - larger than the price half (60.1%); 75.8% together.
+
+**The research engine's first batch, not decision-grade** (`v2_experiments.py`,
+`research/2026-10-15-research-engine-first-batch.md`). v2 runs 2012-2026, 176 months. Of 27
+pre-registered experiments **none beats the current weighting, the baseline's IC is ~0 in both
+eras, and the design can only see an IC difference of ~0.04-0.07.** `backtest_v2_returns.py`'s own
+first reading: IC **-0.002 (+-0.027)** over 80 months, against **+0.050 (t 4.7)** for the same
+pipeline fed today's filings - which is what look-ahead does to a result (section 5c).
+**METHOD_VERSION 2** (2026-10-17) pairs each comparison on the month's *common stocks*; under
+version 1 a narrow screen was measured over its own smaller set, so part of every difference was a
+difference in who was ranked.
+
+## 0.14, the three input definitions settled against the filings (moved out of `CLAUDE.md` 2026-10-30)
+
+All three were proposals to change what a metric is computed from, all three were answered with a
+measurement, and all three shipped a **display-only** row instead. `CLAUDE.md` keeps the verdict
+and the section a reopening must answer; this is why.
+
+**Capex: the lease-purchase subtraction was REFUSED, 2026-10-15.** Yahoo's capex row adds
+intangibles and finance-arm lease assets, so it is different from the filings *by construction*.
+The proposed rule would have kept a captive finance arm's operating cash flow and its debt while
+dropping its capex - GM's own 10-K starts from *automotive* operating cash flow of **$18.7B**
+against the consolidated **$26.87B**. Any such rule also puts **9.9 composite points** on the
+weekly SEC cache, which scoring deliberately never reads. What shipped: the FCF-yield row
+decomposes the capex figure from the company's own filings (claim `drilldown.capex_lease_note`,
+`tests/test_capex_lease_note.py`). Reopening must answer section 5.7 of
+`research/2026-10-14-capex-definition.md`.
+
+**Operating income: keep the source's "Operating Income" row, 2026-10-15.** It is as-reported
+less the source's "Special Income Charges", and the "Total Operating Income As Reported" row
+equals the filings **374 of 374**. Rouen, So & Wang (2021) on persistence and MSCI's practice both
+support the pre-special-items figure for ROIC and EV/EBITDA, so its disagreement with the filing
+is the definition, not a defect. Do not "fix" it by switching rows or to the filings.
+
+**Earnings yield: scoring it on "Normalized Income" was REFUSED, 2026-10-16.** The research is
+good (Rouen, So & Wang 2021, persistence **0.810 against 0.637**) but the input cannot be put on
+one basis. At the four-quarter window the engine sums, **23 companies have no normalized figure at
+all** (Amazon, Bank of America, Berkshire, Boeing), which re-creates the fallback-cohort defect
+`factor_engine.py:2094` records Phase 13 fixing *in this very metric*; and **8 of the 18 fallback
+companies whose figures are known carry annual one-offs worth 10%+ of net income** (Boeing 434%,
+General Mills 2,193%), so the change would remove the small distortions and keep the largest.
+Reading "absent" as zero is false for 70 companies. What shipped: the earnings-yield row says what
+one-off charge is inside the figure, from the company's own filings (47 of 501 stocks; **37 of
+those 47 tag one in every one of their last four fiscal years**) - claim
+`drilldown.special_item_note`, `tests/test_special_item_note.py`. Reopening must answer section
+8.6 of `research/2026-10-15-earnings-definition.md`.
+
+**The agreement measured 2026-10-14** (`research/2026-10-14-yahoo-vs-sec.md`), rebuilt from SEC
+XBRL for the same quarter: within 0.5% for **99.8%** of companies on total assets, **98.8%** on
+operating cash flow, **97.9%** on equity, **94.3%** on net income, **88.5%** on revenue. The
+larger disagreements examined are definitional - bank revenue, minority interests, excise taxes.
+
+## 0.13, experiments 14-17 (moved out of `CLAUDE.md` 2026-10-30)
+
+Four more after the thirteen below, each with its note and its entry in `plan/factor-lab.md`.
+Seventeen in all as of 2026-10-20, **145 of 217 figures within tolerance**.
+
+| # | Paper | Result |
+|---|---|---|
+| 14 | Cooper, Gulen & Schill 2008, asset growth | 13 of 24; by market value it has earned about nothing since 2003 (`research/2026-10-19-lab-asset-growth.md`) |
+| 15 | Jensen, Kelly & Pedersen 2023, their own 153 factors | 10 of 10. **Its data is CC BY-NC 4.0 - teaching page only, never anything that trades** (`research/2026-10-20-lab-jkp.md`) |
+| 16 | size inside each profitability fifth | 10 of 17; Size's pre-registered rule **not refuted**, which is what kept the weight at 5% |
+| 17 | Piotroski 2000 on Open Source Asset Pricing's published portfolios | 1 of 4, the miss explained by the decile cut of a ten-value score (`research/2026-10-20-lab-osap.md`) |
+
+**Every new experiment needs a second reader before it counts as checked** (`OWNER_FOCUS.md`,
+2026-10-20 item 2). The 2026-10-23 13:00 session did that for 16 and 17: all 21 reference figures
+exact, every measured figure reproduced.
+
+## The four weight questions the lab raised, and how each was answered
+
+The reasoning, moved out of `CLAUDE.md` 2026-10-30. The *answers* and the tests that hold them
+stay there; this is what a session should read before reopening one.
+
+**Question 1 - Growth 13 -> 10 / Quality 22 -> 25: REFUSED 2026-10-13**
+(`research/2026-10-12-growth-category.md` section 10). Net growth exposure is monotonic in the
+weight, crosses zero at **13.5**, and is within 0.05 of neutral only over **11-16**, because
+Growth is the one category running against the rest (**-0.388** against the mean of the other
+seven). If growth earns nothing the supported exposure is zero, and 13 points is what delivers it:
+**cutting an unrewarded-but-offsetting category's weight does not remove a position on growth, it
+takes one.** The open Growth question is **composition, not weight** - `revenue_growth` against
+`asset_growth`, and whether growth in profitability belongs in Quality (note section 11).
+
+**Question 2 - Momentum's weight: KEPT**
+(`research/2026-10-12-value-and-momentum-among-large-companies.md`). Large-company value was never
+reliable on book value and is better supported on the earnings and cash-flow measures this
+screener uses; large-company momentum is strong in every published sample and flat on public data
+since 2000. Lab and literature disagree, so the weight stands.
+
+**Question 4 - Size stays at 5%, 2026-10-20** (`research/2026-10-20-size-weight.md`, 703 lines,
+13 sources). No unconditional size premium among large companies - Fama & French (1992) *JF*
+47(2) Table II, Fama & French (2008) *JF* 63(4) Table IV, Alquist, Israel & Moskowitz (2018)
+*JPM* 45(1) - but the within-sector small tilt beside Quality is documented practice (MSCI
+Diversified Multiple-Factor May 2022 2.3-2.4; FTSE Russell Global Factor Ground Rules v8.8;
+Dimensional), and it is one of the counterweights holding the ranking growth-neutral. The trigger
+to reopen it is **lab experiment 4b**, with its refutation criterion written in the note.
+Confirmed by experiment 16 and second-read 2026-10-23.
+
+**Questions 3 and 5 are open Mondays.**
+
 ## 0.13, the lab's first thirteen experiments
 
 Chronology as of 2026-10-15; `plan/factor-lab.md` is the live queue and `lab.html` the result.
