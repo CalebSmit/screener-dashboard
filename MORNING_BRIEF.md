@@ -1,4 +1,4 @@
-# Morning Brief - Friday 30 October 2026, 06:40
+# Morning Brief - Friday 30 October 2026, 13:59
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -21,15 +21,14 @@ history is in `NIGHTLY_LOG.md`.
 | Data run timing | **18 min** total; slowest `fetch.tickers` 663 s, `fetch.retry` 140 s, `context.sec_insider` 96 s; **42 tickers rate-limited** |
 | Context coverage | options usable 490/499 (9 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
-## Waiting for a decision
-
-A session researched these, proposed a change and left it for review. The next
-session decides and records why; you can also answer in `OWNER_FOCUS.md`.
-
-- **fill an empty newest quarter from the source's own trailing series (9 of 15 lagging stocks, Amazon among them); answer section 4 first.** - open 1 day - `research/2026-10-29-ttm-fills-the-empty-quarter.md`
-
 ## What changed in the repo
 
+- `7a21ec2 log: 2026-10-30 (13:00) - the TTM-fill proposal refused as written, and the methodology page's computed sentences swept`
+- `6c59f28 claims sweep: the methodology page, and a new published sentence is invisible to 3,566 tests`
+- `3c2217e decide: correct a count in the review - six one-quarter stocks, not eight`
+- `c5eee94 decide: the TTM-fill proposal - REFUSED as written, and its own case understated`
+- `c13b46c wip: the measurements for the TTM-fill review`
+- `4ca24b4 brief: code session 2026-10-30`
 - `2a40afc log: 2026-10-30 RETROSPECTIVE - a red main found at baseline, and the blind spot that let it sit`
 - `d00e2f5 rotation: Wednesday's subject is whatever changed the methodology, not only Monday's note`
 - `221b2f4 process: CLAUDE.md 1036 -> 959; the fifth asymmetry scored; the step-1 enumeration as a tool`
@@ -39,60 +38,54 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 - `1fddb88 brief: data run 2026-10-30`
 - `5c0cfb0 data: screener run 2026-10-30 - 499 scored, top: EXPE VLO MU INCY HST`
 - `f3c5aa8 log: 2026-10-29 owner-run, last before 02:00 - unscored members, glossary, brief`
-- `a5483e8 plan: dashboard inventory - today's surfaces and the unscored payload key`
-- `05d636c page: an S&P 500 member the run could not score is named and told why`
-- `1c026d6 brief: the run time to the minute, and the context row without its own label twice`
-- `b072c5d methodology: the glossary spells out the abbreviations the page uses`
-- `e8e7bbd test: the dead-badges flake will say which of its two causes it was`
-- `80cc059 log: the dead-badges flake's traceback, and what it rules out`
 
 ## The session's own account
 
-> 2026-10-30 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
+> 2026-10-30 (13:00 midday) - QUEUE. The open proposal decided, then the claims sweep over the public methodology page
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-29_130001-midday.log`
-> ends "Run complete: shipped to main" (tag `good/2026-10-29-1403`). Data loop published? **yes** -
-> `logs/datarun-2026-10-30_020001.log` ends "Data loop complete", HEALTH: PASS, run `24d9938b511b`,
-> 499 scored, `signals.json` written with 8 gates all run. Evidence base at `1m` = **40 rows, newest
-> 2026-09-29 (31 days ago, bound 40), 5 effective** - in steady state; the data log's own line
-> agrees. Priority 0: `allow_auto_apply` **false**, unchanged, 5 of 8 effective. Top open roadmap
-> item: **0.13, the Factor Lab** (opened 2026-10-12, **age 18 days**) - not advanced and not
-> drifting: today is an even ISO week so the runner swapped in the retrospective, and the next lab
-> Friday is **2026-11-06**. (0.10 is older - opened 2026-10-07, **age 23 days** - but its remainder
-> is Sharpe and Sortino at weight 0, which CLAUDE.md already calls "do them only if a session has
-> nothing better".)
-> **Tests:** before **2 failed / 3,560 passed / 1 skipped** - a red `main`, see below - after
-> **3,566 passed / 1 skipped** (+6: the 2 fixed, plus 4 new - 1 stand-in guard, 1 in the publish
-> gate's module, 2 in the gate-ordering module). Dry run exits 0.
-> **Owner queue / rotation:** retrospective, so no rotation item, and `OWNER_FOCUS.md`'s two open
-> items (universe expansion phase 0, a Monday; the 2026-10-20 fine-tune block) were read and left
-> open - a retrospective does not work on the screener. **One open proposal is deliberately left**
-> (`research/2026-10-29-ttm-fills-the-empty-quarter.md`, fill an empty newest quarter from the
-> source's trailing series, 1 day old): a retrospective is the wrong session to decide a methodology
-> question, the same call the 2026-10-16 retrospective made and recorded. `git stash list` shows
-> `auto-rescue 2026-10-28_060001`, still empty (`git stash show --stat` prints nothing) and left in
-> place as its own entry asks. No owner-session marker.
+> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 retrospective,
+> `logs/nightly-2026-10-30_060001.log`, ends "shipped to main". Data loop published? **yes** -
+> `logs/datarun-2026-10-30_020001.log`, "Data loop complete", HEALTH: PASS. Evidence base at `1m` =
+> **40 rows, newest 2026-09-29 (31 days ago, bound 40), 5 effective** - steady state, unchanged from
+> this morning. Priority 0: `allow_auto_apply` **false**, 5 of 8 effective. Top open roadmap item:
+> **0.13, the Factor Lab** (opened 2026-10-12, **age 18 days**) - not advanced and not drifting; the
+> next lab Friday is **2026-11-06** and no experiment is half-built. (0.10 is older - opened
+> 2026-10-07, **age 23 days** - and its remainder is Sharpe and Sortino at weight 0, which CLAUDE.md
+> calls "do them only if a session has nothing better".)
+> **Tests:** before **3,566 passed / 1 skipped** (green), after **3,570 passed / 1 skipped** (+4,
+> all in `tests/test_claims_register.py`). Dry run exits 0.
+> **Owner queue / rotation:** `OWNER_FOCUS.md` item 1 sub-item 1 (decide the open proposal) and then
+> sub-item 3 (test the tests), in that order, which is the order Orient and the item both give.
+> Nothing deferred for a gate or a loop. `git stash list` shows `auto-rescue 2026-10-28_060001`,
+> still empty, left in place as its own entry asks. No owner-session marker.
 > 
-> ### Retrospective findings
+> **Second session today - read the 06:00 retrospective's entry first.** Its **Next** was "decide the
+> open proposal in `research/2026-10-29-ttm-fills-the-empty-quarter.md`", so that was this session's
+> first job; nothing it decided was re-opened or reversed. Its process change 1 had its **first live
+> use** on this session: `logs/nightly-2026-10-30_130001-midday.log` logs
+> `BASELINE main is GREEN on arrival (3566 passed, 1 skipped ... 0:03:53)`, which matched my own
+> baseline exactly, so for the first time a session could tell before starting that it had inherited
+> nothing.
 > 
-> - **Sessions reviewed: 38** (2026-10-16 to 2026-10-30) - **24 scheduled, 14 owner-run.**
-> - **Genuinely valuable: 35 | Churn: 0 | Lost: 1 | Stood down correctly: 2 | Failed gates: 2.**
-> - **And one finding that was not in the logs at all: `main` was red when this session started.**
+> ### Did
 > 
-> **0. The red `main`, found at baseline and fixed first.** `tests/test_unscored_members.py` shipped
-> the evening of 2026-10-29 naming **HONA and VYLR**, the two S&P 500 members that morning's fetch
-> had left unscored. The 02:00 run on 10-30 served HONA, so it is in the payload,
-> `notInRunText('hona')` correctly returns `''` for a stock that *is* in the run, and two tests
-> failed on a page that was right. **`main` was red from 02:21 and nothing said so**: the data run
-> logged HEALTH: PASS, the brief reported a healthy run, and no commit had touched any code.
+> **1. The open proposal, decided: REFUSED as written - and its own case was understated.**
+> `research/2026-10-29-ttm-fills-the-empty-quarter.md` §5 (new), measurements
+> `research/measurements/2026-10-30-trailing-series-review.py` and
+> `...-trailing-column-moves.py` with their JSON. The proposal: when a stock's newest quarterly
+> income column is empty (14 stocks on 2026-10-30, Amazon and Bank of America among them), score
+> its income-statement inputs from the source's trailing-twelve-month series instead. It named five
+> things to answer first; three are now measured.
 > 
-> Without this session looking, the runner's gate 1 would have failed at ~08:00 on a defect the
-> session did not cause, the whole retrospective would have been stranded on a branch, and the log
-> would have read like its fault. Both halves are now fixed - the test, and the blindness (process
-> changes 1 and 2).
+> **Two answer in its favour, and one of them decisively.**
 > 
-> **1. What fraction of sessions produced something genuinely valuable? 35 of 38, with 3 that
-> were not sessions' fault.** Nothing in the churn column for the second retrospective running. The
+> - **The trailing series is definitionally the same rows under different names.** On the twelve
+>   highest-ranked stocks that are *not* flagged - so their quarterly statement is the one
+>   `_stmt_val_ltm` actually sums - across all nine income-statement labels the engine reads, the
+>   trailing series against the engine's own four-quarter sum: **median relative difference
+>   0.000000**, max 0.00067 (Total Revenue), 0.00061 (Operating Income), 0.00052 (Net Income); nine
+>   of twelve agree **exactly** on every label, and the single worst figure anywhere is EG's interest
+>   expense at 0.68%. So the substitution preserves the 2026-10-15 decision to keep the source's
 > ...
 
 ---
