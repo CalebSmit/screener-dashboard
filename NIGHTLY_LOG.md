@@ -17015,3 +17015,23 @@ Health as the evening entry (nothing scheduled ran since). Owner: "keep finding 
   reads in one browser call, reads again after a task turn, and fails naming both texts if they
   differ (an overwrite after the render); a wrong first read still fails the sentence assertions as
   before (a render that did not land). Nothing is loosened - both cases still fail.
+
+## 2026-10-29 (owner-run, last before the 02:00 run) - unscored members named; glossary abbreviations; brief polish
+
+Health as the evening entry. Owner: "keep finding improvements please before the 2 am run".
+
+- **An S&P 500 member the run could not score is named and told why.** HONA and VYLR (in the
+  index, unscored on 2026-10-29: too little data from the source) were absent from the payload, so a
+  search or a saved holding said a company "that has left the index, or whose data could not be
+  fetched" is not in the ranking - the first half false. The run already records them
+  (`universe.json` "failed"); the generator publishes them as `unscored` (`_run_unscored`, display
+  only, `{}` on any failure) and `unscoredMemberText` feeds the search, the palette and My
+  Holdings. `tests/test_unscored_members.py` (7). **This changes the payload the 02:00 run
+  publishes (+72 bytes); `rehearse_publish.py` PASSED against run `a08c2741a3ca`**, and the
+  regenerated block read `{"HONA": "Honeywell Aerospace Inc.", "VYLR": "Vylor Inc."}`.
+- **The methodology glossary spells out its abbreviations** - EPS appeared 35 times, ROE 23, P/B 21,
+  ROIC 14, most never expanded. One entry, names only (no formulas, so no new computational claim);
+  generator edited, overview regenerated, page rebuilt, payload byte-identical.
+- **Brief polish:** the run time reads "2026-10-29 02:00", not the raw ISO stamp with microseconds;
+  the context row no longer repeats its own label.
+- `plan/dashboard-inventory.md` updated (rule 9).
