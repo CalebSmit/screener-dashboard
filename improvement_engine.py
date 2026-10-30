@@ -103,6 +103,10 @@ HORIZON_END_FORWARD_DAYS = 7
 # HORIZON_END_FORWARD_DAYS, and yfinance's `end` is exclusive.
 PRICE_FETCH_END_PAD_DAYS = 9
 
+# Each symbol's SEC registrant number (CIK), which survives a rename. Read to price a stock that
+# left the universe under the symbol it trades as now (_fill_lost_tickers).
+TICKER_CIKS_PATH = ROOT / "data" / "universe_history" / "ticker_ciks.json"
+
 
 # =========================================================================
 # Evidence hygiene
@@ -443,6 +447,14 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
         except (OSError, pd.errors.ParserError, KeyError) as e:
             warnings.warn(f"Could not read performance history: {type(e).__name__}: {e}")
 
+    # The universe as the newest snapshot has it. A ticker absent from it has left - renamed,
+    # taken over, or removed from the index - and is the only kind _fill_lost_tickers touches.
+    try:
+        current = set(pd.read_parquet(snapshot_by_date[max(snapshot_by_date)], columns=["Ticker"])["Ticker"])
+    except (OSError, ValueError, KeyError) as e:
+        warnings.warn(f"Could not read the newest snapshot's universe: {type(e).__name__}: {e}")
+        current = None
+
     new_rows = []
     for snap_date_str, snap_path in sorted(snapshot_by_date.items()):
         try:
@@ -506,8 +518,9 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
             current_dt,
             snap_dt + timedelta(days=max(HORIZON_DAYS[h] for h in needed)),
         )
+        renames = _renamed_since(tickers, current)
         prices = _fetch_prices_for_returns(
-            tickers,
+            tickers + sorted(set(renames.values()) - set(tickers)),
             snap_date_str,
             window_end.strftime("%Y-%m-%d"),
         )
@@ -532,6 +545,19 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
                 f"before the {'/'.join(sorted(needed))} horizon end; will retry."
             )
             continue
+
+        prices, filled = _fill_lost_tickers(prices, tickers, snap_dt, renames, current)
+        if filled["renamed"] or filled["held"]:
+            logger.info(
+                f"Forward returns for {snap_date_str}: "
+                + "; ".join(
+                    ([f"priced under the new symbol: "
+                      + ", ".join(f"{a} -> {b}" for a, b in sorted(filled["renamed"].items()))]
+                     if filled["renamed"] else [])
+                    + ([f"no longer served, priced from the recorded closes and held at the "
+                        f"last one: {', '.join(filled['held'])}"] if filled["held"] else [])
+                )
+            )
 
         # Phase 11: detect metric percentile columns in this snapshot
         pct_cols_in_snap = [c for c in snap.columns if c.endswith("_pct")]
@@ -591,6 +617,60 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
     combined = _normalize_performance_history(combined)
     combined.to_csv(PERFORMANCE_HISTORY_PATH, index=False)
     return new_df
+
+
+def _renamed_since(tickers: list[str], current: set | None) -> dict:
+    """old symbol -> current symbol, for snapshot tickers that left the universe and whose SEC
+    registrant now trades under a symbol in it (BK -> BNY). The track record's rule, one copy."""
+    if not current:
+        return {}
+    import track_record
+    return track_record.renamed_symbols(tickers, current, cik_path=TICKER_CIKS_PATH)
+
+
+def _fill_lost_tickers(prices: pd.DataFrame, tickers: list[str], snap_dt: pd.Timestamp,
+                       renames: dict, current: set | None) -> tuple[pd.DataFrame, dict]:
+    """Price the snapshot's tickers that have left the universe and that the price source no
+    longer serves (2026-10-29). Until then they were dropped from the forward-return panel - a
+    survivorship gap in the one out-of-sample evidence series the engine gates on: 1-3 stocks
+    on every `1m` date from 2026-08-10 to 09-28, up to 8 on a `3m` date. The rules are the track record's
+    (``track_record.fill_unpriced``, 2026-10-15), so the two records cannot disagree about one
+    stock:
+
+    - renamed: priced under the symbol its SEC registrant trades as now;
+    - otherwise: priced from the closes the screener recorded at each run (``price_at_scoring``,
+      a price return), and after the last one **held at it** - the position became cash when the
+      stock stopped trading, which is how a takeover ends for a holder. It is held only if a
+      close on or after the run date was recorded - an entry the reader could have traded at. A
+      renamed stock whose new symbol is missing from the frame is never held: it still trades,
+      so its return is left missing rather than invented.
+
+    Only tickers absent from the current universe are touched: one still in it is never filled,
+    so a transient gap in the source stays a gap, as before.
+    """
+    filled = {"renamed": {}, "held": []}
+    if not current:
+        return prices, filled
+    import track_record
+    win = prices.index[prices.index >= snap_dt]
+    if len(win) == 0:
+        return prices, filled
+    thin = [t for t in tickers if t not in current
+            and (t not in prices.columns or prices[t].reindex(win).notna().mean() < track_record.COVERED)]
+    if not thin:
+        return prices, filled
+    recorded = track_record.recorded_closes(thin, SNAPSHOTS_DIR)
+    out, got = track_record.fill_unpriced(prices, thin, snap_dt, renames, recorded)
+    filled["renamed"] = got["renamed"]
+    for t in got["from_records"]:
+        if t in renames:
+            continue
+        last = out[t].last_valid_index()
+        if last is None or last < snap_dt:      # never held without an observed entry close
+            continue
+        out.loc[out.index > last, t] = out.at[last, t]
+        filled["held"].append(t)
+    return out, filled
 
 
 def _fetch_prices_for_returns(
