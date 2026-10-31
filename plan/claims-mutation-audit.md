@@ -666,6 +666,140 @@ never its own re-derivation of it).
 them drift checks with value-check names - the exact defect rows 135-138 exist to fix. Check this
 before writing any new assertion against a generated surface.
 
+## Results, 2026-10-31 (13:00 midday session): nine more open rows, and the bookkeeping gap
+
+This session carried on from the 06:00 entry's **Next**, which named `_pbo_words` at its own
+bars and then the bank P/B-ROE prose rows and the coverage-discount worked example. All of them
+are closed, and so are the two rows the morning had already *checked* - see below, because that
+is the finding.
+
+**`KNOWN_OPEN` ten -> five** (research page) **and `OVERVIEW_KNOWN_OPEN` seven -> one**
+(methodology page). **20 mutations: 20 caught, 1 equivalent mutant recorded**, every one of the
+20 a GAP against the same claim's `checked_by` before this session.
+
+### 0. The two rows closed at 06:00 were never closed in the register
+
+**This audit's own rule, met from the inside** - *"Finishing a gap means registering the fix too.
+A new test that `checked_by` does not name reads as a gap on the next pass and is outside the
+publish gate's derivation."* Commit `a306d32` wrote five real checks for
+`share-class-switching-margin` and extended one for `clamp-bullet-second-printing`, and touches
+**no register file**: both sentences still read `open:` in `OVERVIEW_SENTENCES`,
+`OVERVIEW_KNOWN_OPEN` still named both slugs, and the five new
+`TestThePagePrintsTheMargin` checks were in no claim's `checked_by`. "`KNOWN_OPEN` drops twelve
+to ten", in the log and in `OWNER_FOCUS.md`, was true of the **research** page's two rows only.
+
+| # | Claim | Mutation | Before (the register as it stood) | Now |
+|---|---|---|---|---|
+| 131r | `overview.clamps_and_floors` | the clamp bullet prints the forward-EPS ceiling 10 points high | CAUGHT - the extended test was already named by the claim | CAUGHT, verdict moved to `claim:overview.clamps_and_floors` |
+| 132r | `overview.clamps_and_floors` | the bullet prints the price-target floor as the ceiling | CAUGHT | CAUGHT |
+| 133r | `overview.share_classes` | the margin is typed into the generator instead of read from config | **GAP** - 6 of 6 `checked_by` nodes pass | CAUGHT: `..::test_the_page_follows_config_rather_than_printing_a_literal` |
+| 134r | `overview.share_classes` | the page's fallback margin drifts from `share_classes.CHALLENGE_MARGIN` | **GAP** - 6 of 6 pass | CAUGHT: `..::test_the_pages_fallback_is_the_modules_constant` |
+
+So the clamp row's gap was the **verdict label alone**, and the switching-margin row was a real
+`GAP-IN-REGISTER`: a test in the suite caught the mutation and **the gate the page is published
+behind did not run it.** Harness: `research/measurements/2026-10-31-registered-row-mutations.py`,
+which differs from the morning's in exactly the way that matters - it runs the **claim's own
+`checked_by`** (method step 3, and what `scripts/check_published_claims.py` derives) rather than
+the module holding the check. `--before` drops the nodes added today, which is how the two gaps
+above are recorded rather than asserted.
+
+**The lesson generalises past this instance.** "The row is closed" is three facts, not one: a
+check exists, the register names it, and the verdict says so. The morning did the first; a
+session reading `OVERVIEW_KNOWN_OPEN` the next day would have re-done the other two as new work.
+
+### 1. The whole "If you had kept the best backtest" section (rows 139-143)
+
+Five rows - `pbo-all-era-prose`, `pbo-recent-era-prose`, `pbo-without-winner-prose`,
+`pbo-top-winner-lead`, `pbo-configuration-count` - closed by one new claim,
+`research.overfitting_reading`.
+
+| # | Mutation | Now caught by |
+|---|---|---|
+| 139 | the "worse than a coin toss" bar moves 0.55 -> 0.65 | `test_the_word_beside_each_pbo_turns_at_its_own_bars` (and the prose test, on the `without` era) |
+| 140 | the "better than luck" bar moves 0.45 -> 0.25 | same |
+| 141 | the recent-era sentence prints the all-years PBO | `test_each_prose_pbo_carries_the_rows_own_reading_and_its_word` |
+| 141b | the without-winner PBO drops a decimal (`.2f` -> `.1f`) | same |
+| 142 | the all-years share becomes the winner's median out-of-sample percentile | `test_the_out_of_sample_shares_and_the_configuration_count_are_the_rows_own` |
+| 143 | the count of alternatives stops excluding the current weighting | same |
+| 143b | the "where it fell behind" clause fires at a held-out lead of exactly zero | `test_the_top_winners_two_era_leads_and_the_clause_that_depends_on_their_signs` |
+| 143c | the top winner's two era leads are printed the wrong way round | same |
+
+8 mutations, 8 caught, each by the test meant to see it;
+`research/measurements/2026-10-31-pbo-prose-mutations.py`.
+
+**The larger finding here is not a row.** `tests/test_overfitting.py` was named by **no claim**,
+so all eight of its checks - including the only reader of the section's stat cards and of the
+C(16,8) split count - were **outside the data loop's publish gate**, whose membership derives
+from `checked_by`. Same shape as `tests/test_engine_calibration.py` (found 2026-10-28, and
+reported to the owner as the one register finding worth their attention). The new claim names
+them and the module is in the gate now by derivation. **Look for this before writing a check: a
+`checked:` verdict pointing at a module no claim names is not coverage**, and two of this
+section's rows carried exactly that verdict.
+
+**And the rest of the suite is blind to both classes of mutation.** Whole suite, today's four new
+checks deselected, the page regenerated the way `python v2_experiments.py report` publishes it:
+mutation 139 gives `1 failed, 3593 passed` and 143 gives `2 failed, 3592 passed`, and **every
+failure is a drift tripwire or the sentence sweep** - `test_the_committed_page_is_what_the_
+generator_makes_from_the_ledger` both times, plus
+`test_every_computed_sentence_on_the_research_page_has_a_verdict` for 143, which changes the
+f-string's text. The 2026-10-30 correction, met for the fourth and fifth time.
+
+One fixture fix the mutations forced: the synthetic reading `_section` feeds
+`overfitting_section` now carries **every** key `overfitting.cscv` returns, so a sentence that
+starts reading a different one fails on the figure instead of on a `KeyError`. Mutation 142's
+first run was caught by three tests, two of them for that reason - **a catch for the wrong reason
+is not a check**, and it would have read as coverage on the next pass.
+
+### 2. The methodology page's last four prose rows (rows 144-147)
+
+| # | Claim | Mutation | Before | Now |
+|---|---|---|---|---|
+| 144 | `bank-five-metric-point-total` | the five-metric total silently drops the equity ratio | GAP, 9 of 9 nodes pass | `test_the_five_metric_total_in_the_prose_is_the_sum_of_those_five` |
+| 145 | `bank-pb-offset-by-roe-roa` | the offset sentence prints ROA's points where ROE's belong | GAP | `test_the_offset_sentence_prints_each_metrics_own_points_and_the_tables_net` |
+| 146 | `bank-pb-residual-clause` | the clause's word turns on the wrong side of zero | GAP | `test_the_residual_clause_states_the_net_it_measures_and_which_side_it_is_on` |
+| 146b | `bank-pb-residual-clause` | the clause states the net on earnings yield instead | GAP | same |
+| 146c | `bank-pb-residual-clause` | the neutrality bar widens from a quarter of the E/P loading to a third | GAP | same |
+| 147 | `coverage-discount-worked-example` | the example is quoted at the coverage filter's floor instead | GAP, 3 of 3 pass | `test_the_discount_examples_own_stock_is_the_one_the_generator_chooses` |
+| 147b | `coverage-discount-worked-example` | its coverage percentage is taken out of the bank denominator | GAP | same |
+| 147c | `coverage-discount-worked-example` | the example's margin below the threshold doubles | GAP | same |
+
+Harness: `research/measurements/2026-10-31-overview-prose-mutations.py`.
+
+**The residual clause was the blindest sentence this audit has met**, and for a reason worth
+naming: today's weights print the *neutral* wording, so the branch that states a measured tilt
+was on a page **no test had ever generated**. The sweep found it because `computed_sentences`
+reads the generator's f-strings rather than its output - which is the one thing a sweep does that
+a page reader cannot. It is reached now with weights of the test's own, at `pb_ratio` 79 (inside
+the bar) and 81 (past it), which brackets the 0.25 share to about ±0.013, and on both sides of
+the `against` / `on` word.
+
+**Stated rather than papered over:** the `<=` in `abs(net_pb) <= 0.25 * net_ep` is **not** probed
+at equality. At `pb_ratio` 80 the two sides are 4.4 either way in decimal and
+`-17.6 + 7.7 + 5.5` is `-4.400000000000002` in binary, so the inclusive boundary is unreachable
+from any weighting here. The first draft asserted it and failed, which is how this was found; the
+test records the limit beside the brackets rather than claiming a boundary it does not reach.
+
+**Row 147's own note was half wrong, and that is a correction to this file.** It said the
+worked example's five figures were "read by none of them".
+`test_the_discount_example_is_a_coverage_a_ranked_stock_can_have` captures **seven** figures and
+pins four - the loss, the deepest cut, and the pair it is quoted at. Three were read and
+discarded: the example's `k`, its denominator, and the coverage percentage between them, which was
+bound to a regex group and **never asserted at all**. So the sentence could have quoted any of
+the eight coverages the filter allows, and the discount beside it would have been recomputed from
+whichever `k` it printed and agreed with it. A row's note is written before the work; re-read the
+assertion before trusting it.
+
+**One equivalent mutant, kept in the harness rather than dropped** (`T2`, per "Equivalent
+mutants" above). Halving the example's 0.05 margin cannot move it at n = 27: the rule takes the
+largest `k` with `k / 27` below the bar, and 0.775 × 27 = 20.9 selects the same k = 20 as
+0.75 × 27 = 20.3. The generated page is **byte-identical**, so nothing can see it and nothing
+should. Without the row the next pass picks the same mutation and reads the pass as a gap.
+Its fingerprint is **sha256, not `hash()`** - `str` hashing is salted per interpreter, so the
+first draft reported the page as CHANGED between two runs of the same code.
+
+**No weight, metric, threshold, published sentence or production line changed** - the diff is
+`claims.py`, four test modules, three measurement scripts, this file and the log.
+
 ## Next claims (for the nightly sessions)
 
 Take them in order; one session can do four to six. Record each in the table above with
@@ -686,16 +820,30 @@ left:
    rather than sweeping the file**, which is how the overview stayed readable. The work is not the
    sweep, it is the verdicts: each one means reading the assertion that is supposed to pin the
    figure, not its name.
-   **The `open:` rows are a queue in their own right - fifteen now, down from nineteen**
-   (2026-10-31 closed `clamp-bullet-second-printing`, `share-class-switching-margin`,
-   `bot-monthly-excess-figure` and `bot-coverage-by-year`; rows 131-138 above). Ten are on the
-   research page and five on the methodology page. **The cheapest remaining is `_pbo_words` at
-   its own bars 0.45 and 0.55** - probed at 0.21/0.5/0.73 and never at the two points that decide
-   the word. After that, the three bank P/B-ROE prose rows, whose residual clause also chooses a
-   **word** on `bank_net_pb < 0` with nothing probing that boundary, and
-   `coverage-discount-worked-example`, five figures deep and read by none of them.
-   **Read the 2026-10-31 method note above before writing an assertion against a generated
-   surface**, and do not count a drift tripwire or the sentence sweep as a check of a number.
+   **The `open:` rows are a queue in their own right - six now, down from nineteen**
+   (2026-10-31 06:00 closed four, rows 131-138; 2026-10-31 13:00 closed nine, rows 139-147 and
+   the bookkeeping section above). **Five are on the research page and one on the methodology
+   page**, and they are the ones no cheap check reaches:
+
+   - `pass-bar-printed` and `pass-bar-under-chart` - **the same figure printed twice** and
+     neither copy pinned, nor that the two agree. Do them together; this is the pair the
+     clamp-bullet row turned out to be, so expect the same shape.
+   - `chart-axis-and-geometry` - the axis ticks and `_pos`'s dot/band/tick geometry. A sign
+     error puts every dot on the wrong side of zero with every printed number still correct, so
+     this one needs geometry assertions and not text matching. The biggest of the six.
+   - `size-row-mean-t-and-bar-word` and `size-coverage-percentages` - the Size row's own mean
+     and t, the word choosing "short of" / "beyond" **at** |t| = bar, and two yearly coverage
+     percentages. The word is the same shape as `_pbo_words` (rows 139-140): probe it at the
+     bar, from both sides, through the page.
+   - `coverage-sentence-metric-counts` - the bank and generic metric counts, pinned against
+     `weighted_metric_sets` but on the page only as a bare substring anywhere in 1,000 lines,
+     and the other-financials count (`len(_w_gen) - 1`) not looked for at all.
+
+   **Three things to read first.** The 2026-10-31 06:00 method note below (write assertions
+   against the *generated* surface, never the committed artifact); the 13:00 bookkeeping
+   section (closing a row is three facts - the check exists, the register names it, the verdict
+   says so - and a `checked:` verdict pointing at a module **no claim names** is not coverage);
+   and do not count a drift tripwire or the sentence sweep as a check of a number.
 
 1. **The partly-payload claims.** The 2026-10-26 scan lists 21 claims whose checks *mix* payload
    reads with other tests. A claim is safe only if a non-payload check pins the specific number
@@ -792,3 +940,24 @@ Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metri
   first form assigned its new sentence to an unused variable: the AST sweep saw it, the page did
   not, and "blind to everything else" would have been trivially true. Check the regenerated
   artifact actually differs before believing either verdict.
+- **Closing a row is three facts, not one** (added 2026-10-31, 13:00): the check exists, the
+  register's `checked_by` names it, and the sentence's verdict says `claim:`/`checked:`. The
+  06:00 session of the same day did the first and neither of the others, and said in two places
+  that the rows were closed. Finish all three in the commit that writes the check, and re-run the
+  mutation against **the claim's own `checked_by`** afterwards - not against the module, which is
+  not what the publish gate derives.
+- **A `checked:` verdict naming a module no claim names is not coverage** (same session). Two of
+  the five `pbo-*` rows had one. Grep `claims.py` for the module before writing the verdict; if
+  it is absent, the loop that publishes the page has never run that test.
+- **A catch for the wrong reason is not a catch.** Mutation 142 was first "caught" by three tests,
+  two of them because a synthetic fixture lacked the key the mutated line reads and raised
+  `KeyError`. A fixture that drives a generator carries every field the real input carries, or the
+  next pass reads a crash as arithmetic coverage.
+- **Record an equivalent mutant, and prove it equivalent** (row 147's `T2`). Fingerprint the
+  regenerated artifact before and after with **sha256, not `hash()`** - `str` hashing is salted
+  per interpreter, so `hash()` differs between two runs of identical code and reports every
+  equivalent mutant as a real change.
+- **Say when a boundary is unreachable instead of asserting it.** Row 146's bar is `<=`, and the
+  equality case cannot be constructed from any weighting because `-17.6 + 7.7 + 5.5` is not
+  `-4.4` in binary. The test brackets the bar and records the limit; a test that claims a
+  boundary it cannot reach is worse than one that names the gap.
