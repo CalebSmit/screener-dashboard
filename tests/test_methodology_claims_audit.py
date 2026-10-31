@@ -236,6 +236,46 @@ def test_the_discount_example_is_a_coverage_a_ranked_stock_can_have(page, cfg):
     assert "56% coverage" not in page
 
 
+def test_the_discount_examples_own_stock_is_the_one_the_generator_chooses(page, cfg):
+    """Closes `coverage-discount-worked-example` (claims-mutation audit, opened 2026-10-30).
+
+    The test above captures seven figures from this sentence and pins four of them: the loss,
+    the deepest cut and the pair it is quoted at. Three were read and discarded - the example's
+    `k`, its `n`, and the coverage percentage between them, which was bound to a group and never
+    asserted at all. `k` was held only to `>= coverage_minimum`, so the sentence could have
+    quoted any of the eight coverages a ranked generic stock can have; the discount beside it
+    would have been recomputed from whichever `k` was printed and agreed with it.
+
+    The example is defined to be the *highest* coverage that still takes a discount of more than
+    the rounding the sentence prints - the largest `k` with `k / n` below the threshold less five
+    points - because an example at the filter's floor would read as the typical case rather than
+    the worst one. Both sides of that choice are asserted here.
+    """
+    m = re.search(r"a stock with (\d+) of (\d+) metrics, ([\d.]+)% coverage, loses ([\d.]+)% of its "
+                  r"composite", page)
+    assert m, "the coverage-discount example has moved"
+    k, n, shown, loss = int(m.group(1)), int(m.group(2)), float(m.group(3)), float(m.group(4))
+    gen, _bank = fe.weighted_metric_sets(cfg)
+    thr = cfg["data_quality"]["coverage_discount"]["threshold"]
+
+    assert n == len(gen), (
+        f"the example is quoted out of {n} metrics; a generic stock is scored on {len(gen)} "
+        "(`weighted_metric_sets`), and an example out of a different denominator is not an "
+        "example of this rule"
+    )
+    assert shown == pytest.approx(round(k / n * 100, 1), abs=0.051), (
+        f"the sentence says {k} of {n} is {shown}%, which is {k / n * 100:.1f}%"
+    )
+    # the margin is five points of coverage below the threshold - a literal here, so moving it
+    # in the generator moves the page and not this expectation
+    assert k / n < thr - 0.05, f"{k}/{n} is not below the threshold less five points"
+    assert (k + 1) / n >= thr - 0.05, (
+        f"{k + 1} of {n} is also below it, so {k} is not the highest coverage this rule discounts "
+        "by more than the rounding - the example understates the typical case"
+    )
+    assert loss > 0.0, "an example that loses nothing does not illustrate a discount"
+
+
 # ---------------------------------------------------------------------------
 # Missing-data alert (claim overview.metric_alerts)
 # ---------------------------------------------------------------------------

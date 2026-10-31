@@ -746,32 +746,31 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
         "test_the_size_sentence... recomputes r_time and both within-era correlations",
 
     # --- if you had kept the best backtest ---------------------------------
+    # All five rows CLOSED 2026-10-31 (13:00; audit rows 139-143) by
+    # `claim:research.overfitting_reading`, which also brings `tests/test_overfitting.py` into
+    # the publish gate - it was named by no claim, so the eight checks in it, the stat cards
+    # included, were outside the loop that publishes this page.
     "Over {a['first_month'][:4]}-{a['last_month'][:4]} the PBO was {a['pbo']} , "
     "{_pbo_words(a['pbo'])}, and the winner beat the current weighting on the other half in "
     "{a['winner_beat_current_out_of_sample'] * 100}% of trials.":
-        "open:pbo-all-era-prose:2026-10-29 - the out-of-sample share is pinned by nothing, and _pbo_words is "
-        "probed at 0.21/0.5/0.73 but never at its own bars 0.45 and 0.55. The stat card's PBO "
-        "is pinned (test_the_page_prints_the_ledger_s_reading_all_three_ways), not this copy",
+        "claim:research.overfitting_reading",
     "Over {rec['first_month'][:4]}-{rec['last_month'][:4]} alone the PBO was {rec['pbo']} , "
     "{_pbo_words(rec['pbo'])}, and the winner beat the current weighting out of sample in "
     "{rec['winner_beat_current_out_of_sample'] * 100}% of trials.":
-        "open:pbo-recent-era-prose:2026-10-29 - as the row above, for the recent era",
+        "claim:research.overfitting_reading",
     "Drop {html.escape(label(wo['dropped']))} from the set and the PBO over every year is "
     "{wo['pbo']} , {_pbo_words(wo['pbo'])}.":
-        "open:pbo-without-winner-prose:2026-10-29 - the prose PBO and its word; the card is pinned, this copy is not",
+        "claim:research.overfitting_reading",
     "Its lead over the current weighting was {num(pre['mean'])} over 2012-2019 and "
     "{num(hold['mean'])} over the held-out months":
-        "open:pbo-top-winner-lead:2026-10-29 - the top winner's two era means, and the clause 'where it fell "
-        "behind' that depends on their signs",
+        "claim:research.overfitting_reading",
     "split the history into equal blocks of months, and for every way of picking half of them "
     "( {a['splits']} ways here, from {a['blocks']} blocks), take the weighting that did best on "
     "that half and see where it ranks on the other half.":
         "checked:tests/test_overfitting.py::test_the_page_prints_the_ledger_s_reading_all_three_ways",
     "This uses the current weighting and the {a['configurations'] - 1} alternatives above, each "
     "scored month by month against the current one on the stocks both ranked, and reruns nothing.":
-        "open:pbo-configuration-count:2026-10-29 - the count of alternatives the PBO was computed over is this page's "
-        "own subtraction and is pinned by nothing; summary['alternatives'] is a different number "
-        "from a different source",
+        "claim:research.overfitting_reading",
 
     # --- the trading rule ---------------------------------------------------
     "In {lab} it returned {abs(st['mean']) * 100}% a month {word} that average "
@@ -797,9 +796,10 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 }
 
 # The sentences above whose arithmetic nothing pins - twelve on 2026-10-29, ten
-# since 2026-10-31 (the trading rule's monthly figure and its two coverage
-# percentages are checked now), by
-# the slug in their verdict. **Literals, not a comprehension over the table** -
+# after 2026-10-31 06:00 (the trading rule's monthly figure and its two coverage
+# percentages), five after 2026-10-31 13:00 (the whole "best backtest" section,
+# `claim:research.overfitting_reading`), by the slug in their verdict.
+# **Literals, not a comprehension over the table** -
 # `frozenset(s for s, v in ... if v.startswith("open:"))` is the table compared
 # with itself and passes at any value (`plan/claims-mutation-audit.md` row 59).
 # This set only ever shrinks: closing one means deleting its slug and giving the
@@ -807,8 +807,6 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 KNOWN_OPEN: frozenset[str] = frozenset({
     "pass-bar-printed", "pass-bar-under-chart", "chart-axis-and-geometry",
     "size-row-mean-t-and-bar-word", "size-coverage-percentages",
-    "pbo-all-era-prose", "pbo-recent-era-prose", "pbo-without-winner-prose",
-    "pbo-top-winner-lead", "pbo-configuration-count",
 })
 
 
@@ -910,12 +908,16 @@ OVERVIEW_SENTENCES: dict[str, str] = {
     # (test_bank_pb_roe_identity.py::test_the_first_order_arithmetic_the_page_prints_comes_from_the_config
     # parses each net-points row and compares it with its own `first_order_points`).
     # The prose below restates them, and nothing reads the prose figures.
+    # The three *prose* rows CLOSED 2026-10-31 (13:00; audit rows 144-146). The paragraph
+    # restates the table's three figures as four more of its own, and nothing read any of them;
+    # the residual clause was blinder still, because today's weights print the neutral wording,
+    # so that branch was on a page no test had ever generated.
     "So the {_bp('pb_ratio') + _bp('earnings_yield') + _bp('roe') + _bp('roa') + _bp('equity_ratio')} points those five metrics carry rank a bank on **its ROE relative to its price-to-book** - which, by the identity above, is its earnings yield - and on how much equity backs each dollar of assets, with {_bank_pb_clause}.":
-        "open:bank-five-metric-point-total",
+        "claim:overview.bank_pb_roe_identity",
     "P/B's {_bp('pb_ratio')} points are offset by ROE's {_bp('roe')} and ROA's {_bp('roa')}, because a bank that earns well on its book trades at a higher multiple of it.":
-        "open:bank-pb-offset-by-roe-roa",
+        "claim:overview.bank_pb_roe_identity",
     "a deliberate net **{abs(bank_net_pb)} points {'against' if bank_net_pb < 0 else 'on'} price-to-book**":
-        "open:bank-pb-residual-clause",
+        "claim:overview.bank_pb_roe_identity",
 
     # --- the data loop's input gates (2026-10-22) ---------------------------
     # Every one of the ten figures is asserted against the gate module's own
@@ -940,22 +942,24 @@ OVERVIEW_SENTENCES: dict[str, str] = {
         "checked:tests/test_momentum_panic_rule.py::test_the_overview_states_the_rule_the_engine_applies",
 
     # --- Data quality safeguards -------------------------------------------
-    # `test_the_clamps_and_floors_on_the_page_are_the_ones_applied` says in its own
+    # CLOSED 2026-10-31 (rows 131-132). `..._are_the_ones_applied` said in its own
     # docstring that "the metric rows hard-code their clamps; the Data quality
-    # bullet reads config. Both must be config's" - and then matches only the
-    # metric-table rows (`^\| \*\*Forward EPS Growth\*\* \|`). This bullet is the
-    # second printing and nothing reads it, so nothing would notice the two
-    # disagreeing. Same shape as section 5's `pass-bar-printed`.
+    # bullet reads config. Both must be config's" - and then matched only the
+    # metric-table rows (`^\| \*\*Forward EPS Growth\*\* \|`), so this bullet, the
+    # second printing of all four figures, was read by nothing. It now reads the
+    # bullet, pins all four against config, and asserts the two printings agree.
     "- **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.5, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.5, 1.0])[1] * 100)}%].":
-        "open:clamp-bullet-second-printing",
+        "claim:overview.clamps_and_floors",
 
-    # The threshold (both printings) and the rate ARE pinned, and well - read off
-    # this sentence and then applied through `compute_composite` on stocks either
-    # side of the bar. The *worked example* that follows is a second derivation of
-    # the same formula (`_ex_k` of `_n_gen`, its coverage percentage, the discount
-    # it loses) and so is the deepest-cut figure, and nothing reads any of them.
+    # CLOSED 2026-10-31 (13:00; audit row 147), and the row's own note was half wrong, which is
+    # worth recording: `test_the_discount_example_is_a_coverage_a_ranked_stock_can_have` captures
+    # **seven** figures from this sentence and pins four of them (the loss, the deepest cut and
+    # the pair it is quoted at). Three were read and discarded - `_ex_k`, `_n_gen`, and the
+    # coverage percentage between them, which was bound to a regex group and never asserted at
+    # all - so the example could have quoted any of the eight coverages the filter allows and
+    # its discount would have been recomputed from whichever one it printed.
     "Below {int(cov_disc.get('threshold', 0.8) * 100)}% metric coverage, the composite is multiplied by 1 − ({int(cov_disc.get('threshold', 0.8) * 100)}% − coverage) × {int(cov_disc.get('penalty_rate', 0.15) * 100)}% (e.g., a stock with {_ex_k} of {_n_gen} metrics, {_cov_pct(_ex_k, _n_gen)}% coverage, loses {_ex_disc}% of its composite; the deepest cut the coverage filter leaves possible is {_max_disc}%, at {_bars[_floor_n]} of {_floor_n}).":
-        "open:coverage-discount-worked-example",
+        "claim:overview.coverage_discount",
 
     # `test_confidence_metric_count_is_the_discount_coverage` pins both counts
     # against `weighted_metric_sets` - but on the page only as `f"{bank}" in
@@ -965,19 +969,25 @@ OVERVIEW_SENTENCES: dict[str, str] = {
         "open:coverage-sentence-metric-counts",
 
     # --- share classes (2026-10-21) ----------------------------------------
-    # The margin is pinned in config and in `share_classes.CHALLENGE_MARGIN`, both
-    # as literals - and no test in the suite reads the figure off this page. The
-    # module has no page test at all (no `build_screener_overview` call).
+    # CLOSED 2026-10-31 (rows 133-134). The only page check was
+    # `test_share_classes_page.py::test_the_page_states_the_switching_margin_from_config`,
+    # which looks for `f"{margin:.0%}"` - the config value formatted - anywhere in a
+    # 2,200-character window: row 59's defect (a check may not import the number it
+    # is checking) on a loose substring. `TestThePagePrintsTheMargin` now reads the
+    # figure out of the sentence itself and, with
+    # `TestDeclaration::test_score_once_is_on_and_the_margin_is_spdji_s`, pins it to
+    # a literal 0.20 at both ends, plus the config-follows, fallback and `else` cases.
     "The choice of line is declared in `config.yaml` rather than re-picked from each run's trading volume, and a run only reports when the other line leads by more than {_sc_margin} (S&P DJI's own switching margin):":
-        "open:share-class-switching-margin",
+        "claim:overview.share_classes",
 }
 
-# The six open slugs above, as of 2026-10-30. Literals, not a comprehension over
-# the table - see KNOWN_OPEN. This set only ever shrinks.
+# The one open slug above. Seven on 2026-10-30; five after 2026-10-31 13:00 moved the clamp
+# bullet and the switching margin (whose checks shipped at 06:00 and whose verdicts here did
+# not), and one after the same session closed the three bank P/B-ROE prose rows and the
+# coverage-discount worked example. Literals, not a comprehension over the table - see
+# KNOWN_OPEN. This set only ever shrinks.
 OVERVIEW_KNOWN_OPEN: frozenset[str] = frozenset({
-    "bank-five-metric-point-total", "bank-pb-offset-by-roe-roa", "bank-pb-residual-clause",
-    "clamp-bullet-second-printing", "coverage-discount-worked-example",
-    "coverage-sentence-metric-counts", "share-class-switching-margin",
+    "coverage-sentence-metric-counts",
 })
 
 

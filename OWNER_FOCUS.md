@@ -360,9 +360,47 @@ Two things still outrank this file, and neither is negotiable:
      fell back to its own `0.20` literal for the switching margin while step 11 falls back to
      `share_classes.CHALLENGE_MARGIN`. They agree today, so nothing on the page was wrong - but
      two literals for one number are free to drift, and the page would then have stated a margin
-     no run applied. The generator shares the constant now (row 0.8). Next in the plan's list:
-     `_pbo_words` at its own bars 0.45 and 0.55, then the three bank P/B-ROE prose rows and the
-     coverage-discount worked example; `generate_dashboard.py`'s sweep still wants its own session.
+     no run applied. The generator shares the constant now (row 0.8).
+     **Ninth pass DONE 2026-10-31 (13:00 session) - nine more rows, and the morning's own two
+     turned out not to have been closed.** Rows 139-147 of `plan/claims-mutation-audit.md`, plus
+     a section on the bookkeeping. **20 mutations, 20 caught, one equivalent mutant recorded, and
+     every one of the 20 a GAP against the same claim's `checked_by` before this session.** The
+     `open:` queue is **six**, down from nineteen on 2026-10-29: `KNOWN_OPEN` ten -> five on the
+     research page and `OVERVIEW_KNOWN_OPEN` seven -> **one** on the methodology page.
+     **The part worth your attention is that this morning's two rows were not closed.** The 06:00
+     commit wrote five real checks for the share-class margin and extended one for the clamp
+     bullet, and touched **no register file**: both sentences still read `open:`, the slug list
+     still named both, and the five new checks were in no claim's `checked_by`. Re-run against
+     what the publish gate actually derives - the claim's own `checked_by`, not the module holding
+     the test - the margin row was a real gap: **6 of 6 registered nodes passed both mutations**,
+     while a test in the suite caught them. So "the row is closed" is three facts, not one (the
+     check exists, the register names it, the verdict says so), and that is now a rule in the
+     plan. The clamp row's gap was the label alone.
+     **The same shape, one level up, is the bigger find:** `tests/test_overfitting.py` was named
+     by **no claim**, so all eight of its checks - including the only reader of the overfitting
+     section's stat cards and of its C(16,8) split count - were **outside the publish gate**.
+     Exactly `tests/test_engine_calibration.py` on 2026-10-28, which is the finding the 10-29
+     session flagged for you. Registered now (`research.overfitting_reading`), and the module is
+     in the gate by derivation.
+     **What the nine rows were:** the whole "If you had kept the best backtest" section - three
+     prose PBOs and the words beside them, `_pbo_words` probed **at** 0.45 and 0.55 for the first
+     time (0.21/0.5/0.73 passes for any bars between 0.21 and 0.5 and between 0.5 and 0.73), two
+     out-of-sample shares, the count of alternatives, and the top winner's two era leads with the
+     clause that depends on their signs; then the methodology page's three bank P/B-ROE prose
+     figures and the coverage-discount worked example. The **blindest sentence this audit has
+     met** is the bank residual clause: today's weights print the *neutral* wording, so the branch
+     that states a measured price-to-book tilt was on a page **no test had ever generated**. It is
+     reached now with weights of the test's own, bracketing the 0.25 neutrality share to ±0.013
+     and probing both sides of its `against`/`on` word.
+     **One correction to this audit's own record:** row 147's note said the worked example's five
+     figures were "read by none of them". Its check captures **seven** and pins four; three were
+     read and discarded, including a coverage percentage bound to a regex group and never asserted
+     at all. A row's note is written before the work - re-read the assertion before trusting it.
+     **No weight, metric, threshold, published sentence or production line changed.** Next in the
+     plan's list: `pass-bar-printed` with `pass-bar-under-chart` (the same figure printed twice,
+     neither pinned), then the two Size rows, `chart-axis-and-geometry` and
+     `coverage-sentence-metric-counts`; `generate_dashboard.py`'s sweep still wants its own
+     session.
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).
