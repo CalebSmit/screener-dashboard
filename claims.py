@@ -407,6 +407,10 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_claims_register.py::test_overview_states_the_coverage_discount_from_config",
             "tests/test_methodology_claims_audit.py::test_the_discount_example_is_a_coverage_a_ranked_stock_can_have",
+            # 2026-10-31, audit row 147: the line above captures seven figures and pins four.
+            # The example's own k, its denominator and the coverage percentage between them were
+            # read and discarded, so the sentence could quote any coverage the filter allows.
+            "tests/test_methodology_claims_audit.py::test_the_discount_examples_own_stock_is_the_one_the_generator_chooses",
             "tests/test_claims_register.py::test_the_engine_applies_the_discount_the_page_states",
         ),
         detect=r"coverage discount described under Data quality safeguards",
@@ -1816,6 +1820,12 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_bank_pb_roe_identity.py::test_the_page_names_the_practice_it_follows_and_claims_no_return",
             "tests/test_bank_pb_roe_identity.py::test_the_two_metric_cells_no_longer_call_either_one_the_key_metric",
             "tests/test_bank_pb_roe_identity.py::test_the_config_comment_names_the_constraint_and_the_note",
+            # 2026-10-31, claims-mutation audit rows 144-146: the paragraph under the table
+            # restates its three figures as four more, and the residual branch - the one that
+            # states a measured tilt - is on a page no test had ever generated.
+            "tests/test_bank_pb_roe_identity.py::test_the_five_metric_total_in_the_prose_is_the_sum_of_those_five",
+            "tests/test_bank_pb_roe_identity.py::test_the_offset_sentence_prints_each_metrics_own_points_and_the_tables_net",
+            "tests/test_bank_pb_roe_identity.py::test_the_residual_clause_states_the_net_it_measures_and_which_side_it_is_on",
         ),
         # the page's typography pass turns " - " into a spaced en dash, so match either
         detect=r"A bank's return on equity is its earnings yield multiplied by its price-to-book",

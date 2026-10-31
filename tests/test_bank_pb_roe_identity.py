@@ -268,6 +268,108 @@ def test_the_page_names_the_practice_it_follows_and_claims_no_return(section):
         assert forbidden not in section.lower(), forbidden
 
 
+# --------------------------------------------------------------------------------------------
+# 3b. the prose that restates the table, figure by figure
+#
+# Closes `bank-five-metric-point-total`, `bank-pb-offset-by-roe-roa` and
+# `bank-pb-residual-clause` (claims-mutation audit, opened 2026-10-30, closed 2026-10-31).
+# `test_the_first_order_arithmetic_the_page_prints_comes_from_the_config` above parses the
+# three *table* rows cell by cell; the paragraph under the table restates them as four more
+# figures - the five metrics' total and each of P/B's, ROE's and ROA's own points - and nothing
+# read any of them. The residual clause was blinder still: today's weights print the neutral
+# wording, so the branch that states a measured net is on a page no test has ever generated.
+# --------------------------------------------------------------------------------------------
+
+def _val_weights(cfg: dict, earnings: int, pb: int) -> dict:
+    """`cfg` with the bank Valuation weights replaced, which is how the net P/B position moves."""
+    import copy
+    out = copy.deepcopy(cfg)
+    out["bank_metric_weights"]["valuation"]["earnings_yield"] = earnings
+    out["bank_metric_weights"]["valuation"]["pb_ratio"] = pb
+    return out
+
+
+def _bank_section(cfg: dict) -> str:
+    import run_screener
+    page = run_screener.build_screener_overview(cfg)
+    head = "### A bank's Valuation and Quality scores are one reading, not two"
+    assert head in page, "the bank P/B-ROE section is not on the generated page"
+    rest = page[page.index(head) + len(head):]
+    end = rest.find("\n---")
+    return rest if end < 0 else rest[:end]
+
+
+def test_the_five_metric_total_in_the_prose_is_the_sum_of_those_five(cfg, section):
+    """`bank-five-metric-point-total`. The figure is a fifth sum beside the table's three, so it
+    can disagree with them: it must be P/B + E/Y + ROE + ROA + B/A in composite points, which is
+    not the Valuation + Quality weight total (those categories also carry Piotroski and
+    accruals)."""
+    pts = first_order_points(cfg)["_pts"]
+    want = sum(pts[k] for k in ("pb_ratio", "earnings_yield", "roe", "roa", "equity_ratio"))
+    m = re.search(r"So the ([\d.]+) points those five metrics carry", section)
+    assert m, "the five-metric total has moved"
+    assert float(m.group(1)) == pytest.approx(want, abs=0.05), (m.group(1), want)
+    both = cfg["factor_weights"]["valuation"] + cfg["factor_weights"]["quality"]
+    assert float(m.group(1)) < both, (
+        "the five metrics cannot carry the whole Valuation + Quality weight - Piotroski and "
+        "accruals are in Quality too"
+    )
+
+
+def test_the_offset_sentence_prints_each_metrics_own_points_and_the_tables_net(cfg, section):
+    """`bank-pb-offset-by-roe-roa`. Three more figures, and the sentence's claim is that the
+    first is offset by the other two - which is the table's P/B row, so the two printings have
+    to agree. That holds at any weights, not only at today's."""
+    pts = first_order_points(cfg)["_pts"]
+    m = re.search(r"P/B's ([\d.]+) points are offset by ROE's ([\d.]+) and ROA's ([\d.]+),", section)
+    assert m, "the offset sentence has moved"
+    pb, roe, roa = (float(x) for x in m.groups())
+    assert pb == pytest.approx(pts["pb_ratio"], abs=0.05)
+    assert roe == pytest.approx(pts["roe"], abs=0.05)
+    assert roa == pytest.approx(pts["roa"], abs=0.05)
+    # the net the table states is -P/B + ROE + ROA, from these same three printed figures
+    row = next(ln for ln in section.splitlines() if ln.startswith("| Price-to-book (P/B) |"))
+    printed_net = float(re.search(r"\*\*([+-]?[\d.]+)\*\*", row).group(1))
+    assert printed_net == pytest.approx(-pb + roe + roa, abs=0.06), (
+        f"the table says the block nets {printed_net:+.1f} on price-to-book while the paragraph "
+        f"under it prints {-pb + roe + roa:+.1f} from its own three figures"
+    )
+
+
+def test_the_residual_clause_states_the_net_it_measures_and_which_side_it_is_on(cfg):
+    """`bank-pb-residual-clause`. The page states whichever of two readings is true of the
+    weights it was generated from, and today's are neutral - so the residual branch has to be
+    reached with weights of this test's own. Both the magnitude and the word are checked, and
+    the word turns on `bank_net_pb < 0`, which is a boundary nothing probed.
+
+    The arithmetic, for the configs below: bank Valuation carries 22 composite points split by
+    the two weights, and Quality gives ROE 7.7 and ROA 5.5, so the net on log P/B is
+    -0.22 x pb + 13.2 and the net on log E/P is 0.22 x (100 - pb) + 13.2.
+
+    The `<=` in `abs(net_pb) <= 0.25 * net_ep` is **not** probed at equality, and that is a
+    limitation rather than an oversight: at pb = 80 the two sides are 4.4 either way in decimal
+    and `-17.6 + 7.7 + 5.5` is `-4.400000000000002` in binary, so the inclusive boundary is not
+    reachable from any weighting here. What is pinned instead is the bar's *position*: neutral
+    at pb = 79 and residual at pb = 81 brackets MAX_FIRST_ORDER_SHARE to within about 0.013, so
+    a move to 0.20 or 0.30 flips one of the two.
+    """
+    # pb=79: net P/B -4.18 against a bar of 4.455, inside it
+    at_bar = _bank_section(_val_weights(cfg, 21, 79))
+    assert "no net weight on price-to-book by itself" in at_bar
+    assert "deliberate net" not in at_bar
+
+    # pb=81: -4.62 against 4.345, past the bar by 0.275 of a point
+    past_bar = _bank_section(_val_weights(cfg, 19, 81))
+    assert "a deliberate net **4.6 points against price-to-book**" in past_bar, past_bar[-1200:]
+    assert "no net weight on price-to-book by itself" not in past_bar
+
+    # and the other side of the word: a small P/B weight leaves ROE and ROA pointing the net
+    # *onto* price-to-book
+    other_side = _bank_section(_val_weights(cfg, 90, 10))
+    assert "a deliberate net **11.0 points on price-to-book**" in other_side, other_side[-1200:]
+    assert "points against price-to-book" not in other_side
+
+
 def test_the_two_metric_cells_no_longer_call_either_one_the_key_metric(overview):
     """The proposal's item (2). Each is read against the other, so neither is 'THE key'."""
     assert "THE key bank valuation metric" not in overview

@@ -908,12 +908,16 @@ OVERVIEW_SENTENCES: dict[str, str] = {
     # (test_bank_pb_roe_identity.py::test_the_first_order_arithmetic_the_page_prints_comes_from_the_config
     # parses each net-points row and compares it with its own `first_order_points`).
     # The prose below restates them, and nothing reads the prose figures.
+    # The three *prose* rows CLOSED 2026-10-31 (13:00; audit rows 144-146). The paragraph
+    # restates the table's three figures as four more of its own, and nothing read any of them;
+    # the residual clause was blinder still, because today's weights print the neutral wording,
+    # so that branch was on a page no test had ever generated.
     "So the {_bp('pb_ratio') + _bp('earnings_yield') + _bp('roe') + _bp('roa') + _bp('equity_ratio')} points those five metrics carry rank a bank on **its ROE relative to its price-to-book** - which, by the identity above, is its earnings yield - and on how much equity backs each dollar of assets, with {_bank_pb_clause}.":
-        "open:bank-five-metric-point-total",
+        "claim:overview.bank_pb_roe_identity",
     "P/B's {_bp('pb_ratio')} points are offset by ROE's {_bp('roe')} and ROA's {_bp('roa')}, because a bank that earns well on its book trades at a higher multiple of it.":
-        "open:bank-pb-offset-by-roe-roa",
+        "claim:overview.bank_pb_roe_identity",
     "a deliberate net **{abs(bank_net_pb)} points {'against' if bank_net_pb < 0 else 'on'} price-to-book**":
-        "open:bank-pb-residual-clause",
+        "claim:overview.bank_pb_roe_identity",
 
     # --- the data loop's input gates (2026-10-22) ---------------------------
     # Every one of the ten figures is asserted against the gate module's own
@@ -947,13 +951,15 @@ OVERVIEW_SENTENCES: dict[str, str] = {
     "- **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.5, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.5, 1.0])[1] * 100)}%].":
         "claim:overview.clamps_and_floors",
 
-    # The threshold (both printings) and the rate ARE pinned, and well - read off
-    # this sentence and then applied through `compute_composite` on stocks either
-    # side of the bar. The *worked example* that follows is a second derivation of
-    # the same formula (`_ex_k` of `_n_gen`, its coverage percentage, the discount
-    # it loses) and so is the deepest-cut figure, and nothing reads any of them.
+    # CLOSED 2026-10-31 (13:00; audit row 147), and the row's own note was half wrong, which is
+    # worth recording: `test_the_discount_example_is_a_coverage_a_ranked_stock_can_have` captures
+    # **seven** figures from this sentence and pins four of them (the loss, the deepest cut and
+    # the pair it is quoted at). Three were read and discarded - `_ex_k`, `_n_gen`, and the
+    # coverage percentage between them, which was bound to a regex group and never asserted at
+    # all - so the example could have quoted any of the eight coverages the filter allows and
+    # its discount would have been recomputed from whichever one it printed.
     "Below {int(cov_disc.get('threshold', 0.8) * 100)}% metric coverage, the composite is multiplied by 1 − ({int(cov_disc.get('threshold', 0.8) * 100)}% − coverage) × {int(cov_disc.get('penalty_rate', 0.15) * 100)}% (e.g., a stock with {_ex_k} of {_n_gen} metrics, {_cov_pct(_ex_k, _n_gen)}% coverage, loses {_ex_disc}% of its composite; the deepest cut the coverage filter leaves possible is {_max_disc}%, at {_bars[_floor_n]} of {_floor_n}).":
-        "open:coverage-discount-worked-example",
+        "claim:overview.coverage_discount",
 
     # `test_confidence_metric_count_is_the_discount_coverage` pins both counts
     # against `weighted_metric_sets` - but on the page only as `f"{bank}" in
@@ -975,13 +981,13 @@ OVERVIEW_SENTENCES: dict[str, str] = {
         "claim:overview.share_classes",
 }
 
-# The five open slugs above, as of 2026-10-31 (seven on 2026-10-30; the clamp
-# bullet and the switching margin are checked now - their checks shipped at 06:00
-# and their verdicts here did not, which is the gap this session found). Literals,
-# not a comprehension over the table - see KNOWN_OPEN. This set only ever shrinks.
+# The one open slug above. Seven on 2026-10-30; five after 2026-10-31 13:00 moved the clamp
+# bullet and the switching margin (whose checks shipped at 06:00 and whose verdicts here did
+# not), and one after the same session closed the three bank P/B-ROE prose rows and the
+# coverage-discount worked example. Literals, not a comprehension over the table - see
+# KNOWN_OPEN. This set only ever shrinks.
 OVERVIEW_KNOWN_OPEN: frozenset[str] = frozenset({
-    "bank-five-metric-point-total", "bank-pb-offset-by-roe-roa", "bank-pb-residual-clause",
-    "coverage-discount-worked-example", "coverage-sentence-metric-counts",
+    "coverage-sentence-metric-counts",
 })
 
 
