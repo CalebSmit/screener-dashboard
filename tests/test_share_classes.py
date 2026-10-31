@@ -12,7 +12,9 @@ a run's own volumes must not be able to change which line represents a company.
 """
 from __future__ import annotations
 
+import copy
 import json
+import re
 
 import pytest
 import yaml
@@ -224,3 +226,71 @@ class TestPipelineWiring:
             with open(mod.__file__, encoding="utf-8") as fh:
                 src = fh.read()
             assert "share_classes" not in src, f"{mod.__name__} must not read share_classes"
+
+
+# --------------------------------------------------------------------- the published page
+@pytest.fixture(scope="module")
+def page():
+    import run_screener as rs
+    return rs.build_screener_overview(CFG)
+
+
+class TestThePagePrintsTheMargin:
+    """The methodology page's switching-margin sentence, read off the generator.
+
+    Opened by the claims-mutation audit on 2026-10-30 as ``share-class-switching-margin`` and
+    closed here on 2026-10-31. The margin was pinned twice as a literal - in ``config.yaml`` and
+    in ``share_classes.CHALLENGE_MARGIN``, by ``test_score_once_is_on_and_the_margin_is_spdji_s``
+    above - and **no test in the suite read the figure off the page**: this module never called
+    ``build_screener_overview``. So the page could have stated any margin at all, on a surface the
+    02:00 loop republishes five mornings a week.
+    """
+
+    def test_the_page_states_the_configured_margin(self, page):
+        m = re.search(r"the other line leads by more than (\d+)% "
+                      r"\(S&P DJI's own switching margin\)", page)
+        assert m, "the page no longer states the switching margin"
+        assert int(m.group(1)) == round(CFG["share_classes"]["challenge_margin"] * 100)
+        assert int(m.group(1)) == round(sc.CHALLENGE_MARGIN * 100)
+
+    def test_the_page_follows_config_rather_than_printing_a_literal(self, page):
+        """The figure must come from config, not from a number typed into the generator. Raise
+        the configured margin and the sentence has to move with it."""
+        import run_screener as rs
+        bumped = copy.deepcopy(CFG)
+        bumped["share_classes"]["challenge_margin"] = 0.35
+        moved = rs.build_screener_overview(bumped)
+        assert re.search(r"leads by more than 35% \(S&P DJI's own switching margin\)", moved)
+        assert "leads by more than 20%" not in moved
+
+    def test_the_pages_fallback_is_the_modules_constant(self):
+        """With ``challenge_margin`` absent from config, the page must fall back to the value
+        step 11 falls back to (``share_classes.CHALLENGE_MARGIN``). Until 2026-10-31 the
+        generator carried its own ``0.20`` literal, so the two were free to drift and the page
+        could have stated a margin no run applied."""
+        import run_screener as rs
+        bare = copy.deepcopy(CFG)
+        bare["share_classes"].pop("challenge_margin")
+        page = rs.build_screener_overview(bare)
+        m = re.search(r"leads by more than (\d+)% \(S&P DJI's own switching margin\)", page)
+        assert m and int(m.group(1)) == round(sc.CHALLENGE_MARGIN * 100)
+
+    def test_the_page_names_the_declared_lines_and_not_their_pairs(self, page):
+        """The same paragraph lists the designated lines. A page naming a line the run dropped
+        would be worse than no page: the reader would look up a ticker that is not ranked."""
+        declared = CFG["share_classes"]["designated"]
+        for t in declared:
+            assert f"**{t}**" in page, f"{t} is declared but the page does not name it"
+        for pair in PAIRS:
+            for t in (x for x in pair if x not in declared):
+                assert f"**{t}** on this run's configuration" not in page
+
+    def test_the_paragraph_is_withdrawn_when_scoring_once_is_switched_off(self):
+        """The `else` branch. A page that kept the rule's paragraph while the run had the rule
+        switched off would be stating the opposite of what it did."""
+        import run_screener as rs
+        off = copy.deepcopy(CFG)
+        off["share_classes"]["score_once_per_company"] = False
+        page = rs.build_screener_overview(off)
+        assert "switching margin" not in page
+        assert "is switched off in this run's configuration" in page
