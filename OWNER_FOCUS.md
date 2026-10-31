@@ -338,6 +338,31 @@ Two things still outrank this file, and neither is negotiable:
      **No weight, metric, threshold or published sentence changed.** The plan's next list leads
      with the rest of this item - the same sweep over `build_screener_overview` and
      `generate_dashboard.py`, one surface per session - and the twelve open rows as a queue.
+     **Eighth pass DONE 2026-10-31 (06:00 weekend session) - four of the open rows, and a
+     correction to what this audit counts as "caught".** Rows 131-138 of
+     `plan/claims-mutation-audit.md`. The plan called the nineteen `open:` rows a queue and named
+     four; all four are closed on the **value** of the figure, 8 mutations for 8 catches, and
+     `KNOWN_OPEN` drops from twelve to ten. They were: the Data quality bullet's second printing
+     of all four clamps (a test's own docstring claimed to cover it and matched only the metric
+     rows); the share-class switching margin, pinned twice as a literal and read off the page by
+     **nothing** - `tests/test_share_classes.py` had never called `build_screener_overview`; the
+     trading rule's monthly excess, matched as `[0-9.]+%`, so the published percentage was a
+     wildcard in all three periods; and the two survivorship coverage percentages beside it.
+     **The correction is the part worth your attention.** Run with the row's own check deselected,
+     the whole suite *did* fail on three of these mutations - and **not one of the three failures
+     was a check of the number**: two were drift tripwires ("the committed page is what the
+     generator builds"), green the morning the 02:00 run rewrites the page, and one was the
+     sentence sweep built the day before, which keys a sentence by its text and so detects *an
+     edit* rather than *a wrong number*, satisfied by registering the new wording. A mutation can
+     read as caught twice over and still ship; this audit no longer counts either as arithmetic
+     coverage.
+     **One production change**, and the reason the row was worth taking: `build_screener_overview`
+     fell back to its own `0.20` literal for the switching margin while step 11 falls back to
+     `share_classes.CHALLENGE_MARGIN`. They agree today, so nothing on the page was wrong - but
+     two literals for one number are free to drift, and the page would then have stated a margin
+     no run applied. The generator shares the constant now (row 0.8). Next in the plan's list:
+     `_pbo_words` at its own bars 0.45 and 0.55, then the three bank P/B-ROE prose rows and the
+     coverage-discount worked example; `generate_dashboard.py`'s sweep still wants its own session.
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).
