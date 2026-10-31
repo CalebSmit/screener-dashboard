@@ -1,4 +1,4 @@
-# Morning Brief - Saturday 31 October 2026, 07:21
+# Morning Brief - Saturday 31 October 2026, 14:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -21,14 +21,14 @@ history is in `NIGHTLY_LOG.md`.
 | Data run timing | **18 min** total; slowest `fetch.tickers` 663 s, `fetch.retry` 140 s, `context.sec_insider` 96 s; **42 tickers rate-limited** |
 | Context coverage | options usable 490/499 (9 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
-## Things that needed attention
-
-- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
-- tests/test_forward_return_download_skip.py::test_skipping_changes_no_output_only_the_downloads
-- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
-
 ## What changed in the repo
 
+- `b40ce88 log: 2026-10-31 (13:00) - nine more audit rows, and the morning's two were never registered`
+- `dfe8de6 plan: the ninth mutation pass, and five rules the pass produced`
+- `66be3a9 claims audit: the methodology page's last four prose rows, and one equivalent mutant recorded`
+- `58ebd6d claims audit: the whole "best backtest" section, and the module checking it joins the gate`
+- `00aa22e claims audit: the two rows closed at 06:00 were never closed in the register`
+- `5955e39 brief: code session 2026-10-31-weekend`
 - `f2d817c log: 2026-10-31 weekend - a red main fixed at its root, a clock-read sweep, and four open audit rows`
 - `57a15cb claims audit: the trading rule's monthly figure stops being a wildcard, and its two coverage years`
 - `a306d32 claims audit: the two open rows the plan called sharpest - the clamp bullet and the switching margin`
@@ -38,60 +38,54 @@ history is in `NIGHTLY_LOG.md`.
 - `7a21ec2 log: 2026-10-30 (13:00) - the TTM-fill proposal refused as written, and the methodology page's computed sentences swept`
 - `6c59f28 claims sweep: the methodology page, and a new published sentence is invisible to 3,566 tests`
 - `3c2217e decide: correct a count in the review - six one-quarter stocks, not eight`
-- `c5eee94 decide: the TTM-fill proposal - REFUSED as written, and its own case understated`
-- `c13b46c wip: the measurements for the TTM-fill review`
-- `4ca24b4 brief: code session 2026-10-30`
-- `2a40afc log: 2026-10-30 RETROSPECTIVE - a red main found at baseline, and the blind spot that let it sit`
-- `d00e2f5 rotation: Wednesday's subject is whatever changed the methodology, not only Monday's note`
-- `221b2f4 process: CLAUDE.md 1036 -> 959; the fifth asymmetry scored; the step-1 enumeration as a tool`
 
 ## The session's own account
 
-> 2026-10-31 (06:00 weekend) - WEEKEND. A red `main` fixed at its root, and four of the audit's open rows
+> 2026-10-31 (13:00 midday) - QUEUE. Nine more audit rows, and the morning's own two turned out not to have been closed
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-30_130001-midday.log`,
-> ends "shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-30_020001.log`,
-> "Data loop complete", HEALTH: PASS, signals written (40 names, 8 gates, all ran). Evidence base at
-> `1m` = **40 rows, newest 2026-09-29 (32 days ago, bound 40), 5 effective** - steady state, one day
-> further on than yesterday's 31 as expected. Priority 0: `allow_auto_apply` **false**, 5 of 8
-> effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 19 days**) -
-> not advanced; the next lab Friday is **2026-11-06** and no experiment is half-built. (0.10 is
-> older - opened 2026-10-07, **age 24 days** - and its remainder is Sharpe and Sortino at weight 0,
-> which CLAUDE.md says to do only with nothing better.)
-> **Tests:** before **3,569 passed / 1 failed / 1 skipped** (RED on arrival, not this session's
-> doing), after **3,594 passed / 1 skipped**. Dry run exits 0. `scripts/rehearse_publish.py` PASSED
-> (the diff touches the methodology generator): 362 page tests, published claims 1,834 passed,
-> published files restored byte-for-byte, all four artifacts unchanged.
-> **Owner queue / rotation:** the red baseline first, as Baseline requires - then `OWNER_FOCUS.md`
-> item 2 sub-item 3 ("test the tests"), whose plan names the work. No proposal is waiting
-> (`write_brief.open_proposals()` returns `[]`). Nothing deferred for a gate or a loop.
-> `git stash list` shows `auto-rescue 2026-10-28_060001`, **still empty** (`git stash show -p` prints
-> nothing) - left in place, as every session since has. No owner-session marker.
+> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 weekend session,
+> `logs/nightly-2026-10-31_060001-weekend.log`, ends "shipped to main". Data loop published?
+> **yes** - the last weekday run, `logs/datarun-2026-10-30_020001.log`, "Data loop complete",
+> HEALTH: PASS, signals written (40 names, 8 gates, all ran); today is a Saturday, so no 02:00 run
+> is due. Evidence base at `1m` = **40 rows, newest 2026-09-29 (32 days ago, bound 40), 5
+> effective** - steady state, unchanged from this morning. Priority 0: `allow_auto_apply` **false**,
+> 5 of 8 effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 19
+> days**) - not advanced; the next lab Friday is **2026-11-06** and no experiment is half-built.
+> (0.10 is older - opened 2026-10-07, **age 24 days** - and its remainder is Sharpe and Sortino at
+> weight 0, which CLAUDE.md says to do only with nothing better.)
+> **Tests:** before **3,594 passed / 1 skipped**; the runner's own baseline line agrees
+> (`BASELINE main is GREEN on arrival (3594 passed, 1 skipped ... 0:04:01)`), after **3,602 passed /
+> 1 skipped** (+8, all new). Dry run exits 0. `scripts/rehearse_publish.py` **PASSED** (the diff
+> touches `claims.py`): 362 page tests, published claims 1,850 passed, all four published files
+> unchanged and restored byte-for-byte.
+> **Owner queue / rotation:** no proposal is waiting (`write_brief.open_proposals()` returns `[]`),
+> so `OWNER_FOCUS.md` item 2 sub-item 3 ("test the tests"), carrying on from the 06:00 entry's
+> **Next** exactly as the focus asks. Nothing deferred for a gate or a loop. `git stash list` shows
+> `auto-rescue 2026-10-28_060001`; `git stash show -p` prints nothing and
+> `--include-untracked --name-only` lists three gitignored data files (a context log and two price
+> caches), so there is **no tracked work in it** - left in place, as every session since has. No
+> owner-session marker.
+> 
+> **Second session today.** The 06:00 entry's Next named `_pbo_words` at its own bars, then the
+> three bank P/B-ROE prose rows and the coverage-discount worked example. All of those are done -
+> and so is something that entry did not know it had left behind: its own two rows.
 > 
 > ### Did
 > 
-> **1. The red `main`, and its cause was the calendar.** `tests/test_forward_return_download_skip.py::test_skipping_changes_no_output_only_the_downloads`
-> failed at baseline, with no commit since 2026-10-26 touching anything it covers. It built its
-> snapshot dates from `datetime.now()`, and **it cannot fire the skip it tests on a Saturday or a
-> Sunday**: with an empty performance history the only skippable download is the one whose 1-week
-> end is today, that needs a *market-day* snapshot exactly seven days earlier, and seven days before
-> a weekend is a weekend. Today is the first weekend since the test shipped on Monday 2026-10-26.
+> **1. The two rows the 06:00 session closed were never closed in the register.** This audit's own
+> rule, met from the inside: *"Finishing a gap means registering the fix too. A new test that
+> `checked_by` does not name reads as a gap on the next pass and is outside the publish gate's
+> derivation."*
 > 
-> The scenario is now **a fixed week, Monday to Sunday, parametrized** - every date (snapshots,
-> prices, and `_close_possible_since`'s notion of today) comes from the frozen date. It also warms
-> the history up first, which is both what makes the skip reachable on all seven days and the shape
-> the 02:00 loop actually meets: a run date's shorter horizons were recorded weeks ago, so the
-> horizon still due is the one whose end is at hand. With an empty history the clock-built version
-> exercised the skip through **one of its sixteen snapshot dates**.
+> Commit `a306d32` wrote five real checks for `share-class-switching-margin` and extended one for
+> `clamp-bullet-second-printing`. It touches **no register file**: both sentences still read
+> `open:` in `OVERVIEW_SENTENCES`, `OVERVIEW_KNOWN_OPEN` still named both slugs, and the five new
+> `TestThePagePrintsTheMargin` checks were in no claim's `checked_by`. "`KNOWN_OPEN` drops twelve to
+> ten", written in that entry and in `OWNER_FOCUS.md`, was true of the **research** page's two rows
+> only - the 07:00 commit did move those.
 > 
-> **Mutation-checked, and the first draft was found wanting.**
-> `research/measurements/2026-10-31-skip-test-teeth.py`, five mutations of the production rule: the
-> rule always True, always False, `min` -> `max` over the due horizon ends, the scan starting a day
-> late, and the weekend counted as a session. The first draft **missed `min` -> `max`** - the
-> warm-up leaves exactly one horizon due per date, so the two agree - and the whole suite missed it
-> too: **3,563 passed with the mutation applied.** So
-> `test_the_skip_reads_the_earliest_due_end_not_the_latest` covers the case that separates them, a
-> date first processed late with its 3-month end out of reach and its 1-week end long past (which is
+> **Measured rather than inferred**, with a harness that differs from the morning's in the one way
+> that matters: `research/measurements/2026-10-31-registered-row-mutations.py` runs **the claim's
 > ...
 
 ---
