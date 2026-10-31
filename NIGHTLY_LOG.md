@@ -17713,3 +17713,191 @@ defect rows 135-138 exist to fix.
   the top open `OWNER_FOCUS.md` item, and **Friday 2026-11-06 is the Factor Lab's day** -
   experiment 18, unstarted, with `lab_data.js`'s first paint already measured and fixed on
   2026-10-26.
+
+## 2026-10-31 (13:00 midday) - QUEUE. Nine more audit rows, and the morning's own two turned out not to have been closed
+
+**Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 weekend session,
+`logs/nightly-2026-10-31_060001-weekend.log`, ends "shipped to main". Data loop published?
+**yes** - the last weekday run, `logs/datarun-2026-10-30_020001.log`, "Data loop complete",
+HEALTH: PASS, signals written (40 names, 8 gates, all ran); today is a Saturday, so no 02:00 run
+is due. Evidence base at `1m` = **40 rows, newest 2026-09-29 (32 days ago, bound 40), 5
+effective** - steady state, unchanged from this morning. Priority 0: `allow_auto_apply` **false**,
+5 of 8 effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 19
+days**) - not advanced; the next lab Friday is **2026-11-06** and no experiment is half-built.
+(0.10 is older - opened 2026-10-07, **age 24 days** - and its remainder is Sharpe and Sortino at
+weight 0, which CLAUDE.md says to do only with nothing better.)
+**Tests:** before **3,594 passed / 1 skipped**; the runner's own baseline line agrees
+(`BASELINE main is GREEN on arrival (3594 passed, 1 skipped ... 0:04:01)`), after **3,602 passed /
+1 skipped** (+8, all new). Dry run exits 0. `scripts/rehearse_publish.py` **PASSED** (the diff
+touches `claims.py`): 362 page tests, published claims 1,850 passed, all four published files
+unchanged and restored byte-for-byte.
+**Owner queue / rotation:** no proposal is waiting (`write_brief.open_proposals()` returns `[]`),
+so `OWNER_FOCUS.md` item 2 sub-item 3 ("test the tests"), carrying on from the 06:00 entry's
+**Next** exactly as the focus asks. Nothing deferred for a gate or a loop. `git stash list` shows
+`auto-rescue 2026-10-28_060001`; `git stash show -p` prints nothing and
+`--include-untracked --name-only` lists three gitignored data files (a context log and two price
+caches), so there is **no tracked work in it** - left in place, as every session since has. No
+owner-session marker.
+
+**Second session today.** The 06:00 entry's Next named `_pbo_words` at its own bars, then the
+three bank P/B-ROE prose rows and the coverage-discount worked example. All of those are done -
+and so is something that entry did not know it had left behind: its own two rows.
+
+### Did
+
+**1. The two rows the 06:00 session closed were never closed in the register.** This audit's own
+rule, met from the inside: *"Finishing a gap means registering the fix too. A new test that
+`checked_by` does not name reads as a gap on the next pass and is outside the publish gate's
+derivation."*
+
+Commit `a306d32` wrote five real checks for `share-class-switching-margin` and extended one for
+`clamp-bullet-second-printing`. It touches **no register file**: both sentences still read
+`open:` in `OVERVIEW_SENTENCES`, `OVERVIEW_KNOWN_OPEN` still named both slugs, and the five new
+`TestThePagePrintsTheMargin` checks were in no claim's `checked_by`. "`KNOWN_OPEN` drops twelve to
+ten", written in that entry and in `OWNER_FOCUS.md`, was true of the **research** page's two rows
+only - the 07:00 commit did move those.
+
+**Measured rather than inferred**, with a harness that differs from the morning's in the one way
+that matters: `research/measurements/2026-10-31-registered-row-mutations.py` runs **the claim's
+own `checked_by`**, which is what `scripts/check_published_claims.py` derives and therefore the
+only coverage that can stop a publish (the audit's method step 3). `--before` drops the nodes
+added today.
+
+- `--before`: mutations C and D - the margin typed into the generator instead of read from config,
+  and the page's fallback drifting from `share_classes.CHALLENGE_MARGIN` - are **GAP, 6 of 6
+  registered nodes passing**, while a test in the suite caught both.
+- as committed now: **A, B, C, D all CAUGHT, 4 of 4.**
+
+So the clamp row's gap was the **verdict label alone** (its check was already named by
+`overview.clamps_and_floors`) and the margin row was a real `GAP-IN-REGISTER`. **"The row is
+closed" is three facts, not one:** a check exists, the register names it, and the verdict says so.
+That is a carry-forward rule in the plan now.
+
+**2. The whole "If you had kept the best backtest" section - five rows (139-143).** Its stat cards
+were pinned; its three prose paragraphs were not. They restate all three PBOs, add two
+out-of-sample shares, the count of alternatives and the top winner's two era leads, and nothing
+read any of them. `_pbo_words` was probed at 0.21/0.5/0.73 and **never at its own bars, 0.45 and
+0.55** - a pair of probes that passes for any bars between 0.21 and 0.5 and between 0.5 and 0.73.
+
+Four checks in `tests/test_overfitting.py`. Two read the figures off the **generated** page
+against the committed ledger; two feed `overfitting_section` a reading of their own, which is the
+only way to put a figure *at* a bar the committed ledger does not sit on, and the only way to
+reach the ", where it fell behind." clause at its sign boundary. The three words are literals in
+the test, not `rp._pbo_words`'s own output (audit row 59).
+
+**8 mutations, 8 caught**, each by the test meant to see it
+(`research/measurements/2026-10-31-pbo-prose-mutations.py`): both bars moved, an era's PBO copied
+from another era, a decimal dropped, a share swapped for a different statistic, the count no
+longer excluding the current weighting, the clause firing at exactly zero, and the two leads
+reversed.
+
+**The larger finding is not a row.** `tests/test_overfitting.py` was named by **no claim**, so all
+eight of its checks - including the only reader of the stat cards and of the C(16,8) split count -
+were **outside the data loop's publish gate**, whose membership derives from `checked_by`. Same
+shape as `tests/test_engine_calibration.py`, found 2026-10-28 and flagged to the owner as the one
+register finding worth their attention. `research.overfitting_reading` names them and the module
+is in the gate now by derivation. **Two of the five rows carried a `checked:` verdict pointing at
+that module**, which reads as coverage and was not.
+
+**And the rest of the suite is blind to both classes.** Whole suite, today's four new checks
+deselected, the page regenerated the way `python v2_experiments.py report` publishes it: the
+0.55-bar mutation gives `1 failed, 3593 passed` and the configuration-count mutation `2 failed,
+3592 passed`, and **every failure is a drift tripwire or the sentence sweep** - the 2026-10-30
+correction, met for the fourth and fifth time.
+
+**3. The methodology page's last four prose rows (144-147)** - the three bank P/B-ROE prose
+figures and the coverage-discount worked example. **8 mutations, 8 caught, all 8 a GAP before**
+(9 of 9 and 3 of 3 registered nodes passing;
+`research/measurements/2026-10-31-overview-prose-mutations.py`).
+
+**The bank residual clause is the blindest sentence this audit has met**, and the reason is worth
+keeping: today's weights print the *neutral* wording, so the branch that states a measured
+price-to-book tilt was on a page **no test had ever generated**. The sentence sweep found it
+because `computed_sentences` reads the generator's f-strings and not its output - the one thing a
+sweep does that a page reader cannot. It is reached now with weights of the test's own, at
+`pb_ratio` 79 (net P/B -4.18 against a bar of 4.455, inside it) and 81 (-4.62 against 4.345, past
+it), which brackets the 0.25 neutrality share to about +-0.013 - a move to 0.20 or 0.30 flips one
+of the two - and on both sides of the `against` / `on` word, which turns on `bank_net_pb < 0`.
+
+**Stated rather than papered over:** the `<=` in that bar is **not** probed at equality. At
+`pb_ratio` 80 the two sides are 4.4 either way in decimal and `-17.6 + 7.7 + 5.5` is
+`-4.400000000000002` in binary, so the inclusive boundary is unreachable from any weighting here.
+The first draft asserted it and failed, which is how this was found; the test records the limit
+beside the brackets.
+
+**One correction to the audit's own record.** Row 147's note said the worked example's five
+figures were "read by none of them".
+`test_the_discount_example_is_a_coverage_a_ranked_stock_can_have` captures **seven** figures and
+pins four - the loss, the deepest cut and the pair it is quoted at. Three were read and discarded:
+the example's `k`, its denominator, and the coverage percentage between them, which was bound to a
+regex group and **never asserted at all**. So the sentence could have quoted any of the eight
+coverages the filter allows, and the discount beside it would have been recomputed from whichever
+`k` it printed and agreed with it. A row's note is written before the work - re-read the assertion
+before trusting it.
+
+**The queue: nineteen open rows on 2026-10-29, six now.** `KNOWN_OPEN` ten -> five,
+`OVERVIEW_KNOWN_OPEN` seven -> **one**.
+
+### Evidence / research
+
+- No new citations - an audit session, and the mandate's third category applies throughout:
+  **a failing test that now passes, and a measured number.** The three scripts are
+  `research/measurements/2026-10-31-registered-row-mutations.py` (4 mutations: 2 GAP before, 4
+  CAUGHT after), `...-pbo-prose-mutations.py` (8 caught, 2 of them re-run against the whole suite)
+  and `...-overview-prose-mutations.py` (8 caught, 8 GAP before, 1 equivalent mutant). Each
+  restores the file it mutates in a `finally` and asserts it byte-for-byte.
+- **One equivalent mutant, kept in the harness rather than dropped** (the plan's "Equivalent
+  mutants"): halving the worked example's 0.05 margin cannot move it at n = 27, because the rule
+  takes the largest `k` with `k / 27` below the bar and 0.775 x 27 = 20.9 selects the same k = 20
+  as 0.75 x 27 = 20.3. The generated page is **byte-identical** (95,140 bytes, sha256
+  `f7a46c07a6f3a6eb`, both ways), so nothing can see it and nothing should. Without the row the
+  next pass picks the same mutation and reads the pass as a gap. Its fingerprint is **sha256, not
+  `hash()`** - `str` hashing is salted per interpreter, and the first draft reported the page as
+  CHANGED for that reason alone.
+- No weight, metric, threshold, published sentence **or production line** changed. The diff is
+  `claims.py`, four test modules, three measurement scripts,
+  `plan/claims-mutation-audit.md`, `OWNER_FOCUS.md` and this log. `rehearse_publish` confirms all
+  four published artifacts are byte-identical.
+- One thing this session could not verify itself: **`node --check` is refused by the tool guard**
+  here, so gate 3 was checked by file size and opening assignment in Python plus
+  `rehearse_publish`'s byte-for-byte restore. The runner re-runs the real parse on both payload
+  files before it merges, and no artifact in the diff is generated.
+
+### Methodology changed
+
+- None, and no `METHODOLOGY_CHANGELOG.md` entry is due: nothing a reader sees moved, and the one
+  new claim records what the page already said.
+
+### Tried and rejected
+
+- **Taking the `generate_dashboard.py` sentence sweep instead.** Rejected for the reason the 06:00
+  session gave, which still holds: the plan's item 0 calls it the biggest of the three surfaces,
+  from 13,485 lines, and says "the work is not the sweep, it is the verdicts". Nine finishable rows
+  that each close on the *value* of a figure are worth more than a half-registered surface, which
+  is worse than an unregistered one.
+- **Asserting the neutrality bar at equality** (`abs(net_pb) == 0.25 * net_ep`). Written first,
+  because `pb_ratio` 80 gives 4.4 on both sides in decimal. It fails in binary and no weighting
+  reaches it, so the test brackets the bar and **names** the gap - a test that claims a boundary it
+  cannot reach is worse than one that says it cannot.
+- **Deriving each prose word from `rp._pbo_words`.** That is a check importing the number it is
+  checking (row 59): a moved bar would move the page and the expectation together. The three words
+  are literals in the test and the bars are probed through the page.
+- **Counting the three "caught" verdicts the morning's harness reported for rows 131-133 as
+  coverage.** They were a drift tripwire and the sentence sweep, exactly as that session wrote -
+  and re-running against the claim's `checked_by` showed two of them were gaps the publish gate
+  could not see. The distinction is not academic: it is the difference between "a test somewhere
+  fails" and "the loop that publishes the page refuses".
+
+### Next
+
+- **`pass-bar-printed` and `pass-bar-under-chart`, together** - the research page prints the same
+  pass bar twice, nothing pins either copy and nothing pins that the two agree. That is the shape
+  `clamp-bullet-second-printing` turned out to be, so expect it to go the same way. After that the
+  two Size rows (the `short of` / `beyond` word needs probing **at** |t| = bar, the same shape as
+  `_pbo_words`), then `coverage-sentence-metric-counts` (the other-financials count,
+  `len(_w_gen) - 1`, is looked for by nothing) and `chart-axis-and-geometry`, which is the one
+  needing geometry assertions rather than text matching. `generate_dashboard.py`'s sweep still
+  wants a session of its own.
+- **Monday 2026-11-02 is phase 0 of the universe-expansion plan** (`plan/universe-expansion.md`),
+  the top open `OWNER_FOCUS.md` item, and **Friday 2026-11-06 is the Factor Lab's day** -
+  experiment 18, unstarted.
