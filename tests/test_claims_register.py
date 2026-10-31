@@ -776,13 +776,12 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
     # --- the trading rule ---------------------------------------------------
     "In {lab} it returned {abs(st['mean']) * 100}% a month {word} that average "
     "(t {num(st['t'], 2)}),":
-        "open:bot-monthly-excess-figure:2026-10-29 - test_the_trading_rule_sentence_follows_each_period_s_sign_and_t pins "
-        "the words, the sign and the t, and matches the percentage as `[0-9.]+%` - so the "
-        "monthly figure itself is a wildcard",
+        "checked:tests/test_research_page.py::"
+        "test_the_trading_rules_monthly_figure_is_the_ledgers_own_number",
     "{yc(ys[0])}% of each month's members in {ys[0]}, rising to {yc(ys[-1])}% in {ys[-1]}, so "
     "the average leans toward the companies that survived.":
-        "open:bot-coverage-by-year:2026-10-29 - the first and last year's mean coverage. "
-        "test_the_trading_rule_sentence... pins only 'members still listed today'",
+        "checked:tests/test_research_page.py::"
+        "test_the_survivorship_coverage_percentages_are_the_two_years_means",
     "The same rule with a {sev['rule']['stop_loss_pct']}% stop-loss":
         "reported:tests/test_research_page.py::"
         "test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_it_failed",
@@ -797,7 +796,9 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
         "test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_it_failed",
 }
 
-# The twelve sentences above whose arithmetic nothing pins, as of 2026-10-29, by
+# The sentences above whose arithmetic nothing pins - twelve on 2026-10-29, ten
+# since 2026-10-31 (the trading rule's monthly figure and its two coverage
+# percentages are checked now), by
 # the slug in their verdict. **Literals, not a comprehension over the table** -
 # `frozenset(s for s, v in ... if v.startswith("open:"))` is the table compared
 # with itself and passes at any value (`plan/claims-mutation-audit.md` row 59).
@@ -808,7 +809,6 @@ KNOWN_OPEN: frozenset[str] = frozenset({
     "size-row-mean-t-and-bar-word", "size-coverage-percentages",
     "pbo-all-era-prose", "pbo-recent-era-prose", "pbo-without-winner-prose",
     "pbo-top-winner-lead", "pbo-configuration-count",
-    "bot-monthly-excess-figure", "bot-coverage-by-year",
 })
 
 

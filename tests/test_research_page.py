@@ -232,6 +232,57 @@ def test_the_trading_rule_sentence_follows_each_period_s_sign_and_t():
     assert "within the noise" in rp.bot_sentence(flipped, [("discovery", "2020 &ndash; mid-2023")], X.p_value)
 
 
+def test_the_trading_rules_monthly_figure_is_the_ledgers_own_number():
+    """Closes `bot-monthly-excess-figure` (claims-mutation audit, opened 2026-10-29).
+
+    The test above matches the percentage as ``[0-9.]+%``, so the sign, the words and the
+    t-statistic were pinned and the published figure itself was a wildcard: it could print any
+    number at all, in any of the three periods, and nothing on this page or anywhere in the suite
+    would have failed. Here each period's figure is derived from the ledger row independently -
+    ``abs(mean) x 100`` to two decimals, the magnitude, with the direction carried by the word -
+    and the whole span, markup included, must appear.
+
+    It reads the *generated* page, not the committed one (the 2026-10-29 structural fix): a
+    check against the committed file is green until someone regenerates, which is a drift
+    tripwire wearing a value check's name.
+    """
+    page = _rebuilt()
+    b = _latest()["bot-rule-v1.1"]["summary"]
+    seen = 0
+    for k, lab in (("presample", "2012&ndash;2019"), ("discovery", "2020 &ndash; mid-2023"),
+                   ("holdout", "mid-2023 &ndash; 2026")):
+        mean = b[k]["excess"]["mean"]
+        want = f'In {lab} it returned <span class="num">{abs(mean) * 100:.2f}%</span> a month'
+        assert want in page, f"{k}: expected {want!r}"
+        # The magnitude is printed and the direction is the word, so a sign flip must not be
+        # able to leave the figure looking right.
+        assert f'>{abs(mean) * 100:.2f}%</span> a month {"below" if mean < 0 else "above"}' in page
+        seen += 1
+    assert seen == 3, "all three periods must be stated"
+
+
+def test_the_survivorship_coverage_percentages_are_the_two_years_means():
+    """Closes `bot-coverage-by-year` (opened 2026-10-29). The sentence under the trading-rule
+    table is this page's caveat about survivorship - the two percentages are the point of it, and
+    `test_the_trading_rule_sentence...` pinned only the words 'members still listed today'.
+
+    The generated page, for the same reason as the test above."""
+    import pytest
+    page = _rebuilt()
+    if not rp.COVERAGE.exists():
+        pytest.skip(f"MISSING DATA: {rp.COVERAGE.name}")
+    mc = (json.loads(rp.COVERAGE.read_text(encoding="utf-8")) or {}).get("months") or {}
+    if not mc:
+        pytest.skip("MISSING DATA: the coverage-by-month measurement has no months")
+    ys = sorted({m[:4] for m in mc})
+    first, last = (float(np.mean([v["coverage"] for m, v in mc.items() if m.startswith(y)])) * 100
+                   for y in (ys[0], ys[-1]))
+    assert (f'Those are the members still listed today: <span class="num">{first:.0f}%</span> of '
+            f"each month's members in {ys[0]}, rising to "
+            f'<span class="num">{last:.0f}%</span> in {ys[-1]}') in page
+    assert first < last, "the sentence says 'rising to' - it must be generated, not written down"
+
+
 def test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_it_failed():
     """OWNER_FOCUS 2026-10-22: one pre-registered stop, reported beside the unstopped rule.
 
