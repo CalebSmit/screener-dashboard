@@ -364,7 +364,12 @@ def build_screener_overview(cfg: dict) -> str:
     _sc_cfg = cfg.get("share_classes", {}) or {}
     _sc_designated = list(_sc_cfg.get("designated", []) or [])
     if _sc_cfg.get("score_once_per_company", True) and _sc_designated:
-        _sc_margin = float(_sc_cfg.get("challenge_margin", 0.20))
+        # The same fallback the run itself uses (step 11's `_sc.CHALLENGE_MARGIN`), not a second
+        # literal: the page shows the engine's number and never its own re-derivation of it
+        # (CLAUDE.md row 0.8). With `challenge_margin` absent from config the two literals would
+        # have been free to drift, and the page would have stated a margin no run applied.
+        import share_classes as _sc_mod
+        _sc_margin = float(_sc_cfg.get("challenge_margin", _sc_mod.CHALLENGE_MARGIN))
         share_class_text = (
             "**One company, one line.** The S&P 500 holds about 503 listed lines for about "
             "500 companies, because a few list two classes of common stock. Every figure "

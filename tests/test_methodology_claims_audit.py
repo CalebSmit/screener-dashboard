@@ -541,6 +541,8 @@ def _feg_row(fwd: float, trail: float, twelve_month: bool) -> dict:
     from tests.test_metrics import _compute_one, _make_rec
     extra = {}
     if twelve_month:
+        # clock: a consensus year-end six months out, which is mid-range on any day of the week
+        # and far from the construction's 0-to-12-month boundaries.
         end = datetime.now(timezone.utc) + timedelta(days=180)
         extra = {"_fy1_eps_current": 5.0, "_fy2_eps_current": 6.0, "_next_fy_end": int(end.timestamp()),
                  "_eps_quarters": json.dumps([[f"2026-0{i + 1}-30", 1.0, 1.0, 0.0] for i in range(4)])}
@@ -765,6 +767,8 @@ def test_the_fetch_applies_the_surprise_floor_the_page_states(page, monkeypatch)
     import yfinance
 
     floor = float(re.search(r"Analyst surprise uses a \$([\d.]+) floor on estimated EPS", page).group(1))
+    # clock: four quarter dates in descending order, all in the past. The fetch takes them as
+    # given - no weekday, session or market calendar enters the floor it is being asked about.
     now = pd.Timestamp.now().normalize()
     quarters = [now - pd.Timedelta(days=d) for d in (300, 210, 120, 30)]
     est = [1.00, 2.00, 0.05, 0.04]
@@ -816,12 +820,33 @@ def test_the_engine_clamps_price_target_upside_where_the_page_says(page, cfg):
 
 def test_the_clamps_and_floors_on_the_page_are_the_ones_applied(page, cfg, payload):
     """The metric rows hard-code their clamps; the Data quality bullet reads config. Both must
-    be config's, and the published values must be what the stated floors and clamps give."""
+    be config's, and the published values must be what the stated floors and clamps give.
+
+    The bullet half of that sentence was not true until 2026-10-31 (claims-mutation audit row
+    131): this test matched only the metric-table rows, so the bullet - the *second* printing of
+    all four figures - was read by nothing, and the two printings disagreeing would have
+    published. The docstring asserting coverage it did not have is what made the gap invisible.
+    """
     clamps = cfg["metric_clamps"]
+    rows = []
     for lab, key in (("Forward EPS Growth", "forward_eps_growth"), ("Price Target Upside", "price_target_upside")):
         m = re.search(rf"^\| \*\*{re.escape(lab)}\*\* \|.*?Clamped to \[(-?\d+)%, \+(\d+)%\]", page, re.M)
         assert m, f"the {lab} row no longer states its clamp"
         assert (int(m.group(1)), int(m.group(2))) == tuple(round(x * 100) for x in clamps[key])
+        rows += [int(m.group(1)), int(m.group(2))]
+
+    bullet = re.search(
+        r"\*\*Output clamping \(configurable\):\*\* Forward EPS growth is clamped to "
+        r"\[(-?\d+)%, \+(\d+)%\]; price target upside is clamped to \[(-?\d+)%, \+(\d+)%\]", page)
+    assert bullet, "the Data quality bullet no longer states the four clamps"
+    printed = [int(x) for x in bullet.groups()]
+    assert printed == [round(clamps["forward_eps_growth"][0] * 100),
+                       round(clamps["forward_eps_growth"][1] * 100),
+                       round(clamps["price_target_upside"][0] * 100),
+                       round(clamps["price_target_upside"][1] * 100)]
+    assert printed == rows, "the page prints two different clamps for the same metric"
+    assert page.count("under `metric_clamps`") == 1, "the bullet names where the bounds live"
+
     floors = re.search(r"Analyst surprise uses a \$([\d.]+) floor on estimated EPS; forward EPS growth uses a "
                        r"\$([\d.]+) floor on trailing EPS", page)
     assert floors

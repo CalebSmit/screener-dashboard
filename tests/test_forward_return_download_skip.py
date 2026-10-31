@@ -9,6 +9,22 @@ that day, two ending on the weekend before a Monday run. Each such download was 
 The claim is that the skip is output-identical, so the test that matters is the last one: the
 same scenarios run with the skip disabled and enabled, against a fetch that behaves like the real
 one (never returns a bar dated today), produce byte-identical performance history and IC files.
+
+**The scenario is a fixed week, not the clock** - corrected 2026-10-31, after the first weekend
+since this file shipped turned ``main`` red with no commit touching any code it covers. Built
+from ``datetime.now()`` it could not fire the skip on a Saturday or a Sunday, so it failed on
+both: with an empty performance history the only skippable download is the one whose 1-week end
+is today, that needs a *market-day* snapshot exactly seven days earlier, and seven days before a
+weekend is a weekend. The scenario now runs for each day of one fixed week, Monday to Sunday, and
+every date in it - the snapshots, the prices, and ``_close_possible_since``'s notion of today -
+comes from the frozen date rather than the clock.
+
+It also warms the history up first, which is both what makes the skip reachable on all seven days
+and the shape the 02:00 loop actually meets: by the time a horizon comes due, the *shorter*
+horizons of that run date were recorded weeks ago, so the only horizon still wanted is the one
+whose end is at hand. With an empty history every snapshot still wants its 1-week return, whose
+end is long past, and the download is never skippable - which is why the version built on the
+clock exercised the skip through exactly one of its sixteen snapshot dates.
 """
 from __future__ import annotations
 
@@ -22,6 +38,21 @@ import improvement_engine as ie
 
 N = 40
 TICKERS = [f"T{i:02d}" for i in range(N)]
+
+# Captured before any test can monkeypatch it: the arm with the skip enabled needs the real rule,
+# bound to the frozen date rather than to the clock.
+_REAL_CLOSE_POSSIBLE = ie._close_possible_since
+
+# Monday .. Sunday of one fixed week. The claim is that the skip is output-identical on any day
+# the pass can run, so every day of the week is a case - including the two the data loop does not
+# run on, because the suite does.
+WEEK = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31",
+        "2026-11-01"]
+WEEKDAY_NAME = {0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"}
+
+# How far back the warm-up pass stands. Long enough that every horizon ending more than a week
+# ago is already recorded, short enough that the ones ending in the last few days are not.
+WARM_DAYS = 11
 
 
 def _ts(s):
@@ -49,6 +80,8 @@ class TestClosePossibleSince:
         assert not ie._close_possible_since(_ts("2026-10-30"), today=_ts("2026-10-26"))
 
     def test_defaults_to_the_local_date(self):
+        # clock: reading the clock is the behaviour under test. An end dated today has no close
+        # on any day of the week, so the verdict is the same whenever the suite runs.
         today = pd.Timestamp(datetime.now().date())
         assert not ie._close_possible_since(today)
 
@@ -80,25 +113,30 @@ def _write_snapshots(dates):
         df.to_parquet(ie.SNAPSHOTS_DIR / f"{day}_r{k}.parquet", index=False)
 
 
-def _realistic_fetch(calls):
-    """Weekday closes up to (never including) today - the real function drops today's bar."""
+def _price_panel():
+    """One deterministic panel of weekday closes, dated absolutely rather than relative to a
+    run date, so the same horizon measured at the warm-up and at the target date agrees."""
     rng = np.random.default_rng(11)
-    today = pd.Timestamp(datetime.now().date())
-    idx = pd.bdate_range(today - timedelta(days=200), today - timedelta(days=1))
-    prices = pd.DataFrame({t: 100 * np.cumprod(1 + rng.normal(0.0005, 0.01, len(idx)))
-                           for t in TICKERS}, index=idx)
+    idx = pd.bdate_range("2026-01-01", "2026-12-31")
+    return pd.DataFrame({t: 100 * np.cumprod(1 + rng.normal(0.0005, 0.01, len(idx)))
+                         for t in TICKERS}, index=idx)
 
+
+_PANEL = _price_panel()
+
+
+def _realistic_fetch(calls, as_of):
+    """Weekday closes up to (never including) ``as_of`` - the real function drops today's bar."""
     def fetch(tickers, start, end):
         calls.append((start, end))
         lo = pd.Timestamp(start) - timedelta(days=5)
-        return prices[prices.index >= lo]
+        return _PANEL[(_PANEL.index >= lo) & (_PANEL.index < as_of)]
     return fetch
 
 
-def _scenario_dates():
-    """Snapshot dates relative to today that put a horizon end on today, on each of the last
+def _scenario_dates(today):
+    """Snapshot dates relative to ``today`` that put a horizon end on today, on each of the last
     few days, and on a weekend - plus dates whose horizons are long complete."""
-    today = pd.Timestamp(datetime.now().date())
     days = set()
     for span in (7, 30, 90):
         for back in range(0, 5):
@@ -113,42 +151,98 @@ def _scenario_dates():
     return sorted(days)
 
 
-def _run(sandbox, monkeypatch, skip_enabled):
-    for f in sandbox.rglob("*.csv"):
-        f.unlink()
-    calls = []
-    monkeypatch.setattr(ie, "_fetch_prices_for_returns", _realistic_fetch(calls))
-    if not skip_enabled:
-        monkeypatch.setattr(ie, "_close_possible_since", lambda end, today=None: True)
-    today = datetime.now().strftime("%Y-%m-%d")
-    ie.compute_forward_returns(today)
+def _pass(mp, as_of, calls, skip_enabled):
+    """One forward-return + IC pass with every date taken from ``as_of``, not from the clock."""
+    mp.setattr(ie, "_fetch_prices_for_returns", _realistic_fetch(calls, as_of))
+    if skip_enabled:
+        mp.setattr(ie, "_close_possible_since",
+                   lambda end, today=None: _REAL_CLOSE_POSSIBLE(end, today=as_of))
+    else:
+        mp.setattr(ie, "_close_possible_since", lambda end, today=None: True)
+    rows = ie.compute_forward_returns(as_of.strftime("%Y-%m-%d"))
     for h in ie.HORIZON_DAYS:
         ie.compute_live_ic(horizon=h)
-    out = {f.name: f.read_bytes() for f in sorted(sandbox.glob("*.csv"))}
-    monkeypatch.undo()
-    return out, calls
+    return 0 if rows is None else len(rows)
 
 
-def test_skipping_changes_no_output_only_the_downloads(sandbox, monkeypatch):
-    _write_snapshots(_scenario_dates())
-    # monkeypatch.undo() inside _run also undoes the sandbox paths - re-apply them each time.
-    paths = {k: getattr(ie, k) for k in ("IMPROVEMENT_DIR", "SNAPSHOTS_DIR", "PRICE_CACHE_DIR",
-                                         "PERFORMANCE_HISTORY_PATH", "LIVE_IC_HISTORY_PATH",
-                                         "METRIC_IC_HISTORY_PATH", "DISPERSION_HISTORY_PATH",
-                                         "CHANGE_LOG_PATH")}
+def _arm(sandbox, today, skip_enabled):
+    """Warm the history up the way the live loop's is warm, then run the target day's pass.
 
-    def apply():
-        for k, v in paths.items():
-            monkeypatch.setattr(ie, k, v)
+    The warm-up is identical in both arms - the skip is disabled for it - so any difference in
+    the files afterwards comes from the target pass and nothing else.
+    """
+    for f in sandbox.rglob("*.csv"):
+        f.unlink()
+    warm_calls, calls = [], []
+    with pytest.MonkeyPatch.context() as mp:
+        warm_rows = _pass(mp, today - timedelta(days=WARM_DAYS), warm_calls, skip_enabled=False)
+    with pytest.MonkeyPatch.context() as mp:
+        rows = _pass(mp, today, calls, skip_enabled)
+    files = {f.name: f.read_bytes() for f in sorted(sandbox.glob("*.csv"))}
+    return files, calls, rows, warm_rows
 
-    apply()
-    old, old_calls = _run(sandbox, monkeypatch, skip_enabled=False)
-    apply()
-    new, new_calls = _run(sandbox, monkeypatch, skip_enabled=True)
-    apply()
 
+@pytest.mark.parametrize("day", WEEK, ids=[f"{d}-{WEEKDAY_NAME[_ts(d).dayofweek]}" for d in WEEK])
+def test_skipping_changes_no_output_only_the_downloads(sandbox, day):
+    today = _ts(day)
+    _write_snapshots(_scenario_dates(today))
+
+    old, old_calls, old_rows, warm_rows = _arm(sandbox, today, skip_enabled=False)
+    new, new_calls, new_rows, _ = _arm(sandbox, today, skip_enabled=True)
+
+    # The premise, asserted rather than assumed: the warm-up recorded something, the target pass
+    # had both a download it had to make and one it could skip, and it wrote rows either way.
+    assert warm_rows, "the warm-up recorded nothing - the history is not in the live loop's shape"
     assert old, "the scenario produced no output - it tests nothing"
     assert "performance_history.csv" in old
+    assert old_rows, "the target pass measured no horizon - it tests nothing"
+    assert new_calls, "every download was skipped - the scenario has no download to preserve"
+    assert len(old_calls) - len(new_calls) >= 1, "no download was skipped on this day"
+
     assert old == new                                   # byte-identical files
+    assert new_rows == old_rows                         # and the same horizons measured
     assert set(new_calls) < set(old_calls)              # strictly fewer downloads
     assert len(new_calls) < len(old_calls)
+
+
+# (run date, the day the pass runs). Two horizons are due at once and only the *later* one's end
+# is out of reach, so the download must still be made for the earlier one - which is why the skip
+# reads ``min`` over the due ends and not ``max``. A run date reaches this state whenever it is
+# first processed late: a backfilled snapshot (``_backfill_snapshots``), or a date whose shorter
+# horizons the price source could not measure when they came due.
+TWO_HORIZON_CASES = [
+    ("2026-07-29", "2026-10-27"),   # the 3-month end is the run day itself (a Tuesday)
+    ("2026-07-27", "2026-10-26"),   # the 3-month end is the Sunday before a Monday run
+]
+
+
+@pytest.mark.parametrize("run_date,day", TWO_HORIZON_CASES)
+def test_the_skip_reads_the_earliest_due_end_not_the_latest(sandbox, run_date, day):
+    """Added 2026-10-31. The output-identity test above could not see ``min`` become ``max``:
+    after its warm-up every run date has exactly one horizon still due, so the two agree. This is
+    the case that separates them, and with ``max`` the skip loses two measured horizons."""
+    today = _ts(day)
+    assert (today - _ts(run_date)).days >= 90, "the scenario needs all three horizons due"
+    _write_snapshots([run_date])
+
+    off_calls, on_calls = [], []
+    with pytest.MonkeyPatch.context() as mp:
+        off_rows = _pass(mp, today, off_calls, skip_enabled=False)
+    off = {f.name: f.read_bytes() for f in sorted(sandbox.glob("*.csv"))}
+    history = pd.read_csv(ie.PERFORMANCE_HISTORY_PATH)
+    for f in sandbox.rglob("*.csv"):
+        f.unlink()
+    with pytest.MonkeyPatch.context() as mp:
+        on_rows = _pass(mp, today, on_calls, skip_enabled=True)
+    on = {f.name: f.read_bytes() for f in sorted(sandbox.glob("*.csv"))}
+
+    # The premise: with the skip disabled this date measures its 1-week and 1-month returns and
+    # not its 3-month one, whose end has not closed. So there is something for the skip to lose.
+    assert off_rows == N
+    assert history["fwd_return_1w"].notna().all()
+    assert history["fwd_return_1m"].notna().all()
+    assert history["fwd_return_3m"].isna().all()
+
+    assert on_calls == off_calls, "the download was skipped although the 1-week end is long past"
+    assert on == off
+    assert on_rows == off_rows

@@ -229,12 +229,15 @@ class TestScheduleNow:
                     "brief: data run 2026-08-27")]
         now = clh.schedule_now(commits)
         assert now.tzinfo is None  # naive, in scheduling-local time
+        # clock: the assertion is that the two readings are within two minutes of each other, so
+        # it is the same on any day and at any hour - only the gap between the calls matters.
         reference = datetime.now(timezone(timedelta(hours=-5))).replace(tzinfo=None)
         assert abs((now - reference).total_seconds()) < 120
 
     def test_no_commits_falls_back_to_system_local(self):
         now = clh.schedule_now([])
         assert now.tzinfo is None
+        # clock: as above - a two-minute agreement between two readings, day- and hour-independent.
         assert abs((now - datetime.now()).total_seconds()) < 120
 
 

@@ -17528,3 +17528,188 @@ seven on the methodology page, with the cheapest and the most load-bearing named
 **Monday 2026-11-02 is phase 0 of the universe-expansion plan**, the top open `OWNER_FOCUS.md`
 item, and **Wednesday 2026-11-04 is the first synthesis session under its widened remit** with a
 subject already waiting: the four accepted bank and share-class changes.
+
+## 2026-10-31 (06:00 weekend) - WEEKEND. A red `main` fixed at its root, and four of the audit's open rows
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-30_130001-midday.log`,
+ends "shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-30_020001.log`,
+"Data loop complete", HEALTH: PASS, signals written (40 names, 8 gates, all ran). Evidence base at
+`1m` = **40 rows, newest 2026-09-29 (32 days ago, bound 40), 5 effective** - steady state, one day
+further on than yesterday's 31 as expected. Priority 0: `allow_auto_apply` **false**, 5 of 8
+effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 19 days**) -
+not advanced; the next lab Friday is **2026-11-06** and no experiment is half-built. (0.10 is
+older - opened 2026-10-07, **age 24 days** - and its remainder is Sharpe and Sortino at weight 0,
+which CLAUDE.md says to do only with nothing better.)
+**Tests:** before **3,569 passed / 1 failed / 1 skipped** (RED on arrival, not this session's
+doing), after **3,594 passed / 1 skipped**. Dry run exits 0. `scripts/rehearse_publish.py` PASSED
+(the diff touches the methodology generator): 362 page tests, published claims 1,834 passed,
+published files restored byte-for-byte, all four artifacts unchanged.
+**Owner queue / rotation:** the red baseline first, as Baseline requires - then `OWNER_FOCUS.md`
+item 2 sub-item 3 ("test the tests"), whose plan names the work. No proposal is waiting
+(`write_brief.open_proposals()` returns `[]`). Nothing deferred for a gate or a loop.
+`git stash list` shows `auto-rescue 2026-10-28_060001`, **still empty** (`git stash show -p` prints
+nothing) - left in place, as every session since has. No owner-session marker.
+
+### Did
+
+**1. The red `main`, and its cause was the calendar.** `tests/test_forward_return_download_skip.py::test_skipping_changes_no_output_only_the_downloads`
+failed at baseline, with no commit since 2026-10-26 touching anything it covers. It built its
+snapshot dates from `datetime.now()`, and **it cannot fire the skip it tests on a Saturday or a
+Sunday**: with an empty performance history the only skippable download is the one whose 1-week
+end is today, that needs a *market-day* snapshot exactly seven days earlier, and seven days before
+a weekend is a weekend. Today is the first weekend since the test shipped on Monday 2026-10-26.
+
+The scenario is now **a fixed week, Monday to Sunday, parametrized** - every date (snapshots,
+prices, and `_close_possible_since`'s notion of today) comes from the frozen date. It also warms
+the history up first, which is both what makes the skip reachable on all seven days and the shape
+the 02:00 loop actually meets: a run date's shorter horizons were recorded weeks ago, so the
+horizon still due is the one whose end is at hand. With an empty history the clock-built version
+exercised the skip through **one of its sixteen snapshot dates**.
+
+**Mutation-checked, and the first draft was found wanting.**
+`research/measurements/2026-10-31-skip-test-teeth.py`, five mutations of the production rule: the
+rule always True, always False, `min` -> `max` over the due horizon ends, the scan starting a day
+late, and the weekend counted as a session. The first draft **missed `min` -> `max`** - the
+warm-up leaves exactly one horizon due per date, so the two agree - and the whole suite missed it
+too: **3,563 passed with the mutation applied.** So
+`test_the_skip_reads_the_earliest_due_end_not_the_latest` covers the case that separates them, a
+date first processed late with its 3-month end out of reach and its 1-week end long past (which is
+what a backfilled snapshot looks like). **5 of 5 caught now.** One mutation was also wrong on its
+first draft - it inserted its assignment *above* the real one, which overwrote it - a no-op that
+read as a gap; the harness records that, because the same slip would make any future pass
+over-report.
+
+**2. The class, not the instance: the clock-read sweep.** This is the **third** red gate in three
+weeks from a test whose premise was what the clock said when it ran, and each was fixed in its own
+file with the lesson transferring nowhere: `test_forward_eps_growth` at 23:25 on 2026-10-11 (a
+tolerance tighter than a day of rounding drift), `test_option_quote_hours` on Saturday 2026-10-17
+(a cache fixture stamped with a day the market never opened - the first Saturday session, which
+opened on a red gate 1 with neither loop at fault), and this one fourteen days later. The cost is
+not the test: a red `main` strands the whole of a session's work on a branch, because gate 1
+refuses to merge onto it.
+
+`tests/test_tests_do_not_read_the_clock_unguarded.py` (9 tests) requires every `.now()`,
+`.today()` and `.utcnow()` in a collected test module to carry a `# clock: <reason>` note saying
+why the verdict is the same whatever the clock says. **AST, not a regex** - a regex counts the
+`datetime.now()` inside a docstring explaining one of the faults. It has its own floor (a
+synthetic module with four reads and one non-read), a check that the marker needs a reason and not
+just the token, one that the comment block has to be contiguous with the call, and one that fails
+if the three modules the faults came from stop being reachable. **All 11 existing reads are
+annotated**, reasoned one at a time; none of the other nine turned out to be day-dependent, and
+`test_forward_eps_growth`'s is hour-dependent-by-a-rounding-day with every tolerance set wider
+than the drift, which is now written beside it rather than three paragraphs away.
+
+It cannot check that a reason is *true*. What it does is make the question unavoidable at the one
+moment anyone is in a position to answer it - the same argument as the `claims.py` sentence
+sweeps, and the honest answer for both weekend faults was "it isn't", which is why both now take
+their dates from a fixed parametrized day instead.
+
+**3. Four of the claims-mutation audit's `open:` rows** - `OWNER_FOCUS.md` item 2 sub-item 3;
+rows **131-138** of `plan/claims-mutation-audit.md`. The plan's next list calls the nineteen
+`open:` rows "a queue in their own right" and names four: the two cheapest and the two most likely
+to be wrong without anyone noticing. I took all four rather than starting the
+`generate_dashboard.py` sweep, which that list warns is the biggest of the three surfaces and
+wants a whole session for its verdicts - and with the morning spent on the red baseline it would
+not have been finishable. **All four are closed on the value of the figure; 8 mutations, 8
+catches.** `KNOWN_OPEN` drops twelve -> ten.
+
+- **`clamp-bullet-second-printing`.** `test_the_clamps_and_floors_on_the_page_are_the_ones_applied`
+  said in its own docstring that "the metric rows hard-code their clamps; the Data quality bullet
+  reads config - both must be config's", and matched only the metric rows. The bullet is the
+  second printing of all four figures. It is read now, pinned against config, and asserted to
+  agree with the rows.
+- **`share-class-switching-margin`.** The margin was pinned twice as a literal - `config.yaml` and
+  `share_classes.CHALLENGE_MARGIN` - and **no test in the suite read it off the page**:
+  `tests/test_share_classes.py` had never called `build_screener_overview`. Five checks do now,
+  including the config-follows case (raise it to 35% and the sentence has to move), the fallback,
+  and the `else` branch that withdraws the paragraph when the rule is switched off.
+- **`bot-monthly-excess-figure`.** `test_the_trading_rule_sentence_follows_each_period_s_sign_and_t`
+  matched the published percentage as `[0-9.]+%`, so the sign, the words and the t were pinned and
+  **the figure itself was a wildcard in all three periods**. Each is derived from the ledger now,
+  with the magnitude-plus-word pairing so a sign flip cannot leave the figure looking right.
+- **`bot-coverage-by-year`.** The two survivorship coverage percentages - the point of the page's
+  survivorship caveat - were read by nothing. Both are now the two years' means from the coverage
+  measurement, and the sentence says "rising to", so the test asserts that too.
+
+**One production change, and it is why the row was worth taking.** `build_screener_overview` fell
+back to its own `0.20` literal for the switching margin while step 11 falls back to
+`share_classes.CHALLENGE_MARGIN`. With `challenge_margin` present in `config.yaml` the two agree,
+so nothing on the page was wrong today - but two literals for one number are free to drift, and
+the page would then have stated a margin no run applied. The generator shares the constant now
+(CLAUDE.md row 0.8: the page shows the engine's number and never its own re-derivation of it).
+
+**4. A correction to what this audit counts as "caught."** Run with the row's own check deselected,
+the whole suite **did** fail on three of these mutations - and **not one of the three failures was
+a check of the number**:
+
+- `test_overview_is_generated::test_committed_overview_is_what_the_generator_produces` - a **drift**
+  tripwire, green the morning the 02:00 run rewrites `SCREENER_OVERVIEW.md`. The 2026-10-30
+  correction, met for the third time.
+- `test_claims_register::test_every_computed_sentence_on_the_methodology_page_has_a_verdict` - the
+  **sentence sweep built the day before**. It keys a sentence by its text, so changing a figure
+  inside a template changes the key and the sentence reads as unregistered. Useful - it forces a
+  human to look - but it is satisfied by registering the new wording, so it detects *an edit*, not
+  *a wrong number*.
+
+Measured: mutation A gives `2 failed, 3589 passed`; C gives `1 failed, 3586 passed`; every failure
+is in that class. **So a mutation can read as caught twice over and still ship. A sweep detects
+edits and a drift tripwire detects staleness; neither is a check of arithmetic, and this audit no
+longer counts them as one.** That is written into the plan, with the method note that both new
+research-page checks read the **generated** page and not `rp.PAGE` - the first drafts read the
+committed file, which would have made them drift checks wearing value-check names, the exact
+defect rows 135-138 exist to fix.
+
+### Evidence / research
+
+- No new citations - this was a defect session and an audit session, and the mandate's third
+  category applies throughout: **a failing test that now passes, and a measured number**. The
+  measurements are `research/measurements/2026-10-31-skip-test-teeth.py` (5 mutations, 5 caught;
+  `min` -> `max` blind to 3,563 tests before today),
+  `...-open-row-mutations.py` (4 of 4) and `...-research-page-mutations.py` (4 of 4). Each
+  restores the file it mutates in a `finally` and asserts it byte-for-byte.
+- No methodology, weight, threshold or published number moved. The one production edit replaces a
+  duplicated literal with the constant the run already uses; `rehearse_publish` confirms all four
+  published artifacts are byte-identical.
+
+### Methodology changed
+
+- None. No `METHODOLOGY_CHANGELOG.md` entry is due: no weight, metric, threshold or published
+  sentence changed, and the share-class margin the page prints is the same 20% it printed
+  yesterday.
+
+### Tried and rejected
+
+- **Starting the `generate_dashboard.py` sentence sweep** (the plan's item 0, the last of the three
+  generated surfaces). Rejected for today: its own list says to expect the biggest table of the
+  three from 13,485 lines and to "decide up front whether to scope it with `within=` per generator
+  function", and "the work is not the sweep, it is the verdicts". With the morning on a red
+  baseline it could only have been half-done, and a half-registered surface is worse than an
+  unregistered one - the sweep would pass with verdicts assigned by skimming. The four named
+  `open:` rows were the finishable half of the same owner item.
+- **Reading `rp.PAGE` in the two new research-page checks.** Written that way first, because every
+  other test in the module does. Rejected once stated plainly: a check against a committed
+  artifact is green until someone regenerates, so it would have been a drift tripwire with a value
+  check's name - which is the defect the rows were opened for. Both read `_rebuilt()`.
+- **A blanket ban on clock reads in tests.** Rejected: of the 11 sites, nine are legitimately
+  day-independent (elapsed days, a two-minute agreement between two readings, a consensus year-end
+  six months out), so a ban would force worse tests. The annotation is the proportionate form, and
+  an unannotated new read fails the suite.
+- **Re-measuring "blind to everything else" for the four research-page mutations across the whole
+  suite.** Not run: ~15 minutes for a result already established in its exact form by mutations A
+  and C above (the sweep fires on the rewording, the drift tripwire on the artifact). Stated as
+  the measured general fact rather than re-measured, and the module-scope runs do show the new
+  check as the only failure once the drift tripwire is deselected.
+
+### Next
+
+- **`_pbo_words` at its own bars, 0.45 and 0.55** - the cheapest remaining `open:` row and the one
+  the plan has named twice: the overfitting section's words are probed at 0.21/0.5/0.73 and never
+  at the two points that decide which word is printed. Then the three bank P/B-ROE prose rows,
+  whose residual clause chooses a **word** on `bank_net_pb < 0` with nothing probing that boundary
+  either, and `coverage-discount-worked-example` (five figures deep, read by none of them).
+  `generate_dashboard.py`'s sweep still wants a session of its own and should not be started
+  alongside anything else.
+- **Monday 2026-11-02 is phase 0 of the universe-expansion plan** (`plan/universe-expansion.md`),
+  the top open `OWNER_FOCUS.md` item, and **Friday 2026-11-06 is the Factor Lab's day** -
+  experiment 18, unstarted, with `lab_data.js`'s first paint already measured and fixed on
+  2026-10-26.

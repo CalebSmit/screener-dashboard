@@ -609,6 +609,63 @@ returned markdown now.
 **Nothing about scoring, no published text and no production code changed** - the diff is
 `tests/test_claims_register.py`, this file and the log.
 
+## Results, 2026-10-31 (06:00 weekend session): four of the open rows, not another sweep
+
+The 2026-10-29 list's item 0 says the nineteen `open:` rows are "a queue in their own right" and
+names four: the two cheapest and the two most likely to be wrong without anyone noticing. This
+session took all four rather than starting the `generate_dashboard.py` sweep, which that item
+warns is the biggest of the three surfaces and wants a whole session for its verdicts. **The
+baseline was red on arrival** for an unrelated reason (a test whose premise was the day of the
+week), so the sweep would not have been finishable anyway; the log has that work.
+
+**All four rows are closed on the value of the figure, and 8 mutations produce 8 catches.**
+
+| # | Claim | Mutation | Before today | Now |
+|---|---|---|---|---|
+| 131 | `clamp-bullet-second-printing` | the Data quality bullet prints forward EPS growth's ceiling 10 points above config | caught by **two** tests, **neither of them a value check** (see below) | caught: `test_the_clamps_and_floors_on_the_page_are_the_ones_applied`, which reads the bullet now |
+| 132 | `clamp-bullet-second-printing` | the bullet prints price target upside's floor as its (negated) ceiling | as above | caught: same test, plus the rows-agree-with-the-bullet assertion |
+| 133 | `share-class-switching-margin` | the margin is typed into the generator instead of read from config | caught by **one** test, not a value check | caught: `TestThePagePrintsTheMargin::test_the_page_follows_config_rather_than_printing_a_literal` |
+| 134 | `share-class-switching-margin` | the page's fallback margin drifts from `share_classes.CHALLENGE_MARGIN` | n/a - the generator's fallback **was** a second literal | caught: `..::test_the_pages_fallback_is_the_modules_constant`, and the generator now shares step 11's constant |
+| 135 | `bot-monthly-excess-figure` | the monthly excess is printed ten times too large | blind within the module (only the drift tripwire) | caught: `test_the_trading_rules_monthly_figure_is_the_ledgers_own_number` |
+| 136 | `bot-monthly-excess-figure` | the excess keeps its sign, so the figure and the "above"/"below" word disagree | as above | caught: same test's magnitude-plus-word assertion |
+| 137 | `bot-coverage-by-year` | the first year's coverage prints the last year's figure | as above | caught: `test_the_survivorship_coverage_percentages_are_the_two_years_means` |
+| 138 | `bot-coverage-by-year` | the coverage percentages print as fractions (the `x 100` dropped) | as above | caught: same test |
+
+Harnesses: `research/measurements/2026-10-31-open-row-mutations.py` (rows 131-134) and
+`research/measurements/2026-10-31-research-page-mutations.py` (135-138). Both restore the source
+in a `finally` and assert it byte-for-byte.
+
+**The finding worth keeping is what "caught" meant for rows 131-133.** Run with the row's own
+check deselected, the whole suite *did* fail on three of those mutations - and not one of the
+three failures was a check of the number:
+
+- `tests/test_overview_is_generated.py::test_committed_overview_is_what_the_generator_produces` -
+  a **drift** tripwire, green the morning the 02:00 run rewrites `SCREENER_OVERVIEW.md`. The
+  2026-10-30 correction, met for the third time.
+- `tests/test_claims_register.py::test_every_computed_sentence_on_the_methodology_page_has_a_verdict` -
+  the **sweep built the day before**. It keys a sentence by its text, so changing a figure inside
+  a template changes the key and the sentence reads as unregistered. That is useful - it forces a
+  human to look - but it is satisfied by registering the new wording, so it detects *an edit*,
+  not *a wrong number*.
+
+So a mutation can be "caught" twice over and still ship. **A sweep is a detector of edits and a
+drift tripwire is a detector of staleness; neither is a check of arithmetic, and this audit must
+not count them as one.** The measured numbers: mutation A gives `2 failed, 3589 passed`, C gives
+`1 failed, 3586 passed`, and in both cases every failure is in that class.
+
+**One production change, and it is the reason this row was worth taking.**
+`build_screener_overview` fell back to its own `0.20` literal for the switching margin while
+step 11 falls back to `share_classes.CHALLENGE_MARGIN`. With `challenge_margin` present in
+`config.yaml` the two agree, so nothing was wrong on the page today - but two literals for one
+number are free to drift, and the page would then have stated a margin no run applied. The
+generator shares the constant now (CLAUDE.md row 0.8: the page shows the engine's number and
+never its own re-derivation of it).
+
+**Method note for the next session.** Both new research-page checks read the **generated** page
+(`_rebuilt()`), not `rp.PAGE`. The first drafts read the committed file, which would have made
+them drift checks with value-check names - the exact defect rows 135-138 exist to fix. Check this
+before writing any new assertion against a generated surface.
+
 ## Next claims (for the nightly sessions)
 
 Take them in order; one session can do four to six. Record each in the table above with
@@ -629,13 +686,16 @@ left:
    rather than sweeping the file**, which is how the overview stayed readable. The work is not the
    sweep, it is the verdicts: each one means reading the assertion that is supposed to pin the
    figure, not its name.
-   **The nineteen `open:` rows are a queue in their own right** - twelve from the research page
-   (2026-10-29 13:00) and seven from the methodology page (2026-10-30, above). The cheapest are
-   `_pbo_words` at its own bars 0.45 and 0.55, and `share-class-switching-margin`, whose module
-   has no page test at all. The two most likely to be wrong without anyone noticing are
-   `bot-monthly-excess-figure` (a published percentage matched as `[0-9.]+%`) and
-   `clamp-bullet-second-printing` (a second printing of four clamps that a test's docstring claims
-   to cover and does not).
+   **The `open:` rows are a queue in their own right - fifteen now, down from nineteen**
+   (2026-10-31 closed `clamp-bullet-second-printing`, `share-class-switching-margin`,
+   `bot-monthly-excess-figure` and `bot-coverage-by-year`; rows 131-138 above). Ten are on the
+   research page and five on the methodology page. **The cheapest remaining is `_pbo_words` at
+   its own bars 0.45 and 0.55** - probed at 0.21/0.5/0.73 and never at the two points that decide
+   the word. After that, the three bank P/B-ROE prose rows, whose residual clause also chooses a
+   **word** on `bank_net_pb < 0` with nothing probing that boundary, and
+   `coverage-discount-worked-example`, five figures deep and read by none of them.
+   **Read the 2026-10-31 method note above before writing an assertion against a generated
+   surface**, and do not count a drift tripwire or the sentence sweep as a check of a number.
 
 1. **The partly-payload claims.** The 2026-10-26 scan lists 21 claims whose checks *mix* payload
    reads with other tests. A claim is safe only if a non-payload check pins the specific number

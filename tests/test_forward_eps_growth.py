@@ -17,6 +17,9 @@ from tests.test_metrics import _compute_one, _make_rec
 
 
 def _rec(fy1=5.0, fy2=6.0, quarters=(1.0, 1.0, 1.0, 1.0), months_left=6.0, **kw):
+    # clock: no weekday or session is involved - a consensus year-end this many months out. It IS
+    # hour-sensitive by up to a day of rounding, which failed at 23:25 on 2026-10-11; every
+    # tolerance below has been set wider than that drift since. See test_the_twelve_month_blend.
     end = datetime.now(timezone.utc) + timedelta(days=months_left * 30.4375)
     q = [[f"2026-0{i + 1}-30", a, a, 0.0] for i, a in enumerate(quarters)]
     return _make_rec(_fy1_eps_current=fy1, _fy2_eps_current=fy2, _next_fy_end=int(end.timestamp()),
