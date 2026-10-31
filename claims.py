@@ -866,6 +866,50 @@ CLAIMS: tuple[Claim, ...] = (
                 r"narrowest alternative"),
     ),
     Claim(
+        id="research.overfitting_reading",
+        surface=RESEARCH,
+        asserts=(
+            "\"If you had kept the best backtest\" states `overfitting.check`'s own numbers. Each "
+            "of the three PBOs - every year, the recent era alone, and every year with the most "
+            "frequent winner dropped - is that reading's `pbo` to two decimals, and the words "
+            "beside it are fixed at 0.45 and 0.55: below or at 0.45 better than luck alone would "
+            "give, above 0.45 and below 0.55 about what luck alone gives, at or above 0.55 worse "
+            "than a coin toss (Bailey et al. 2017's 0.5 null). The two percentages are the "
+            "winner's `winner_beat_current_out_of_sample` in that era; the count of alternatives "
+            "is `configurations - 1`, excluding the current weighting; and the top winner's two "
+            "leads are its own ledger row's presample and holdout `ic_vs_baseline` means, with "
+            "\", where it fell behind.\" printed only when the held-out mean is below zero and "
+            "the 2012-2019 mean above it."
+        ),
+        made_true_by="research_page:overfitting_section",
+        checked_by=(
+            # the prose, figure by figure - the three rows the claims-mutation audit opened on
+            # 2026-10-29 and closed 2026-10-31 (rows 139-143). These read the *generated* page.
+            "tests/test_overfitting.py::test_each_prose_pbo_carries_the_rows_own_reading_and_its_word",
+            "tests/test_overfitting.py::test_the_out_of_sample_shares_and_the_configuration_count_are_the_rows_own",
+            "tests/test_overfitting.py::test_the_top_winners_two_era_leads_and_the_clause_that_depends_on_their_signs",
+            "tests/test_overfitting.py::test_the_word_beside_each_pbo_turns_at_its_own_bars",
+            # the stat cards, the split count and the verdict sentence (2026-10-20). Both read
+            # the committed page, so they are value checks on what is published today and not on
+            # what the next `report` would write - which is why the four above exist.
+            "tests/test_overfitting.py::test_the_page_prints_the_ledger_s_reading_all_three_ways",
+            "tests/test_overfitting.py::test_the_verdict_follows_the_numbers",
+            # and that the procedure behind the numbers is the paper's
+            "tests/test_overfitting.py::test_pure_noise_gives_about_one_half",
+            "tests/test_overfitting.py::test_it_runs_every_split_and_refuses_too_little_history",
+        ),
+        caveat=(
+            "Fixed 2026-10-31 (13:00), and the reason is worth keeping: "
+            "`tests/test_overfitting.py` was named by no claim, so the eight checks above - "
+            "including the only reader of the section's stat cards - were outside the data "
+            "loop's publish gate, whose membership is derived from `checked_by`. Same shape as "
+            "`tests/test_engine_calibration.py` (found 2026-10-28). A low PBO is consistency "
+            "and not cause: the page says so, and none of these figures may support a weighting "
+            "change (rules 4 and 5)."
+        ),
+        detect=r"the PBO was <span class=\"num\">[\d.]+</span>, (better than luck|about what luck|worse than a coin)",
+    ),
+    Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,
         asserts=(

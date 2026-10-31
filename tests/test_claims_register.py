@@ -746,32 +746,31 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
         "test_the_size_sentence... recomputes r_time and both within-era correlations",
 
     # --- if you had kept the best backtest ---------------------------------
+    # All five rows CLOSED 2026-10-31 (13:00; audit rows 139-143) by
+    # `claim:research.overfitting_reading`, which also brings `tests/test_overfitting.py` into
+    # the publish gate - it was named by no claim, so the eight checks in it, the stat cards
+    # included, were outside the loop that publishes this page.
     "Over {a['first_month'][:4]}-{a['last_month'][:4]} the PBO was {a['pbo']} , "
     "{_pbo_words(a['pbo'])}, and the winner beat the current weighting on the other half in "
     "{a['winner_beat_current_out_of_sample'] * 100}% of trials.":
-        "open:pbo-all-era-prose:2026-10-29 - the out-of-sample share is pinned by nothing, and _pbo_words is "
-        "probed at 0.21/0.5/0.73 but never at its own bars 0.45 and 0.55. The stat card's PBO "
-        "is pinned (test_the_page_prints_the_ledger_s_reading_all_three_ways), not this copy",
+        "claim:research.overfitting_reading",
     "Over {rec['first_month'][:4]}-{rec['last_month'][:4]} alone the PBO was {rec['pbo']} , "
     "{_pbo_words(rec['pbo'])}, and the winner beat the current weighting out of sample in "
     "{rec['winner_beat_current_out_of_sample'] * 100}% of trials.":
-        "open:pbo-recent-era-prose:2026-10-29 - as the row above, for the recent era",
+        "claim:research.overfitting_reading",
     "Drop {html.escape(label(wo['dropped']))} from the set and the PBO over every year is "
     "{wo['pbo']} , {_pbo_words(wo['pbo'])}.":
-        "open:pbo-without-winner-prose:2026-10-29 - the prose PBO and its word; the card is pinned, this copy is not",
+        "claim:research.overfitting_reading",
     "Its lead over the current weighting was {num(pre['mean'])} over 2012-2019 and "
     "{num(hold['mean'])} over the held-out months":
-        "open:pbo-top-winner-lead:2026-10-29 - the top winner's two era means, and the clause 'where it fell "
-        "behind' that depends on their signs",
+        "claim:research.overfitting_reading",
     "split the history into equal blocks of months, and for every way of picking half of them "
     "( {a['splits']} ways here, from {a['blocks']} blocks), take the weighting that did best on "
     "that half and see where it ranks on the other half.":
         "checked:tests/test_overfitting.py::test_the_page_prints_the_ledger_s_reading_all_three_ways",
     "This uses the current weighting and the {a['configurations'] - 1} alternatives above, each "
     "scored month by month against the current one on the stocks both ranked, and reruns nothing.":
-        "open:pbo-configuration-count:2026-10-29 - the count of alternatives the PBO was computed over is this page's "
-        "own subtraction and is pinned by nothing; summary['alternatives'] is a different number "
-        "from a different source",
+        "claim:research.overfitting_reading",
 
     # --- the trading rule ---------------------------------------------------
     "In {lab} it returned {abs(st['mean']) * 100}% a month {word} that average "
@@ -797,9 +796,10 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 }
 
 # The sentences above whose arithmetic nothing pins - twelve on 2026-10-29, ten
-# since 2026-10-31 (the trading rule's monthly figure and its two coverage
-# percentages are checked now), by
-# the slug in their verdict. **Literals, not a comprehension over the table** -
+# after 2026-10-31 06:00 (the trading rule's monthly figure and its two coverage
+# percentages), five after 2026-10-31 13:00 (the whole "best backtest" section,
+# `claim:research.overfitting_reading`), by the slug in their verdict.
+# **Literals, not a comprehension over the table** -
 # `frozenset(s for s, v in ... if v.startswith("open:"))` is the table compared
 # with itself and passes at any value (`plan/claims-mutation-audit.md` row 59).
 # This set only ever shrinks: closing one means deleting its slug and giving the
@@ -807,8 +807,6 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 KNOWN_OPEN: frozenset[str] = frozenset({
     "pass-bar-printed", "pass-bar-under-chart", "chart-axis-and-geometry",
     "size-row-mean-t-and-bar-word", "size-coverage-percentages",
-    "pbo-all-era-prose", "pbo-recent-era-prose", "pbo-without-winner-prose",
-    "pbo-top-winner-lead", "pbo-configuration-count",
 })
 
 
