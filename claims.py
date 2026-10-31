@@ -1812,6 +1812,14 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_share_classes.py::TestPipelineWiring::test_run_screener_drops_the_secondary_lines_before_the_percentiles",
             "tests/test_share_classes_page.py::test_the_page_names_the_declared_lines_and_only_those",
             "tests/test_share_classes_page.py::test_the_page_states_the_switching_margin_from_config",
+            # 2026-10-31, claims-mutation audit rows 133-134: the line above looks for
+            # the config value formatted, anywhere in a 2,200-character window. These
+            # read the figure out of the sentence and follow a changed config.
+            "tests/test_share_classes.py::TestThePagePrintsTheMargin::test_the_page_states_the_configured_margin",
+            "tests/test_share_classes.py::TestThePagePrintsTheMargin::test_the_page_follows_config_rather_than_printing_a_literal",
+            "tests/test_share_classes.py::TestThePagePrintsTheMargin::test_the_pages_fallback_is_the_modules_constant",
+            "tests/test_share_classes.py::TestThePagePrintsTheMargin::test_the_page_names_the_declared_lines_and_not_their_pairs",
+            "tests/test_share_classes.py::TestThePagePrintsTheMargin::test_the_paragraph_is_withdrawn_when_scoring_once_is_switched_off",
         ),
         # the page's typography pass turns " - " into a spaced en dash, so match either
         detect=r"Each company is therefore scored \*\*once\*\*, on its more-traded class",

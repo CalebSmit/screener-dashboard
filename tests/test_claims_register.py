@@ -940,14 +940,14 @@ OVERVIEW_SENTENCES: dict[str, str] = {
         "checked:tests/test_momentum_panic_rule.py::test_the_overview_states_the_rule_the_engine_applies",
 
     # --- Data quality safeguards -------------------------------------------
-    # `test_the_clamps_and_floors_on_the_page_are_the_ones_applied` says in its own
+    # CLOSED 2026-10-31 (rows 131-132). `..._are_the_ones_applied` said in its own
     # docstring that "the metric rows hard-code their clamps; the Data quality
-    # bullet reads config. Both must be config's" - and then matches only the
-    # metric-table rows (`^\| \*\*Forward EPS Growth\*\* \|`). This bullet is the
-    # second printing and nothing reads it, so nothing would notice the two
-    # disagreeing. Same shape as section 5's `pass-bar-printed`.
+    # bullet reads config. Both must be config's" - and then matched only the
+    # metric-table rows (`^\| \*\*Forward EPS Growth\*\* \|`), so this bullet, the
+    # second printing of all four figures, was read by nothing. It now reads the
+    # bullet, pins all four against config, and asserts the two printings agree.
     "- **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.5, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.5, 1.0])[1] * 100)}%].":
-        "open:clamp-bullet-second-printing",
+        "claim:overview.clamps_and_floors",
 
     # The threshold (both printings) and the rate ARE pinned, and well - read off
     # this sentence and then applied through `compute_composite` on stocks either
@@ -965,19 +965,25 @@ OVERVIEW_SENTENCES: dict[str, str] = {
         "open:coverage-sentence-metric-counts",
 
     # --- share classes (2026-10-21) ----------------------------------------
-    # The margin is pinned in config and in `share_classes.CHALLENGE_MARGIN`, both
-    # as literals - and no test in the suite reads the figure off this page. The
-    # module has no page test at all (no `build_screener_overview` call).
+    # CLOSED 2026-10-31 (rows 133-134). The only page check was
+    # `test_share_classes_page.py::test_the_page_states_the_switching_margin_from_config`,
+    # which looks for `f"{margin:.0%}"` - the config value formatted - anywhere in a
+    # 2,200-character window: row 59's defect (a check may not import the number it
+    # is checking) on a loose substring. `TestThePagePrintsTheMargin` now reads the
+    # figure out of the sentence itself and, with
+    # `TestDeclaration::test_score_once_is_on_and_the_margin_is_spdji_s`, pins it to
+    # a literal 0.20 at both ends, plus the config-follows, fallback and `else` cases.
     "The choice of line is declared in `config.yaml` rather than re-picked from each run's trading volume, and a run only reports when the other line leads by more than {_sc_margin} (S&P DJI's own switching margin):":
-        "open:share-class-switching-margin",
+        "claim:overview.share_classes",
 }
 
-# The six open slugs above, as of 2026-10-30. Literals, not a comprehension over
-# the table - see KNOWN_OPEN. This set only ever shrinks.
+# The five open slugs above, as of 2026-10-31 (seven on 2026-10-30; the clamp
+# bullet and the switching margin are checked now - their checks shipped at 06:00
+# and their verdicts here did not, which is the gap this session found). Literals,
+# not a comprehension over the table - see KNOWN_OPEN. This set only ever shrinks.
 OVERVIEW_KNOWN_OPEN: frozenset[str] = frozenset({
     "bank-five-metric-point-total", "bank-pb-offset-by-roe-roa", "bank-pb-residual-clause",
-    "clamp-bullet-second-printing", "coverage-discount-worked-example",
-    "coverage-sentence-metric-counts", "share-class-switching-margin",
+    "coverage-discount-worked-example", "coverage-sentence-metric-counts",
 })
 
 
