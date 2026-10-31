@@ -416,6 +416,8 @@ def _last_session_date(today: datetime.date | None = None) -> datetime.date:
     the first Saturday session (2026-10-17) opened on a red gate 1 with neither loop at fault.
     At most two days back, which is inside ``options_cache.MAX_AGE_DAYS`` (3).
     """
+    # clock: this helper is the guard for the 2026-10-17 weekend fault above - it walks the clock
+    # back to a day the market opened, and the parametrized test below covers all seven days.
     d = today or datetime.datetime.now(datetime.timezone.utc).date()
     while d.weekday() > 4:
         d -= datetime.timedelta(days=1)
@@ -436,6 +438,8 @@ def test_the_cache_fixture_names_a_real_session_on_every_day_of_the_week(offset)
 
 
 def test_the_context_pass_serves_the_cache_when_quotes_are_closed(tmp_path, monkeypatch):
+    # clock: an expiry 30 days out is in the future on every day of the week; the date the cache
+    # is checked against is the quote date, which comes from the guarded helper above.
     exp = (datetime.datetime.now(datetime.timezone.utc).date()
            + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
     qd = _last_session_date().strftime("%Y-%m-%d")
@@ -461,6 +465,7 @@ def test_the_insider_half_still_runs_when_quotes_are_closed(tmp_path, monkeypatc
 def test_a_cached_reading_survives_the_insider_update(tmp_path, monkeypatch):
     """Both halves write into the same record. The insider pass returning no option fields must
     not blank the ones the cache just supplied."""
+    # clock: as above - an expiry 30 days out, with the session date from the guarded helper.
     exp = (datetime.datetime.now(datetime.timezone.utc).date()
            + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
     qd = _last_session_date().strftime("%Y-%m-%d")

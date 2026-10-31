@@ -25,6 +25,8 @@ class TestStalenessThreshold:
     def _make_raw(self, ticker: str, age_days: int) -> dict:
         """Return a FLAT raw record (schema compute_metrics reads) with a
         financial filing *age_days* old."""
+        # clock: whole days back, so .date() is exactly today - age_days at any hour, and the
+        # staleness verdict is a count of elapsed days - no weekday or session is involved.
         filing_date = pd.Timestamp.now() - pd.Timedelta(days=age_days)
         return {
             "Ticker": ticker,

@@ -541,6 +541,8 @@ def _feg_row(fwd: float, trail: float, twelve_month: bool) -> dict:
     from tests.test_metrics import _compute_one, _make_rec
     extra = {}
     if twelve_month:
+        # clock: a consensus year-end six months out, which is mid-range on any day of the week
+        # and far from the construction's 0-to-12-month boundaries.
         end = datetime.now(timezone.utc) + timedelta(days=180)
         extra = {"_fy1_eps_current": 5.0, "_fy2_eps_current": 6.0, "_next_fy_end": int(end.timestamp()),
                  "_eps_quarters": json.dumps([[f"2026-0{i + 1}-30", 1.0, 1.0, 0.0] for i in range(4)])}
@@ -765,6 +767,8 @@ def test_the_fetch_applies_the_surprise_floor_the_page_states(page, monkeypatch)
     import yfinance
 
     floor = float(re.search(r"Analyst surprise uses a \$([\d.]+) floor on estimated EPS", page).group(1))
+    # clock: four quarter dates in descending order, all in the past. The fetch takes them as
+    # given - no weekday, session or market calendar enters the floor it is being asked about.
     now = pd.Timestamp.now().normalize()
     quarters = [now - pd.Timedelta(days=d) for d in (300, 210, 120, 30)]
     est = [1.00, 2.00, 0.05, 0.04]

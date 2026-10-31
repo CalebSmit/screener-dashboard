@@ -80,6 +80,8 @@ class TestClosePossibleSince:
         assert not ie._close_possible_since(_ts("2026-10-30"), today=_ts("2026-10-26"))
 
     def test_defaults_to_the_local_date(self):
+        # clock: reading the clock is the behaviour under test. An end dated today has no close
+        # on any day of the week, so the verdict is the same whenever the suite runs.
         today = pd.Timestamp(datetime.now().date())
         assert not ie._close_possible_since(today)
 

@@ -672,6 +672,8 @@ class TestPriceCacheCompleteness:
         assert fake_yfinance["calls"] == []
 
     def test_a_bar_dated_today_is_dropped(self, fake_yfinance):
+        # clock: the claim is only that a bar dated today is dropped, which holds for any today -
+        # bdate_range just yields the last weekday on or before it, and nothing asserts which.
         today = pd.Timestamp(pd.Timestamp.now().date())
         idx = pd.bdate_range(end=today - pd.Timedelta(days=1), periods=30).append(
             pd.DatetimeIndex([today]))
