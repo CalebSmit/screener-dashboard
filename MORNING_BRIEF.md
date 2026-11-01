@@ -1,28 +1,47 @@
-# Morning Brief - Saturday 31 October 2026, 14:00
+# Morning Brief - Sunday 01 November 2026, 06:08
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Data run** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran yesterday |
-| Code session (latest) | **completed** - last ran today |
+| Data run (2 AM) | **completed** - last ran 2 days ago |
+| Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-10-30 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, VLO, MU, HST, APA |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (40 rows, but overlapping windows are not independent; 105 rows across all horizons), newest 1m run date 2026-09-29 (32 days ago, bound 40) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (40 rows, but overlapping windows are not independent; 105 rows across all horizons), newest 1m run date 2026-09-29 (33 days ago, bound 40) |
 | Context signals | 16 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
 | Inputs vs SEC filings | total assets 375/376 within 0.5%; operating cash flow 361/365 within 0.5%; net income 353/372 within 0.5%; market value 439/484 within 5%; 14 scored a quarter behind a filing over 30 days old; filings cached 7 days ago |
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#5: net income 1.46x after-tax operating income); PSX (#8: net income 1.28x after-tax operating income); CF (#14: net income 16% off the filing); WDC (#25: net income 2.13x after-tax operating income) |
 | Data run timing | **18 min** total; slowest `fetch.tickers` 663 s, `fetch.retry` 140 s, `context.sec_insider` 96 s; **42 tickers rate-limited** |
 | Context coverage | options usable 490/499 (9 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
+## Things that needed attention
+
+- SESSION DID NOT RUN: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed
+- Treating this as a failure, not as 'nothing to do'. No success marker will be written,
+- so the catch-up trigger will retry rather than skipping the day.
+- No commits, because the session never ran. This is a lost day, not a quiet one.
+- === Run FAILED: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed ===
+
 ## What changed in the repo
 
+- `5ff58b5 brief: code session 2026-10-31-midday`
 - `b40ce88 log: 2026-10-31 (13:00) - nine more audit rows, and the morning's two were never registered`
 - `dfe8de6 plan: the ninth mutation pass, and five rules the pass produced`
 - `66be3a9 claims audit: the methodology page's last four prose rows, and one equivalent mutant recorded`
@@ -34,10 +53,6 @@ history is in `NIGHTLY_LOG.md`.
 - `a306d32 claims audit: the two open rows the plan called sharpest - the clamp bullet and the switching margin`
 - `7cc51ef tests: the clock-read sweep - three red gates in three weeks, one guard`
 - `e2816d5 tests: a red main - the download-skip test's scenario came from the clock, so it failed every weekend`
-- `52e1bcb brief: code session 2026-10-30-midday`
-- `7a21ec2 log: 2026-10-30 (13:00) - the TTM-fill proposal refused as written, and the methodology page's computed sentences swept`
-- `6c59f28 claims sweep: the methodology page, and a new published sentence is invisible to 3,566 tests`
-- `3c2217e decide: correct a count in the review - six one-quarter stocks, not eight`
 
 ## The session's own account
 
