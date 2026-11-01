@@ -1,4 +1,4 @@
-# Morning Brief - Sunday 01 November 2026, 06:08
+# Morning Brief - Sunday 01 November 2026, 13:08
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -41,6 +41,7 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 
 ## What changed in the repo
 
+- `710c9b0 brief: code session 2026-11-01-weekend - SESSION DID NOT RUN`
 - `5ff58b5 brief: code session 2026-10-31-midday`
 - `b40ce88 log: 2026-10-31 (13:00) - nine more audit rows, and the morning's two were never registered`
 - `dfe8de6 plan: the ninth mutation pass, and five rules the pass produced`
