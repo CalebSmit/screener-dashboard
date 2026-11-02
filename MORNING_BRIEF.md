@@ -1,4 +1,4 @@
-# Morning Brief - Monday 02 November 2026, 06:08
+# Morning Brief - Monday 02 November 2026, 13:08
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,12 +8,13 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **stopped deliberately** - last ran today |
-| Code session (latest) | **stopped deliberately** - last ran today |
+| Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-10-30 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, VLO, MU, HST, APA |
+| Ranking's lean on growth | +0.049 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (40 rows, but overlapping windows are not independent; 105 rows across all horizons), newest 1m run date 2026-09-29 (34 days ago, bound 40) |
 | Context signals | 16 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
 | Inputs vs SEC filings | total assets 452/453 within 0.5%; operating cash flow 429/437 within 0.5%; net income 420/449 within 0.5%; market value 450/486 within 5%; 4 scored a quarter behind a filing over 30 days old; filings cached 0 days ago |
@@ -21,77 +22,79 @@ history is in `NIGHTLY_LOG.md`.
 | Data run timing | **22 min** total; slowest `fetch.tickers` 646 s, `fetch.sec_roe_history` 195 s, `fetch.retry` 138 s; **45 tickers rate-limited** |
 | Context coverage | options usable 490/499 (9 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
+## Waiting for a decision
+
+A session researched these, proposed a change and left it for review. The next
+session decides and records why; you can also answer in `OWNER_FOCUS.md`.
+
+- **decide how the screener holds the ranking's growth exposure near** - open today - `research/2026-11-02-growth-exposure-drift.md`
+
 ## Things that needed attention
 
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
-- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
-- tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings
-- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
 - SESSION DID NOT RUN: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed
 - Treating this as a failure, not as 'nothing to do'. No success marker will be written,
 - so the catch-up trigger will retry rather than skipping the day.
-- GATE 1 tests: FAIL (=========================== short test summary info =========================== FAILED tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings 1 failed, 3601 passed, 1 skipped, 353 warnings in 225.42s (0:03:45))
-- GATE 1 attribution: 0 new, 1 inherited from a main that was already red.
-- inherited: tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings
-- SHIP GATES FAILED: tests. Not merging.
-- Work pushed to nightly/2026-11-02 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
-- Run finished with failing gates - see above.
+- No commits, because the session never ran. This is a lost day, not a quiet one.
+- === Run FAILED: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed ===
 
 ## What changed in the repo
 
+- `f67e3b1 Unstall the data loop: the growth-neutral claim, and two tests that read the wrong data`
+- `e839aa3 brief: code session 2026-11-02 - SESSION DID NOT RUN`
 - `c6ad39a brief: data run 2026-11-02`
 - `5c56aaf brief: code session 2026-11-01-midday - SESSION DID NOT RUN`
 - `710c9b0 brief: code session 2026-11-01-weekend - SESSION DID NOT RUN`
 
 ## The session's own account
 
-> 2026-10-31 (13:00 midday) - QUEUE. Nine more audit rows, and the morning's own two turned out not to have been closed
+> 2026-11-02 (owner-run, midday) - Unstalling the data loop: the growth-neutral claim, and two tests that read the wrong data
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 weekend session,
-> `logs/nightly-2026-10-31_060001-weekend.log`, ends "shipped to main". Data loop published?
-> **yes** - the last weekday run, `logs/datarun-2026-10-30_020001.log`, "Data loop complete",
-> HEALTH: PASS, signals written (40 names, 8 gates, all ran); today is a Saturday, so no 02:00 run
-> is due. Evidence base at `1m` = **40 rows, newest 2026-09-29 (32 days ago, bound 40), 5
-> effective** - steady state, unchanged from this morning. Priority 0: `allow_auto_apply` **false**,
-> 5 of 8 effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 19
-> days**) - not advanced; the next lab Friday is **2026-11-06** and no experiment is half-built.
-> (0.10 is older - opened 2026-10-07, **age 24 days** - and its remainder is Sharpe and Sortino at
-> weight 0, which CLAUDE.md says to do only with nothing better.)
-> **Tests:** before **3,594 passed / 1 skipped**; the runner's own baseline line agrees
-> (`BASELINE main is GREEN on arrival (3594 passed, 1 skipped ... 0:04:01)`), after **3,602 passed /
-> 1 skipped** (+8, all new). Dry run exits 0. `scripts/rehearse_publish.py` **PASSED** (the diff
-> touches `claims.py`): 362 page tests, published claims 1,850 passed, all four published files
-> unchanged and restored byte-for-byte.
-> **Owner queue / rotation:** no proposal is waiting (`write_brief.open_proposals()` returns `[]`),
-> so `OWNER_FOCUS.md` item 2 sub-item 3 ("test the tests"), carrying on from the 06:00 entry's
-> **Next** exactly as the focus asks. Nothing deferred for a gate or a loop. `git stash list` shows
-> `auto-rescue 2026-10-28_060001`; `git stash show -p` prints nothing and
-> `--include-untracked --name-only` lists three gitignored data files (a context log and two price
-> caches), so there is **no tracked work in it** - left in place, as every session since has. No
-> owner-session marker.
+> **Health (rule 8, all five):** last code session ran? **no** - `logs/nightly-2026-11-02_060000.log`
+> ends "SESSION DID NOT RUN: ... OAuth session expired and could not be refreshed", as did the
+> 11-01 06:00 weekend and 11-01 13:00 sessions. `claude auth status` reports `loggedIn: false`;
+> `~/.claude/.credentials.json` was last written 2026-11-01 05:43. **Logging in is the owner's to
+> do** (credentials) - he said he will tonight; until then every scheduled code session fails the
+> same way within two seconds. Data loop published? **no** - `logs/datarun-2026-11-02_020000.log`:
+> HEALTH: PASS, both payloads parse, then "PUBLISHED CLAIMS: FAIL" (2 tests) and "Run discarded";
+> the live site and `signals.json` are still the 10-30 run. Evidence base at `1m` = **40 rows,
+> newest 2026-09-29 (34 days ago, bound 40), 5 effective**. Priority 0: `allow_auto_apply`
+> **false**, 5 of 8 effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
+> **age 21 days**) - not advanced; a stalled data loop outranks it.
+> **Tests:** before **1 failed** at the runner's baseline (`test_special_item_note::
+> test_the_published_payload_agrees_with_the_filings`, inherited); after **3,606 passed / 3 skipped**
+> (two of the skips are the new premise skips below, until tonight's payload carries the stamp).
+> Dry run exits 0, both payloads parse. `scripts/rehearse_publish.py` against the refused run
+> 1957c294714c with this tree: **PASSED** (362 page tests, published claims, files restored).
 > 
-> **Second session today.** The 06:00 entry's Next named `_pbo_words` at its own bars, then the
-> three bank P/B-ROE prose rows and the coverage-discount worked example. All of those are done -
-> and so is something that entry did not know it had left behind: its own two rows.
+> ### The three failures, and what each was
 > 
-> ### Did
-> 
-> **1. The two rows the 06:00 session closed were never closed in the register.** This audit's own
-> rule, met from the inside: *"Finishing a gap means registering the fix too. A new test that
-> `checked_by` does not name reads as a gap on the next pass and is outside the publish gate's
-> derivation."*
-> 
-> Commit `a306d32` wrote five real checks for `share-class-switching-margin` and extended one for
-> `clamp-bullet-second-printing`. It touches **no register file**: both sentences still read
-> `open:` in `OVERVIEW_SENTENCES`, `OVERVIEW_KNOWN_OPEN` still named both slugs, and the five new
-> `TestThePagePrintsTheMargin` checks were in no claim's `checked_by`. "`KNOWN_OPEN` drops twelve to
-> ten", written in that entry and in `OWNER_FOCUS.md`, was true of the **research** page's two rows
-> only - the 07:00 commit did move those.
-> 
-> **Measured rather than inferred**, with a harness that differs from the morning's in the one way
-> that matters: `research/measurements/2026-10-31-registered-row-mutations.py` runs **the claim's
+> 1. **`test_the_ranking_really_is_close_to_growth_neutral` - real.** The composite's Spearman with
+>    the Growth score was +0.058 against the page's "sits close to neutral" band of 0.05. Not one bad
+>    run: across the fifteen published runs since the 2026-10-13 review it drifted steadily from
+>    -0.009 to +0.049 (10-30), and the weight at which the ranking is neutral moved from 13.5 to
+>    about 10 (the review's own sweep script, rerun). The gate refused the run as designed. **The
+>    weight did not move** - re-fitting it to a point that moved four points in three weeks is a
+>    rule to design, not a weight to set. The paragraph was rewritten - the test's own named
+>    alternative: it now states the review's reading, the drift and the 11-02 reading, and points at
+>    **`research/2026-11-02-growth-exposure-drift.md`, a new OPEN proposal** (re-fit on a schedule,
+>    constrain the exposure as MSCI does, or state the lean). The old sentence is in
+>    `claims.FORBIDDEN`; the brief now carries a "Ranking's lean on growth" row every morning.
+>    CLAUDE.md and DECISIONS.md updated.
+> 2. **`test_valuation_history::test_the_published_blocks_are_internally_consistent` - the test.**
+>    First run of a month, so October's month-end close is the run's own price and five stocks'
+>    "today" sat within half a basis point of their last month. The tolerance `now + 0.00005`, done
+>    in floating point, came out below the stored month (0.09985 + 0.00005 = 0.0998999...). Now
+>    compared in basis points with the stored precisions (+-0.5bp per month, +-0.05bp for today).
+>    0 of 743 blocks fail on the refused run, 0 of 694 on the published one; a one-month-off mutant
+>    is caught exactly as often as before (679 of 1,486 vs 681 - ties are the limit in both).
+> 3. **`test_special_item_note::test_the_published_payload_agrees_with_the_filings` - the premise.**
+>    The data loop refreshed the weekly SEC cache at 02:16 and then refused its publish, so the
+>    committed 10-30 notes were compared with 10-Qs filed after them (11 notes "missing" - AON,
+>    BIIB, CARR...). The payload now records the cache it read (`sec_facts`: rows, newest filing
+>    date - `generate_dashboard._facts_vintage`), and this test and its twin in
 > ...
 
 ---
