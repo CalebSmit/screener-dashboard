@@ -2334,6 +2334,13 @@ FORBIDDEN: tuple[Forbidden, ...] = (
         fixed="2026-10-19",
     ),
     Forbidden(
+        pattern=r"the ranking taken whole sits close to neutral",
+        why=("The Growth section, stating one run's growth-neutrality (-0.009 on 2026-10-13) as a "
+             "property of the 13% weight; the exposure drifted to +0.058 by 2026-11-02 "
+             "(research/2026-11-02-growth-exposure-drift.md)."),
+        fixed="2026-11-02",
+    ),
+    Forbidden(
         pattern=r"The top 10 portfolio stocks are displayed",
         why="The DataValidation sheet shows the top 10 of the ranking, not the portfolio's holdings.",
         fixed="2026-10-19",

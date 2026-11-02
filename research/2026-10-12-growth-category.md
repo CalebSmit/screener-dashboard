@@ -461,4 +461,9 @@ work**, and they are now the open Growth question rather than the weight.
   pointed at any published payload; a session with the rank history could say whether the
   neutrality is stable or an accident of this month's cross-section. Until that is known the page
   says "close to neutral" rather than a figure, and the test holds the band rather than the point.
+  **Answered 2026-11-02: not stable.** The exposure at 13% drifted from -0.009 to +0.058 over
+  fifteen published runs and the neutral point from 13.5 to about 10; the run that crossed the
+  band was refused by the publish gate, as designed. The page now states the drift instead of a
+  standing neutrality, and the second bullet above is an open proposal:
+  `research/2026-11-02-growth-exposure-drift.md`.
 - La Porta (1996) and Dechow & Sloan (1997) remain unread, as section 8 said.

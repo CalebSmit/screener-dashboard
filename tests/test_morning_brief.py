@@ -397,3 +397,22 @@ class TestRowPolish:
         if line == "no context evaluation yet":
             pytest.skip("MISSING DATA: no data/context_eval.json")
         assert line == "15 daily logs since 2026-10-08."
+
+
+class TestGrowthLeanRow:
+    """The page no longer calls the ranking growth-neutral (2026-11-02); the brief reports the lean."""
+
+    def _table(self, growth):
+        return [{"Ticker": f"T{i}", "Composite": float(i), "growth_score": g} for i, g in enumerate(growth)]
+
+    def test_a_ranking_that_follows_growth_is_outside_the_band(self):
+        row = wb.growth_exposure(self._table([1, 2, 3, 4, 5]))
+        assert row.startswith("+1.000 (OUTSIDE")
+
+    def test_a_ranking_with_no_lean_is_within_it(self):
+        row = wb.growth_exposure(self._table([3, 1, 5, 1, 3]))
+        assert row.startswith("+0.000 (within")
+
+    def test_a_payload_without_the_columns_drops_the_row(self):
+        assert wb.growth_exposure([{"Ticker": "A"}]) == ""
+        assert wb.growth_exposure([]) == ""

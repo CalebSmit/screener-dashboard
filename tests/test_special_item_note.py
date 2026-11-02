@@ -232,7 +232,19 @@ def test_the_published_payload_agrees_with_the_filings():
                  if (d.get("cavs") or {}).get("earnings_yield")}
     if not FACTS_PATH.exists():
         pytest.skip("no SEC cache on this machine")
-    found = X.special_items(payload, pd.read_parquet(FACTS_PATH))
+    facts = pd.read_parquet(FACTS_PATH)
+    # The premise: the cache on disk is the one these notes were built from. The data loop
+    # refreshes it weekly before its gates, so when a refreshed run is refused the committed
+    # payload is older than the cache, and a filing made since would fail this on a page that was
+    # right when published (2026-11-02, 11 notes "missing" - AON, BIIB, CARR among them - all from
+    # 10-Qs filed after the 10-30 build). The publish gate runs this against the payload it is
+    # about to publish, built from the same cache, so the check is never lost where it matters.
+    built_from = payload.get("sec_facts")
+    on_disk = g._facts_vintage(facts)
+    if built_from != on_disk:
+        pytest.skip(f"MISSING DATA: the payload was built from SEC cache {built_from}, "
+                    f"the cache on disk is {on_disk} - not the filings these notes came from")
+    found = X.special_items(payload, facts)
     rebuilt = {t: X.special_item_note(e) for t, e in found.items()}
     if not published:
         # the payload predates the note; the rebuild still has to be sane where it fires
@@ -241,3 +253,14 @@ def test_the_published_payload_agrees_with_the_filings():
             assert e["of_years"] >= e["charge_years"], t
         pytest.skip("published payload has no notes yet (pre-dates 2026-10-16)")
     assert published == rebuilt
+
+
+def test_the_payload_names_the_filings_cache_it_was_built_from():
+    """``sec_facts`` is what lets the test above tell a moved cache from a wrong note; without it
+    that test can only skip. Row count and newest filing date, or None with no cache."""
+    f = pd.DataFrame({"ticker": ["A", "B"], "filed": pd.to_datetime(["2026-10-23", "2026-10-29"])})
+    assert g._facts_vintage(f) == {"rows": 2, "filed_through": "2026-10-29"}
+    assert g._facts_vintage(f.iloc[:0]) is None
+    assert g._facts_vintage(object()) is None          # anything unreadable: never stops a build
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    assert '"sec_facts": _facts_vintage(),' in src

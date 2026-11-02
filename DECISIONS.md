@@ -981,6 +981,16 @@ seven). If growth earns nothing the supported exposure is zero, and 13 points is
 takes one.** The open Growth question is **composition, not weight** - `revenue_growth` against
 `asset_growth`, and whether growth in profitability belongs in Quality (note section 11).
 
+*2026-11-02 - the neutrality was one run's.* The exposure at 13% drifted from -0.009 to +0.058 over
+fifteen published runs; the neutral point moved from 13.5 to about 10 while Growth's structural
+role (-0.342 against the rest) and the slope (+0.018 a point) held. The 11-02 run was refused by
+`test_the_ranking_really_is_close_to_growth_neutral`, the gate working. The weight did not move -
+re-fitting it to a point that moved four points in three weeks is a rule to design, not a weight
+to set - and the methodology page's "sits close to neutral, leaning neither way" became a dated
+statement of the drift (that test replaced by tests of the new sentence; the old one in
+`claims.FORBIDDEN`). How to hold the exposure is an open proposal:
+`research/2026-11-02-growth-exposure-drift.md`.
+
 **Question 2 - Momentum's weight: KEPT**
 (`research/2026-10-12-value-and-momentum-among-large-companies.md`). Large-company value was never
 reliable on book value and is better supported on the earnings and cash-flow measures this

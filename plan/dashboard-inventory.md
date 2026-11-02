@@ -1113,6 +1113,12 @@ and My Holdings use to say "<name> is in the S&P 500, but this run left it unsco
 "has left the index". `tests/test_unscored_members.py`. Beside it, `share_classes` (2026-10-19)
 covers the second listed class of a company the run did rank.
 
+`sec_facts` (2026-11-02): `{rows, filed_through}` - which copy of the weekly SEC cache the build's
+filing notes (`xchk`, `cavs`, `newer_filing`) were read from (`_facts_vintage`; `null` without a
+cache). Nothing on the page reads it: it lets `test_special_item_note` and `test_capex_lease_note`
+compare the committed notes only with the cache they came from, instead of failing `main` when the
+data loop refreshes the cache and then refuses its publish.
+
 `portfolio` and `spx_weights` were removed 2026-08-26 - see below.
 `config_traps` was removed 2026-09-08 with the chat that was its only consumer.
 

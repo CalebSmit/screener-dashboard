@@ -886,6 +886,21 @@ def _facts(facts=None):
     return _FACTS_CACHE[key]
 
 
+def _facts_vintage(facts=None):
+    """Which copy of the weekly SEC cache this build read: its row count and newest filing date,
+    or ``None`` without one. Published so a test can tell whether the cache on disk is the one the
+    payload's filing notes were built from (2026-11-02: the data loop refreshed the cache, refused
+    its publish, and the old payload's notes were then checked against the new filings - a red
+    ``main`` with nothing wrong on the page). Never stops a build."""
+    try:
+        facts = _facts(facts)
+        if facts is None or facts.empty:
+            return None
+        return {"rows": int(len(facts)), "filed_through": str(pd.Timestamp(facts["filed"].max()).date())}
+    except Exception:  # noqa: BLE001 - provenance never stops a build
+        return None
+
+
 def _attach_filing_check(stock_detail: dict, facts=None, run_date=None) -> int:
     """Add ``xchk`` = {short field: (Yahoo - filing) / larger} to every stock with at least one
     comparable figure. Reads the weekly SEC cache the run keeps (no network); returns how many
@@ -1670,6 +1685,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "stock_detail": stock_detail,
         "share_classes": _share_classes_block(run_data, table_data),
         "unscored": _unscored_block(run_data, table_data),
+        "sec_facts": _facts_vintage(),
         "weights": weights,
         "ctx_weeks": _shared_weeks(stock_detail),
         "market": _market_block(stock_detail),

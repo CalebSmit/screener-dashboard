@@ -130,6 +130,7 @@ def dashboard_facts() -> dict:
         "priced": f"{sum(1 for v in detail.values() if v.get('price'))}/{len(detail)}",
         "targeted": f"{sum(1 for v in detail.values() if v.get('pt_mean'))}/{len(detail)}",
         "top5": top5_tickers(d.get("table_data") or []),
+        "growth": growth_exposure(d.get("table_data") or []),
         "missing_keys": [k for k in PAYLOAD_KEYS if k not in d],
     }
 
@@ -154,6 +155,29 @@ def context_coverage() -> str:
                 + f" - insider from SEC {sec}/{n} - earnings variability {ev}")
     except Exception:  # noqa: BLE001 - the brief must still publish
         return "no context payload"
+
+
+GROWTH_BAND = 0.05      # the 2026-10-13 review's band for "close to neutral"
+
+
+def growth_exposure(table: list[dict]) -> str:
+    """The published ranking's lean on growth: Spearman of Composite against the Growth score.
+
+    The methodology page stopped calling the ranking growth-neutral on 2026-11-02, when this
+    drifted from -0.009 to +0.058 in three weeks (`research/2026-11-02-growth-exposure-drift.md`,
+    an open proposal). The brief carries it every day so whoever decides that proposal sees the
+    drift as it happens. Report only - it gates nothing."""
+    try:
+        import pandas as pd
+        t = pd.DataFrame(table)
+        rho = pd.to_numeric(t["Composite"], errors="coerce").corr(
+            pd.to_numeric(t["growth_score"], errors="coerce"), method="spearman")
+        if rho != rho:      # NaN
+            return ""
+        where = "within" if abs(rho) <= GROWTH_BAND else "OUTSIDE"
+        return f"{rho:+.3f} ({where} the review's +-{GROWTH_BAND} band; 2026-10-13 read -0.009)"
+    except Exception:  # noqa: BLE001 - the brief must still publish
+        return ""
 
 
 def top5_tickers(table: list[dict]) -> list[str]:
@@ -491,6 +515,8 @@ def main() -> int:
         a(f"| With an analyst target | {facts.get('targeted', '?')} |")
         if facts.get("top5"):
             a(f"| Top 5 | {', '.join(facts['top5'])} |")
+        if facts.get("growth"):
+            a(f"| Ranking's lean on growth | {facts['growth']} |")
     a(f"| Evidence for weight changes | {ic_observations()} |")
     a(f"| Context signals | {context_record()} |")
     _filings = filing_check(tail(data_log))

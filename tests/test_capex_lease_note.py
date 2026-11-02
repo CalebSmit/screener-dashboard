@@ -188,7 +188,13 @@ def test_the_published_payload_agrees_with_the_filings():
                  for t, d in payload["stock_detail"].items() if (d.get("cavs") or {}).get("fcf_yield")}
     if not FACTS_PATH.exists():
         pytest.skip("no SEC cache on this machine")
-    book = X.lease_book(payload, pd.read_parquet(FACTS_PATH))
+    facts = pd.read_parquet(FACTS_PATH)
+    # only against the cache these notes were built from - see the special-item test (2026-11-02)
+    built_from, on_disk = payload.get("sec_facts"), g._facts_vintage(facts)
+    if built_from != on_disk:
+        pytest.skip(f"MISSING DATA: the payload was built from SEC cache {built_from}, "
+                    f"the cache on disk is {on_disk} - not the filings these notes came from")
+    book = X.lease_book(payload, facts)
     rebuilt = {t: X.lease_capex_note(e) for t, e in book.items()}
     if not published:
         # the payload predates the note; the rebuild still has to be sane where it fires

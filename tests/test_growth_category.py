@@ -97,7 +97,6 @@ def test_no_weight_moved_with_the_note():
 # ---------------------------------------------------------------------------
 
 SWEEP = ROOT / "research" / "measurements" / "2026-10-13-growth-weight-sweep.py"
-NEUTRAL_TOLERANCE = 0.05
 
 
 def _published_scores() -> pd.DataFrame:
@@ -112,7 +111,7 @@ def test_the_page_says_why_the_weight_was_kept(growth_section):
     assert "Reviewed on 2026-10-13" in growth_section
     assert "was refused" in growth_section
     # it must say what cutting the weight would do, not merely that it was not done
-    assert "would not remove a position on growth; it would take one" in growth_section
+    assert "takes a position on growth rather than removing one" in growth_section
     # and point at the measurement, so the claim is checkable from the page
     assert "research/measurements/2026-10-13-growth-weight-sweep.py" in growth_section
     assert SWEEP.exists()
@@ -130,19 +129,34 @@ def test_the_paragraph_is_rewritten_if_the_weight_ever_moves(growth_section):
         )
 
 
-def test_the_ranking_really_is_close_to_growth_neutral():
-    """The claim on the page - "the ranking taken whole sits close to neutral, leaning neither
-    way" - held to the published run. This is the assertion, not the plumbing: if a run ever
-    produces a ranking that leans on growth, the sentence is false and this fails."""
-    table = _published_scores()
-    composite = pd.to_numeric(table["Composite"], errors="coerce")
-    growth = pd.to_numeric(table["growth_score"], errors="coerce")
-    rho = composite.corr(growth, method="spearman")
-    assert abs(rho) <= NEUTRAL_TOLERANCE, (
-        f"the published ranking correlates {rho:+.3f} with the Growth score; the methodology "
-        f"page says it is close to neutral (within {NEUTRAL_TOLERANCE}). Either the run has "
-        f"changed character or the paragraph needs rewriting."
-    )
+DRIFT_NOTE = ROOT / "research" / "2026-11-02-growth-exposure-drift.md"
+
+
+def test_the_page_states_the_drift_not_a_standing_neutrality(growth_section):
+    """Until 2026-11-02 the page said "at 13% the ranking taken whole sits close to neutral,
+    leaning neither way", and a test here held every published run to within 0.05 of it. The
+    exposure drifted from -0.009 to +0.058 over fifteen runs and the 11-02 run was refused - the
+    gate working. The sentence was a fact about one run stated as a property of the weight, so it
+    was rewritten (the test's own alternative: "or the paragraph needs rewriting"); the old one is
+    in claims.FORBIDDEN. Each dated figure the new paragraph gives must be in the note that
+    measured it, and the paragraph must say the question is open and where."""
+    assert "sits close to neutral, leaning neither way" not in growth_section
+    assert "That balance is not fixed" in growth_section
+    note = DRIFT_NOTE.read_text(encoding="utf-8")
+    # the review's reading, the 2026-11-02 reading and the neutral point, as the page rounds them
+    assert "a rank correlation of -0.01 with the Growth score" in growth_section
+    assert "| exposure at 13% | -0.009 | +0.049 | +0.058 |" in note
+    assert "by 2026-11-02 the same 13% leaned slightly toward growth (+0.06), with the neutral point near 10%" in growth_section
+    assert "9.6 / 10.6" in note
+    assert "research/2026-11-02-growth-exposure-drift.md" in growth_section
+    assert "**Proposal status: OPEN**" in note
+
+
+def test_the_note_records_the_refused_runs_reading():
+    """The +0.058 is the regenerated 11-02 payload's, which was never published; the note says so,
+    so nobody looks for it in git history."""
+    note = DRIFT_NOTE.read_text(encoding="utf-8")
+    assert "11-02 (refused)" in note and "rehearsal" in note
 
 
 def test_growth_is_the_category_that_runs_against_the_others():
@@ -185,3 +199,11 @@ def test_the_measurement_script_runs_from_a_clean_checkout():
     assert res.returncode == 0, res.stderr[-800:]
     assert "Spearman correlation of Growth's score with each other category's" in res.stdout
     assert "top 25 in common" in res.stdout
+
+
+def test_the_withdrawn_sentence_is_still_detected():
+    """The guard must fire on the exact sentence that shipped until 2026-11-02."""
+    import claims
+    shipped = ("and at 13% the ranking taken whole sits close to neutral, leaning neither way. "
+               "Reducing the weight would not remove a position on growth; it would take one.")
+    assert claims.forbidden_hits(shipped)

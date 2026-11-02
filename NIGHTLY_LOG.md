@@ -17901,3 +17901,60 @@ before trusting it.
 - **Monday 2026-11-02 is phase 0 of the universe-expansion plan** (`plan/universe-expansion.md`),
   the top open `OWNER_FOCUS.md` item, and **Friday 2026-11-06 is the Factor Lab's day** -
   experiment 18, unstarted.
+
+## 2026-11-02 (owner-run, midday) - Unstalling the data loop: the growth-neutral claim, and two tests that read the wrong data
+
+**Health (rule 8, all five):** last code session ran? **no** - `logs/nightly-2026-11-02_060000.log`
+ends "SESSION DID NOT RUN: ... OAuth session expired and could not be refreshed", as did the
+11-01 06:00 weekend and 11-01 13:00 sessions. `claude auth status` reports `loggedIn: false`;
+`~/.claude/.credentials.json` was last written 2026-11-01 05:43. **Logging in is the owner's to
+do** (credentials) - he said he will tonight; until then every scheduled code session fails the
+same way within two seconds. Data loop published? **no** - `logs/datarun-2026-11-02_020000.log`:
+HEALTH: PASS, both payloads parse, then "PUBLISHED CLAIMS: FAIL" (2 tests) and "Run discarded";
+the live site and `signals.json` are still the 10-30 run. Evidence base at `1m` = **40 rows,
+newest 2026-09-29 (34 days ago, bound 40), 5 effective**. Priority 0: `allow_auto_apply`
+**false**, 5 of 8 effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
+**age 21 days**) - not advanced; a stalled data loop outranks it.
+**Tests:** before **1 failed** at the runner's baseline (`test_special_item_note::
+test_the_published_payload_agrees_with_the_filings`, inherited); after **3,606 passed / 3 skipped**
+(two of the skips are the new premise skips below, until tonight's payload carries the stamp).
+Dry run exits 0, both payloads parse. `scripts/rehearse_publish.py` against the refused run
+1957c294714c with this tree: **PASSED** (362 page tests, published claims, files restored).
+
+### The three failures, and what each was
+
+1. **`test_the_ranking_really_is_close_to_growth_neutral` - real.** The composite's Spearman with
+   the Growth score was +0.058 against the page's "sits close to neutral" band of 0.05. Not one bad
+   run: across the fifteen published runs since the 2026-10-13 review it drifted steadily from
+   -0.009 to +0.049 (10-30), and the weight at which the ranking is neutral moved from 13.5 to
+   about 10 (the review's own sweep script, rerun). The gate refused the run as designed. **The
+   weight did not move** - re-fitting it to a point that moved four points in three weeks is a
+   rule to design, not a weight to set. The paragraph was rewritten - the test's own named
+   alternative: it now states the review's reading, the drift and the 11-02 reading, and points at
+   **`research/2026-11-02-growth-exposure-drift.md`, a new OPEN proposal** (re-fit on a schedule,
+   constrain the exposure as MSCI does, or state the lean). The old sentence is in
+   `claims.FORBIDDEN`; the brief now carries a "Ranking's lean on growth" row every morning.
+   CLAUDE.md and DECISIONS.md updated.
+2. **`test_valuation_history::test_the_published_blocks_are_internally_consistent` - the test.**
+   First run of a month, so October's month-end close is the run's own price and five stocks'
+   "today" sat within half a basis point of their last month. The tolerance `now + 0.00005`, done
+   in floating point, came out below the stored month (0.09985 + 0.00005 = 0.0998999...). Now
+   compared in basis points with the stored precisions (+-0.5bp per month, +-0.05bp for today).
+   0 of 743 blocks fail on the refused run, 0 of 694 on the published one; a one-month-off mutant
+   is caught exactly as often as before (679 of 1,486 vs 681 - ties are the limit in both).
+3. **`test_special_item_note::test_the_published_payload_agrees_with_the_filings` - the premise.**
+   The data loop refreshed the weekly SEC cache at 02:16 and then refused its publish, so the
+   committed 10-30 notes were compared with 10-Qs filed after them (11 notes "missing" - AON,
+   BIIB, CARR...). The payload now records the cache it read (`sec_facts`: rows, newest filing
+   date - `generate_dashboard._facts_vintage`), and this test and its twin in
+   `test_capex_lease_note.py` compare only against that cache, skipping loudly otherwise. In the
+   publish gate the payload and cache always match (verified on the rehearsal: both
+   `{rows: 2428963, filed_through: 2026-10-30}`), so the check is never lost where it matters.
+   Filtering the cache by filing date was tried first and does not reproduce the notes.
+
+### Next
+
+- **Owner: `claude auth login`** - nothing else restores the code sessions.
+- Tonight's 02:00 run should publish (rehearsed against this morning's run). Check its log for
+  the claims gate PASS and the brief's new growth row.
+- **Monday research item:** the open proposal in `research/2026-11-02-growth-exposure-drift.md`.

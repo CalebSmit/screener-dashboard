@@ -825,9 +825,13 @@ a **second reader** before it counts as checked (`OWNER_FOCUS.md`, 2026-10-20 it
 questions the lab raised" before reopening any of them** - each answer rests on a measurement,
 and the reasoning is there rather than here.
 
-- **Growth 13 stays** (REFUSED 2026-10-13). `tests/test_growth_category.py` is in the publish gate
-  and fails if the committed ranking leaves 0.05 of growth-neutral. The open Growth question is
-  **composition, not weight**.
+- **Growth 13 stays** (REFUSED 2026-10-13). The open Growth question is **composition, not
+  weight** - and, since 2026-11-02, **how to hold the ranking near growth-neutral at all**: the
+  exposure at 13% drifted from -0.009 to +0.058 in three weeks (neutral point 13.5 -> ~10), the
+  publish gate refused that run as designed, and the page now states the drift instead of a
+  standing neutrality (old sentence in `claims.FORBIDDEN`). Open proposal:
+  `research/2026-11-02-growth-exposure-drift.md`; the brief reports the lean daily. **Do not
+  re-fit the weight to the day's neutral point without answering that note's section 4.**
 - **Momentum's weight stays** (2026-10-13). Lab and literature disagree, so it stands: **do not
   cut Momentum on the lab's number alone, and never quote an all-stock premium for either category
   on the methodology page** (`tests/test_large_company_evidence.py`).

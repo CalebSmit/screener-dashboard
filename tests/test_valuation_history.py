@@ -163,11 +163,17 @@ def test_the_published_blocks_are_internally_consistent():
                 y = b[k]
                 assert 0 <= y["pct"] <= 100 and y["lo"] <= y["med"] <= y["hi"], tk
                 assert y["n"] >= vh.MIN_MONTHS and len(y["s"]) <= vh.MONTHS, tk
-                # the series is stored in whole basis points, so a month within half a basis point
-                # of today may round to either side of it
-                hist = np.array([x / 10000 for x in y["s"] if x is not None])
-                lo_b = 100 * float((hist < y["now"] - 0.00005).mean())
-                hi_b = 100 * float((hist <= y["now"] + 0.00005).mean())
+                # the series is stored in whole basis points (each month +-0.5bp) and today's
+                # yield to five decimals (+-0.05bp), so a month within 0.55bp of today may fall
+                # on either side of it. Compared in basis points, not as float yields: the first
+                # run of a month (2026-11-02) puts the month-end just closed on the same close as
+                # today, and `now + 0.00005` in floating point came out below the stored month in
+                # 5 of 428 blocks - a test-arithmetic failure on a payload that was right.
+                hist = np.array([x for x in y["s"] if x is not None], dtype=float)
+                now_bp = round(y["now"] * 10000, 1)
+                margin = 0.5 + 0.05 + 1e-6
+                lo_b = 100 * float((hist < now_bp - margin).mean())
+                hi_b = 100 * float((hist < now_bp + margin).mean())
                 assert lo_b - 0.1 <= y["pct"] <= hi_b + 0.1, tk
 
 
