@@ -1,4 +1,4 @@
-# Morning Brief - Monday 02 November 2026, 02:25
+# Morning Brief - Monday 02 November 2026, 06:08
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **stopped deliberately** - last ran today |
-| Code session (latest) | **failed** - last ran today |
+| Code session (latest) | **stopped deliberately** - last ran today |
 | Dashboard data from | 2026-10-30 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
@@ -26,14 +26,22 @@ history is in `NIGHTLY_LOG.md`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
+- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
+- tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings
+- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
 - SESSION DID NOT RUN: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed
 - Treating this as a failure, not as 'nothing to do'. No success marker will be written,
 - so the catch-up trigger will retry rather than skipping the day.
-- No commits, because the session never ran. This is a lost day, not a quiet one.
-- === Run FAILED: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed ===
+- GATE 1 tests: FAIL (=========================== short test summary info =========================== FAILED tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings 1 failed, 3601 passed, 1 skipped, 353 warnings in 225.42s (0:03:45))
+- GATE 1 attribution: 0 new, 1 inherited from a main that was already red.
+- inherited: tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings
+- SHIP GATES FAILED: tests. Not merging.
+- Work pushed to nightly/2026-11-02 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
+- Run finished with failing gates - see above.
 
 ## What changed in the repo
 
+- `c6ad39a brief: data run 2026-11-02`
 - `5c56aaf brief: code session 2026-11-01-midday - SESSION DID NOT RUN`
 - `710c9b0 brief: code session 2026-11-01-weekend - SESSION DID NOT RUN`
 
