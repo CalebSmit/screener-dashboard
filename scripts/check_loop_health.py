@@ -38,6 +38,12 @@ is the question this file answers. Whether the session then did anything useful
 is what the brief and `NIGHTLY_LOG.md` are for. A missing commit is the only
 thing that means "nothing ran".
 
+Since 2026-11-02 two more rows read the same commits for the other question -
+did the loop *do its job*: a code-session brief without that suffix, and a
+`data: screener run` publish. Same two-consecutive-weekday rule. Four sessions
+in a row fired and died on a lapsed CLI login that weekend, and the two rows
+above stayed green throughout.
+
 `brief: evening session <date>` is deliberately **not** matched. Those are
 owner-initiated interactive sessions; they prove a human was present, not that
 the 06:00 task fired.
@@ -86,9 +92,15 @@ class Loop:
     deadline_hour: int  # local hour by which that day's run must have landed
     patterns: tuple[str, ...]
     script: str
+    # A heartbeat whose subject also matches one of these does not count. Used by the two
+    # "did it do its job" loops below; the two "did it fire" loops leave it empty.
+    exclude: tuple[str, ...] = ()
+    # What to do when this loop stalls, for the loops whose cause is not "nothing fired".
+    hint: str = ""
 
     def matches(self, subject: str) -> bool:
-        return any(re.match(p, subject) for p in self.patterns)
+        return (any(re.match(p, subject) for p in self.patterns)
+                and not any(re.search(x, subject) for x in self.exclude))
 
 
 # `deadline_hour` is not the slot time. Both tasks carry an at-logon trigger
@@ -114,7 +126,40 @@ LOOPS: tuple[Loop, ...] = (
         patterns=(r"^brief: code session\b",),
         script="scripts/nightly-screener.ps1",
     ),
+    # The two loops above answer "did it fire?", and that is all they can answer: a session that
+    # dies in two seconds still pushes its brief, so it is a heartbeat by design. On 2026-11-01..02
+    # the CLI's login lapsed and four scheduled sessions in a row fired and did nothing, and the
+    # watchdog would have stayed green indefinitely. These two answer "did it do its job?" from
+    # the same commits, with the same two-consecutive-weekday rule - so they can never alarm
+    # sooner than the loops above, only on a failure those cannot see.
+    Loop(
+        key="code_ran",
+        label="Session ran",
+        slot="06:00 / 13:00 daily",
+        deadline_hour=16,
+        patterns=(r"^brief: code session\b",),
+        script="scripts/nightly-screener.ps1",
+        exclude=(r"SESSION DID NOT RUN",),
+        hint=("The code task fired but no session actually ran. Read the newest "
+              "logs/nightly-*.log: \"Failed to authenticate\" means the Claude CLI on the PC "
+              "is logged out - run `claude.cmd auth login` there and sign in."),
+    ),
+    Loop(
+        key="data_published",
+        label="Data published",
+        slot="02:00 Mon-Fri",
+        deadline_hour=12,
+        patterns=(r"^data: screener run\b",),
+        script="scripts/data-run.ps1",
+        hint=("The data loop ran but a gate refused to publish, so the live site and "
+              "signals.json are still the last good run and the bot defers. Read the newest "
+              "logs/datarun-*.log for the gate that refused; the live site is safe meanwhile."),
+    ),
 )
+
+# The loops whose stall means "nothing fired at all" - the reboot-and-nobody-signed-in case the
+# generic advice below is about.
+FIRING_KEYS = ("data", "code")
 
 
 @dataclass
@@ -295,8 +340,15 @@ def render(statuses: list[LoopStatus], verdict: str, now: datetime) -> str:
     a("")
 
     if verdict == OK:
-        a("Both loops are firing.")
+        a("Both loops are firing, and both are doing their work.")
         return "\n".join(lines)
+
+    for s in statuses:
+        if s.verdict != OK and s.loop.hint:
+            a(f"{s.loop.label}: {s.loop.hint}")
+            a("")
+    if all(s.verdict == OK for s in statuses if s.loop.key in FIRING_KEYS):
+        return "\n".join(lines).rstrip()
 
     a("A loop that never fires writes no log, so nothing on the machine will")
     a("report this. Most likely cause, by past frequency: the PC rebooted and")
@@ -326,6 +378,7 @@ def to_dict(statuses: list[LoopStatus], verdict: str, now: datetime) -> dict:
                 "missed": [d.isoformat() for d in s.missed],
                 "consecutive_missed": s.consecutive_missed,
                 "weekdays_checked": s.weekdays_checked,
+                "hint": s.loop.hint,
             }
             for s in statuses
         ],

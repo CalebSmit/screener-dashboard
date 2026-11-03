@@ -310,11 +310,11 @@ class TestCommandLine:
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout)
         assert payload["verdict"] in (clh.OK, clh.WARN, clh.STALLED)
-        assert {l["key"] for l in payload["loops"]} == {"data", "code"}
+        assert {l["key"] for l in payload["loops"]} == {"data", "code", "code_ran", "data_published"}
         for loop in payload["loops"]:
             assert set(loop) >= {
                 "key", "label", "slot", "verdict", "last_heartbeat",
-                "missed", "consecutive_missed", "weekdays_checked",
+                "missed", "consecutive_missed", "weekdays_checked", "hint",
             }
 
     def test_human_output_names_both_loops(self):
@@ -449,4 +449,87 @@ class TestRenderedAdvice:
                         dt("2026-08-27T17:00"))
         text = clh.render([ok], clh.OK, dt("2026-08-27T17:00"))
         assert "register-tasks.ps1" not in text
-        assert "Both loops are firing." in text
+        assert "Both loops are firing" in text
+
+
+# ---------------------------------------------------------------------------
+# Did it do its job? (2026-11-02)
+# ---------------------------------------------------------------------------
+
+RAN = next(l for l in clh.LOOPS if l.key == "code_ran")
+PUBLISHED = next(l for l in clh.LOOPS if l.key == "data_published")
+CHI = timezone(timedelta(hours=-6))
+
+
+def commit(stamp: str, subject: str):
+    return (datetime.fromisoformat(stamp).replace(tzinfo=CHI), subject)
+
+
+class TestDidItDoItsJob:
+    """2026-11-01..02: the CLI login lapsed and four scheduled sessions fired and died in two
+    seconds each. Every one pushed `brief: code session ... - SESSION DID NOT RUN`, which the
+    firing rows count as a heartbeat by design - so the watchdog was green throughout."""
+
+    LAPSE = [
+        commit("2026-10-30T09:40", "brief: code session 2026-10-30"),
+        commit("2026-10-30T14:10", "brief: code session 2026-10-30-midday"),
+        commit("2026-11-02T06:04", "brief: code session 2026-11-02 - SESSION DID NOT RUN"),
+        commit("2026-11-02T13:08", "brief: code session 2026-11-02-midday - SESSION DID NOT RUN"),
+        commit("2026-11-03T06:04", "brief: code session 2026-11-03 - SESSION DID NOT RUN"),
+        commit("2026-11-03T13:08", "brief: code session 2026-11-03-midday - SESSION DID NOT RUN"),
+    ]
+
+    def test_a_session_that_did_not_run_is_not_a_ran_heartbeat(self):
+        assert CODE.matches("brief: code session 2026-11-02 - SESSION DID NOT RUN")
+        assert not RAN.matches("brief: code session 2026-11-02 - SESSION DID NOT RUN")
+        assert RAN.matches("brief: code session 2026-11-02")
+        assert RAN.matches("brief: code session 2026-11-02-midday")
+        assert not RAN.matches("brief: evening session 2026-11-02")
+
+    def test_the_lapse_warns_on_the_first_day_and_alarms_on_the_second(self):
+        day1 = [c for c in self.LAPSE if c[0].date() <= d("2026-11-02")]
+        s1 = clh.assess(RAN, clh.heartbeat_dates(day1, RAN), dt("2026-11-02T17:00"))
+        s2 = clh.assess(RAN, clh.heartbeat_dates(self.LAPSE, RAN), dt("2026-11-03T17:00"))
+        assert (s1.verdict, s2.verdict) == (clh.WARN, clh.STALLED)
+        # while the firing row, by design, never noticed
+        f2 = clh.assess(CODE, clh.heartbeat_dates(self.LAPSE, CODE), dt("2026-11-03T17:00"))
+        assert f2.verdict == clh.OK
+
+    def test_a_good_midday_session_rescues_the_day(self):
+        commits = self.LAPSE[:3] + [commit("2026-11-02T14:00", "brief: code session 2026-11-02-midday")]
+        s = clh.assess(RAN, clh.heartbeat_dates(commits, RAN), dt("2026-11-02T17:00"))
+        assert s.verdict == clh.OK
+
+    def test_only_a_publish_counts_as_data_published(self):
+        assert PUBLISHED.matches("data: screener run 2026-10-30 - 499 scored, top: EXPE VLO MU INCY HST")
+        assert not PUBLISHED.matches("brief: data run 2026-11-02")
+        assert DATA.matches("brief: data run 2026-11-02")
+
+    def test_one_refused_run_warns_and_two_in_a_row_alarm(self):
+        commits = [commit("2026-10-30T02:20", "data: screener run 2026-10-30 - 499 scored"),
+                   commit("2026-11-02T02:30", "brief: data run 2026-11-02"),
+                   commit("2026-11-03T02:30", "brief: data run 2026-11-03")]
+        at = lambda day: clh.assess(PUBLISHED, clh.heartbeat_dates(
+            [c for c in commits if c[0].date() <= d(day)], PUBLISHED), dt(day + "T17:00"))
+        assert at("2026-11-02").verdict == clh.WARN
+        assert at("2026-11-03").verdict == clh.STALLED
+
+    def test_it_can_never_alarm_sooner_than_the_firing_rows(self):
+        """Same deadlines and the same two-in-a-row rule as the loop it shadows: the settled
+        constraint (CLAUDE.md row -1) is about how fast the watchdog may alarm, and these rows
+        add a failure it could not see without adding speed."""
+        assert (RAN.deadline_hour, PUBLISHED.deadline_hour) == (CODE.deadline_hour, DATA.deadline_hour)
+        assert clh.EXIT_CODES[clh.WARN] == 0
+
+    def test_its_advice_names_the_fix_and_skips_the_reboot_advice(self):
+        ok_fire = clh.assess(CODE, clh.heartbeat_dates(self.LAPSE, CODE), dt("2026-11-03T17:00"))
+        dead = clh.assess(RAN, clh.heartbeat_dates(self.LAPSE, RAN), dt("2026-11-03T17:00"))
+        text = clh.render([ok_fire, dead], clh.STALLED, dt("2026-11-03T17:00"))
+        assert "claude.cmd auth login" in text
+        assert "register-tasks.ps1" not in text          # nothing failed to fire
+        assert "gate" in PUBLISHED.hint and "logs/datarun-" in PUBLISHED.hint
+
+    def test_the_issue_body_carries_the_hint(self, wf):
+        step = next(s for s in wf["jobs"]["check"]["steps"]
+                    if "github-script" in str(s.get("uses", "")))
+        assert "l.hint" in step["with"]["script"]

@@ -181,6 +181,19 @@ try {
     }
     Write-Log "Network is up."
 
+    # --- Is the code loop's CLI logged in? (a note, never a gate) ------------
+    # This loop does not use the CLI, but it runs before the day's first code
+    # session, so it is the one place that can warn before that session fails.
+    # 2026-11-01..02: the login lapsed and four sessions died in two seconds each
+    # with nobody told. Read-only, always exits 0 - see scripts/check_cli_login.py.
+    try {
+        $login = Invoke-Native 'python' @('scripts/check_cli_login.py')
+        $loginLevel = if ($login.Text -match 'CLI LOGGED OUT') { 'WARN' } else { 'INFO' }
+        Write-NativeOutput $login $loginLevel
+    } catch {
+        Write-Log "CLI login check skipped (non-fatal): $($_.Exception.Message)" 'WARN'
+    }
+
     # --- Take the repo, then touch git ---------------------------------------
     # Acquired here rather than at the top of the script so the 5-minute
     # network wait above does not hold the code loop off the repo for work

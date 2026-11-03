@@ -94,6 +94,10 @@ jobs:
               `|---|---|---|---|---|`,
               ...v.loops.map(line),
               ``,
+              // A loop that fired but did not do its job carries its own advice
+              // (a lapsed CLI login, a gate refusing to publish); say that first.
+              ...v.loops.filter(l => l.verdict !== 'ok' && l.hint)
+                        .map(l => `**${l.label}:** ${l.hint}\n`),
               `A loop that never fires writes no log, so nothing on the machine`,
               `reports this and \`MORNING_BRIEF.md\` keeps describing the last run`,
               `that *did* happen.`,

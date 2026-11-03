@@ -446,6 +446,39 @@ def _rate_limited() -> int | None:
         return None
 
 
+# What a lapsed CLI login looks like in each loop's log: the data loop's own check
+# (scripts/check_cli_login.py) and the error the code runner records when the session dies on it.
+LOGIN_MARKERS = ("CLI LOGGED OUT", "Failed to authenticate", "OAuth session expired")
+
+
+def login_alert(data_lines: list[str], code_lines: list[str], data_is_newer: bool) -> list[str]:
+    """The one thing only the owner can do, said first - or nothing.
+
+    2026-11-01..02: the CLI's login lapsed and four scheduled code sessions died in two seconds
+    each. The error was in this brief, as the seventh of nine attention lines, worded for the
+    runner rather than for the person who has to act. A newer data-loop log that reads "CLI login:
+    OK" clears it: the owner signed in after the last failed session.
+    """
+    data_text, code_text = "\n".join(data_lines), "\n".join(code_lines)
+    if data_is_newer and "CLI login: OK" in data_text:
+        return []
+    if not any(m in data_text or m in code_text for m in LOGIN_MARKERS):
+        return []
+    return [
+        "## ONE THING ONLY YOU CAN DO: log the Claude CLI back in",
+        "",
+        "The code sessions run through the Claude Code CLI on this PC, and its login has",
+        "lapsed, so every scheduled session fails within seconds of starting. The data",
+        "loop does not use it and is unaffected. Open a terminal on the PC and run:",
+        "",
+        "    claude.cmd auth login",
+        "",
+        "(`.cmd`, because Windows PowerShell blocks the plain `claude` script.) Then",
+        "`claude.cmd auth status` should say `\"loggedIn\": true`.",
+        "",
+    ]
+
+
 def last_log_entry() -> str:
     """The most recent dated section of NIGHTLY_LOG.md, lightly trimmed."""
     p = ROOT / "NIGHTLY_LOG.md"
@@ -499,6 +532,10 @@ def main() -> int:
         a("the tasks only run while a user is signed in. See NIGHTLY_LOG.md")
         a("2026-08-20 and `scripts/register-tasks.ps1`.")
         a("")
+
+    data_is_newer = bool(data_log and code_log
+                         and data_log.stat().st_mtime > code_log.stat().st_mtime)
+    out.extend(login_alert(tail(data_log), tail(code_log), data_is_newer))
 
     a("## At a glance")
     a("")
