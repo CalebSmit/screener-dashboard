@@ -53,7 +53,7 @@ def checked_by(cid: str) -> tuple:
 CHAIN, PEER, UNSC = "drilldown.composite_chain", "drilldown.peer_rank", "drilldown.unscored_category"
 TURN, LUCK = "context.track_turnover", "context.track_luck"
 FIT, DIST = "dashboard.holdings_fit", "drilldown.composite_distribution"
-REGIME = "overview.momentum_regime"
+REGIME, OVER = "overview.momentum_regime", "history.run_overview"
 
 MUTS = [
     # --- drilldown.composite_chain: the total, the discount line, the composite -------------
@@ -173,6 +173,23 @@ MUTS = [
      "realised volatility of ' + pc(m.vol) + ' a year", "realised volatility of ' + pc(m.vol / Math.sqrt(252)) + ' a year"),
     (242, "the panic sentence chosen on the return alone", REGIME,
      "m.vol_window_days + ' trading days. ' + (m.state === 'PANIC'", "m.vol_window_days + ' trading days. ' + (m.ret < 0"),
+    # --- history.run_overview: the What Changed footnote and its section tile ----------------
+    (243, "the footnote's up count is the listed movers", OVER,
+     "${{mv.n_up}} stocks moved up materially", "${{mv.up.length}} stocks moved up materially"),
+    (244, "the shown-up count is the whole count", OVER,
+     "const shownUp = Math.min(mv.up.length, mv.n_up)", "const shownUp = mv.n_up"),
+    (245, "the shown-down count capped by the up count", OVER,
+     "shownDown = Math.min(mv.down.length, mv.n_down)", "shownDown = Math.min(mv.down.length, mv.n_up)"),
+    (246, "the round-trip share over the listed movers", OVER,
+     "${{mv.n_up + mv.n_down}}</strong> are flagged", "${{mv.up.length + mv.down.length}}</strong> are flagged"),
+    (247, "the round-trip sentence printed with none", OVER,
+     "if (mv.n_round_trip) {{", "if (mv.n_round_trip >= 0) {{"),
+    (248, "the tile reads the last run, not the ~1-month window", OVER,
+     "const k = H.movers.m1 ? 'm1' : 'prev', mv = H.movers[k];", "const k = 'prev', mv = H.movers[k];"),
+    (249, "the tile's 'of N' is the movers, not the universe", OVER,
+     "mv.n_up + ' of ' + N + ' stocks moved up materially", "mv.n_up + ' of ' + (mv.n_up + mv.n_down) + ' stocks moved up materially"),
+    (250, "the tile caption's up count prints the down count", OVER,
+     "'<div class=\"tv-cap\"><span>' + mv.n_up + ' up</span>", "'<div class=\"tv-cap\"><span>' + mv.n_down + ' up</span>"),
 ]
 
 rows = None

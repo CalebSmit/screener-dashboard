@@ -1349,6 +1349,10 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_run_overview.py::test_category_shares_weight_absolute_changes",
             "tests/test_run_overview.py::test_top_kept_counts_names_in_both_top_lists",
             "tests/test_run_overview.py::test_rank_25_is_in_the_top_25_on_both_dates_and_26_is_not",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_footnote_prints_the_runs_own_counts",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_footnote_prints_a_hand_worked_window",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_tile_prints_the_runs_own_counts",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_tile_prints_a_hand_worked_window",
         ),
     ),
     Claim(

@@ -771,3 +771,95 @@ def test_the_run_note_prints_a_hand_worked_reading(page, m, want):
     that printed the configured figures instead of the run's would be caught), and no reading."""
     txt = _run_note(page, m)
     assert txt.endswith(want), (txt, want)
+
+
+# ---------------------------------------------------------------------------
+# history.run_overview - the What Changed footnote and the section tile's movers counts
+# ---------------------------------------------------------------------------
+_FOOT_JS = """([k, mv]) => { const keep = H.movers[k], keepR = changedRange;
+    try { if (mv) H.movers[k] = mv; setChangedRange(k);
+          return document.getElementById('changed-footnote').innerHTML; }
+    finally { H.movers[k] = keep; setChangedRange(keepR); } }"""
+_TILE_JS = """(movers) => { const keep = H.movers;
+    try { if (movers) H.movers = movers; renderTileViz();
+          const v = document.querySelector('#sec-changed .tile-viz');
+          return v ? [v.getAttribute('aria-label'), v.querySelector('.tv-cap').innerHTML] : null; }
+    finally { H.movers = keep; renderTileViz(); } }"""
+
+
+def _counts(history: dict, k: str) -> tuple[int, int]:
+    """Stocks whose rank moved the material threshold or more, each way - the rule the panel states."""
+    thr = history["noise"]["material_threshold"]
+    drs = [d[k]["dr"] for d in history["delta"].values() if (d.get(k) or {}).get("dr") is not None]
+    return sum(1 for x in drs if x >= thr), sum(1 for x in drs if x <= -thr)
+
+
+def _history(data) -> dict:
+    H = data.get("history") or {}
+    if not (H.get("available") and H.get("movers")):
+        pytest.skip("MISSING DATA: the payload carries no comparable history")
+    return H
+
+
+def test_the_whats_changed_footnote_prints_the_runs_own_counts(page, data):
+    """For each comparison window the payload carries: the up and down counts are the stocks whose
+    rank moved the material threshold or more (counted here from each stock's published rank
+    change), the shown counts are the lengths of the two lists, and the round-trip share is the
+    payload's count over all material movers."""
+    H = _history(data)
+    problems = []
+    for k, mv in H["movers"].items():
+        if k not in (H.get("compare") or {}):
+            continue
+        up, down = _counts(H, k)
+        txt = _text(page.evaluate(_FOOT_JS, [k, None]))
+        g = re.search(r"(\d+) stocks moved up materially and (\d+) moved down; showing the largest (\d+) and (\d+)\.", txt)
+        if not g:
+            problems.append(f"{k}: unreadable: {txt[:300]!r}")
+            continue
+        got = tuple(int(x) for x in g.groups())
+        want = (up, down, min(len(mv["up"]), up), min(len(mv["down"]), down))
+        if got != want:
+            problems.append(f"{k}: printed {got}, the rank changes give {want}")
+        r = re.search(r"(\d+) of (\d+) are flagged round-trip", txt)
+        if (r is not None) != bool(mv.get("n_round_trip")):
+            problems.append(f"{k}: round-trip sentence {'present' if r else 'absent'} with n_round_trip={mv.get('n_round_trip')}")
+        elif r and (int(r.group(1)), int(r.group(2))) != (mv["n_round_trip"], up + down):
+            problems.append(f"{k}: printed {r.group(1)} of {r.group(2)} round-trip, want {mv['n_round_trip']} of {up + down}")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_whats_changed_footnote_prints_a_hand_worked_window(page, data):
+    """Lists shorter than the counts, a round trip, and nothing down - worked by hand."""
+    H = _history(data)
+    k = next(iter(H["movers"]))
+    mv = {**H["movers"][k], "up": H["movers"][k]["up"][:3], "down": [], "n_up": 5, "n_down": 0, "n_round_trip": 2}
+    txt = _text(page.evaluate(_FOOT_JS, [k, mv]))
+    assert "5 stocks moved up materially and 0 moved down; showing the largest 3 and 0." in txt, txt
+    assert "2 of 5 are flagged round-trip" in txt, txt
+    txt = _text(page.evaluate(_FOOT_JS, [k, {**mv, "n_round_trip": 0}]))
+    assert "flagged round-trip" not in txt, txt
+
+
+def test_the_whats_changed_tile_prints_the_runs_own_counts(page, data):
+    """The tile reads the ~1-month window where there is one, else the last run; its counts are the
+    rule's, out of the run's universe."""
+    H = _history(data)
+    k = "m1" if H["movers"].get("m1") else "prev"
+    up, down = _counts(H, k)
+    N = data["kpis"]["universe_size"]
+    got = page.evaluate(_TILE_JS, None)
+    assert got, "the What Changed section drew no tile"
+    label, cap = got
+    assert label == f"{up} of {N} stocks moved up materially and {down} moved down", (label, k, up, down, N)
+    assert _text(cap) == f"{up} up of {N} {down} down", (cap, k)
+
+
+def test_the_whats_changed_tile_prints_a_hand_worked_window(page, data):
+    """Without a ~1-month window the tile reads the last run's: 7 up and 4 down of the universe."""
+    H = _history(data)
+    prev = H["movers"].get("prev") or next(iter(H["movers"].values()))
+    got = page.evaluate(_TILE_JS, {"prev": {**prev, "n_up": 7, "n_down": 4}})
+    N = data["kpis"]["universe_size"]
+    assert got and got[0] == f"7 of {N} stocks moved up materially and 4 moved down", got
+    assert _text(got[1]) == f"7 up of {N} 4 down", got

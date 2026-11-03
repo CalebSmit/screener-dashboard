@@ -1230,9 +1230,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     ', the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).':
         "open:noise-band-pairs - the paired-run and observation counts; nothing reads the page's printing",
     '${mv.n_up} stocks moved up materially and ${mv.n_down} moved down; showing the largest ${shownUp} and ${shownDown}.':
-        "open:movers-shown-counts - history.run_overview checks the Python overview's counts, not this line's",
+        'claim:history.run_overview',
     '${mv.n_round_trip} of ${mv.n_up + mv.n_down} are flagged round-trip:':
-        "open:movers-round-trip - nothing reads the page's printing",
+        'claim:history.run_overview',
     'Built from ${H.dates.length} comparable runs, ${escapeHtml(prettyDate(H.dates[0]))} to ${escapeHtml(prettyDate(H.dates[H.dates.length - 1]))}.':
         "open:rank-history-built-from - the run count; nothing reads the page's printing",
     'Remove all ${holdings.length} names from this list?':
@@ -1348,9 +1348,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${n} companies by composite score, from ${fmt(Math.min.apply(null, vals), 'score')} to ${fmt(Math.max.apply(null, vals), 'score')}${(typeof med === 'number' ? ', median ' + med.toFixed(1) : '')}.":
         "open:distribution-range - nothing reads the page's printing",
     '${mv.n_up} up of ${N} ${mv.n_down} down':
-        "open:movers-tile-counts - nothing reads the page's printing",
+        'claim:history.run_overview',
     '${mv.n_up} of ${N} stocks moved up materially and ${mv.n_down} moved down':
-        'open:movers-overview-counts - history.run_overview checks the Python overview, not this line',
+        'claim:history.run_overview',
     '${p[1]} at the ${ord(S[p[0]].pct_10y)} percentile of ten years':
         'open:macro-percentile-label - context.macro_series checks the percentile, not its printing',
     '#1 Where they rank #${N}':
@@ -1403,10 +1403,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'metric-points-equation',
     'metric-weight-no-data-line',
     'metric-weight-rescaled-line',
-    'movers-overview-counts',
-    'movers-round-trip',
-    'movers-shown-counts',
-    'movers-tile-counts',
     'ni-growth-yoy',
     'noise-band-pairs',
     'piotroski-parts-line',
