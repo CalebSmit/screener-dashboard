@@ -18336,3 +18336,199 @@ page; published files restored byte for byte).
 - Worth one measurement some morning: this session's defect and that one are the same shape - a
   figure whose *inputs* the page cannot check. The near-zero family is now closed by a tripwire;
   nothing yet holds a printed figure to the price it was actually computed against.
+
+## 2026-11-03 (13:00 midday) - QUEUE. A second session today - more of the work, not a different kind. Read today's earlier NIGHTLY_LOG.md entry first and carry on from its Next; if it finished, take the next open item in OWNER_FOCUS.md, then the top of CLAUDE.md "Current priorities", then the queues in plan/factor-lab.md, plan/context-layer.md and plan/backtest-v2.md. Finish one item end to end, to the same evidence standard as any other session. Do not repeat or reverse a decision an earlier session made today without new evidence, and write down why if you do.
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-03_080346.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-03_020000.log` (completed;
+HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (43 rows, but overlapping
+windows are not independent; 110 rows across all horizons), newest 1m run date 2026-10-02 (32 days
+ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor
+Lab** (age **22 days**); also open: 0.10 27d; 0.14 20d.
+
+**The line above is not the one the runner handed me, and that is this session's second finding.**
+The prompt's copy said *"last code session ran? **no** - `logs/nightly-2026-11-03_080346.log`:
+SESSION DID NOT RUN ()"*. That log ends `=== Run complete: shipped to main ===`, merged six commits
+and tagged `good/2026-11-03`. See item 2.
+
+**Tests:** before **3,769 passed, 1 skipped** (green baseline, nothing inherited); after
+**3,803 passed, 1 skipped**. Gate 5 rehearsal PASSED.
+**Owner queue / rotation:** carried on from the 06:00 session's **Next**, which asked a later
+session to decide one of the three OPEN proposals. Took the **universe-expansion phase 0**
+proposal, because it is the next step on the top item under `OWNER_FOCUS.md` **Open** (2026-10-28,
+beyond the S&P 500) - it is now **decided and closed**, and `plan/universe-expansion.md`'s next
+stage is phase 1. **Deferred: the Investment-inside-Quality proposal** (`research/2026-11-02-investment-inside-quality.md`,
+opened 2026-11-02, age 1 day), still the only one on the brief's "Waiting for a decision" list. It
+needs a measurement of its own - its section 4 lists four places a weight-preserving fold is not
+neutral - and one proposal decided properly is worth more than two skimmed. Any session from the
+06:00 slot tomorrow on is an eligible reader; neither of today's sessions wrote it.
+
+### Did
+
+**1. Decided the universe-expansion phase-0 proposal: all three pre-registrations ADOPTED, two of
+them corrected by measurements the note did not make.**
+
+The note (`research/2026-11-02-universe-expansion-phase0.md`, owner-run, 2026-11-02) is the
+best-sourced thing in the queue and the review did not find it wrong. What it found is that two of
+its arguments rest on one month's data and one of its instructions contradicts itself. Record:
+note **section 9**; the operative decisions are now in `plan/universe-expansion.md`, pinned by
+`tests/test_universe_expansion_preregistration.py` (15 tests). Three measurement scripts are
+committed so every number can be re-derived.
+
+- **PR2, the phase-4 floor: the headline number is exact.** Ken French's `ME_Breakpoints` was
+  downloaded again (CRSP vintage 202609, 1,210 monthly rows) and the June 2026 row read
+  independently: **n = 1,079 NYSE stocks, 20th percentile $1,224.13M** - both match the note to the
+  digit, as do all four of its "recent Junes for scale".
+- **But two of the five reasons given for it are struck.** Over 2015-2026 the line moved **+112.1%
+  (2021), -34.4% (2022) and +40.7% this June**, so "it moves with the market, so it never needs
+  re-tuning" is true of the *rule* and misleading about the *line*; and its agreement with S&P's own
+  $1.2B small-cap entry floor is **this June's coincidence** (June 2025: $870M; June 2020: $484M -
+  40% of it). Adopted on the one durable reason: it is the breakpoint Fama & French (2008),
+  Hou/Xue/Zhang (2020) and Jensen/Kelly/Pedersen (2023) all draw, so their findings apply above it.
+  **The consequence the note did not draw is now in phase 4:** the universe churns at its bottom
+  edge every July, so the bot-style continuity gates must be re-derived **from a replay that spans
+  a July**, never an average month.
+- **PR3, percentiles within `(Sector, size_band)`: the exit test is a measurement now, not an
+  argument.** The note called the S&P 500's byte-identity "met for free ... by construction". Run:
+  `compute_sector_percentiles` against a transcription with exactly the two proposed changes, one
+  constant band, on run `3b24b8eb8c2a` - **46 percentile columns x 502 rows = 23,092 values, 0
+  differ.** With a floor test, because an identity check that cannot fail proves nothing: a genuine
+  two-band split moves **20,151 of them, by up to 68.93 percentile points**.
+- **And the fallback's cost is a number the note did not have.** Its one example ("the S&P 400 has 6
+  Communication Services members") counts *members*; the code counts **valid values for one metric**
+  (`valid = grp[col].dropna()`), so the unit is a (sector, band, metric) cell. Counting only cells
+  where the metric can reach a composite - the four bank-only metrics (`equity_ratio`, `pb_ratio`,
+  `roa`, `roe`, availability 9.2%) carry no weight outside Financials, so their fallbacks change no
+  score - **today 1 of 301 weight-bearing cells falls back** (`beneish_m_score` in Financials), and
+  **27 of 903 after the split, 35 with availability applied**. Every guaranteed one is in **S&P 400
+  Communication Services (6 members)**, the only sector-band group under ten members anywhere in the
+  S&P 1500. **The thin group is in the middle band**, so phasing the 600 in last does not defer it.
+- **One self-contradiction in the note, resolved by measuring.** Its section 7 says both "keep 2e9
+  for the S&P 500" *and* "set 0 for S&P index bands" - and the S&P 500 *is* an S&P index band, so it
+  gives two answers for the one band whose byte-identity is the phase-1 exit test. Measured on the
+  published raw fetch: **503 members, 0 below $2B, smallest MOS at $6.050B**, p1 $8.796B - 3x
+  headroom. So one rule, `min_market_cap: 0` for every S&P index band, is byte-identical today and
+  needs no special case. Reopening condition written down (a member within 2x of the floor).
+- **Five of the note's Fama & French figures re-read from the paper, from a different copy**
+  (`data/papers/ff-2008-dissecting-ivey.pdf`, the working-paper version, against the note's
+  published PDF) - all five exact. One wording note, no figure affected: **FF's own term is "tiny",
+  not "microcap"**.
+- **Section 6's unresolved figure stays unresolved, but is now known not to be what the note
+  guessed.** The note offers "probably a CRSP vintage difference" for FF's $2.3B end-June 2005 NYSE
+  median against the file's $1.79B. A vintage change moves both percentiles and it does not: the
+  **20th** reads $604.19M against FF's published $610M (**-1.0%**) while the 50th is **-22.3%** off,
+  and the file's 50th runs smoothly $1,746M -> $1,786M -> $1,865M -> $1,896M -> $2,062M across
+  2005-06, so it is not a one-month artefact. It touches no pre-registration: only the 20th
+  percentile is used, and it agrees with FF's own published value to 1.0%.
+- **Left open on purpose, not deferred:** section 4's choice of coverage rule (a)/(b)/(c) for a
+  stock with no analysts. It is a **present-day** methodology change - one S&P 500 stock today
+  (Loews, whose whole Revisions category rests on days-to-cover) and six more partly - so it gets
+  its own changelog entry on its own merits, not as a side effect of phase 3.
+
+**The guard, and the audit of the guard.** The decisions govern universes that do not exist yet,
+which is exactly the condition under which a number drifts unnoticed: nothing in the pipeline reads
+them, so nothing would fail if one were quietly re-fitted to whatever the first shadow run made
+convenient. So `tests/test_universe_expansion_preregistration.py` pins them, the way
+`tests/test_momentum_panic_rule.py` pins three numbers set in advance.
+
+Then the guard was mutation-tested (`research/measurements/2026-11-03-preregistration-mutations.py`),
+and **the first version had 5 gaps of 19 - all one defect.** The tests asked `needle in text`, and
+**the plan states each decision twice** (once in the decisions block, once in the phase section that
+acts on it), so mutating one copy left the other to satisfy the test: **a floor re-fitted from
+$1,224.13M to $1,200M passed.** That is `DECISIONS.md`'s share-class lesson (2026-10-31, "two
+literals for one number are free to drift") one level up - here it was the *check* that tolerated
+the drift. `pinned()` counts copies now, every duplicated statement is mutated in **both**
+positions, and the result is **25 of 25 caught**, with both files verified clean after each restore.
+
+**2. Rule 8's health line could not leave the alarm state - a self-perpetuating false alarm on the
+first line every session reads.**
+
+Found by checking the line the runner handed me against the log it names, which rule 8 asks for
+("check it, act on anything it shows").
+
+`health_numbers.last_code_session()` asked `"SESSION DID NOT RUN" in text`. **The runner logs this
+module's own output into every run log** (`[INFO] Health: **Health (rule 8, all five):** ...`), so
+the phrase arrives in the log of a session that ran perfectly, carried there by the *previous*
+session's verdict - and the next run reads it back as its own. From the first genuine failure
+onward, **every later session is reported as dead, for ever, however healthy.**
+
+- The genuine marker, 2026-11-02 13:00: `[13:04:04] [ERROR] SESSION DID NOT RUN: session reported
+  an error - Failed to authenticate: OAuth session expired...`
+- The echo, in the healthy 2026-11-03 08:03 log: `[08:07:01] [INFO] Health: ... SESSION DID NOT RUN
+  (session reported an error - ...)`. Note **`RUN (`** where the runner writes **`RUN:`** - which is
+  why the reason printed as an empty `()`.
+- `logs/nightly-2026-11-03_080346.log` ends `=== Run complete: shipped to main ===`, merged six
+  commits, tagged `good/2026-11-03`, and was reported **"no - SESSION DID NOT RUN ()"**. Both of
+  today's sessions were handed that false line.
+
+**This is the stuck-alarm twin of the stuck-green defect rule 8 exists for** (2026-09-18: "a
+tripwire wired to a number that cannot stand still is decoration"). A line that can only say
+"broken" gets ignored, and an ignored line still looks like coverage - the watchdog row's own
+argument. The fix matches the runner's line shape (`[ERROR] SESSION DID NOT RUN: <reason>`).
+
+**The number worth reading is the second one.** Four tests were added, and tests written the same
+day as a fix pass by construction - so the question asked instead was whether anything else would
+have noticed (`research/measurements/2026-11-03-health-echo-mutations.py`): with the fix reverted
+and **only those four deselected, 3,784 passed, 1 skipped.** Not under-checked; **invisible.** And
+the four are classified by what the mutation measured rather than by their names - **2 detect, 2 are
+guards that pass either way** (they pin that a narrower pattern still sees real failures, which is a
+real job but is not coverage of this defect). One was renamed because its name claimed more than its
+body delivered - 2026-10-25's lesson, that a test's name is read far more often than its body.
+`check_loop_health.py` was checked and is **not** affected: it reads commit subjects, not logs.
+
+### Evidence / research
+
+- **PR2:** Fama & French (2008), *JF* 63(4), 1653-1678, doi:10.1111/j.1540-6261.2008.01371.x -
+  re-read from `data/papers/ff-2008-dissecting-ivey.pdf`: tiny = below the NYSE 20th percentile,
+  ~60% of stocks and ~3% of market cap, 48-69% of firms and 1.0-5.0% of market cap after 1972,
+  momentum slopes 0.41 (t 2.51) / 0.82 (t 4.65) / 0.78 (t 3.92). Hou, Xue & Zhang (2020) and
+  Jensen, Kelly & Pedersen (2023) as cited in the note (not re-read today; the note marks its own
+  second-hand sources). Breakpoints: Ken French Data Library, `ME_Breakpoints_CSV.zip`, CRSP 202609.
+- **PR3:** FTSE Russell rule 8.2.3-8.2.4 and MSCI's Value/Growth section 2.2, as the note read
+  them - documented practice, both separating size bands before scoring style.
+- **Item 2 is a documented failure**, demonstrated against the committed log and reproducible from
+  the committed mutation script.
+- **No IC series, backtest or engine number is used anywhere above** (rules 4 and 5).
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, score, ranking or published sentence moved, and
+  `METHODOLOGY_CHANGELOG.md` is deliberately untouched: the floor and the band split govern
+  universes that do not exist yet, and the band split is *measured* to leave the S&P 500
+  byte-identical. The changelog entry falls due when phase 3 publishes, one change at a time, as
+  the plan already requires.
+
+### Tried and rejected
+
+- **Re-fitting the floor to the S&P 600's own $1.2B addition threshold**, which looks attractive
+  because the two agree to 2% today. Rejected on the June series: they agree in 2026 and in no
+  other year measured (2025 $870M vs $1.2B; 2020 $484M). A floor that happens to match a vendor's
+  this year is a coincidence, not a rule.
+- **Writing the adopted pre-registrations into code this session** (a `size_band` column, the
+  per-band `min_market_cap`). That is phase 1, the stage *after* the one the plan's progress line
+  named, and the prompt's rule is one stage per session. Deciding was the stage; phase 1 is the
+  next session's.
+- **Fetching small-cap data to measure availability below the S&P 500.** The note's 40-name probe
+  stands as the only such measurement; this review reused the S&P 500's own availability rates as
+  an explicit upper bound and said so at every use. A 600-ticker probe at 13:00 would also have
+  spent Yahoo quota the 20:00 option refresh needs, for a number phase 2's shadow run produces
+  properly.
+- **Making the pre-registration tests tolerate the plan's duplicated statements** (the easy fix for
+  the 5 gaps). The duplication is real and useful to a reader; what was wrong was a check that only
+  looked at the first copy. Counting copies keeps both.
+
+### Next
+- **Decide the Investment-inside-Quality proposal** (`research/2026-11-02-investment-inside-quality.md`,
+  opened 2026-11-02) - the only one left on the brief's "Waiting for a decision" list, and neither
+  of today's sessions wrote it. Its section 4 names four places a weight-preserving fold is *not*
+  neutral (missing-data renormalisation, the panic rule, the profiles, the trap flags); measure
+  those before deciding.
+- Then **phase 1 of `plan/universe-expansion.md`** - make the universe a parameter, S&P 500 payload
+  byte-identical. The adopted decisions give it its work order; `min_market_cap: 0` for every S&P
+  index band and the `(Sector, size_band)` grouping are both measured to change nothing today.
+- **A worthwhile sweep, from item 2:** `health_numbers.py` is not the only reader whose input
+  contains its own previous output. The runner writes the health line, the baseline verdict and the
+  gate results into each log, and the brief and watchdog read logs. Check whether any other
+  substring match can be satisfied by an echo - `data_loop()`'s `"HEALTH: PASS"` was checked today
+  and is safe only because it reads `datarun-*.log` while the echo lands in `nightly-*.log`, which
+  is luck rather than design.
