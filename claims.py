@@ -835,6 +835,26 @@ CLAIMS: tuple[Claim, ...] = (
                 r"and <span class=\"num\">[\d.]+</span> over the held-out months"),
     ),
     Claim(
+        id="research.pass_bar",
+        surface=RESEARCH,
+        asserts=(
+            "The pass bar the page prints - \"a t-statistic of at least X over 2012-2019's N months "
+            "and Y over the M held-out months\" in the method, and X again under the chart - is "
+            "the engine's `pass_bar`: Bonferroni over the registered comparisons on Student's t "
+            "for that era's own month count, and never below Harvey, Liu & Zhu's 3. The chart's "
+            "figure is the 2012-2019 one, over the same months."
+        ),
+        made_true_by="research_page:build",
+        checked_by=(
+            "tests/test_research_page.py::test_the_pass_bar_is_the_engines_bar_for_each_eras_own_months",
+            "tests/test_research_page.py::test_the_pass_bar_never_prints_below_three",
+            "tests/test_research_page.py::test_the_two_printings_of_the_bar_agree_on_the_real_ledger",
+            "tests/test_v2_experiments.py::test_the_bar_at_38_held_out_months_is_the_exact_t_and_detectable_uses_it",
+        ),
+        detect=(r"t-statistic of at least <span class=\"num\">[\d.]+</span> over "
+                r"2012&ndash;2019's \d+ months"),
+    ),
+    Claim(
         id="research.pairing_overlap",
         surface=RESEARCH,
         asserts=(

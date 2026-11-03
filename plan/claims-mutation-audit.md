@@ -820,6 +820,7 @@ left:
    rather than sweeping the file**, which is how the overview stayed readable. The work is not the
    sweep, it is the verdicts: each one means reading the assertion that is supposed to pin the
    figure, not its name.
+   **(2026-11-02 evening: the pass-bar pair below is CLOSED, rows 148-153 - four left.)**
    **The `open:` rows are a queue in their own right - six now, down from nineteen**
    (2026-10-31 06:00 closed four, rows 131-138; 2026-10-31 13:00 closed nine, rows 139-147 and
    the bookkeeping section above). **Five are on the research page and one on the methodology
@@ -961,3 +962,27 @@ Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metri
   equality case cannot be constructed from any weighting because `-17.6 + 7.7 + 5.5` is not
   `-4.4` in binary. The test brackets the bar and records the limit; a test that claims a
   boundary it cannot reach is worse than one that names the gap.
+
+## Results, 2026-11-02 (owner-run evening): the pass bar, printed twice
+
+The pair the 2026-10-31 13:00 entry named first. `research_page.build` prints `bar_p`/`bar_h` in the
+method's fourth rule (both eras, with their month counts) and `bar_p` again under the chart, and
+`test_the_bar_at_38_held_out_months...` pinned `X.pass_bar` as a function only. **Shape as
+predicted - the clamp-bullet pair:** nothing pinned either printing or that they agree. Now
+`claim:research.pass_bar`, three tests, figures written in the test (at 29 comparisons 3.38 over
+38 months and 3.36 over 41; at 5 comparisons the 3.00 floor both times) plus the two printings
+agreeing on the real ledger.
+
+| # | Claim | Mutation | Before | Now |
+|---|---|---|---|---|
+| 148 | `pass-bar-under-chart` | the caption prints the held-out bar | GAP | `test_the_pass_bar_is_the_engines_bar_for_each_eras_own_months`, `test_the_two_printings_of_the_bar_agree_on_the_real_ledger` |
+| 149 | `pass-bar-under-chart` | the caption's months are the held-out era's | GAP | all three |
+| 150 | `pass-bar-printed` | the eras' bars swapped | GAP | same as 148 |
+| 151 | `pass-bar-printed` | the normal curve instead of Student's t | GAP | same as 148 |
+| 152 | `pass-bar-printed` | Harvey, Liu & Zhu's floor of 3 dropped | GAP | `test_the_pass_bar_never_prints_below_three` |
+| 153 | `pass-bar-printed` | Bonferroni over one comparison instead of the registered count | GAP | same as 148 |
+
+Harness: `research/measurements/2026-11-02-pass-bar-mutations.py` (6 of 6 caught; file restored).
+"GAP" here excludes the committed-page drift tripwire, which goes green the moment the page is
+regenerated (the 2026-10-28 lesson). **`KNOWN_OPEN` five -> three:** `chart-axis-and-geometry`,
+`size-row-mean-t-and-bar-word`, `size-coverage-percentages`; `OVERVIEW_KNOWN_OPEN` unchanged at one.

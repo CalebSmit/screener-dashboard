@@ -691,13 +691,10 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
     # --- the pass bar, printed twice ---------------------------------------
     "With p from Student's t, that means a t-statistic of at least {bar_p} over 2012-2019's "
     "{mid_p.get('n')} months and {bar_h} over the {mid_h.get('n')} held-out months.":
-        "open:pass-bar-printed:2026-10-29 - nothing asserts the page's own bar_p/bar_h. "
-        "test_the_bar_at_38_held_out_months... pins X.pass_bar as a function, not that the "
-        "page prints pass_bar(n, the median row's months) for each era",
+        "claim:research.pass_bar",
     "a difference counts only if it reaches beyond them, a t-statistic of {bar_p} over these "
     "{mid_p.get('n')} months, in the same direction as 2020-2026.":
-        "open:pass-bar-under-chart:2026-10-29 - the same figure, printed a second time under the chart; "
-        "nothing pins either, and nothing pins that the two agree",
+        "claim:research.pass_bar",
 
     # --- the chart ----------------------------------------------------------
     "{''.join(dots)} {num(-LIM, 2)} {num(-LIM / 2, 2)} 0 {num(LIM / 2, 2)} {num(LIM, 2)} "
@@ -798,14 +795,15 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 # The sentences above whose arithmetic nothing pins - twelve on 2026-10-29, ten
 # after 2026-10-31 06:00 (the trading rule's monthly figure and its two coverage
 # percentages), five after 2026-10-31 13:00 (the whole "best backtest" section,
-# `claim:research.overfitting_reading`), by the slug in their verdict.
+# `claim:research.overfitting_reading`), three after 2026-11-02 evening (the pass
+# bar printed twice, `claim:research.pass_bar`), by the slug in their verdict.
 # **Literals, not a comprehension over the table** -
 # `frozenset(s for s, v in ... if v.startswith("open:"))` is the table compared
 # with itself and passes at any value (`plan/claims-mutation-audit.md` row 59).
 # This set only ever shrinks: closing one means deleting its slug and giving the
 # sentence a claim. A session that has to add one says why in `NIGHTLY_LOG.md`.
 KNOWN_OPEN: frozenset[str] = frozenset({
-    "pass-bar-printed", "pass-bar-under-chart", "chart-axis-and-geometry",
+    "chart-axis-and-geometry",
     "size-row-mean-t-and-bar-word", "size-coverage-percentages",
 })
 

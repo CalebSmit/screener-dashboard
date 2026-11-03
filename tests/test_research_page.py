@@ -641,6 +641,51 @@ def test_the_smallest_difference_the_test_could_see_is_the_engines_own_bar():
     assert MDE.search(page).groups() == ("0.017", "0.025")
 
 
+BAR_RULE = re.compile(r"t-statistic of at least <span class=\"num\">([\d.]+)</span> over "
+                      r"2012&ndash;2019's (\d+) months and <span class=\"num\">([\d.]+)</span> over "
+                      r"the (\d+) held-out months")
+BAR_CHART = re.compile(r"a t-statistic of <span class=\"num\">([\d.]+)</span> over these (\d+) months")
+
+
+def test_the_pass_bar_is_the_engines_bar_for_each_eras_own_months():
+    """Claim ``research.pass_bar`` (audit rows `pass-bar-printed`, `pass-bar-under-chart`). The
+    page prints the bar twice - in the method's fourth rule for both eras, and under the chart for
+    2012-2019 - and both must be ``X.pass_bar`` over the registered count and that era's own month
+    count, written here rather than recomputed. At 29 comparisons: 3.37935 over 38 months and
+    3.35978 over 41 (Bonferroni on Student's t, above Harvey, Liu & Zhu's 3). Swapping the eras
+    prints 3.36/3.38; the normal curve instead of t prints 3.19 for both; a bar over the 41 months
+    in the caption prints 3.36 there."""
+    reg, latest = X.load_registry(), _latest()
+    summary = copy.deepcopy(X.summary_for_page(reg, latest))
+    summary["registered"] = 29
+    page = rp.build(reg, _mde_fixture(latest, reg), summary, X.detectable, X.load_evaluations())
+    assert BAR_RULE.search(page).groups() == ("3.38", str(P_N), "3.36", str(H_N))
+    assert BAR_CHART.search(page).groups() == ("3.38", str(P_N))
+
+
+def test_the_pass_bar_never_prints_below_three():
+    """The rule's own words: "and a t-statistic of at least 3". With five comparisons Bonferroni
+    alone would ask about 2.7 over 38 months; the page must print the floor, 3.00, both times."""
+    reg, latest = X.load_registry(), _latest()
+    summary = copy.deepcopy(X.summary_for_page(reg, latest))
+    summary["registered"] = 5
+    page = rp.build(reg, _mde_fixture(latest, reg), summary, X.detectable, X.load_evaluations())
+    assert BAR_RULE.search(page).groups() == ("3.00", str(P_N), "3.00", str(H_N))
+    assert BAR_CHART.search(page).groups() == ("3.00", str(P_N))
+
+
+def test_the_two_printings_of_the_bar_agree_on_the_real_ledger():
+    """The same figure printed twice, on the ledger as it stands: the caption's bar and months are
+    the rule's 2012-2019 pair, and that pair is the engine's bar for those months."""
+    reg, latest = X.load_registry(), _latest()
+    summary = X.summary_for_page(reg, latest)
+    page = rp.build(reg, latest, summary, X.detectable, X.load_evaluations())
+    rule, chart = BAR_RULE.search(page).groups(), BAR_CHART.search(page).groups()
+    assert chart == rule[:2]
+    assert rule[0] == f"{X.pass_bar(summary['registered'], int(rule[1])):.2f}"
+    assert rule[2] == f"{X.pass_bar(summary['registered'], int(rule[3])):.2f}"
+
+
 BASELINE_IC = {
     # se x sqrt(n) per period, each rounding to a different two-decimal figure, so the sentence
     # names which record it is taken over: 2020-2026 is the one the claim states.
