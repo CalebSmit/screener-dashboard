@@ -679,6 +679,48 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_holdings_concentration.py::test_risk_line_reports_the_extremes_of_the_whole_list",
         ),
     ),
+    # Registered 2026-11-02 (owner-run, late) by the audit's open-row pass (plan/claims-mutation-audit.md,
+    # rows 222+). `tests/test_holdings_panel.py` held 62 checks of the My Holdings panel and was
+    # named by no claim, so the publish gate ran none of them; and none read the fit line's top-25 /
+    # top-100, sector or trap counts, whose fixture ranks (1, 3, 40, 300) sat far from both boundaries.
+    Claim(
+        id="dashboard.holdings_fit",
+        surface=DRILLDOWN,
+        asserts=(
+            "My Holdings' fit line counts the saved names, the sectors they span, the largest sector's "
+            "names and its whole-percent share of the list, how many rank inside the top 25 and the top "
+            "100 (rank at or above the boundary) of the run's universe, and how many carry a trap flag; "
+            "the Concentration block sets the count against the three published diversification counts "
+            "(30, 50, 63), each met at its own count; the remove-all dialog states the list's length."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_holdings_panel.py::test_the_fit_line_prints_its_own_counts",
+            "tests/test_holdings_panel.py::test_fit_line_reports_concentration_not_position_sizes",
+            "tests/test_holdings_panel.py::test_the_remove_all_dialog_counts_the_list_and_a_refusal_keeps_it",
+            "tests/test_holdings_panel.py::test_remove_and_clear",
+            "tests/test_holdings_concentration.py::test_the_count_and_its_standing_at_each_published_threshold",
+            "tests/test_holdings_concentration.py::test_standing_against_the_thresholds",
+        ),
+    ),
+    # Registered the same night. The strip beside the composite in the sheet's masthead prints three
+    # figures; `tests/test_drilldown_presentation.py::test_masthead_marks_the_published_composite_among_all_of_them`
+    # compared them with the page's own arithmetic on one named stock, from the committed page, in a
+    # module no claim names (and whose gesture and animation tests are not fit for the publish gate).
+    Claim(
+        id="drilldown.composite_distribution",
+        surface=DRILLDOWN,
+        asserts=(
+            "The strip beside a stock's composite states that composite, the number of published "
+            "composites and their median, prints the same median under the strip, and marks the one "
+            "bin the stock's composite falls in; with no published median it states none."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_masthead_strip_prints_the_composite_the_count_and_the_median",
+            "tests/test_dashboard_printed_figures.py::test_a_strip_with_no_published_median_says_none",
+        ),
+    ),
     Claim(
         id="overview.no_financial_sector_flag",
         surface=OVERVIEW,

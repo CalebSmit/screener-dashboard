@@ -1236,17 +1236,17 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'Built from ${H.dates.length} comparable runs, ${escapeHtml(prettyDate(H.dates[0]))} to ${escapeHtml(prettyDate(H.dates[H.dates.length - 1]))}.':
         "open:rank-history-built-from - the run count; nothing reads the page's printing",
     'Remove all ${holdings.length} names from this list?':
-        "open:holdings-remove-all - the confirm dialog's count; nothing reads the page's printing",
+        'claim:dashboard.holdings_fit',
     'on this screener’s own history, acting on the top ${(c.num_stocks || 25)} at every run implies ${c.turnover_every_run.toFixed(0)}% monthly one-sided turnover against ${c.turnover_monthly.toFixed(0)}% reviewing the same rule monthly.':
         'open:cadence-turnover - the three turnover figures; no registered check reads them',
     'Novy-Marx &amp; Velikov ( Review of Financial Studies 29(1), 2016) find anomalies under roughly ${c.turnover_ceiling.toFixed(0)}% mostly survive trading costs, and few above it do.':
         "open:cadence-turnover-ceiling - nothing reads the page's printing",
     "${n} name${(n === 1 ? '' : 's')} across ${sectors.length} sector${(sectors.length === 1 ? '' : 's')}":
-        'open:holdings-fit-counts - tests/test_holdings_panel.py is named by no claim',
+        'claim:dashboard.holdings_fit',
     '${inTop25} inside the top 25 of ${universe}, ${inTop100} inside the top 100':
-        'open:holdings-top-counts - tests/test_holdings_panel.py is named by no claim',
+        'claim:dashboard.holdings_fit',
     "${n} name${(n === 1 ? '' : 's')} - ${standing} of the published counts for a diversified portfolio:":
-        "open:holdings-standing - nothing reads the page's printing",
+        'claim:dashboard.holdings_fit',
     'An equal split across ${n} names is ${(100 / n).toFixed(1)}% a position.':
         'claim:dashboard.holdings_concentration',
     '${escapeHtml(hi.t)} at ${(hi.v * 100).toFixed(0)}% annualised volatility against ${escapeHtml(lo.t)} at ${(lo.v * 100).toFixed(0)}% , a ${ratio.toFixed(1)}&times; spread.':
@@ -1358,9 +1358,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "Your saved names rank ${ranks.sort((a, b) => a - b).map(v => '#' + v).join(', ')} of ${N}":
         "open:holdings-rank-strip - nothing reads the page's printing",
     "Composite ${fmt(score, 'score')} among the ${d.n} published composites${(hasMed ? '; the median is ' + fmt(med, 'score') : '')}":
-        'open:drilldown-distribution-caption - tests/test_drilldown_presentation.py is named by no claim',
+        'claim:drilldown.composite_distribution',
     "; the median is ${fmt(med, 'score')}":
-        'open:drilldown-distribution-median - tests/test_drilldown_presentation.py is named by no claim',
+        'claim:drilldown.composite_distribution',
     "Its last close is −${gap.toFixed(gap < 0.1 ? 2 : 1)}% against its 200-day average of ${cPrice(c.s200)}${(tr ? ' (' + TREND_WORD[tr] + ')' : '')}.":
         'claim:drilldown.case_against',
     "Officers and directors made ${cMoney(ins.sell_value)} of open-market sales in the last 90 days (${ins.sell_people} insider${(ins.sell_people === 1 ? '' : 's')}${plan})${(ins.buy_n ? ', against ' + cMoney(ins.buy_value) + ' of purchases.' : ' and no open-market purchases.')} The panel gives the evidence that sales have historically said less than purchases.":
@@ -1391,16 +1391,10 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'compare-gap-sentence',
     'distribution-dot-count',
     'distribution-range',
-    'drilldown-distribution-caption',
-    'drilldown-distribution-median',
     'expected-move-figure',
     'expected-move-price',
-    'holdings-fit-counts',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
-    'holdings-remove-all',
-    'holdings-standing',
-    'holdings-top-counts',
     'insider-card-rows',
     'insider-plan-share',
     'key-median-sentence',

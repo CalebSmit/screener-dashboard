@@ -349,8 +349,8 @@ def _payload() -> dict:
     }
 
 
-def _run_js(script: str, body: str, tmp_path: Path) -> dict:
-    payload = _payload()
+def _run_js(script: str, body: str, tmp_path: Path, payload: dict | None = None) -> dict:
+    payload = payload if payload is not None else _payload()
     src = "\n".join([
         _DOM_STUB,
         script,
@@ -617,3 +617,60 @@ def test_delta_prefers_the_one_month_window(script, tmp_path):
     assert out["aaa"]["date"] == "2026-08-14"
     # CCC is new in the 1m window and has no prev entry at all.
     assert out["ccc"] is None
+
+
+# ---------------------------------------------------------------------------
+# The fit line's and the confirm dialog's figures, worked by hand (claim dashboard.holdings_fit;
+# plan/claims-mutation-audit.md, 2026-11-02 late). The checks above assert the sector share and
+# the universe size; nothing read the two top-N counts, the sector count or the trap count, and
+# the fixture's ranks (1, 3, 40, 300) sit nowhere near either boundary, so `<=` against `<`
+# could not be told apart.
+# ---------------------------------------------------------------------------
+
+def _boundary_payload() -> dict:
+    """Ranks 25, 26, 100 and 101 - one on each side of both boundaries - and a universe of 503
+    that is not the four rows the fixture carries, so a count of the table cannot pass."""
+    p = _payload()
+    for t, rank in {"AAA": 25, "BBB": 26, "CCC": 100, "DDD": 101}.items():
+        p["stock_detail"][t]["rank"] = rank
+    for r in p["_rows"]:
+        r["Rank"] = p["stock_detail"][r["Ticker"]]["rank"]
+    p["stock_detail"]["DDD"]["gt"] = True            # BBB carries the value-trap flag already
+    p["kpis"]["universe_size"] = 503
+    return p
+
+
+@pytestmark_node
+@pytest.mark.parametrize("held,want", [
+    (["AAA", "BBB", "CCC", "DDD"],
+     "<strong>4</strong> names across <strong>3</strong> sectors &bull; largest concentration "
+     "<strong>Industrials</strong> (2 of 4, 50%) &bull; <strong>1</strong> inside the top 25 of 503, "
+     "<strong>3</strong> inside the top 100 &bull; <strong>2</strong> carrying a trap flag"),
+    (["AAA"],
+     "<strong>1</strong> name across <strong>1</strong> sector &bull; largest concentration "
+     "<strong>Industrials</strong> (1 of 1, 100%) &bull; <strong>1</strong> inside the top 25 of 503, "
+     "<strong>1</strong> inside the top 100"),
+    (["BBB", "DDD"],
+     "<strong>2</strong> names across <strong>2</strong> sectors &bull; largest concentration "
+     "<strong>Industrials</strong> (1 of 2, 50%) &bull; <strong>0</strong> inside the top 25 of 503, "
+     "<strong>1</strong> inside the top 100 &bull; <strong>2</strong> carrying a trap flag"),
+])
+def test_the_fit_line_prints_its_own_counts(script, tmp_path, held, want):
+    body = ("A.initHoldings();\n" + json.dumps(held) + ".forEach(A.addHolding);\n"
+            "console.log(JSON.stringify({fit: globalThis.__els['holdings-fit'].innerHTML}));")
+    out = _run_js(script, body, tmp_path, _boundary_payload())
+    assert out["fit"].startswith(f'<div class="holdings-fit-line">{want}</div>'), out["fit"]
+
+
+@pytestmark_node
+def test_the_remove_all_dialog_counts_the_list_and_a_refusal_keeps_it(script, tmp_path):
+    out = _run_js(script, """
+        A.initHoldings();
+        ['AAA', 'BBB', 'CCC'].forEach(A.addHolding);
+        const asked = [];
+        window.confirm = m => { asked.push(m); return false; };
+        A.clearHoldings();
+        console.log(JSON.stringify({asked: asked, held: A.current()}));
+    """, tmp_path)
+    assert out["asked"] == ["Remove all 3 names from this list?"]
+    assert out["held"] == ["AAA", "BBB", "CCC"]

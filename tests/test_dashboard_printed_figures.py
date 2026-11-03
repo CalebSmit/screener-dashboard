@@ -635,3 +635,65 @@ def test_a_sector_below_the_minimum_prints_the_universe_rank(page, data):
                                     (23, "23rd"), (111, "111th"), (101, "101st")])
 def test_the_ordinals_the_rank_sentence_prints(page, n, word):
     assert page.evaluate("n => ordinal(n)", n) == word
+
+
+# ---------------------------------------------------------------------------
+# drilldown.composite_distribution - the strip beside the composite in the sheet's masthead
+# ---------------------------------------------------------------------------
+_DIST_JS = """() => { const out = {};
+    for (const t of Object.keys(D.stock_detail)) { const s = D.stock_detail[t];
+        if (typeof s.composite !== 'number') continue;
+        const h = compDistHtml(s.composite);
+        const lab = (h.match(/aria-label="([^"]*)"/) || [])[1];
+        const cap = (h.match(/<span class="cd-cap"[^>]*>([^<]*)<[/]span>/) || [])[1];
+        out[t] = [lab === undefined ? null : lab, cap === undefined ? null : cap,
+                  (h.match(/class="cd-on"/g) || []).length,
+                  (h.match(/<rect x="([^"]*)"[^>]*class="cd-on"/) || [])[1] || null]; }
+    return out; }"""
+_DIST = re.compile(r"^Composite (\d+(?:\.\d)?) among the (\d+) published composites(?:; the median is (\d+(?:\.\d)?))?$")
+
+
+def test_every_masthead_strip_prints_the_composite_the_count_and_the_median(page, data):
+    """For every stock: the strip's label states the engine's composite, the number of published
+    composites, and their median - computed here from ``table_data`` - and the caption under the
+    strip prints the same median; exactly one bin is marked."""
+    import statistics
+    comps = [r["Composite"] for r in data["table_data"] if isinstance(r.get("Composite"), (int, float))]
+    by_t = {r["Ticker"]: r["Composite"] for r in data["table_data"]}
+    assert len(comps) >= 400, f"only {len(comps)} published composites - not a normal run"
+    median = statistics.median(comps)
+    n_detail = sum(1 for s in data["stock_detail"].values() if isinstance(s.get("composite"), (int, float)))
+    printed = page.evaluate(_DIST_JS)
+    problems = []
+    vals = [s["composite"] for s in data["stock_detail"].values() if isinstance(s.get("composite"), (int, float))]
+    lo = math.floor(min(vals) / 5) * 5
+    hi = max(lo + 5, math.ceil(max(vals) / 5) * 5)
+    w = (hi - lo) / 40
+    for t, (lab, cap, on, x) in printed.items():
+        g = _DIST.match(htmllib.unescape(lab or ""))
+        if not g:
+            problems.append(f"{t}: label unreadable: {lab!r}")
+            continue
+        score, n, med = g.groups()
+        if abs(float(score) - by_t[t]) > 0.05 + 1e-9:
+            problems.append(f"{t}: composite printed {score}, the engine's is {by_t[t]}")
+        if int(n) != n_detail or int(n) != len(comps):
+            problems.append(f"{t}: printed {n} published composites; the payload carries {n_detail}, the table {len(comps)}")
+        if med is None or abs(float(med) - median) > 0.05 + 0.005:
+            problems.append(f"{t}: median printed {med}, the published composites' median is {median:.3f}")
+        if cap != f"median {med}":
+            problems.append(f"{t}: the caption prints {cap!r}, the label's median is {med}")
+        k = max(0, min(39, math.floor((data["stock_detail"][t]["composite"] - lo) / w)))
+        if on != 1 or x != f"{k * 4 + 0.5:.1f}":
+            problems.append(f"{t}: {on} bins marked, at x={x}; its composite falls in bin {k} (x={k * 4 + 0.5:.1f})")
+    assert len(printed) == n_detail
+    assert not problems, f"{len(problems)} problems:\n" + "\n".join(problems[:30])
+
+
+def test_a_strip_with_no_published_median_says_none(page, data):
+    """The branch a run without ``median_composite`` takes: no median in the label, no caption."""
+    t = _any_ticker(data)
+    h = page.evaluate("""(t) => { const keep = D.kpis.median_composite;
+        try { delete D.kpis.median_composite; return compDistHtml(D.stock_detail[t].composite); }
+        finally { D.kpis.median_composite = keep; } }""", t)
+    assert "the median is" not in h and "cd-cap" not in h and "among the" in h, h

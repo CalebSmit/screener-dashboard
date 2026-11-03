@@ -1,8 +1,10 @@
 """Audit rows 189+ (plan/claims-mutation-audit.md, "Results, 2026-11-02 (owner-run, late)"): the
 page-printing checks for five claims whose engine side was already pinned -
 `drilldown.composite_chain`, `drilldown.peer_rank`, `drilldown.unscored_category`,
-`context.track_turnover`, `context.track_luck` - and, from 2026-11-03, the two modules the queue's
-group 2 named.
+`context.track_turnover`, `context.track_luck` - and two claims registered the same night for
+the queue's group 2: `dashboard.holdings_fit` (tests/test_holdings_panel.py, named by no claim
+until then) and `drilldown.composite_distribution` (the masthead strip, whose only check lived in
+tests/test_drilldown_presentation.py, read the committed page and is run by --before as it stood).
 
 Each mutation is one exact single-occurrence replacement in `generate_dashboard.py`, the
 generator whose emitted JavaScript prints the sentence. It runs **the claim's own `checked_by`**
@@ -24,15 +26,33 @@ NEW = "tests/test_dashboard_printed_figures.py::"
 GD = "generate_dashboard.py"
 
 
+# Checks written tonight outside the new module: dropped by --before as well.
+NEW_ELSEWHERE = {
+    "tests/test_holdings_panel.py::test_the_fit_line_prints_its_own_counts",
+    "tests/test_holdings_panel.py::test_the_remove_all_dialog_counts_the_list_and_a_refusal_keeps_it",
+    "tests/test_holdings_concentration.py::test_the_count_and_its_standing_at_each_published_threshold",
+}
+# The two claims registered tonight had no checked_by before it; --before runs the checks their
+# modules already held that bear on the sentence (the masthead strip's lived in a module no claim
+# named, against the committed page, and is run here as it stood).
+BEFORE_UNREGISTERED = {
+    "drilldown.composite_distribution": (
+        "tests/test_drilldown_presentation.py::test_masthead_marks_the_published_composite_among_all_of_them",),
+}
+
+
 def checked_by(cid: str) -> tuple:
+    if "--before" in sys.argv and cid in BEFORE_UNREGISTERED:
+        return BEFORE_UNREGISTERED[cid]
     nodes = [c for c in claims.CLAIMS if c.id == cid][0].checked_by
     if "--before" in sys.argv:
-        nodes = tuple(t for t in nodes if not t.startswith(NEW))
+        nodes = tuple(t for t in nodes if not t.startswith(NEW) and t not in NEW_ELSEWHERE)
     return nodes
 
 
 CHAIN, PEER, UNSC = "drilldown.composite_chain", "drilldown.peer_rank", "drilldown.unscored_category"
 TURN, LUCK = "context.track_turnover", "context.track_luck"
+FIT, DIST = "dashboard.holdings_fit", "drilldown.composite_distribution"
 
 MUTS = [
     # --- drilldown.composite_chain: the total, the discount line, the composite -------------
@@ -107,6 +127,38 @@ MUTS = [
      "(X.years_to_two ? ', and even if the lead", "(X.years_to_two !== undefined ? ', and even if the lead"),
     (221, "periods compared printed as all periods", LUCK,
      "T.beat_rsp + ' of ' + T.periods_compared", "T.beat_rsp + ' of ' + T.periods.length"),
+    # --- dashboard.holdings_fit (test_holdings_panel.py, registered tonight) -----------------
+    (222, "the top 25 counted strictly below 25", FIT,
+     "return r.s.rank <= 25; }}", "return r.s.rank < 25; }}"),
+    (223, "the top 100 counted strictly below 100", FIT,
+     "return r.s.rank <= 100; }}", "return r.s.rank < 100; }}"),
+    (224, "the universe is the table's length, not the run's", FIT,
+     "const universe = D.kpis.universe_size || D.table_data.length;", "const universe = D.table_data.length;"),
+    (225, "the sector count prints the largest sector's names", FIT,
+     "' across <strong>' + sectors.length", "' across <strong>' + topCount"),
+    (226, "only value traps counted as flagged", FIT,
+     "return r.s.vt || r.s.gt; }}", "return r.s.vt; }}"),
+    (227, "the largest sector's share over the sectors, not the names", FIT,
+     "Math.round(topCount / n * 100)", "Math.round(topCount / sectors.length * 100)"),
+    (228, "a published count met only above it", FIT,
+     "return n >= m.n; }}).length;", "return n > m.n; }}).length;"),
+    (229, "'above k' counts the marks not cleared", FIT,
+     "'above ' + cleared + ' of the three'", "'above ' + (NAME_MARKS.length - cleared) + ' of the three'"),
+    (230, "the count beside the standing prints the marks cleared", FIT,
+     "'<p><strong>' + n + '</strong> name'", "'<p><strong>' + cleared + '</strong> name'"),
+    (231, "the remove-all dialog states the list's cap", FIT,
+     "'Remove all ' + holdings.length + ' names", "'Remove all ' + HOLDINGS_MAX + ' names"),
+    # --- drilldown.composite_distribution (the masthead strip) -------------------------------
+    (232, "the count is the number of bins", DIST,
+     "' among the ' + d.n + ' published composites'", "' among the ' + d.bins.length + ' published composites'"),
+    (233, "the label's median is the middle of the range", DIST,
+     "'; the median is ' + fmt(med, 'score')", "'; the median is ' + fmt(d.lo + (d.hi - d.lo) / 2, 'score')"),
+    (234, "the caption under the strip prints the stock's composite", DIST,
+     "aria-hidden=\"true\">median ' + fmt(med, 'score')", "aria-hidden=\"true\">median ' + fmt(score, 'score')"),
+    (235, "the label's composite rounded to a whole number", DIST,
+     "const label = 'Composite ' + fmt(score, 'score')", "const label = 'Composite ' + fmt(Math.round(score), 'score')"),
+    (236, "the next bin marked", DIST,
+     "(i === on ? ' class=\"cd-on\"' : '')", "(i === on + 1 ? ' class=\"cd-on\"' : '')"),
 ]
 
 rows = None
