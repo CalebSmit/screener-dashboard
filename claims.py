@@ -416,6 +416,22 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"coverage discount described under Data quality safeguards",
     ),
     Claim(
+        id="overview.coverage_counts",
+        surface=OVERVIEW,
+        asserts=(
+            "\"Coverage\" is out of N metrics for a bank-like stock, M for every other, and M - 1 for "
+            "other financials, which are never given the Beneish score: each figure is the "
+            "denominator the engine's own coverage (`applicable_coverage`, which the discount "
+            "reads) gives a stock of that kind under the run's config."
+        ),
+        made_true_by="run_screener:build_screener_overview",
+        checked_by=(
+            "tests/test_claims_register.py::test_the_coverage_sentence_counts_what_the_engine_counts",
+            "tests/test_claims_register.py::test_confidence_metric_count_is_the_discount_coverage",
+        ),
+        detect=r"for a bank-like stock and \d+ for every other \(\d+ for other financials",
+    ),
+    Claim(
         id="overview.piotroski_conditional",
         surface=OVERVIEW,
         asserts=(

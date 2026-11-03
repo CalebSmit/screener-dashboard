@@ -396,6 +396,39 @@ def test_the_engine_applies_the_discount_the_page_states(generated_overview, cfg
     assert seen_below >= 3
 
 
+COVERAGE_COUNTS = re.compile(
+    r"in that stock's score\*\* [-–] (\d+) for a bank-like stock and (\d+) for every other "
+    r"\((\d+) for other financials, which are\s+never given the Beneish score\)")
+
+
+def _applicable(cfg: dict, *, bank: bool, beneish_na: bool) -> int:
+    """How many metrics the engine's own coverage counts as applying to one stock of that kind."""
+    import pandas as pd
+    from factor_engine import METRIC_COLS, applicable_coverage
+    df = pd.DataFrame({m: [float("nan")] for m in METRIC_COLS})
+    df["_is_bank_like"], df["_beneish_na"] = [bank], [beneish_na]
+    _, applicable = applicable_coverage(df, cfg)
+    return int(applicable.iloc[0])
+
+
+def test_the_coverage_sentence_counts_what_the_engine_counts(cfg, generated_overview):
+    """Claim ``overview.coverage_counts`` (audit row `coverage-sentence-metric-counts`). The
+    methodology page says coverage is out of N for a bank-like stock, M for every other, and M - 1
+    for other financials "which are never given the Beneish score". Each figure, read out of that
+    sentence on the page the next run will publish, must be the denominator
+    ``factor_engine.applicable_coverage`` - the function the discount reads - gives a stock of
+    that kind under the same config. The third is the one nothing looked for: it is printed as
+    `len(_w_gen) - 1`, an arithmetic on the generic count that is true only while Beneish carries
+    generic weight and the engine excuses financials from it."""
+    m = COVERAGE_COUNTS.search(generated_overview)
+    assert m, "the coverage sentence is not on the generated page in its registered shape"
+    bank, other, financials = (int(x) for x in m.groups())
+    assert bank == _applicable(cfg, bank=True, beneish_na=False)
+    assert other == _applicable(cfg, bank=False, beneish_na=False)
+    assert financials == _applicable(cfg, bank=False, beneish_na=True)
+    assert len({bank, other, financials}) == 3, "the three kinds are counted the same - the fixture cannot tell them apart"
+
+
 def test_confidence_metric_count_is_the_discount_coverage(payload, generated_overview):
     """The drilldown's "N of M metrics" must be the coverage the discount reads.
 
@@ -952,12 +985,13 @@ OVERVIEW_SENTENCES: dict[str, str] = {
     "Below {int(cov_disc.get('threshold', 0.8) * 100)}% metric coverage, the composite is multiplied by 1 − ({int(cov_disc.get('threshold', 0.8) * 100)}% − coverage) × {int(cov_disc.get('penalty_rate', 0.15) * 100)}% (e.g., a stock with {_ex_k} of {_n_gen} metrics, {_cov_pct(_ex_k, _n_gen)}% coverage, loses {_ex_disc}% of its composite; the deepest cut the coverage filter leaves possible is {_max_disc}%, at {_bars[_floor_n]} of {_floor_n}).":
         "claim:overview.coverage_discount",
 
-    # `test_confidence_metric_count_is_the_discount_coverage` pins both counts
-    # against `weighted_metric_sets` - but on the page only as `f"{bank}" in
-    # generated_overview`, a bare substring anywhere on a 1,000-line page, and it
-    # does not look for the other-financials count at all.
+    # Until 2026-11-02 `test_confidence_metric_count_is_the_discount_coverage` pinned
+    # two of the three counts as bare substrings anywhere on the page and the
+    # other-financials count not at all. `test_the_coverage_sentence_counts_what_the_
+    # engine_counts` reads all three out of this sentence and compares each with the
+    # engine's own denominator for that kind of stock (audit rows 174-177).
     '**"Coverage" here means the share of the metrics that carry weight in that stock\'s score** - {len(_w_bank)} for a bank-like stock and {len(_w_gen)} for every other ({len(_w_gen) - 1} for other financials, which are never given the Beneish score); a metric with no weight (a candidate, or one shown for reference) cannot lower it (since 2026-10-09).':
-        "open:coverage-sentence-metric-counts",
+        "claim:overview.coverage_counts",
 
     # --- share classes (2026-10-21) ----------------------------------------
     # CLOSED 2026-10-31 (rows 133-134). The only page check was
@@ -976,10 +1010,9 @@ OVERVIEW_SENTENCES: dict[str, str] = {
 # bullet and the switching margin (whose checks shipped at 06:00 and whose verdicts here did
 # not), and one after the same session closed the three bank P/B-ROE prose rows and the
 # coverage-discount worked example. Literals, not a comprehension over the table - see
-# KNOWN_OPEN. This set only ever shrinks.
-OVERVIEW_KNOWN_OPEN: frozenset[str] = frozenset({
-    "coverage-sentence-metric-counts",
-})
+# KNOWN_OPEN. This set only ever shrinks. Empty since 2026-11-02 evening (the coverage
+# counts, `claim:overview.coverage_counts`, audit rows 174-177).
+OVERVIEW_KNOWN_OPEN: frozenset[str] = frozenset()
 
 
 def test_every_computed_sentence_on_the_methodology_page_has_a_verdict():

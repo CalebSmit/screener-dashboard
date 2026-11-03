@@ -1045,3 +1045,27 @@ generated, so the Size row is put between the bars (t 2.5) and past them (3.6), 
 its own standard error so the picture is consistent. **`KNOWN_OPEN` is empty** - every computed
 sentence on the research page now has a claim, a check or a reporting verdict.
 `OVERVIEW_KNOWN_OPEN` keeps one row, `coverage-sentence-metric-counts`.
+
+## Results, 2026-11-02 (owner-run evening, continued): the last open row on either page
+
+`coverage-sentence-metric-counts` on the methodology page: "24 for a bank-like stock and 27 for every
+other (26 for other financials, which are never given the Beneish score)". Two of the three counts
+were pinned only as bare substrings anywhere on a 1,000-line page, and the third - printed as
+`len(_w_gen) - 1`, an arithmetic that is true only while Beneish carries generic weight *and* the
+engine excuses financials from it - not at all. Now `claim:overview.coverage_counts`: all three are
+read out of the sentence on the page the next run will publish and compared with the denominator
+`factor_engine.applicable_coverage` (the function the discount reads) gives a stock of each kind.
+
+| # | Claim | Mutation | Before | Now |
+|---|---|---|---|---|
+| 174 | `coverage-sentence-metric-counts` | other financials printed as the generic count | GAP | `test_the_coverage_sentence_counts_what_the_engine_counts` |
+| 175 | same | bank and generic counts swapped | GAP (both still appear somewhere on the page) | same |
+| 176 | same | the financials' count taken off the bank table | GAP | same |
+| 177 | same | **the engine** stops excusing financials from Beneish - the sentence goes false with no edit to it | GAP | same |
+
+Harness: `research/measurements/2026-11-02-coverage-sentence-mutations.py` (4 of 4 caught). Row 177
+is the one a page-text check can never see: the sentence is right only while the code it describes
+behaves, so the check runs that code. **Both open lists are now empty** - `KNOWN_OPEN` and
+`OVERVIEW_KNOWN_OPEN`. Every computed sentence the two sweeps find on the research and methodology
+pages has a claim, a check or a reporting verdict. What remains for this audit is `generate_dashboard.py`'s
+own sweep, which the 2026-10-31 entry said "still wants a session of its own".
