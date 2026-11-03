@@ -309,6 +309,25 @@ def test_the_piotroski_tolerances_are_the_ones_committed_before_the_comparison()
     assert fl.SORTS["piotroski"]["source"] == "osap" and fl.SORTS["piotroski"]["columns"] == ["01", "10"]
 
 
+def test_the_revisions_tolerances_are_the_ones_committed_before_the_comparison():
+    """Experiment 18 (2026-11-02): Chan, Jegadeesh & Lakonishok (1996), Table 5 Panel A (NBER
+    working paper 5375), on Open Source Asset Pricing's REV6 deciles. Written and committed before a
+    single OSAP REV6 return had been read. Neither the paper's figures nor the tolerances move to
+    turn a miss into a match; by rule 8 a result of no effect matches none."""
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "revisions")
+    ref = exp["reference"]
+    assert (ref["start"], ref["end"], ref["weighting"], ref["scale"], ref["tolerances_written"]) == (
+        "197701", "199212", "ew", 6, "before")
+    assert "also" not in ref and "relative" not in ref and "excess" not in ref
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == {
+        "mean1": (4.6, 2.9), "mean10": (12.3, 2.9), "spread": (7.7, 2.9)}
+    assert 12.3 - 4.6 == pytest.approx(7.7)                           # the spread is the table's own columns
+    assert 2 * 6 * 1.431 / 5.91 == pytest.approx(2.9, abs=0.01)       # two standard errors from Table 9, six months
+    assert fl.null_within(exp) == 0
+    assert fl.SORTS["revisions"]["source"] == "osap" and fl.SORTS["revisions"]["signal"] == "REV6"
+    assert fl.SORTS["revisions"]["columns"] == [f"{d:02d}" for d in range(1, 11)]
+
+
 def test_an_open_source_asset_pricing_file_is_read_for_one_signal(tmp_path):
     """The full-set file holds every signal; only the asked-for one is read, its ports keep their
     labels, its dates become months, and a missing return is a missing month, not a zero."""

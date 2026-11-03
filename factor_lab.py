@@ -123,6 +123,16 @@ SORTS = {
     # for PS); "ew" is the same deciles equally weighted, from their alternative-portfolio set.
     "piotroski": {"source": "osap", "signal": "PS", "columns": ["01", "10"],
                   "vw": "PS_OriginalCuts_VW.csv", "ew": "PredictorAltPorts_DecilesEW.zip"},
+    # The same library's analyst-revisions signal "REV6" (Chan, Jegadeesh & Lakonishok 1996): the
+    # sum of seven monthly changes in the mean I/B/E/S forecast of current-year earnings, each over
+    # the prior month's price. A continuous signal, so all ten deciles are populated and read, the
+    # most downward revisions first. "ew" is the paper's weighting and the authors' equal-weighted
+    # deciles (the file experiment 17 reads); "vw" the same deciles by market value, from the
+    # release's value-weighted set (the October 2025 release, on Hugging Face since the authors
+    # left Google Drive).
+    "revisions": {"source": "osap", "signal": "REV6",
+                  "columns": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"],
+                  "vw": "PredictorAltPorts_DecilesVW.parquet", "ew": "PredictorAltPorts_DecilesEW.zip"},
 }
 # Chen & Zimmermann (2022), "Open source cross-sectional asset pricing", Critical Finance Review
 # 11(2), 207-264. Portfolio returns are a free download (Google Drive, linked from the data page);
@@ -134,6 +144,14 @@ OSAP_RELEASE = "October 2025 release (v2.0.0)"
 OSAP_DRIVE_IDS = {                    # the release's own files, as its Google Drive folder lists them
     "PS_OriginalCuts_VW.csv": "1fkoDBda7SKboz8NSJbElG5F-pu1oaPdb",
     "PredictorAltPorts_DecilesEW.zip": "1pFBX0LTyoSwH7i8mT4kPCS_3QghlbODD",
+}
+# Since the October 2026 release the authors publish on Hugging Face ("Google Drive could not
+# handle the download volume", their data page, 2026-11-02); each past release is a branch there.
+# Files the Drive copy above does not carry are taken from the SAME release's branch (2025.10), so
+# every OSAP figure in the lab comes from one release.
+OSAP_HF_BASE = "https://huggingface.co/datasets/OpenSourceAP/CrossSection/resolve/2025.10/"
+OSAP_HF_FILES = {
+    "PredictorAltPorts_DecilesVW.parquet": "Portfolios/Full%20Sets%20Alt/PredictorAltPorts_DecilesVW.parquet",
 }
 # Jensen, Kelly & Pedersen's global factor library (experiment 15). Licensed CC BY-NC 4.0 by its
 # authors (the licence is printed at the foot of jkpfactors.com/data and in DATA_LICENSE of
@@ -507,6 +525,15 @@ def fetch_osap(osap_dir: Path = OSAP_DIR, timeout: float = 600.0) -> list[Path]:
             raise RuntimeError(f"{name}: Google Drive returned a page, not the file (quota exceeded?) - retry later")
         (osap_dir / name).write_bytes(data)
         out.append(osap_dir / name)
+    for name, path in OSAP_HF_FILES.items():
+        with urllib.request.urlopen(urllib.request.Request(OSAP_HF_BASE + path,
+                                                           headers={"User-Agent": "screener-factor-lab"}),
+                                    timeout=timeout) as r:
+            data = r.read()
+        if not data.startswith(b"PAR1"):
+            raise RuntimeError(f"{name}: Hugging Face did not return a parquet file ({len(data)} bytes)")
+        (osap_dir / name).write_bytes(data)
+        out.append(osap_dir / name)
     return out
 
 
@@ -529,7 +556,13 @@ def read_osap(path: Path, signal: str) -> dict[str, dict[str, float]]:
     import io
 
     def rows():
-        if path.suffix == ".zip":
+        if path.suffix == ".parquet":                  # long, like the full-set zip; only one signal read
+            import pyarrow.parquet as pq
+            table = pq.read_table(path, columns=["signalname", "port", "date", "ret"],
+                                  filters=[("signalname", "=", signal)])
+            for rec in table.to_pylist():
+                yield {k: ("" if v is None else str(v)) for k, v in rec.items()}
+        elif path.suffix == ".zip":
             with zipfile.ZipFile(path) as z:
                 member = next(n for n in z.namelist() if n.lower().endswith(".csv"))
                 with z.open(member) as f:
@@ -541,7 +574,7 @@ def read_osap(path: Path, signal: str) -> dict[str, dict[str, float]]:
     out: dict[str, dict[str, float]] = {}
 
     def put(port: str, date: str, ret: str | None) -> None:
-        if ret in (None, "", "NA"):
+        if ret in (None, "", "NA", "nan"):
             return
         port = port.strip().strip('"')
         port = port if not port.isdigit() else f"{int(port):02d}"
@@ -2895,6 +2928,143 @@ PIOTROSKI_OSAP = {
 }
 
 EXPERIMENTS.append(PIOTROSKI_OSAP)
+
+
+# Experiment 18 (2026-11-02): the Revisions category's first rerunnable result.
+REVISIONS_OSAP = {
+    "id": "revisions",
+    "group": "Revisions",
+    "kind": "sort",
+    "topic": "Analyst revisions",
+    "title": "Do stocks whose earnings forecasts are being raised keep beating those being cut?",
+    "tab": "Analyst revisions",
+    "paper": {
+        "authors": "Louis K. C. Chan, Narasimhan Jegadeesh and Josef Lakonishok",
+        "year": 1996,
+        "title": "Momentum strategies",
+        "journal": "Journal of Finance 51(5), 1681-1713",
+        "doi": "10.1111/j.1540-6261.1996.tb05222.x",
+    },
+    "claim": ("Ranking stocks each month by how much analysts had revised their consensus forecast of "
+              "the current year's earnings over the past six months, relative to the share price, the "
+              "tenth with the largest upward revisions returned 12.3% over the next six months and the "
+              "tenth with the largest downward revisions 4.6% - a gap of 7.7% (9.7% over the first "
+              "year), for portfolios formed 1977-1993."),
+    "reference": {
+        "source": ("Table 5, Panel A (\"Mean returns and characteristics for portfolios classified by "
+                   "revision in analyst forecasts\"), row \"Return 6 months after portfolio formation\", "
+                   "portfolios 1 (Low) and 10 (High): equally weighted buy-and-hold returns over the six "
+                   "months after each monthly formation date, January 1977 to January 1993. Read from "
+                   "the NBER working paper version (No. 5375, December 1995), PDF page 35; the published "
+                   "article's Table V was not obtained. The paper's figures are six-month holding-period "
+                   "returns; here they are compared with the average month of the authors' deciles times "
+                   "six, in percent over six months."),
+        "start": "197701", "end": "199212", "weighting": "ew", "scale": 6,
+        # Written 2026-11-02 BEFORE any Open Source Asset Pricing REV6 return had been read: the
+        # equal-weighted file on disk was last read for signal PS (experiment 17) and the value-
+        # weighted file was downloaded, not opened. What HAD been read: OSAP's signal documentation
+        # (SignalDoc.csv) and its construction code for REV6 (Signals/pyCode/Predictors/REV6.py and
+        # Portfolios/Code/01_PortfolioFunction.R, 30_PredictorAltPorts.R at tag v2.0.0). The window
+        # is OSAP's documented sample for the paper (1977-1992) and its return months; the paper
+        # forms portfolios January 1977 to January 1993.
+        # The comparison is NOT like for like, in ways known beforehand, all recorded on the page:
+        # (1) holding period - the paper holds each decile six months from formation, so its figure
+        #     averages a signal one to six months old; OSAP re-forms every month and holds one month,
+        #     so every month earns the freshest signal (OSAP's own note: "We find only monthly
+        #     rebalancing works in port sorts"). Six times a monthly average is not a six-month hold;
+        # (2) the paper skips the first five trading days after formation (to avoid bid-ask bounce);
+        #     OSAP does not;
+        # (3) breakpoints - the paper's deciles are cut at NYSE stocks' percentiles; OSAP's REV6 deciles
+        #     use all stocks (no quantile filter in its documentation, q_filt NA in its code);
+        # (4) the signal - OSAP follows the paper's printed formula exactly (seven monthly changes,
+        #     j = 0..6, in the MEAN forecast, over the prior month's price) and requires all seven;
+        #     the paper's table captions say "median" and "moving average of the past six months'"
+        #     revisions - the paper is inconsistent with itself, and either way ranks barely differ;
+        # (5) delisting - the paper replaces a delisted stock's return with the value-weighted market's
+        #     for the rest of the hold; OSAP uses CRSP's delisting returns; and I/B/E/S, CRSP and
+        #     Compustat have been revised in the thirty years since.
+        # Expected beforehand: the direction reproduces; (1) and (2) both push OSAP's spread ABOVE
+        # 7.7, so the spread may land outside on the high side; (3) cuts the other way or not at all;
+        # the end levels differ by the compounding a six-month hold adds (a few tenths of a point).
+        # Tolerance for every figure: 2.9 points over six months. The basis is the paper's own
+        # sampling error: Table 9 (PDF p. 40) gives the zero-cost portfolio long the top and short
+        # the bottom third by revisions and by past return, held six months, a three-factor
+        # intercept of 1.431% a month with t 5.91 (January 1977 to December 1993), a standard
+        # error of 0.242% a month, or 1.45 over six months; Table 5
+        # prints no standard error of its own. One standard error for sampling, and one more - the
+        # same again - for the five construction differences above, as experiment 14 widened its t by
+        # half for a different volatility. The ends take the spread's tolerance, as in experiment 17.
+        # Plan rule 8, checked from the record before committing: a result of no effect matches 0 of
+        # these 3 - each end sits 3.85 from the null's common level (8.45), and the spread misses.
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "mean1", "label": "Most downward revisions: six months (%)", "paper": 4.6, "tolerance": 2.9, "where": "Table 5, Panel A, portfolio 1 (Low), return 6 months after portfolio formation, 0.046 (NBER WP 5375, PDF p. 35)"},
+            {"key": "mean10", "label": "Most upward revisions: six months (%)", "paper": 12.3, "tolerance": 2.9, "where": "Table 5, Panel A, portfolio 10 (High), return 6 months after portfolio formation, 0.123 (NBER WP 5375, PDF p. 35)"},
+            {"key": "spread", "label": "Most upward minus most downward, six months (%)", "paper": 7.7, "tolerance": 2.9, "where": "Table 5, Panel A, derived: 0.123 - 0.046"},
+        ],
+    },
+    "verdict_note": "",
+    "sort": {
+        "data": "revisions",
+        "groups": ["Most downward revisions", "Decile 2", "Decile 3", "Decile 4", "Decile 5", "Decile 6",
+                   "Decile 7", "Decile 8", "Decile 9", "Most upward revisions"],
+        "ends": ["most downward revisions", "most upward"],
+        "low": "decile with the most downward revisions", "high": "decile with the most upward",
+        "spread": "Most upward revisions minus most downward",
+        "accent": [9],
+        "key_accent": "The most upward revisions - the end the screener's Revisions category favours",
+        "key_rest": "The other nine groups",
+        "chart": "by analysts' forecast revisions, most downward first",
+        "presets": [["The paper · 1977–1992", "197701", "199212"],
+                    ["After the paper · 1993–2024", "199301", "LAST"],
+                    ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+        "weightings": [["ew", "Equally · paper"], ["vw", "By market value"]],
+    },
+    "conditions": [
+        ["Portfolios", "Each month, stocks with analyst coverage are ranked by the sum of the last seven "
+                       "monthly changes in analysts' average forecast of the current year's earnings per "
+                       "share, each divided by the share price a month earlier, and split into ten equal "
+                       "groups. Each group is held for one month, then re-formed."],
+        ["Data", "Chen and Zimmermann's Open Source Asset Pricing, " + OSAP_RELEASE + ": the published "
+                 "portfolio returns for their signal \"REV6\", which the authors built from I/B/E/S, CRSP "
+                 "and Compustat. Cite: Chen, A. Y. and T. Zimmermann (2022), \"Open source cross-sectional "
+                 "asset pricing\", Critical Finance Review 11(2), 207-264."],
+        ["What this checks", "A rerun of the authors' published portfolio returns, not of the revisions: "
+                             "this lab cannot see a single analyst's forecast. It checks that a careful public "
+                             "construction of the signal earns what the paper reports, and what it has "
+                             "earned since; it does not check the paper's own numbers firm by firm."],
+        ["Weighting", "Equally weighted, as the paper's portfolios are. Weighted by market value - closer "
+                      "to the large companies the screener ranks - is one click away."],
+        ["Returns", "Raw monthly returns. The comparison sets six times the average month against the "
+                    "paper's average six-month return."],
+        ["Costs", "None. These are paper portfolios."],
+    ],
+    "open_details": [
+        "The paper holds each group for six months from the day it is formed, so its figure mixes "
+        "fresh and stale revisions; the public portfolios are re-formed every month on the latest "
+        "revisions, which is expected to earn more per month.",
+        "The paper skips the first five trading days after forming each portfolio; the public "
+        "portfolios do not.",
+        "The paper draws the lines between groups at New York Stock Exchange stocks' percentiles; the "
+        "public deciles draw them across all covered stocks.",
+        "The figures are read from the NBER working-paper version (No. 5375, December 1995). The "
+        "published article's Table V was not obtained, and a journal's revision can change a table.",
+        "The paper's table captions describe the median forecast and a six-month average; its formula, "
+        "which the public construction follows, sums seven monthly changes in the mean forecast.",
+        "Among the largest half of companies (above the NYSE median), the paper's Table 8 gives a "
+        "first-year gap of 7.6% (21.0% against 13.4%). The public files carry no such size cut for "
+        "this signal; the market-value weighting is the nearest view.",
+    ],
+    "in_the_screener": (
+        "The Revisions category is 10% of the composite, and its heaviest measure - 48 of its 100 points, "
+        "so about 4.8 composite points - is the 90-day change in the consensus forecast of the current "
+        "year's earnings, divided by the share price: the same construction as this paper's, over three "
+        "months instead of six or seven. The rest of the category is not revisions (earnings surprises, "
+        "the consensus price target and short interest) and nothing here bears on it. The screener ranks "
+        "S&P 500 companies within their sectors; this sort ranks every covered stock, most of them small."),
+}
+
+EXPERIMENTS.append(REVISIONS_OSAP)
 
 
 # One sentence per experiment for the lab's front page. Each is a statement about what the
