@@ -4939,3 +4939,40 @@ two behavioural tests fail against the previous engine.
 **Applied by:** owner-run session, 2026-10-29 evening (owner: "find some improvements you could make
 now before the next session").
 **Rollback:** revert the commit; the tag before it is `good/2026-10-29-1403`.
+
+## 2026-11-02 (night) - Display: the stale-filing flag waits for the filing deadline before calling a statement stale
+
+**Area:** data-quality flag (display only - no score, rank, weight or composite reads it)
+**Changed:** `data_quality.stale_data_threshold_days` 120 -> 165 in `config.yaml`. The flag drives
+the stock sheet's "Its filings are flagged stale (N days old)" caveat, the case-against list's
+caveat line, the dashboard's stale badge, the Excel validation column and the run log's count.
+Its age is days since the newest statement's **period end**.
+**Evidence:**
+- *The rule it encodes is the SEC's.* A large accelerated filer - essentially every S&P 500
+  company - must file a 10-Q within 40 days of quarter end and a 10-K within 60 days of fiscal year
+  end (Form 10-Q and 10-K general instructions; the 2026 deadline table cited in
+  `research/2026-10-05-fundamental-reporting-lag.md`, Mayer Brown). So a company's newest statement
+  can be on time at up to 92 + 40 = 132 days (a quarter awaiting its 10-Q), and up to 92 + 60 =
+  **152 days** for the September quarter of a calendar-year filer awaiting its 10-K. A bar below
+  152 days calls a company stale for following the rules. 165 adds two weeks for the data vendor to
+  take up a new filing.
+- *Measured on the published 2026-10-30 payload:* the median statement was **122 days** old (June
+  quarters; Q3 10-Qs not yet due), so the 120-day bar flagged **320 of 499** stocks - 64% of the
+  index told a student its filings were stale. Every bar from 130 to 210 days flags the same **21**,
+  aged 213-334 days: a quarter or more behind, the case the flag exists for.
+- *Real lags are also caught precisely elsewhere:* the filing cross-check names stocks scored a
+  period behind a filing over 30 days old (`sec_crosscheck`, DECISIONS 0.14), which is the direct
+  test; this flag is the coarse fallback and should not out-shout it.
+**Expected effect:** from the next full run, the flag fires for about 21 stocks instead of about
+320 at this point in the filing calendar; outside filing season both bars agree on nearly every
+stock. No composite, rank or score changes (`_stale_data` is read by no scoring code - grep
+`factor_engine.py`, `calc_trace.py`, `presets.py`). `kpis.methodology_version` changes because the
+config hash does; this entry is the changelog the input gates' override rule asks for, though rank
+continuity needs none.
+**Validated by:** `tests/test_defensibility_improvements.py::TestStalenessThreshold` - the code's
+fallback default is unchanged (120, pinned), and a new check pins the configured bar against the
+deadline arithmetic (a 160-day-old statement is not stale under the config, 170 is).
+`scripts/rehearse_publish.py` passes; the methodology page and its Excel paragraph regenerate with
+165.
+**Applied by:** owner-run session, 2026-11-02 night (owner: "Keep finding improvements!").
+**Rollback:** set the value back to 120; the tag before this commit is `good/2026-11-02-owner-9`.

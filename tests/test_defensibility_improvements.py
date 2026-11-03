@@ -67,6 +67,21 @@ class TestStalenessThreshold:
         threshold = cfg.get("data_quality", {}).get("stale_data_threshold_days", 120)
         assert threshold == 90
 
+    def test_the_configured_bar_waits_for_the_filing_deadline(self):
+        """The live bar (2026-11-02, METHODOLOGY_CHANGELOG): a large accelerated filer's newest
+        statement is on time for up to 92 + 60 = 152 days (a September quarter awaiting its 10-K),
+        so the configured bar must not sit below that - at 120 it called 320 of 499 stocks stale
+        while their Q3 10-Qs were not yet due. Checked through compute_metrics with the real config:
+        a 160-day-old statement is not flagged, a 170-day-old one is."""
+        import yaml
+        from factor_engine import compute_metrics
+        cfg = yaml.safe_load((Path(__file__).resolve().parent.parent / "config.yaml").read_text(encoding="utf-8"))
+        bar = cfg["data_quality"]["stale_data_threshold_days"]
+        assert 92 + 60 <= bar <= 92 + 60 + 21, bar         # the deadline, plus at most three weeks
+        for age, stale in ((160, False), (170, True)):
+            df = compute_metrics([self._make_raw("CFG", age)], pd.Series(dtype=float), cfg=cfg)
+            assert bool(df.get("_stale_data", pd.Series([False])).iloc[0]) is stale, age
+
 
 # ---------------------------------------------------------------------------
 # Track 2: _roic_ic_floored flag
