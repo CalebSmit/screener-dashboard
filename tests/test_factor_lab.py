@@ -166,10 +166,11 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
     totals = {x["id"]: x["result"]["total"] for x in published["experiments"]}
-    assert [totals[x["id"]] for x in fl.EXPERIMENTS if x["id"] not in ("size-given-profitability", "piotroski")] == [
+    assert [totals[x["id"]] for x in fl.EXPERIMENTS if x["id"] not in ("size-given-profitability", "piotroski", "revisions")] == [
         14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24, 10]
     assert totals["size-given-profitability"] == 17
     assert totals["piotroski"] == 4
+    assert totals["revisions"] == 3
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -184,8 +185,14 @@ def test_every_experiment_shows_its_four_parts():
         if exp["kind"] in ("crashes", "factors", "size", "sort", "split", "combo", "replication", "double"):
             figs = exp["reference"]["figures"]
             # at least one figure per group a sort reports, plus the spread between its ends (a
-            # decile sort gives 11, a quintile sort 6); every other kind reports ten or more
+            # decile sort gives 11, a quintile sort 6); every other kind reports ten or more. A sort
+            # that says it compares only its ends (experiment 18, so a null result cannot match the
+            # middle) carries the two ends and the spread between them.
             least = len(exp["sort"]["groups"]) + 1 if exp["kind"] == "sort" else 10
+            if exp["kind"] == "sort" and exp["reference"].get("compares") == "ends":
+                n = len(exp["sort"]["groups"])
+                assert {f["key"] for f in figs} >= {"mean1", f"mean{n}", "spread"}
+                least = 3
             assert len({f["key"] for f in figs}) == len(figs) >= least
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
@@ -307,6 +314,25 @@ def test_the_piotroski_tolerances_are_the_ones_committed_before_the_comparison()
     assert 23.5 / 5.594 == pytest.approx(4.2, abs=0.005)            # one standard error of the paper's spread
     assert fl.null_within(exp) == 0
     assert fl.SORTS["piotroski"]["source"] == "osap" and fl.SORTS["piotroski"]["columns"] == ["01", "10"]
+
+
+def test_the_revisions_tolerances_are_the_ones_committed_before_the_comparison():
+    """Experiment 18 (2026-11-02): Chan, Jegadeesh & Lakonishok (1996), Table 5 Panel A (NBER
+    working paper 5375), on Open Source Asset Pricing's REV6 deciles. Written and committed before a
+    single OSAP REV6 return had been read. Neither the paper's figures nor the tolerances move to
+    turn a miss into a match; by rule 8 a result of no effect matches none."""
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "revisions")
+    ref = exp["reference"]
+    assert (ref["start"], ref["end"], ref["weighting"], ref["scale"], ref["tolerances_written"]) == (
+        "197701", "199212", "ew", 6, "before")
+    assert "also" not in ref and "relative" not in ref and "excess" not in ref
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == {
+        "mean1": (4.6, 2.9), "mean10": (12.3, 2.9), "spread": (7.7, 2.9)}
+    assert 12.3 - 4.6 == pytest.approx(7.7)                           # the spread is the table's own columns
+    assert 2 * 6 * 1.431 / 5.91 == pytest.approx(2.9, abs=0.01)       # two standard errors from Table 9, six months
+    assert fl.null_within(exp) == 0
+    assert fl.SORTS["revisions"]["source"] == "osap" and fl.SORTS["revisions"]["signal"] == "REV6"
+    assert fl.SORTS["revisions"]["columns"] == [f"{d:02d}" for d in range(1, 11)]
 
 
 def test_an_open_source_asset_pricing_file_is_read_for_one_signal(tmp_path):
@@ -803,6 +829,17 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert 12.5 <= vw["mean"] * 12 < 13.5 and vw["t"] > 2
     for w in ("ew", "vw"):
         assert abs(fl.sort_run(ps, "199701", "209912", w)["spread"]["t"]) < 2, w
+    # 18. "beat those they had cut most by about 1.4% a month in the paper's years, equally weighted -
+    #     every figure within tolerance. Since 1993 the gap has held at about 0.9% a month; weighted by
+    #     market value it has been about half that, and not distinguishable from zero."
+    rv = published["sorts"]["revisions"]
+    built = next(x for x in published["experiments"] if x["id"] == "revisions")["result"]
+    assert built["within"] == built["total"] == 3
+    inside = fl.sort_run(rv, "197701", "199212", "ew")["spread"]
+    assert 1.35 <= inside["mean"] < 1.45 and inside["t"] > 2
+    ew, vw = (fl.sort_run(rv, "199301", "209912", w)["spread"] for w in ("ew", "vw"))
+    assert 0.85 <= ew["mean"] < 0.95 and ew["t"] > 2
+    assert 0.4 < vw["mean"] / ew["mean"] < 0.65 and abs(vw["t"]) < 2
 
     # 15. "of the 119 ... 83% ... to 2020, and 76% inside the mega caps alone - close to the paper's 77%.
     #      Since 2014 only 9 of them clear that bar among mega caps, over a period too short to settle it."
@@ -933,7 +970,7 @@ def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(publish
     card = published["scorecard"]
     assert [(r["key"], r["weight"]) for r in card] == list(cfg["factor_weights"].items())
     assert card == json.loads(json.dumps(fl.scorecard(published["split"], published["size"], cfg["factor_weights"],
-                                                      published["sorts"]["asset-growth"])))
+                                                      published["sorts"]["asset-growth"], published["sorts"]["revisions"])))
     assert all(r["measured"] and r["open"] for r in card) and set(fl.SCORECARD_OPEN) == set(cfg["factor_weights"])
     assert advice_terms_in(json.dumps(card)) == []
     sp = published["split"]
@@ -950,10 +987,17 @@ def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(publish
     assert ratio["momentum"] < 0.5 and abs(late["momentum"]["big"]["t"]) < 1
     # investment: "it moves with value"
     assert fl.correlation(sp["value"]["big"], sp["investment"]["big"]) > 0.4
-    # revisions has nothing rerun, and says so; growth has nothing on its own measures, and points
-    # at the asset-growth sort, whose two figures are rebuilt here
+    # revisions has one rerun (experiment 18), whose three spreads are rebuilt here; growth has
+    # nothing on its own measures, and points at the asset-growth sort, whose two figures are rebuilt here
     by_key = {r["key"]: r for r in card}
-    assert by_key["revisions"]["experiments"] == [] and by_key["revisions"]["measured"].startswith("Nothing.")
+    assert by_key["revisions"]["experiments"] == ["revisions"]
+    rv = published["sorts"]["revisions"]
+    paper, ew, vw = (fl.sort_run(rv, a, b, w)["spread"] for a, b, w in
+                     (("197701", "199212", "ew"), ("199301", "209912", "ew"), ("199301", "209912", "vw")))
+    m = by_key["revisions"]["measured"]
+    assert f"by {paper['mean']:.2f}% a month in the paper's years, equally weighted (t-statistic {paper['t']:.2f})" in m
+    assert f"by {ew['mean']:.2f}% since 1993 (t-statistic {ew['t']:.2f})" in m
+    assert f"the gap since 1993 is {vw['mean']:.2f}% (t-statistic {vw['t']:.2f})" in m
     assert by_key["growth"]["experiments"] == ["asset-growth"]
     assert by_key["growth"]["measured"].startswith("Nothing on the category's own measures")
     ag = published["sorts"]["asset-growth"]
@@ -1214,7 +1258,7 @@ def test_the_methodology_links_each_category_to_its_experiments():
     for c in fl.CATEGORY_MAP:
         name = {"revisions": "Analyst Revisions"}.get(c["key"], c["category"])
         if c["experiments"]:
-            part = re.search(re.escape(name) + r" [-–] (.*?)(?:; [A-Z]|\. Growth)", para)
+            part = re.search(re.escape(name) + r" [-–] (.*?)(?:; [A-Z]|\. Growth|\.$)", para)
             assert part, name
             assert set(re.findall(r"lab\.html#([a-z-]+)\)", part.group(1))) == set(c["experiments"]), name
         else:
@@ -1521,6 +1565,28 @@ def test_the_piotroski_sort_is_published_as_the_miss_it_is(published):
     assert "CRSP and Compustat" in json.dumps(exp["conditions"])                 # says who built the portfolios
 
 
+def test_the_revisions_sort_is_published_as_measured(published):
+    """Experiment 18 (2026-11-02): Chan, Jegadeesh & Lakonishok (1996) Table 5 Panel A against Open
+    Source Asset Pricing's equal-weighted REV6 deciles. 3 of 3 within tolerances committed before any
+    REV6 return was read. The verdict note's figures, and its claim that returns rise from each group
+    to the next, are checked against the published data."""
+    exp = next(x for x in published["experiments"] if x["id"] == "revisions")
+    r = exp["result"]
+    assert (r["within"], r["total"], r["null_within"]) == (3, 3, 0)
+    rows = {x["key"]: x for x in r["rows"]}
+    assert rows["spread"]["here"] > rows["spread"]["paper"]                       # "above it, as expected"
+    assert f"{rows['spread']['here']:.1f}% over six months against the paper's 7.7%" in exp["verdict_note"]
+    assert f"earned {rows['mean1']['here']:.1f}% against 4.6%" in exp["verdict_note"]
+    ew = fl.sort_run(published["sorts"]["revisions"], "197701", "199212", "ew")
+    assert f"t-statistic of {ew['spread']['t']:.1f}" in exp["verdict_note"]
+    means = [g["mean"] for g in ew["groups"]]
+    assert all(b > a for a, b in zip(means, means[1:]))                           # "rise ... across all ten"
+    vw = fl.sort_run(published["sorts"]["revisions"], "197701", "199212", "vw")["spread"]
+    assert f"{vw['mean'] * 6:.1f}%, t {vw['t']:.1f}" in exp["verdict_note"]
+    assert published["sorts"]["revisions"]["source"] == "osap"
+    assert "I/B/E/S, CRSP and Compustat" in json.dumps(exp["conditions"])
+
+
 COMBO_SETTINGS = [{"start": "197201", "end": "201107", "group": "big"}, {"start": "201108", "end": "209912", "group": "big"},
                   {"start": "192701", "end": "209912", "group": "all"}]
 
@@ -1674,7 +1740,8 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
         "risk-managed-momentum": 7, "momentum-crashes": 7, "five-factors": 8, "size-effect": 1,
         "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
         "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3, "asset-growth": 6,
-        "replication-crisis": 0, "size-given-profitability": 0, "piotroski": 0}
+        "replication-crisis": 0, "size-given-profitability": 0, "piotroski": 0,
+        "revisions": 0}
     # every sort whose paper claims an effect: the null misses the spread between the ends
     for exp in fl.EXPERIMENTS:
         if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"

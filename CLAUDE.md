@@ -798,10 +798,11 @@ read the brief's `context_eval` line. Three constraints survive it, beyond settl
 
 **0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
 `plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day** - the next one
-that is not a retrospective - one finished experiment a session. **Seventeen experiments as of
-2026-10-20, 145 of 217 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
-("0.13, the lab's first thirteen experiments" and "experiments 14-17"). Every new experiment needs
-a **second reader** before it counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2).
+that is not a retrospective - one finished experiment a session. **Eighteen experiments as of
+2026-11-02, 148 of 220 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
+("0.13, the lab's first thirteen experiments" and "experiments 14-18"). Every new experiment needs
+a **second reader** before it counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2) - experiment
+18 (analyst revisions, 2026-11-02) has not had one yet.
 
 **The rules, which do not move:**
 

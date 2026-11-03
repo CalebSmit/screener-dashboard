@@ -951,10 +951,11 @@ XBRL for the same quarter: within 0.5% for **99.8%** of companies on total asset
 operating cash flow, **97.9%** on equity, **94.3%** on net income, **88.5%** on revenue. The
 larger disagreements examined are definitional - bank revenue, minority interests, excise taxes.
 
-## 0.13, experiments 14-17 (moved out of `CLAUDE.md` 2026-10-30)
+## 0.13, experiments 14-18 (moved out of `CLAUDE.md` 2026-10-30)
 
-Four more after the thirteen below, each with its note and its entry in `plan/factor-lab.md`.
-Seventeen in all as of 2026-10-20, **145 of 217 figures within tolerance**.
+Five more after the thirteen below, each with its note and its entry in `plan/factor-lab.md`.
+Seventeen in all as of 2026-10-20, **145 of 217 figures within tolerance**; eighteen as of
+2026-11-02, **148 of 220**.
 
 | # | Paper | Result |
 |---|---|---|
@@ -962,6 +963,7 @@ Seventeen in all as of 2026-10-20, **145 of 217 figures within tolerance**.
 | 15 | Jensen, Kelly & Pedersen 2023, their own 153 factors | 10 of 10. **Its data is CC BY-NC 4.0 - teaching page only, never anything that trades** (`research/2026-10-20-lab-jkp.md`) |
 | 16 | size inside each profitability fifth | 10 of 17; Size's pre-registered rule **not refuted**, which is what kept the weight at 5% |
 | 17 | Piotroski 2000 on Open Source Asset Pricing's published portfolios | 1 of 4, the miss explained by the decile cut of a ten-value score (`research/2026-10-20-lab-osap.md`) |
+| 18 | Chan, Jegadeesh & Lakonishok 1996, analyst revisions, on OSAP's `REV6` deciles | 3 of 3 within tolerances committed before any REV6 return was read (`4e1f6a7`); the Revisions category's first rerun. Since 1993 0.90% a month equally weighted (t 4.54), 0.50% by market value (t 1.79). Figures from the NBER working paper, the published table not obtained. **No weight proposed; second read pending** (`research/2026-11-02-lab-revisions.md`) |
 
 **Every new experiment needs a second reader before it counts as checked** (`OWNER_FOCUS.md`,
 2026-10-20 item 2). The 2026-10-23 13:00 session did that for 16 and 17: all 21 reference figures

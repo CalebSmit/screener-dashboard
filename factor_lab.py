@@ -123,6 +123,16 @@ SORTS = {
     # for PS); "ew" is the same deciles equally weighted, from their alternative-portfolio set.
     "piotroski": {"source": "osap", "signal": "PS", "columns": ["01", "10"],
                   "vw": "PS_OriginalCuts_VW.csv", "ew": "PredictorAltPorts_DecilesEW.zip"},
+    # The same library's analyst-revisions signal "REV6" (Chan, Jegadeesh & Lakonishok 1996): the
+    # sum of seven monthly changes in the mean I/B/E/S forecast of current-year earnings, each over
+    # the prior month's price. A continuous signal, so all ten deciles are populated and read, the
+    # most downward revisions first. "ew" is the paper's weighting and the authors' equal-weighted
+    # deciles (the file experiment 17 reads); "vw" the same deciles by market value, from the
+    # release's value-weighted set (the October 2025 release, on Hugging Face since the authors
+    # left Google Drive).
+    "revisions": {"source": "osap", "signal": "REV6",
+                  "columns": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"],
+                  "vw": "PredictorAltPorts_DecilesVW.parquet", "ew": "PredictorAltPorts_DecilesEW.zip"},
 }
 # Chen & Zimmermann (2022), "Open source cross-sectional asset pricing", Critical Finance Review
 # 11(2), 207-264. Portfolio returns are a free download (Google Drive, linked from the data page);
@@ -134,6 +144,14 @@ OSAP_RELEASE = "October 2025 release (v2.0.0)"
 OSAP_DRIVE_IDS = {                    # the release's own files, as its Google Drive folder lists them
     "PS_OriginalCuts_VW.csv": "1fkoDBda7SKboz8NSJbElG5F-pu1oaPdb",
     "PredictorAltPorts_DecilesEW.zip": "1pFBX0LTyoSwH7i8mT4kPCS_3QghlbODD",
+}
+# Since the October 2026 release the authors publish on Hugging Face ("Google Drive could not
+# handle the download volume", their data page, 2026-11-02); each past release is a branch there.
+# Files the Drive copy above does not carry are taken from the SAME release's branch (2025.10), so
+# every OSAP figure in the lab comes from one release.
+OSAP_HF_BASE = "https://huggingface.co/datasets/OpenSourceAP/CrossSection/resolve/2025.10/"
+OSAP_HF_FILES = {
+    "PredictorAltPorts_DecilesVW.parquet": "Portfolios/Full%20Sets%20Alt/PredictorAltPorts_DecilesVW.parquet",
 }
 # Jensen, Kelly & Pedersen's global factor library (experiment 15). Licensed CC BY-NC 4.0 by its
 # authors (the licence is printed at the foot of jkpfactors.com/data and in DATA_LICENSE of
@@ -462,8 +480,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 #      builds their addresses with this same ?v=, read off its lab_data.js tag;
 # 28 = the 153 factors' size groups and each of the eight sorts in parts of their own (LAZY_INTO),
 #      loaded when shown or chosen, and lab_engine.js's compareReplication marks a figure whose series
-#      has not loaded as pending.
-ASSET_VERSION = 28
+#      has not loaded as pending;
+# 29 = experiment 18, analyst revisions on Open Source Asset Pricing's REV6 deciles (a new sort part,
+#      sorts_revisions) and the Revisions group in the menu.
+ASSET_VERSION = 29
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -507,6 +527,15 @@ def fetch_osap(osap_dir: Path = OSAP_DIR, timeout: float = 600.0) -> list[Path]:
             raise RuntimeError(f"{name}: Google Drive returned a page, not the file (quota exceeded?) - retry later")
         (osap_dir / name).write_bytes(data)
         out.append(osap_dir / name)
+    for name, path in OSAP_HF_FILES.items():
+        with urllib.request.urlopen(urllib.request.Request(OSAP_HF_BASE + path,
+                                                           headers={"User-Agent": "screener-factor-lab"}),
+                                    timeout=timeout) as r:
+            data = r.read()
+        if not data.startswith(b"PAR1"):
+            raise RuntimeError(f"{name}: Hugging Face did not return a parquet file ({len(data)} bytes)")
+        (osap_dir / name).write_bytes(data)
+        out.append(osap_dir / name)
     return out
 
 
@@ -529,7 +558,13 @@ def read_osap(path: Path, signal: str) -> dict[str, dict[str, float]]:
     import io
 
     def rows():
-        if path.suffix == ".zip":
+        if path.suffix == ".parquet":                  # long, like the full-set zip; only one signal read
+            import pyarrow.parquet as pq
+            table = pq.read_table(path, columns=["signalname", "port", "date", "ret"],
+                                  filters=[("signalname", "=", signal)])
+            for rec in table.to_pylist():
+                yield {k: ("" if v is None else str(v)) for k, v in rec.items()}
+        elif path.suffix == ".zip":
             with zipfile.ZipFile(path) as z:
                 member = next(n for n in z.namelist() if n.lower().endswith(".csv"))
                 with z.open(member) as f:
@@ -541,7 +576,7 @@ def read_osap(path: Path, signal: str) -> dict[str, dict[str, float]]:
     out: dict[str, dict[str, float]] = {}
 
     def put(port: str, date: str, ret: str | None) -> None:
-        if ret in (None, "", "NA"):
+        if ret in (None, "", "NA", "nan"):
             return
         port = port.strip().strip('"')
         port = port if not port.isdigit() else f"{int(port):02d}"
@@ -2897,6 +2932,152 @@ PIOTROSKI_OSAP = {
 EXPERIMENTS.append(PIOTROSKI_OSAP)
 
 
+# Experiment 18 (2026-11-02): the Revisions category's first rerunnable result.
+REVISIONS_OSAP = {
+    "id": "revisions",
+    "group": "Revisions",
+    "kind": "sort",
+    "topic": "Analyst revisions",
+    "title": "Do stocks whose earnings forecasts are being raised keep beating those being cut?",
+    "tab": "Analyst revisions",
+    "paper": {
+        "authors": "Louis K. C. Chan, Narasimhan Jegadeesh and Josef Lakonishok",
+        "year": 1996,
+        "title": "Momentum strategies",
+        "journal": "Journal of Finance 51(5), 1681-1713",
+        "doi": "10.1111/j.1540-6261.1996.tb05222.x",
+    },
+    "claim": ("Ranking stocks each month by how much analysts had revised their consensus forecast of "
+              "the current year's earnings over the past six months, relative to the share price, the "
+              "tenth with the largest upward revisions returned 12.3% over the next six months and the "
+              "tenth with the largest downward revisions 4.6% - a gap of 7.7% (9.7% over the first "
+              "year), for portfolios formed 1977-1993."),
+    "reference": {
+        "source": ("Table 5, Panel A (\"Mean returns and characteristics for portfolios classified by "
+                   "revision in analyst forecasts\"), row \"Return 6 months after portfolio formation\", "
+                   "portfolios 1 (Low) and 10 (High): equally weighted returns of each group held for the "
+                   "six months after each monthly formation date, January 1977 to January 1993. Read from "
+                   "the NBER working paper version (No. 5375, December 1995), PDF page 35; the published "
+                   "article's Table V was not obtained. The paper's figures are six-month holding-period "
+                   "returns; here they are compared with the average month of the authors' deciles times "
+                   "six, in percent over six months."),
+        "start": "197701", "end": "199212", "weighting": "ew", "scale": 6,
+        # Written 2026-11-02 BEFORE any Open Source Asset Pricing REV6 return had been read: the
+        # equal-weighted file on disk was last read for signal PS (experiment 17) and the value-
+        # weighted file was downloaded, not opened. What HAD been read: OSAP's signal documentation
+        # (SignalDoc.csv) and its construction code for REV6 (Signals/pyCode/Predictors/REV6.py and
+        # Portfolios/Code/01_PortfolioFunction.R, 30_PredictorAltPorts.R at tag v2.0.0). The window
+        # is OSAP's documented sample for the paper (1977-1992) and its return months; the paper
+        # forms portfolios January 1977 to January 1993.
+        # The comparison is NOT like for like, in ways known beforehand, all recorded on the page:
+        # (1) holding period - the paper holds each decile six months from formation, so its figure
+        #     averages a signal one to six months old; OSAP re-forms every month and holds one month,
+        #     so every month earns the freshest signal (OSAP's own note: "We find only monthly
+        #     rebalancing works in port sorts"). Six times a monthly average is not a six-month hold;
+        # (2) the paper skips the first five trading days after formation (to avoid bid-ask bounce);
+        #     OSAP does not;
+        # (3) breakpoints - the paper's deciles are cut at NYSE stocks' percentiles; OSAP's REV6 deciles
+        #     use all stocks (no quantile filter in its documentation, q_filt NA in its code);
+        # (4) the signal - OSAP follows the paper's printed formula exactly (seven monthly changes,
+        #     j = 0..6, in the MEAN forecast, over the prior month's price) and requires all seven;
+        #     the paper's table captions say "median" and "moving average of the past six months'"
+        #     revisions - the paper is inconsistent with itself, and either way ranks barely differ;
+        # (5) delisting - the paper replaces a delisted stock's return with the value-weighted market's
+        #     for the rest of the hold; OSAP uses CRSP's delisting returns; and I/B/E/S, CRSP and
+        #     Compustat have been revised in the thirty years since.
+        # Expected beforehand: the direction reproduces; (1) and (2) both push OSAP's spread ABOVE
+        # 7.7, so the spread may land outside on the high side; (3) cuts the other way or not at all;
+        # the end levels differ by the compounding a six-month hold adds (a few tenths of a point).
+        # Tolerance for every figure: 2.9 points over six months. The basis is the paper's own
+        # sampling error: Table 9 (PDF p. 40) gives the zero-cost portfolio long the top and short
+        # the bottom third by revisions and by past return, held six months, a three-factor
+        # intercept of 1.431% a month with t 5.91 (January 1977 to December 1993), a standard
+        # error of 0.242% a month, or 1.45 over six months; Table 5
+        # prints no standard error of its own. One standard error for sampling, and one more - the
+        # same again - for the five construction differences above, as experiment 14 widened its t by
+        # half for a different volatility. The ends take the spread's tolerance, as in experiment 17.
+        # Plan rule 8, checked from the record before committing: a result of no effect matches 0 of
+        # these 3 - each end sits 3.85 from the null's common level (8.45), and the spread misses.
+        "tolerances_written": "before",
+        # Added after the run, with no figure or tolerance changed: the paper prints all ten deciles
+        # and the page shows all ten, but the record compares the two ends and the gap between them
+        # (fixed in the commit above, before any return was read), because a null result would land
+        # within any tolerance on the middle deciles (rule 8). The layout test reads this.
+        "compares": "ends",
+        "figures": [
+            {"key": "mean1", "label": "Most downward revisions: six months (%)", "paper": 4.6, "tolerance": 2.9, "where": "Table 5, Panel A, portfolio 1 (Low), return 6 months after portfolio formation, 0.046 (NBER WP 5375, PDF p. 35)"},
+            {"key": "mean10", "label": "Most upward revisions: six months (%)", "paper": 12.3, "tolerance": 2.9, "where": "Table 5, Panel A, portfolio 10 (High), return 6 months after portfolio formation, 0.123 (NBER WP 5375, PDF p. 35)"},
+            {"key": "spread", "label": "Most upward minus most downward, six months (%)", "paper": 7.7, "tolerance": 2.9, "where": "Table 5, Panel A, derived: 0.123 - 0.046"},
+        ],
+    },
+    "verdict_note": ("All three figures land within the tolerances written before the run. The gap is "
+                     "8.7% over six months against the paper's 7.7% - above it, as expected of portfolios "
+                     "re-formed every month on the freshest revisions - with a t-statistic of 8.4; the most "
+                     "downward revisions earned 2.7% against 4.6%. Returns rise from each group to the next "
+                     "across all ten. Weighted by market value the gap in the paper's years is 4.2%, t 2.9."),
+    "sort": {
+        "data": "revisions",
+        "groups": ["Most downward revisions", "Decile 2", "Decile 3", "Decile 4", "Decile 5", "Decile 6",
+                   "Decile 7", "Decile 8", "Decile 9", "Most upward revisions"],
+        "ends": ["most downward revisions", "most upward"],
+        "low": "decile with the most downward revisions", "high": "decile with the most upward",
+        "spread": "Most upward revisions minus most downward",
+        "accent": [9],
+        "key_accent": "The most upward revisions - the end the screener's Revisions category favours",
+        "key_rest": "The other nine groups",
+        "chart": "by analysts' forecast revisions, most downward first",
+        "presets": [["The paper · 1977–1992", "197701", "199212"],
+                    ["After the paper · 1993–2024", "199301", "LAST"],
+                    ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+        "weightings": [["ew", "Equally · paper"], ["vw", "By market value"]],
+    },
+    "conditions": [
+        ["Portfolios", "Each month, stocks with analyst coverage are ranked by the sum of the last seven "
+                       "monthly changes in analysts' average forecast of the current year's earnings per "
+                       "share, each divided by the share price a month earlier, and split into ten equal "
+                       "groups. Each group is held for one month, then re-formed."],
+        ["Data", "Chen and Zimmermann's Open Source Asset Pricing, " + OSAP_RELEASE + ": the published "
+                 "portfolio returns for their signal \"REV6\", which the authors built from I/B/E/S, CRSP "
+                 "and Compustat. Cite: Chen, A. Y. and T. Zimmermann (2022), \"Open source cross-sectional "
+                 "asset pricing\", Critical Finance Review 11(2), 207-264."],
+        ["What this checks", "A rerun of the authors' published portfolio returns, not of the revisions: "
+                             "this lab cannot see a single analyst's forecast. It checks that a careful public "
+                             "construction of the signal earns what the paper reports, and what it has "
+                             "earned since; it does not check the paper's own numbers firm by firm."],
+        ["Weighting", "Equally weighted, as the paper's portfolios are. Weighted by market value - closer "
+                      "to the large companies the screener ranks - is one click away."],
+        ["Returns", "Raw monthly returns. The comparison sets six times the average month against the "
+                    "paper's average six-month return."],
+        ["Costs", "None. These are paper portfolios."],
+    ],
+    "open_details": [
+        "The paper holds each group for six months from the day it is formed, so its figure mixes "
+        "fresh and stale revisions; the public portfolios are re-formed every month on the latest "
+        "revisions, which is expected to earn more per month.",
+        "The paper skips the first five trading days after forming each portfolio; the public "
+        "portfolios do not.",
+        "The paper draws the lines between groups at New York Stock Exchange stocks' percentiles; the "
+        "public deciles draw them across all covered stocks.",
+        "The figures are read from the NBER working-paper version (No. 5375, December 1995). The "
+        "published article's Table V was not obtained, and a journal's revision can change a table.",
+        "The paper's table captions describe the median forecast and a six-month average; its formula, "
+        "which the public construction follows, sums seven monthly changes in the mean forecast.",
+        "Among the largest half of companies (above the NYSE median), the paper's Table 8 gives a "
+        "first-year gap of 7.6% (21.0% against 13.4%). The public files carry no such size cut for "
+        "this signal; the market-value weighting is the nearest view.",
+    ],
+    "in_the_screener": (
+        "The Revisions category is 10% of the composite, and its heaviest measure - 48 of its 100 points, "
+        "so about 4.8 composite points - is the 90-day change in the consensus forecast of the current "
+        "year's earnings, divided by the share price: the same construction as this paper's, over three "
+        "months instead of six or seven. The rest of the category is not revisions (earnings surprises, "
+        "the consensus price target and short interest) and nothing here bears on it. The screener ranks "
+        "S&P 500 companies within their sectors; this sort ranks every covered stock, most of them small."),
+}
+
+EXPERIMENTS.append(REVISIONS_OSAP)
+
+
 # One sentence per experiment for the lab's front page. Each is a statement about what the
 # published data shows, and tests/test_factor_lab.py checks every one against that data, so a
 # rebuild that makes one untrue fails the suite instead of leaving it on the page.
@@ -2953,6 +3134,10 @@ TAKEAWAYS = {
                   "beat the lowest by about 4% a year equally weighted in the paper's years - a fifth of the "
                   "paper's 23.5%, and not distinguishable from zero - and by about 13% weighted by market value. "
                   "Since 1997 neither gap can be told from zero."),
+    "revisions": ("On the authors' public portfolios, stocks whose earnings forecasts analysts had raised most beat "
+                  "those they had cut most by about 1.4% a month in the paper's years, equally weighted - every "
+                  "figure within tolerance. Since 1993 the gap has held at about 0.9% a month; weighted by market "
+                  "value it has been about half that, and not distinguishable from zero."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -2998,11 +3183,15 @@ CATEGORY_MAP = [
      "has": "Stocks sorted by how volatile they have been, and by how much they move with the market "
             "(beta): two of the category's three measures.",
      "gap": "The depth of a stock's worst fall, the third measure. No public sort exists for it."},
-    {"category": "Analyst revisions", "key": "revisions", "experiments": [],
-     "has": "Nothing, and probably never.",
-     "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
-            "surprises. They need a history of analysts' estimates as they stood at the time, which is "
-            "sold, not published."},
+    {"category": "Analyst revisions", "key": "revisions", "experiments": ["revisions"],
+     "has": "Stocks sorted by how far analysts have revised their forecasts of the current year's earnings, "
+            "relative to the share price (Chan, Jegadeesh and Lakonishok 1996) - the construction of the "
+            "category's heaviest measure - on the portfolios Chen and Zimmermann publish.",
+     "gap": "The rerun reads published portfolio returns, not analysts' forecasts, and ranks every covered "
+            "stock rather than large companies; it uses six to seven months of revisions where the screener "
+            "uses three. The rest of the category - earnings surprises, the consensus price target and short "
+            "interest - has no rerun: the studies behind it need a history of analysts' estimates as they "
+            "stood at the time, which is sold, not published."},
     {"category": "Size", "key": "size", "experiments": ["size-effect", "size-given-profitability", "five-factors", "replication-crisis"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
@@ -3042,8 +3231,10 @@ SCORECARD_OPEN = {
                  "the weight stays, as the least well-supported of the large ones."),
     "risk": ("The category lowers risk for a similar return. It is not evidence of a higher one, and "
              "the methodology now says so."),
-    "revisions": ("It rests on the cited studies alone. The screener's own record, run by run, is the "
-                  "only measurement it will get."),
+    "revisions": ("The rerun covers the category's heaviest measure (48 of its 100 points) across every "
+                  "covered stock, not among large companies, where the public files have no size cut. The "
+                  "other half of the category rests on its cited studies alone, and the screener's own "
+                  "record, run by run, is the only measurement among its companies."),
     "size": ("Researched 2026-10-20: no size premium among large companies on its own; the weight rests on "
              "the case that size pays once quality is held fixed. Holding profitability fixed passed the test "
              "written for it in advance, by a margin over the plain spread too small to tell from zero. Since "
@@ -3059,7 +3250,7 @@ def screener_weights(path: Path = ROOT / "config.yaml") -> dict:
     return dict(yaml.safe_load(path.read_text(encoding="utf-8"))["factor_weights"])
 
 
-def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> list[dict]:
+def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisions: dict) -> list[dict]:
     """One row per category of the screener: its weight, what the lab has measured that bears
     on it among large companies, and what that leaves open."""
     whole, late, recent = (split_run(split, "196307", "209912"), split_run(split, "200001", "209912"),
@@ -3076,6 +3267,8 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> lis
     nine_ten = size_run(size, size["months"][0], "209912", "ew")["nine_ten"]
     ag_paper, ag_after = (sort_run(asset_growth, a, b, "vw")["spread"] for a, b in
                           (("196807", "200306"), ("200307", "209912")))
+    rev_paper, rev_ew, rev_vw = (sort_run(revisions, a, b, w)["spread"] for a, b, w in
+                                 (("197701", "199212", "ew"), ("199301", "209912", "ew"), ("199301", "209912", "vw")))
     measured = {
         "valuation": (f"Among big companies the value factor has averaged {big(whole, 'value')['mean']:.2f}% a month "
                       f"since 1963 (t-statistic {big(whole, 'value')['t']:.2f}), about half its "
@@ -3101,8 +3294,11 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> lis
                      f"(t-statistic {big(late, 'momentum')['t']:.2f})."),
         "risk": ("Sorted by volatility or by beta, riskier stocks have not earned reliably more, while "
                  "being about twice as volatile."),
-        "revisions": ("Nothing. A history of analysts' estimates as they stood at the time is sold, not "
-                      "published."),
+        "revisions": (f"Stocks with the most upward revisions to analysts' earnings forecasts beat those with the "
+                      f"most downward by {rev_paper['mean']:.2f}% a month in the paper's years, equally weighted "
+                      f"(t-statistic {rev_paper['t']:.2f}), and by {rev_ew['mean']:.2f}% since 1993 "
+                      f"(t-statistic {rev_ew['t']:.2f}). Weighted by market value - nearer the screener's companies "
+                      f"- the gap since 1993 is {rev_vw['mean']:.2f}% (t-statistic {rev_vw['t']:.2f})."),
         "size": (f"Between the two largest size groups the smaller has earned {nine_ten['mean']:.2f}% a month more "
                  f"over the whole record (t-statistic {nine_ten['t']:.2f}), and the difference cannot be told "
                  f"from zero in any shorter period checked."),
@@ -3172,7 +3368,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
                          ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1),
-                         ("piotroski", 1)):
+                         ("piotroski", 1), ("revisions", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -3527,7 +3723,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "is added. Non-commercial use only, under the licence."),
         },
         "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp, double),
-        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
+        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"], sorts["revisions"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
