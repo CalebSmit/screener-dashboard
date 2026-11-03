@@ -495,7 +495,21 @@ def login_alert(data_lines: list[str], code_lines: list[str], data_is_newer: boo
     if data_is_newer and "CLI login: OK" in data_text:
         return []
     if not any(m in data_text or m in code_text for m in LOGIN_MARKERS):
-        return []
+        expiring = next((ln for ln in data_lines if "CLI LOGIN EXPIRES" in ln), "")
+        if not expiring:
+            return []
+        when = expiring.split("CLI LOGIN EXPIRES", 1)[1].split(" - ", 1)[0].strip()
+        return [
+            f"## Coming up, only you can do it: the Claude CLI login runs out {when}",
+            "",
+            "The code sessions run through the Claude Code CLI on this PC, and its login",
+            "lasts about 30 days. When it runs out, every scheduled session fails within",
+            "seconds until you sign in again. Doing it early loses nothing - open a",
+            "terminal on the PC and run:",
+            "",
+            "    claude.cmd auth login",
+            "",
+        ]
     return [
         "## ONE THING ONLY YOU CAN DO: log the Claude CLI back in",
         "",
@@ -509,6 +523,18 @@ def login_alert(data_lines: list[str], code_lines: list[str], data_is_newer: boo
         "`claude.cmd auth status` should say `\"loggedIn\": true`.",
         "",
     ]
+
+
+def login_row(data_lines: list[str]) -> str:
+    """The data run's reading of the CLI login, for the glance table: how long it has left."""
+    for ln in data_lines:
+        if "CLI login: OK - valid until " in ln:
+            return ln.split("valid until ", 1)[1].split(";", 1)[0].strip()
+        if "CLI LOGIN EXPIRES" in ln:
+            return "**runs out " + ln.split("CLI LOGIN EXPIRES", 1)[1].split(" - ", 1)[0].strip() + "**"
+        if "CLI LOGGED OUT" in ln:
+            return "**logged out**"
+    return ""
 
 
 def last_log_entry() -> str:
@@ -597,6 +623,9 @@ def main() -> int:
     _timing = run_timing(tail(data_log))
     if _timing:
         a(f"| Data run timing | {_timing} |")
+    _login = login_row(tail(data_log))
+    if _login:
+        a(f"| Code-session login | {_login} |")
     a(f"| Context coverage | {context_coverage()} |")
     a("")
 

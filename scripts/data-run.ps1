@@ -185,10 +185,11 @@ try {
     # This loop does not use the CLI, but it runs before the day's first code
     # session, so it is the one place that can warn before that session fails.
     # 2026-11-01..02: the login lapsed and four sessions died in two seconds each
-    # with nobody told. Read-only, always exits 0 - see scripts/check_cli_login.py.
+    # with nobody told. It lasts about 30 days, so this warns a week ahead. Reads
+    # one expiry timestamp, always exits 0 - see scripts/check_cli_login.py.
     try {
         $login = Invoke-Native 'python' @('scripts/check_cli_login.py')
-        $loginLevel = if ($login.Text -match 'CLI LOGGED OUT') { 'WARN' } else { 'INFO' }
+        $loginLevel = if ($login.Text -match 'CLI LOGGED OUT|CLI LOGIN EXPIRES') { 'WARN' } else { 'INFO' }
         Write-NativeOutput $login $loginLevel
     } catch {
         Write-Log "CLI login check skipped (non-fatal): $($_.Exception.Message)" 'WARN'
