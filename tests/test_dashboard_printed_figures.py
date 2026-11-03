@@ -1,0 +1,637 @@
+"""The figures the dashboard's JavaScript prints into sentences, read back from the page.
+
+WHY THIS EXISTS - `plan/claims-mutation-audit.md`, "Results, 2026-11-02 (owner-run night)": the
+dashboard sweep found 84 computed sentences and left 77 open for one reason. Most dashboard claims
+pin the **engine's** number or the **payload's** (row 0.8's design), and the JavaScript that formats
+that number into a sentence is a second step no registered check ran: wrong field, wrong scale,
+wrong copy of a figure printed twice - all invisible to a check that stops at the payload.
+
+So every test here runs **the generator's own page** (``generate_dashboard.generate_html()``, never
+the committed ``index.html``) with the published payloads, calls the function that prints the
+sentence, parses the figure out of the text it wrote, and compares it with a value worked out here
+from the engine's rule or the payload's inputs - for every stock where the sentence is per stock.
+A branch today's data may not take (a coverage discount, a rejected history, no lead to erase) has
+a hand-worked fixture with literal expected text, so the branch is checked whatever the morning's
+data did. Nothing here names a stock, a run folder or a day (CLAUDE.md row "data->red"), and
+nothing reads the clock.
+
+Claims: ``drilldown.composite_chain``, ``drilldown.peer_rank``, ``drilldown.unscored_category``,
+``context.track_turnover``, ``context.track_luck``. The data loop's publish gate runs this module
+because those claims name it (``scripts/check_published_claims.py`` derives its membership from
+``claims.py``).
+"""
+
+from __future__ import annotations
+
+import html as htmllib
+import json
+import math
+import re
+import shutil
+import sys
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+import generate_dashboard as gd  # noqa: E402
+from factor_engine import METRIC_DIR, SECTOR_MIN_PEERS, metric_weight_profiles  # noqa: E402
+
+try:
+    from playwright import sync_api
+except Exception:  # noqa: BLE001
+    sync_api = None
+
+CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
+NUM = r"(-?\d+(?:\.\d+)?)"
+
+
+def _payload(name: str) -> dict:
+    p = ROOT / name
+    if not p.exists():
+        pytest.skip(f"MISSING DATA: no published {name}")
+    s = p.read_text(encoding="utf-8")
+    return json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))
+
+
+@pytest.fixture(scope="module")
+def data() -> dict:
+    return _payload("dashboard_data.js")
+
+
+@pytest.fixture(scope="module")
+def track() -> dict:
+    T = _payload("dashboard_context.js").get("track") or {}
+    if not T.get("available"):
+        pytest.skip("MISSING DATA: the published context file carries no track record")
+    return T
+
+
+@pytest.fixture(scope="module")
+def cfg() -> dict:
+    import yaml
+    with open(ROOT / "config.yaml", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+@pytest.fixture(scope="module")
+def browser():
+    if sync_api is None:
+        pytest.skip("playwright not installed")
+    with sync_api.sync_playwright() as p:
+        try:
+            b = p.chromium.launch()
+        except Exception as exc:  # noqa: BLE001
+            pytest.skip(f"no usable chromium: {exc}")
+        yield b
+        b.close()
+
+
+@pytest.fixture(scope="module")
+def page(browser, tmp_path_factory):
+    """The generator's own page with the published payloads, context file loaded."""
+    for f in ("dashboard_data.js", "dashboard_context.js"):
+        if not (ROOT / f).exists():
+            pytest.skip(f"MISSING DATA: no published {f}")
+    d = tmp_path_factory.mktemp("printed")
+    (d / "index.html").write_text(gd.generate_html(methodology_html="<p>m</p>", data_timestamp="t",
+                                                   data_version="v"), encoding="utf-8")
+    for f in ("dashboard_data.js", "dashboard_context.js"):
+        shutil.copy(ROOT / f, d / f)
+    pg = browser.new_page(viewport={"width": 1440, "height": 1000})
+    errors: list[str] = []
+    pg.on("pageerror", lambda e: errors.append(str(e)))
+    pg.goto((d / "index.html").as_uri(), wait_until="load", timeout=60000)
+    pg.wait_for_function("typeof renderContribVisual === 'function' && typeof D !== 'undefined' && "
+                         "window.SCREENER_CONTEXT !== undefined && D.track !== undefined", timeout=60000)
+    yield pg
+    pg.close()
+    assert not errors, errors
+
+
+def _text(h: str) -> str:
+    """What a reader sees of an HTML fragment: tags dropped, entities decoded, spaces collapsed."""
+    return re.sub(r"\s+", " ", htmllib.unescape(re.sub(r"<[^>]+>", " ", h))).strip()
+
+
+def _jsround(x: float) -> int:
+    """JavaScript's Math.round (half up), not Python's half-even."""
+    return math.floor(x + 0.5)
+
+
+def _ordinal(n: int) -> str:
+    v = n % 100
+    return f"{n}{'th' if 11 <= v <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+# ---------------------------------------------------------------------------
+# drilldown.composite_chain - "Category points add up to X", the discount line, the composite
+# ---------------------------------------------------------------------------
+_CHAIN_JS = """(stocks) => { const C = %s; const out = {};
+    for (const t of stocks) { renderContribVisual(D.stock_detail[t], C);
+        out[t] = document.getElementById('contrib-total').innerHTML; }
+    return out; }""" % json.dumps(CATS)
+
+_TOTAL = re.compile(r"Category points add up to " + NUM)
+_DISC = re.compile(r"Coverage discount — values for (\d+) of (\d+) applicable metrics \((\d+)%\), below the "
+                   r"(\d+)% threshold, so the composite is reduced by " + NUM + r"% −" + NUM)
+_COMPOSITE = re.compile(r"Composite Score: " + NUM + r" / 100")
+
+
+def _chain(page, tickers) -> dict:
+    return {t: _text(h) for t, h in page.evaluate(_CHAIN_JS, list(tickers)).items()}
+
+
+def test_every_drilldown_prints_the_published_composite_and_the_chain_to_it(page, data, cfg):
+    """For every stock: the total is the sum of its category points, the composite is the engine's
+    (``table_data``), and the discount line - present exactly when a discount applied - prints the
+    coverage counts, the configured threshold, the engine's rate for that coverage and the cut that
+    takes the total to the composite."""
+    cd = cfg["data_quality"]["coverage_discount"]
+    published = {r["Ticker"]: r["Composite"] for r in data["table_data"]}
+    sd = data["stock_detail"]
+    tickers = [t for t in sd if t in published and published[t] is not None]
+    assert len(tickers) >= 400, f"only {len(tickers)} scored stocks to read - not a normal run"
+    printed = _chain(page, tickers)
+    problems, discounted = [], 0
+    for t in tickers:
+        s, txt, comp = sd[t], printed[t], published[t]
+        m_total, m_comp = _TOTAL.search(txt), _COMPOSITE.search(txt)
+        if not (m_total and m_comp):
+            problems.append(f"{t}: chain unreadable: {txt!r}")
+            continue
+        total, shown = float(m_total.group(1)), float(m_comp.group(1))
+        pts = sum(v for v in s["contrib"].values() if v is not None)
+        if abs(total - pts) > 0.05 + 1e-6:
+            problems.append(f"{t}: total {total} is not the category points' sum {pts:.3f}")
+        if abs(shown - comp) > 0.05 + 1e-6:
+            problems.append(f"{t}: composite printed {shown}, the engine's is {comp}")
+        cov = s.get("cov") or {}
+        disc = cov.get("disc") or 0
+        m_disc = _DISC.search(txt)
+        if (m_disc is not None) != (disc > 0):
+            problems.append(f"{t}: discount line {'present' if m_disc else 'absent'} with disc={disc}")
+            continue
+        if not disc:
+            # no discount: the points and the composite are one figure, to the payload's rounding
+            if abs(total - comp) > 0.1:
+                problems.append(f"{t}: undiscounted, yet total {total} differs from composite {comp}")
+            continue
+        discounted += 1
+        n, of, cpct, thr, rate, cut = m_disc.groups()
+        n, of = int(n), int(of)
+        if (n, of) != (cov["n"], cov["of"]):
+            problems.append(f"{t}: printed {n} of {of}, payload {cov['n']} of {cov['of']}")
+        if int(cpct) != _jsround(cov["n"] / cov["of"] * 100):
+            problems.append(f"{t}: coverage printed {cpct}%, is {cov['n'] / cov['of']:.2%}")
+        if int(thr) != _jsround(cd["threshold"] * 100):
+            problems.append(f"{t}: threshold printed {thr}%, configured {cd['threshold']}")
+        engine_rate = cd["penalty_rate"] * (cd["threshold"] - cov["n"] / cov["of"])
+        if abs(float(rate) - engine_rate * 100) > 0.05 + 1e-4:
+            problems.append(f"{t}: rate printed {rate}%, the configured rule gives {engine_rate:.4%}")
+        if abs(float(cut) - (pts - comp)) > 0.05 + 1e-6:
+            problems.append(f"{t}: cut printed {cut}, points {pts:.2f} - composite {comp}")
+        if abs(pts * (1 - engine_rate) - comp) > 0.06:
+            problems.append(f"{t}: points x (1 - rate) = {pts * (1 - engine_rate):.2f}, composite {comp}")
+    assert not problems, f"{len(problems)} problems ({discounted} discounted stocks):\n" + "\n".join(problems[:30])
+
+
+def _fixture_stock(page, ticker_like: str, patch: str) -> str:
+    """Render the chain for a copy of a published stock with ``patch`` (JS on ``s``) applied, under a
+    temporarily replaced ``D.weights.coverage_discount``; the page's own state is restored."""
+    return page.evaluate("""([t, patch, C]) => { const keep = D.weights.coverage_discount;
+        try { const s = structuredClone(D.stock_detail[t]); (new Function('s', 'D', patch))(s, D);
+              renderContribVisual(s, C);
+              return document.getElementById('contrib-total').innerHTML; }
+        finally { D.weights.coverage_discount = keep; } }""", [ticker_like, patch, CATS])
+
+
+def _any_ticker(data) -> str:
+    return next(iter(data["stock_detail"]))
+
+
+def test_the_discount_line_prints_a_hand_worked_case(page, data):
+    """A branch today's data may not take, worked by hand: points 10 + 12.5 + 7.25 + 8 + 4.25 + 5
+    + 2 + 1 = 50.00; 18 of 25 metrics is 72%; a threshold of 85% at rate 0.2 cuts 0.2 x 0.13 = 2.6%,
+    so the composite is 48.70 and the cut 1.30. The threshold is set to 85% here so a page that
+    printed a fixed 80 instead of the configured figure is caught."""
+    patch = """s.contrib = {valuation: 10, quality: 12.5, growth: 7.25, momentum: 8, risk: 4.25,
+                            revisions: 5, size: 2, investment: 1};
+               Object.keys(s.contrib).forEach(c => { s.cat_scores[c] = 50; });
+               s.cov = {n: 18, of: 25, disc: 0.026}; s.composite = 48.7;
+               D.weights.coverage_discount = {enabled: true, threshold: 0.85, rate: 0.2};"""
+    txt = _text(_fixture_stock(page, _any_ticker(data), patch))
+    assert "Category points add up to 50.0" in txt, txt
+    assert ("Coverage discount — values for 18 of 25 applicable metrics (72%), below the 85% threshold, "
+            "so the composite is reduced by 2.6% −1.3") in txt, txt
+    assert "Composite Score: 48.7 / 100" in txt, txt
+
+
+def test_an_undiscounted_chain_prints_no_discount_line(page, data):
+    patch = """s.contrib = {valuation: 10, quality: 12.5, growth: 7.25, momentum: 8, risk: 4.25,
+                            revisions: 5, size: 2, investment: 1};
+               Object.keys(s.contrib).forEach(c => { s.cat_scores[c] = 50; });
+               s.cov = {n: 25, of: 25}; s.composite = 50;"""
+    txt = _text(_fixture_stock(page, _any_ticker(data), patch))
+    assert txt.startswith("Category points add up to 50.0") or "Category points add up to 50.0" in txt, txt
+    assert "Coverage discount" not in txt and "Composite Score: 50.0 / 100" in txt, txt
+
+
+# ---------------------------------------------------------------------------
+# drilldown.peer_rank - "Ranked Nth of M in <sector>; sector median ...; That is the Pth percentile."
+# ---------------------------------------------------------------------------
+_RANK_JS = """() => { const out = {}; const L = Object.keys(D.lineage || {});
+    for (const t of Object.keys(D.stock_detail)) { const s = D.stock_detail[t]; out[t] = {};
+        for (const m of L) { if (s.raw[m] == null || s.pct[m] == null) continue;
+            const h = metricDetailHtml(m, s, null);
+            const k = h.indexOf('<span class="wk-k">Rank</span>');
+            if (k < 0) { out[t][m] = null; continue; }
+            const e = h.indexOf('</div></div>', k);
+            out[t][m] = h.slice(k, e); } }
+    return out; }"""
+_RANK = re.compile(r"Rank Ranked (\d+)(?:st|nd|rd|th) of (\d+) in (.+?), (lower|higher) being better"
+                   r"(?:; sector median (.+?) , middle half (.+?) to (.+?))?\. That is the (\d+(?:st|nd|rd|th)) percentile\.$")
+
+
+def _num_of(printed: str, fmt: str) -> tuple[float, float]:
+    """The value a ``fmtMetric`` printing stands for, in raw units, and half its display step."""
+    if fmt == "pct":
+        return float(printed.rstrip("%")) / 100, 0.0005
+    if fmt == "bp":
+        return float(printed.replace(" bp", "")) / 10000, 0.00005
+    if fmt == "int":
+        return float(printed), 0.5
+    if fmt == "score":
+        return float(printed), 0.05
+    if fmt == "ratio":
+        return float(printed), 0.005
+    return float(printed), 1e-9
+
+
+def test_every_metric_row_prints_its_own_rank_peer_count_and_sector_figures(page, data):
+    """For every stock and every metric row the page can open: the rank is one plus the number of
+    peers with a better value in the engine's direction (``METRIC_DIR``), counted over the sector
+    when it has ``SECTOR_MIN_PEERS`` values and over the universe otherwise; the median and middle
+    half are the sector's own (numpy's linear quartiles of the published raw values); the
+    percentile printed is the stock's published percentile, rounded."""
+    sd = data["stock_detail"]
+    meta = data.get("metric_meta") or {}
+    printed = page.evaluate(_RANK_JS)
+    by_sector: dict[tuple[str, str], list[float]] = {}
+    for s in sd.values():
+        for m, v in (s.get("raw") or {}).items():
+            if v is not None:
+                by_sector.setdefault((s["sector"], m), []).append(v)
+    universe: dict[str, list[float]] = {}
+    for (sec, m), vals in by_sector.items():
+        universe.setdefault(m, []).extend(vals)
+    problems, rows, fallbacks, with_stats = [], 0, 0, 0
+    for t, per in printed.items():
+        s = sd[t]
+        for m, h in per.items():
+            rows += 1
+            if h is None:
+                problems.append(f"{t}/{m}: no Rank line")
+                continue
+            txt = _text(h)
+            g = _RANK.search(txt)
+            if not g:
+                problems.append(f"{t}/{m}: unreadable: {txt!r}")
+                continue
+            rank, n, where, word, med, q1, q3, pctl = g.groups()
+            if m not in METRIC_DIR:
+                problems.append(f"{t}/{m}: the engine has no direction for this metric")
+                continue
+            higher = METRIC_DIR[m]
+            sector_vals = by_sector.get((s["sector"], m), [])
+            fallback = len(sector_vals) < SECTOR_MIN_PEERS
+            peers = universe[m] if fallback else sector_vals
+            mine = s["raw"][m]
+            better = sum(1 for v in peers if (v > mine if higher else v < mine))
+            if (int(rank), int(n)) != (better + 1, len(peers)):
+                problems.append(f"{t}/{m}: printed {rank} of {n}, the rule gives {better + 1} of {len(peers)}")
+            if word != ("higher" if higher else "lower"):
+                problems.append(f"{t}/{m}: says {word} is better, the engine ranks {'higher' if higher else 'lower'}")
+            want_where = (f"the whole universe (fewer than {SECTOR_MIN_PEERS} stocks in {s['sector']} have a value)"
+                          if fallback else s["sector"])
+            if where != want_where:
+                problems.append(f"{t}/{m}: ranked 'in {where}', should be 'in {want_where}'")
+            if pctl != _ordinal(_jsround(s["pct"][m])):
+                problems.append(f"{t}/{m}: printed the {pctl} percentile, published {s['pct'][m]}")
+            if fallback:
+                fallbacks += 1
+                if med is not None:
+                    problems.append(f"{t}/{m}: universe-ranked row prints sector figures")
+                continue
+            if med is None:
+                problems.append(f"{t}/{m}: sector-ranked row prints no sector median")
+                continue
+            with_stats += 1
+            fmt = (meta.get(m) or {}).get("fmt")
+            want = np.percentile(np.array(sector_vals, dtype=float), [25, 50, 75])
+            for label, got, w in (("lower quartile", q1, want[0]), ("median", med, want[1]),
+                                  ("upper quartile", q3, want[2])):
+                v, half = _num_of(got.strip(), fmt)
+                tol = half + 2e-4 + 1e-9 * max(1.0, abs(w))
+                if abs(v - w) > tol and not (fmt not in ("pct", "bp", "int", "score", "ratio")
+                                             and math.isclose(v, w, rel_tol=1e-3, abs_tol=2e-4)):
+                    problems.append(f"{t}/{m}: sector {label} printed {got}, the sector's is {w:.6g}")
+    assert rows > 5000, f"only {rows} metric rows read - the page or the payload has changed shape"
+    assert not problems, (f"{len(problems)} problems in {rows} rows ({fallbacks} universe-ranked, "
+                          f"{with_stats} with sector figures):\n" + "\n".join(problems[:30]))
+
+
+# ---------------------------------------------------------------------------
+# drilldown.unscored_category - the tile's count, the workings' count, the weight shared out
+# ---------------------------------------------------------------------------
+_UNSCORED_JS = """([t, c, patch]) => { const s = structuredClone(D.stock_detail[t]);
+    if (patch) (new Function('s', 'c', patch))(s, c);
+    const w = unscoredWhy(c, s);
+    renderContribVisual(s, %s);
+    const rows = [...document.querySelectorAll('#contrib-visual .contrib-row-na')]
+        .map(r => r.innerHTML);
+    return {short: w.short, long: w.long, metrics: w.metrics, rows: rows}; }""" % json.dumps(CATS)
+
+_SHORT = re.compile(r"^Not scored: (?:none of its (\d+) metrics has data|its one metric has no data)$")
+_LONG = re.compile(r"^(?:None of the (\d+) metrics this category weights for this stock has data in this run "
+                   r"\((.+)\)|Its one weighted metric, (.+), has no data for this stock in this run), so the "
+                   r"category is not scored and its weight is shared across the others\.")
+_SHARED = re.compile(r"Not scored for this stock — its (\d+(?:\.\d)?)% was shared out across the categories below\.")
+
+
+def _weighted(cfg, c: str, s: dict) -> list[str]:
+    table = metric_weight_profiles(cfg, c)[((s.get("wp") or {}).get(c)) or "generic"]
+    return [m for m, w in table.items() if w and w > 0]
+
+
+def _check_unscored(got: dict, cfg, data, t: str, c: str, s: dict) -> list[str]:
+    out = []
+    weighted = _weighted(cfg, c, s)
+    pub = data["weights"]["profiles"][c][((s.get("wp") or {}).get(c)) or "generic"]
+    if sorted(weighted) != sorted(m for m, w in pub.items() if w and w > 0):
+        out.append(f"{t}/{c}: the published profile is not the engine's")
+    n = len(weighted)
+    ms, ml = _SHORT.match(got["short"]), _LONG.match(got["long"])
+    if not ms or not ml:
+        return out + [f"{t}/{c}: unreadable: {got['short']!r} / {got['long']!r}"]
+    if int(ms.group(1) or 1) != n or int(ml.group(1) or 1) != n:
+        out.append(f"{t}/{c}: printed {ms.group(1) or 1} / {ml.group(1) or 1} metrics, the engine weights {n}")
+    named = ml.group(2) or ml.group(3)
+    parts = re.split(r", | and ", named) if ml.group(2) else [named]
+    labels = {((data.get("metric_meta") or {}).get(m) or {}).get("label") or m for m in weighted}
+    if len(parts) != n or set(parts) != labels or got["metrics"] != parts:
+        out.append(f"{t}/{c}: names {parts}, the engine's weighted metrics are {sorted(labels)}")
+    fw = data["weights"]["factor_weights"][c]
+    shared = [_SHARED.search(_text(r)) for r in got["rows"]]
+    shared = [float(x.group(1)) for x in shared if x]
+    if not any(abs(v - fw) <= 0.05 + 1e-9 for v in shared):
+        out.append(f"{t}/{c}: weight shared out printed {shared}, this run's {c} weight is {fw}")
+    return out
+
+
+def test_every_unscored_category_prints_the_engines_count_and_the_runs_weight(page, data, cfg):
+    """For every published stock with an unscored category: the tile's and the workings' counts are
+    the number of metrics carrying weight in the engine's table for this stock
+    (``metric_weight_profiles``), the workings name exactly those, and the contribution row prints
+    this run's weight for the category as the weight shared out."""
+    sd = data["stock_detail"]
+    cases = [(t, c) for t, s in sd.items() for c in CATS if s["cat_scores"].get(c) is None
+             and not ((s.get("flags") or {}).get("px_rejected") and c in ("momentum", "risk"))]
+    problems = []
+    for t, c in cases:
+        got = page.evaluate(_UNSCORED_JS, [t, c, ""])
+        problems += _check_unscored(got, cfg, data, t, c, sd[t])
+    assert not problems, f"{len(problems)} problems in {len(cases)} unscored categories:\n" + "\n".join(problems)
+
+
+@pytest.mark.parametrize("cat", ["growth", "revisions", "quality"])
+def test_an_unscored_category_made_by_hand_prints_the_engines_count(page, data, cfg, cat):
+    """The branch on any day: a copy of a scored stock with every weighted metric of ``cat`` blanked
+    (and the category's score removed, as the engine would) must print the engine's count, names and
+    weight - whether or not the morning's data left any category unscored. Quality runs on a stock's
+    own table (bank, Piotroski-conditional or generic), so the count is not a constant."""
+    sd = data["stock_detail"]
+    t = next((t for t, s in sd.items() if all(s["cat_scores"].get(c) is not None for c in CATS)), None)
+    assert t, "no fully scored stock in the payload"
+    weighted = _weighted(cfg, cat, sd[t])
+    patch = ("s.cat_scores[c] = null; s.contrib[c] = 0; "
+             + "".join(f"s.pct[{json.dumps(m)}] = null; s.raw[{json.dumps(m)}] = null; " for m in weighted))
+    got = page.evaluate(_UNSCORED_JS, [t, cat, patch])
+    probs = _check_unscored(got, cfg, data, t, cat, {**sd[t]})
+    assert not probs, probs
+
+
+# ---------------------------------------------------------------------------
+# context.track_turnover / context.track_luck - the track record panel
+# ---------------------------------------------------------------------------
+_TRACK_JS = """(T) => { const keep = D.track; try { if (T) D.track = T; renderTrack();
+        return document.getElementById('track-body').innerHTML; }
+    finally { D.track = keep; renderTrack(); } }"""
+
+
+def _panel(page, T=None) -> str:
+    return _text(page.evaluate(_TRACK_JS, T))
+
+
+def _binom_tail(k: int, n: int) -> float:
+    return sum(math.comb(n, i) for i in range(k, n + 1)) / 2 ** n
+
+
+def _break_even(T: dict) -> float | None:
+    """The claim's equation, solved here: (1 + top) x prod(1 - 2 c TO_k) = 1 + RSP."""
+    tos = [p["turnover"] for p in T["periods"] if p.get("turnover") is not None]
+    top, rsp = T["total"]["top"], T["total"]["RSP"]
+    if not tos or top <= rsp:
+        return None
+    lo, hi = 0.0, 0.5 / max(tos)
+    for _ in range(200):
+        c = (lo + hi) / 2
+        v = (1 + top) * math.prod(1 - 2 * c * x for x in tos)
+        lo, hi = (c, hi) if v > 1 + rsp else (lo, c)
+    return (lo + hi) / 2
+
+
+def _pct_of(text: str) -> float:
+    return float(text.rstrip("%")) / 100
+
+
+def test_the_track_record_panel_prints_the_records_own_figures(page, track):
+    """The turnover tile and the costs paragraph, the coin-toss share, and the day-by-day lead, read
+    from the panel the page renders and set against the published record: the mean, least and most
+    traded are those of the periods' own turnovers; the coin-toss share is the binomial tail of the
+    periods ahead of RSP; the break-even cost solves the claim's equation on the published totals and
+    turnovers; the years to two are (2 / t)^2 x days / 252 on the published t and days."""
+    T = track
+    txt = _panel(page)
+    problems = []
+    tos = [p["turnover"] for p in T["periods"] if p.get("turnover") is not None]
+    TO = T.get("turnover")
+    if TO:
+        assert tos, "a turnover summary with no period carrying a turnover"
+        m = re.search(r"Traded at each rebalance (\d+(?:\.\d)?%) one way, on average; (\S+%) to (\S+%)", txt)
+        m2 = re.search(r"At each rebalance the top 25 traded (\S+%) of its value on average, one way", txt)
+        if not (m and m2):
+            problems.append(f"turnover unreadable: {txt[:400]!r}")
+        else:
+            mean, lo, hi = (_pct_of(x) for x in m.groups())
+            want = sum(tos) / len(tos)
+            for label, got, w in (("mean", mean, want), ("least", lo, min(tos)), ("most", hi, max(tos)),
+                                  ("paragraph's mean", _pct_of(m2.group(1)), want)):
+                if abs(got - w) > 0.005 + 1e-4:
+                    problems.append(f"turnover {label} printed {got:.4f}, the periods give {w:.4f}")
+        be = _break_even(T)
+        mb = re.search(r"a cost of (\S+%) on every dollar traded would have erased its lead over RSP", txt)
+        if be is None:
+            if mb:
+                problems.append("a break-even cost is printed with no lead over RSP to erase")
+        elif not mb:
+            problems.append(f"no break-even cost printed; the equation gives {be:.5f}")
+        elif abs(_pct_of(mb.group(1)) - be) > 0.00005 + 0.0001:
+            problems.append(f"break-even printed {mb.group(1)}, the equation gives {be:.5%}")
+    beat = sum(1 for p in T["periods"] if p.get("top") is not None and p.get("RSP") is not None
+               and p["top"] > p["RSP"])
+    compared = sum(1 for p in T["periods"] if p.get("top") is not None and p.get("RSP") is not None)
+    mc = re.search(r"Periods ahead of RSP (\d+) of (\d+) a coin toss does at least this well (\d+)% of the time", txt)
+    if (beat, compared) != (T["beat_rsp"], T["periods_compared"]):
+        problems.append(f"the record's {T['beat_rsp']} of {T['periods_compared']} is not its periods' {beat} of {compared}")
+    if not mc:
+        problems.append(f"coin-toss share unreadable: {txt[:600]!r}")
+    else:
+        if (int(mc.group(1)), int(mc.group(2))) != (beat, compared):
+            problems.append(f"printed {mc.group(1)} of {mc.group(2)}, the periods give {beat} of {compared}")
+        if int(mc.group(3)) != _jsround(_binom_tail(beat, compared) * 100):
+            problems.append(f"coin toss printed {mc.group(3)}%, the binomial tail is {_binom_tail(beat, compared):.4f}")
+    X = T.get("excess")
+    if X and X.get("t") is not None:
+        mx = re.search(r"Measured day by day against RSP over (\d+) trading days, the top 25’s lead is (-?\d+\.\d) "
+                       r"standard errors from zero; two is the usual minimum for telling skill from luck"
+                       r"(?:, and even if the lead went on at the same pace it would take about (\d+\.\d) years "
+                       r"of record to get there)?\.", txt)
+        if not mx:
+            problems.append(f"the excess sentence is unreadable: {txt[-2500:]!r}")
+        else:
+            days, t, years = mx.groups()
+            if int(days) != X["days"] or abs(float(t) - X["t"]) > 0.05 + 1e-9:
+                problems.append(f"printed {days} days and t {t}, published {X['days']} and {X['t']}")
+            if X["t"] > 0:
+                f = lambda tt: (2 / tt) ** 2 * X["days"] / 252  # noqa: E731
+                lo_y, hi_y = f(X["t"] + 0.005), f(max(X["t"] - 0.005, 1e-9))
+                if years is None or not (lo_y - 0.05 - 1e-9 <= float(years) <= hi_y + 0.05 + 1e-9):
+                    problems.append(f"years to two printed {years}, (2/t)^2 x days / 252 is "
+                                    f"{lo_y:.2f}..{hi_y:.2f}")
+            elif years is not None:
+                problems.append(f"a lead of t={X['t']} prints years to two ({years}); there is no lead")
+    assert not problems, "\n".join(problems)
+
+
+def _fixture_track(track: dict, **changes) -> dict:
+    T = json.loads(json.dumps(track))
+    for k, v in changes.items():
+        T[k] = v
+    return T
+
+
+def test_the_track_panel_prints_a_hand_worked_record(page, track):
+    """Literal figures, worked by hand, so the printing is checked whatever the record holds:
+    turnovers 20%, 35%, 50% (mean 35%), a break-even cost of 1.23%, 3 of 4 periods ahead of RSP
+    (the tail of 3 or more of 4 fair tosses is 5/16, 31%), and a lead of t = 1.0 over 100 days, whose
+    years to two are 4 x 100 / 252 = 1.6."""
+    T = _fixture_track(track, turnover={"rebalances": 3, "mean": 0.35, "min": 0.2, "max": 0.5,
+                                        "break_even_cost": 0.0123, "traded": 2.1, "basis": "x"},
+                       beat_rsp=3, periods_compared=4, beat_rsp_chance=0.3125,
+                       excess={"days": 100, "t": 1.0, "years_to_two": 1.6})
+    txt = _panel(page, T)
+    for want in ("Traded at each rebalance 35% one way, on average; 20% to 50%",
+                 "Periods ahead of RSP 3 of 4 a coin toss does at least this well 31% of the time",
+                 "At each rebalance the top 25 traded 35% of its value on average, one way; a cost of 1.23% "
+                 "on every dollar traded would have erased its lead over RSP.",
+                 "Measured day by day against RSP over 100 trading days, the top 25’s lead is 1.0 standard "
+                 "errors from zero; two is the usual minimum for telling skill from luck, and even if the lead "
+                 "went on at the same pace it would take about 1.6 years of record to get there."):
+        assert want in txt, (want, txt)
+
+
+def test_the_track_panel_drops_the_clauses_it_has_no_figure_for(page, track):
+    """No lead to erase: no break-even clause. No positive lead: no years clause. No turnover: the
+    costs sentence alone."""
+    T = _fixture_track(track, turnover={"rebalances": 3, "mean": 0.35, "min": 0.2, "max": 0.5,
+                                        "break_even_cost": None, "traded": 2.1, "basis": "x"},
+                       excess={"days": 100, "t": -0.4, "years_to_two": None})
+    txt = _panel(page, T)
+    assert "At each rebalance the top 25 traded 35% of its value on average, one way. " in txt, txt
+    assert "a cost of" not in txt and "years of record" not in txt, txt
+    assert "lead is -0.4 standard errors from zero; two is the usual minimum for telling skill from luck. " in txt, txt
+    txt = _panel(page, _fixture_track(track, turnover=None))
+    assert "Traded at each rebalance" not in txt and "No trading costs or taxes are deducted. " in txt, txt
+    assert "At each rebalance the top 25 traded" not in txt, txt
+
+
+def test_an_unscored_category_gives_up_this_runs_weight_not_the_default(page, data, cfg):
+    """In the momentum panic state the run scores Momentum at 13 x 0.70 = 9.1% and splits the freed
+    3.9 points between Quality and Valuation (22 + 1.95 = 23.95 each). A stock whose Momentum is
+    unscored gives up the 9.1% it would have carried that run, so the row must say 9.1%, not the
+    configured 13%. Worked by hand on a copy of the weights; the page's own are restored."""
+    sd = data["stock_detail"]
+    t = next((t for t, s in sd.items() if all(s["cat_scores"].get(c) is not None for c in CATS)), None)
+    assert t, "no fully scored stock in the payload"
+    weighted = _weighted(cfg, "momentum", sd[t])
+    patch = ("s.cat_scores[c] = null; s.contrib[c] = 0; "
+             + "".join(f"s.pct[{json.dumps(m)}] = null; s.raw[{json.dumps(m)}] = null; " for m in weighted))
+    rows = page.evaluate("""([t, patch, C]) => { const keep = D.weights.factor_weights;
+        try { D.weights.factor_weights = Object.assign({}, keep, {momentum: 9.1, quality: 23.95, valuation: 23.95});
+              const s = structuredClone(D.stock_detail[t]); (new Function('s', 'c', patch))(s, 'momentum');
+              renderContribVisual(s, C);
+              return [...document.querySelectorAll('#contrib-visual .contrib-row-na')].map(r => r.innerHTML); }
+        finally { D.weights.factor_weights = keep; } }""", [t, patch, CATS])
+    texts = [_text(r) for r in rows]
+    assert any("Not scored for this stock — its 9.1% was shared out across the categories below." in x
+               for x in texts), texts
+
+
+_PEER_FIXTURE_JS = """([k, m, st, probe]) => { const added = [];
+    const keepStats = D.sector_stats['Fixture Sector'];
+    try { for (let i = 1; i <= k; i++) { const t = '__FX' + i; added.push(t);
+              D.stock_detail[t] = {sector: 'Fixture Sector', raw: {[m]: i / 100}, pct: {[m]: i * 10}}; }
+          if (st) D.sector_stats['Fixture Sector'] = {[m]: st};
+          return metricDetailHtml(m, D.stock_detail['__FX' + probe], null); }
+    finally { added.forEach(t => delete D.stock_detail[t]);
+              if (keepStats === undefined) delete D.sector_stats['Fixture Sector'];
+              else D.sector_stats['Fixture Sector'] = keepStats; } }"""
+
+
+def _fixture_rank(page, k, st, probe=4, m="roic") -> str:
+    h = page.evaluate(_PEER_FIXTURE_JS, [k, m, st, probe])
+    i = h.index('<span class="wk-k">Rank</span>')
+    return _text(h[i:h.index("</div></div>", i)])
+
+
+def test_a_sector_with_exactly_the_minimum_prints_its_own_rank_and_figures(page, data):
+    """Branches today's data does not take (every sector has well over ten values for every metric):
+    ten fixture stocks with ROIC 1%..10% form a sector of exactly ``SECTOR_MIN_PEERS``, so it is
+    ranked within itself. The stock at 4% has six better, so it is 7th of 10; the sector figures are
+    the published ones (set here to 3.0%, 5.5% and 8.0%); its percentile is the published 40."""
+    assert SECTOR_MIN_PEERS == 10 and data["sector_min_peers"] == 10
+    assert (data["metric_meta"].get("roic") or {}).get("fmt") == "pct" and METRIC_DIR["roic"] is True
+    txt = _fixture_rank(page, 10, [10, 0.03, 0.055, 0.08])
+    assert txt == ("Rank Ranked 7th of 10 in Fixture Sector, higher being better; sector median 5.5% , "
+                   "middle half 3.0% to 8.0%. That is the 40th percentile."), txt
+
+
+def test_a_sector_below_the_minimum_prints_the_universe_rank(page, data):
+    """Nine fixture stocks: below the minimum, so the stock is ranked against the whole universe -
+    every published ROIC plus the nine - with no sector figures, and the sentence says why."""
+    vals = [s["raw"]["roic"] for s in data["stock_detail"].values() if s["raw"].get("roic") is not None]
+    assert len(vals) > 100, "the payload carries too few ROIC values to rank against"
+    better = sum(1 for v in vals if v > 0.04) + 5            # 5%..9% among the nine
+    txt = _fixture_rank(page, 9, [9, 0.03, 0.05, 0.07])
+    assert txt == (f"Rank Ranked {_ordinal(better + 1)} of {len(vals) + 9} in the whole universe (fewer than 10 "
+                   "stocks in Fixture Sector have a value), higher being better. That is the 40th percentile."), txt
+
+
+@pytest.mark.parametrize("n,word", [(11, "11th"), (12, "12th"), (13, "13th"), (21, "21st"), (22, "22nd"),
+                                    (23, "23rd"), (111, "111th"), (101, "101st")])
+def test_the_ordinals_the_rank_sentence_prints(page, n, word):
+    assert page.evaluate("n => ordinal(n)", n) == word

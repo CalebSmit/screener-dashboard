@@ -1262,25 +1262,25 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '${f.short_ratio.toFixed(1)} days to cover':
         "open:short-ratio - nothing reads the page's printing",
     '${CAT_LABELS[c]} no data Not scored for this stock - its ${fmtWeight(base[c] || 0)} was shared out across the categories below.':
-        "open:unscored-weight-shared - drilldown.unscored_category reads the note's words, not the weight",
+        'claim:drilldown.unscored_category',
     'Category points add up to ${runningTotal.toFixed(1)}':
-        "open:composite-chain-total - drilldown.composite_chain's page check asserts the words only",
+        'claim:drilldown.composite_chain',
     'Coverage discount - values for ${cov.n} of ${cov.of} applicable metrics (${covPct}%), below the ${cd ? Math.round(cd.threshold * 100) : 80}% threshold, so the composite is reduced by ${(disc * 100).toFixed(1)}% &minus;${(runningTotal - composite).toFixed(1)}':
-        "open:composite-chain-discount-line - n, of, the coverage, the threshold, the rate and the cut; drilldown.composite_chain's page check asserts the words only",
+        'claim:drilldown.composite_chain',
     'none of its ${n} metrics has data':
-        "open:unscored-tile-count - the count is a \\d+ wildcard in drilldown.unscored_category's check",
+        'claim:drilldown.unscored_category',
     'None of the ${n} metrics this category weights for this stock has data in this run (${listed(names)})${shared}':
-        "open:unscored-workings-count - nothing reads the page's printing",
+        'claim:drilldown.unscored_category',
     'Configured ${fmtWeight(r.configured)} of this weighting; ${fmtWeight(r.share)} of this score after rescaling to the metrics that have data.':
         'open:metric-weight-rescaled-line - drilldown.metric_weights reads the weight column, not this line',
     'Configured ${fmtWeight(r.configured)}; no data for this stock, so it carries no weight here.':
         "open:metric-weight-no-data-line - nothing reads the page's printing",
     "Ranked ${ordinal(pc0.rank)} of ${pc0.n} in ${where}, ${pc0.lower ? 'lower' : 'higher'} being better":
-        "open:peer-rank-sentence - drilldown.peer_rank's checks are on the payload and the engine",
+        'claim:drilldown.peer_rank',
     '; sector median ${fmtMetric(pc0.st[2], meta.fmt)} , middle half ${fmtMetric(pc0.st[1], meta.fmt)} to ${fmtMetric(pc0.st[3], meta.fmt)}':
-        "open:peer-sector-stats - nothing reads the page's printing",
+        'claim:drilldown.peer_rank',
     'That is the ${ordinal(Math.round(pctv0))} percentile.':
-        "open:peer-percentile-ordinal - nothing reads the page's printing",
+        'claim:drilldown.peer_rank',
     '${r.pct.toFixed(2)} percentile &times; ${fmtWeight(r.share)} weight = ${r.points.toFixed(2)} points toward the category score':
         "open:metric-points-equation - nothing reads the page's printing",
     "${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}":
@@ -1320,9 +1320,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "Rate moves explained ${cPlain(c.rr2, 0)} of its daily swings${(c.rr2 < 0.05 ? ', very little, so read the figure loosely' : '')}.":
         'open:rate-share-explained - context.rate_sensitivity checks the squared correlation, not its printing',
     'a coin toss does at least this well ${chance}% of the time':
-        'open:track-coin-toss-share - the panel check asserts the words; the share is pinned only in track_record.py',
+        'claim:context.track_luck',
     'one way, on average; ${cPlain(TO.min, 0)} to ${cPlain(TO.max, 0)}':
-        "open:track-turnover-range - nothing reads the page's printing",
+        'claim:context.track_turnover',
     'Every holding period (${T.periods.length})':
         "open:track-period-count - nothing reads the page's printing",
     "${(T.unpriced[k].length)} of the ${picks[k]} picks in the ${({ top: 'top-25', q1: 'top-fifth', q5: 'bottom-fifth' })[k]} baskets":
@@ -1330,15 +1330,15 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${(X && X.t !== null && X.t !== undefined ? 'Measured day by day against RSP over ' + X.days + ' trading days, the top 25&rsquo;s lead is ' + Number(X.t).toFixed(1) + ' standard errors from zero; two is the usual minimum for telling skill from luck' + (X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '') + '. ' : '')}The methodology changelog has entries on ${(T.methodology_changes || []).length} dates inside this window (the ticks under the chart); not every entry changed how stocks are scored.":
         "open:track-changelog-entries - nothing reads the page's printing",
     "${(TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' + (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. ' : 'No trading costs or taxes are deducted. ')}${((T.days || 0) < 365 ? 'No return here is annualised, because none covers a full year. ' : '')}This record is not used to set the methodology.":
-        'open:track-costs-paragraph - context.track_turnover checks the engine, not this printing',
+        'claim:context.track_turnover',
     "Measured day by day against RSP over ${X.days} trading days, the top 25&rsquo;s lead is ${Number(X.t).toFixed(1)} standard errors from zero; two is the usual minimum for telling skill from luck${(X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '')}.":
-        'open:track-excess-days-and-years - t is pinned (tile test, |t| < 2 only); the days and the years clause are not',
+        'claim:context.track_luck',
     ', and even if the lead went on at the same pace it would take about ${Number(X.years_to_two).toFixed(1)} years of record to get there':
-        "open:track-years-to-two-printing - the engine's figure is pinned, its printing is not",
+        'claim:context.track_luck',
     "At each rebalance the top 25 traded ${cPlain(TO.mean, 0)} of its value on average, one way${(TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '')}.":
-        'open:track-turnover-mean - context.track_turnover checks the engine, not this printing',
+        'claim:context.track_turnover',
     '; a cost of ${cPlain(TO.break_even_cost, 2)} on every dollar traded would have erased its lead over RSP':
-        'open:track-break-even-cost - context.track_turnover checks the engine, not this printing',
+        'claim:context.track_turnover',
     '${a} report within 7 days of this run · ${b} within 14':
         "open:reporting-soon-counts - nothing reads the page's printing",
     '${Math.abs(X.t).toFixed(1)} standard errors, where two is the usual bar':
@@ -1389,8 +1389,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'case-against-insider-purchases',
     'case-against-purchases-figure',
     'compare-gap-sentence',
-    'composite-chain-discount-line',
-    'composite-chain-total',
     'distribution-dot-count',
     'distribution-range',
     'drilldown-distribution-caption',
@@ -1420,9 +1418,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'movers-tile-counts',
     'ni-growth-yoy',
     'noise-band-pairs',
-    'peer-percentile-ordinal',
-    'peer-rank-sentence',
-    'peer-sector-stats',
     'piotroski-parts-line',
     'piotroski-signals-line',
     'price-target-strip',
@@ -1444,20 +1439,10 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'surprise-change-line',
     'surprise-median-line',
     'surprise-quarter-count',
-    'track-break-even-cost',
     'track-changelog-entries',
-    'track-coin-toss-share',
-    'track-costs-paragraph',
-    'track-excess-days-and-years',
     'track-period-count',
-    'track-turnover-mean',
-    'track-turnover-range',
     'track-unpriced-picks',
-    'track-years-to-two-printing',
     'trap-share-kpi',
-    'unscored-tile-count',
-    'unscored-weight-shared',
-    'unscored-workings-count',
     'valuation-history-above',
     'valuation-history-reading',
     'value-trap-sector-rate',

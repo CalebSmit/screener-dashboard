@@ -549,6 +549,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_browser.py::test_composite_chain_sums_for_a_discounted_stock",
             "tests/test_claims_register.py::test_the_engine_applies_the_discount_the_page_states",
             "tests/test_calculation_reproducibility.py::test_points_that_miss_by_more_than_rounding_are_caught",
+            "tests/test_dashboard_printed_figures.py::test_every_drilldown_prints_the_published_composite_and_the_chain_to_it",
+            "tests/test_dashboard_printed_figures.py::test_the_discount_line_prints_a_hand_worked_case",
+            "tests/test_dashboard_printed_figures.py::test_an_undiscounted_chain_prints_no_discount_line",
         ),
     ),
     Claim(
@@ -1048,6 +1051,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_sheet_round_three.py::test_the_price_history_categories_are_built_only_from_the_price_history",
             "tests/test_sheet_round_three.py::test_the_rejection_reason_is_published_and_never_scored",
             "tests/test_sheet_round_three.py::test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history",
+            "tests/test_dashboard_printed_figures.py::test_every_unscored_category_prints_the_engines_count_and_the_runs_weight",
+            "tests/test_dashboard_printed_figures.py::test_an_unscored_category_made_by_hand_prints_the_engines_count",
+            "tests/test_dashboard_printed_figures.py::test_an_unscored_category_gives_up_this_runs_weight_not_the_default",
         ),
     ),
     Claim(
@@ -1377,6 +1383,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_the_periods_are_not_called_monthly_and_their_count_is_set_against_chance",
             "tests/test_track_record_claims.py::test_the_years_to_two_are_counted_in_years_of_252_trading_days",
             "tests/test_page_fourth_pass.py::test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure",
+            "tests/test_dashboard_printed_figures.py::test_the_track_record_panel_prints_the_records_own_figures",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_prints_a_hand_worked_record",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_drops_the_clauses_it_has_no_figure_for",
         ),
         caveat=(
             "Since 2026-10-27 the page's Track record tile repeats the same figure under the headline return "
@@ -1403,6 +1412,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_turnover_is_the_share_of_the_basket_sold",
             "tests/test_track_record_claims.py::test_turnover_in_the_record_counts_the_drift_by_hand",
             "tests/test_track_record_claims.py::test_the_break_even_cost_erases_the_lead_exactly",
+            "tests/test_dashboard_printed_figures.py::test_the_track_record_panel_prints_the_records_own_figures",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_prints_a_hand_worked_record",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_drops_the_clauses_it_has_no_figure_for",
         ),
         caveat=(
             "Fixed 2026-10-19 (plan/context-layer.md item 6): until then the panel said only 'no trading costs'. A pick held at its last price after its "
@@ -1751,6 +1763,10 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_metric_lineage.py::test_percentiles_reproduce_from_the_published_peer_values",
             "tests/test_metric_lineage.py::test_sector_stats_agree_with_the_raw_values",
             "tests/test_methodology_claims_audit.py::test_a_sector_with_exactly_the_minimum_is_ranked_within_itself",
+            "tests/test_dashboard_printed_figures.py::test_every_metric_row_prints_its_own_rank_peer_count_and_sector_figures",
+            "tests/test_dashboard_printed_figures.py::test_a_sector_with_exactly_the_minimum_prints_its_own_rank_and_figures",
+            "tests/test_dashboard_printed_figures.py::test_a_sector_below_the_minimum_prints_the_universe_rank",
+            "tests/test_dashboard_printed_figures.py::test_the_ordinals_the_rank_sentence_prints",
         ),
     ),
     Claim(
