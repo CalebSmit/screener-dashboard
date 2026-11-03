@@ -335,7 +335,13 @@ class TestCommandLine:
         # An end-to-end check that the git plumbing works: this repo has run
         # both loops today, so both must show a heartbeat.
         payload = json.loads(self._run("--json").stdout)
+        # Only the firing rows. A "did it do its job" row can legitimately be empty for 14 days -
+        # a fortnight's lapsed login, or a fortnight of refused publishes - and the session or run
+        # that ends the streak writes its heartbeat only *after* its gates, so asserting it here
+        # would make the fix fail the very gate it has to pass (2026-11-02).
         for loop in payload["loops"]:
+            if loop["key"] not in clh.FIRING_KEYS:
+                continue
             assert loop["last_heartbeat"] is not None, (
                 f"{loop['key']} found no heartbeat in real history - the "
                 "subject patterns or the git ref resolution have drifted"
