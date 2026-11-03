@@ -109,11 +109,15 @@ def test_a_healthy_session_is_not_called_dead_by_the_previous_verdict_in_its_own
     assert "DID NOT RUN" not in got
 
 
-def test_the_marker_is_the_runners_error_line_not_the_phrase_anywhere(tmp_path, monkeypatch):
-    """A real failure is still caught when the echo sits in the same log.
+def test_a_real_marker_still_fires_when_the_echo_sits_in_the_same_log(tmp_path, monkeypatch):
+    """A guard against the fix swinging the other way, NOT a detector of the echo defect.
 
-    The echo is the normal state of a failed session's successor, so the two must be
-    distinguishable *together*, not just apart.
+    Named for what it does, because the first name claimed more than the body delivers and
+    `research/measurements/2026-11-03-health-echo-mutations.py` measured it: with the fix
+    reverted this test still passes, since the substring match happens to reach the right
+    verdict when a genuine marker is present too. Its value is the opposite direction - a
+    narrower pattern could have stopped seeing real failures, and this is what says it does
+    not. (2026-10-25's lesson: a test's name is read far more often than its body.)
     """
     monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
     _log(tmp_path, "nightly-a.log",
@@ -130,7 +134,12 @@ def test_the_marker_is_the_runners_error_line_not_the_phrase_anywhere(tmp_path, 
 
 
 def test_the_reason_is_never_empty_when_the_verdict_is_no(tmp_path, monkeypatch):
-    """The empty "()" was the visible symptom; pin it directly."""
+    """Pins the visible symptom - the empty "()" - on a log with no echo in it.
+
+    Measured as a non-detector of the echo defect (the reverted fix passes this too, because
+    without an echo the substring match reads the real marker). It is here so that a future
+    change cannot reintroduce a reasonless verdict by some other route.
+    """
     monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
     _log(tmp_path, "nightly-a.log",
          "[13:04:04] [ERROR] SESSION DID NOT RUN: tree was dirty\n"
