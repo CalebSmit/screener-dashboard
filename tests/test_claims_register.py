@@ -699,10 +699,7 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
     # --- the chart ----------------------------------------------------------
     "{''.join(dots)} {num(-LIM, 2)} {num(-LIM / 2, 2)} 0 {num(LIM / 2, 2)} {num(LIM, 2)} "
     "difference 95% interval pass bar smallest difference the test could reliably detect":
-        "open:chart-axis-and-geometry:2026-10-29 - the axis ticks (+/-LIM and its halves) and, in the same block, the "
-        "dot/band/tick geometry `_pos` puts on that axis. plan/claims-mutation-audit.md names "
-        "`_pos`: a sign error would put every dot on the wrong side of zero with every printed "
-        "number still correct",
+        "claim:research.chart_geometry",
 
     # --- the positive control ----------------------------------------------
     "Fed the filings as they stand today for every past month - information nobody had at the "
@@ -794,15 +791,14 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 # percentages), five after 2026-10-31 13:00 (the whole "best backtest" section,
 # `claim:research.overfitting_reading`), three after 2026-11-02 evening (the pass
 # bar printed twice, `claim:research.pass_bar`) and one after it (the Size sentence,
-# `claim:research.size_sentence`), by the slug in their verdict.
+# `claim:research.size_sentence`), and none after the chart's geometry
+# (`claim:research.chart_geometry`) the same evening - by the slug in their verdict.
 # **Literals, not a comprehension over the table** -
 # `frozenset(s for s, v in ... if v.startswith("open:"))` is the table compared
 # with itself and passes at any value (`plan/claims-mutation-audit.md` row 59).
 # This set only ever shrinks: closing one means deleting its slug and giving the
 # sentence a claim. A session that has to add one says why in `NIGHTLY_LOG.md`.
-KNOWN_OPEN: frozenset[str] = frozenset({
-    "chart-axis-and-geometry",
-})
+KNOWN_OPEN: frozenset[str] = frozenset()
 
 
 def test_every_computed_sentence_on_the_research_page_has_a_verdict():

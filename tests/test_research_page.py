@@ -770,6 +770,122 @@ def test_the_page_prints_the_coverage_relation_of_the_committed_files():
     assert want in page
 
 
+CHART_ROW = re.compile(
+    r'<div class="track" role="img" aria-label="[^"]*: ([^,"]+), t ([^,"]+), (inside|beyond) the pass bar">'
+    r'(.*?)</div><div class="dot-val num">(\S+) <span class="t">t ([^<]+)</span>')
+SPAN = re.compile(r'<span class="(see|tick|ci|dot)" style="left:([\d.]+)%(?:;width:([\d.]+)%)?"></span>')
+AXIS = re.compile(r'<div class="axis"><div></div><div class="ticks">((?:<span>[^<]*</span>)+)</div>')
+
+
+def _f(s: str) -> float:
+    return float(s.replace("−", "-").replace("&minus;", "-"))
+
+
+def _chart(page: str):
+    """The axis labels as numbers, and per row: (printed mean, printed t, word, {kind: [(left, width)]})."""
+    labels = [_f(x) for x in re.findall(r"<span>([^<]*)</span>", AXIS.search(page).group(1))]
+    rows = []
+    for m in CHART_ROW.finditer(page):
+        spans: dict = {}
+        for kind, left, width in SPAN.findall(m.group(4)):
+            spans.setdefault(kind, []).append((float(left), float(width) if width else None))
+        rows.append((_f(m.group(5)), _f(m.group(6)), m.group(3), spans, (_f(m.group(1)), _f(m.group(2)))))
+    return labels, rows
+
+
+def test_the_chart_puts_every_mark_where_its_printed_numbers_and_the_axis_say():
+    """Claim ``research.chart_geometry`` (audit row `chart-axis-and-geometry`). Read off the page
+    alone - never from `_pos` or `LIM` - every row's marks must sit where the axis it is drawn on
+    says its own printed numbers belong:
+
+    * the axis reads -L, -L/2, 0, +L/2, +L left to right, evenly spaced, so a value v belongs at
+      (v + L) / 2L of the track;
+    * the dot is at its printed mean on that scale (to the printing's 0.0005), on the side of zero
+      its sign says;
+    * the two pass-bar ticks, the detectable band and the 95% interval are symmetric - the ticks
+      and band about zero, the interval about the dot - and the interval contains the dot;
+    * the word in the row's label ("inside" / "beyond" the pass bar) is what the picture shows:
+      the dot between the ticks, or outside them;
+    * the label's figures are the row's printed figures, and nothing is drawn off the track.
+
+    A sign error in `_pos` mirrors every dot with every printed number still right - the reason
+    this row was opened."""
+    reg, latest = X.load_registry(), _latest()
+    summary = X.summary_for_page(reg, latest)
+    _check_chart(rp.build(reg, latest, summary, X.detectable, X.load_evaluations()), summary)
+
+
+def test_the_word_and_the_picture_agree_between_the_two_bars():
+    """The real ledger has no row whose |t| falls between the 95% line (about 1.99) and the pass
+    bar (about 3.2), so a word judged against the wrong one of the two would pass on it. The Size
+    row is put there and past the bar, with its mean set to t x its own standard error so its
+    picture is consistent: at t 2.5 it must read "inside" and sit between the ticks; at 3.6,
+    "beyond" and outside them."""
+    reg, latest = X.load_registry(), _latest()
+    summary = X.summary_for_page(reg, latest)
+    se = latest["only-size"]["summary"]["presample"]["ic_vs_baseline"]["se"]
+    for t, word in ((2.5, "inside"), (3.6, "beyond")):
+        page = rp.build(reg, _size_on_top(latest, round(t * se, 6), t), summary, X.detectable,
+                        X.load_evaluations())
+        rows = _check_chart(page, summary)
+        assert any(r[2] == word and abs(r[1] - round(t, 1)) < 1e-9 for r in rows), (t, word)
+
+
+def _check_chart(page: str, summary: dict):
+    labels, rows = _chart(page)
+    assert len(labels) == 5 and labels[2] == 0
+    L = labels[-1]
+    assert L > 0 and labels == [-L, -L / 2, 0, L / 2, L]
+    assert len(rows) >= 20, "the chart's rows stopped matching - fix the reader, do not trim it"
+    months = int(BAR_RULE.search(page).group(2))
+    where = lambda v: max(0.0, min(100.0, (v + L) / (2 * L) * 100))  # noqa: E731
+    slack = 0.0005 / (2 * L) * 100 + 0.01                             # printing to 3dp, layout to 2dp
+    for mean, t, word, sp, aria in rows:
+        assert aria == (mean, round(t, 1)) or aria == (mean, t), (aria, mean, t)
+        (dot, _), = sp["dot"]
+        assert abs(dot - where(mean)) <= slack, (mean, dot)
+        if mean > 0.0005:
+            assert dot > 50, mean
+        if mean < -0.0005:
+            assert dot < 50, mean
+        (t1, _), (t2, _) = sorted(sp["tick"])
+        assert abs(t1 + t2 - 100) <= 0.02 and t1 <= 50 <= t2
+        (see_l, see_w), = sp["see"]
+        assert abs(see_l + see_w / 2 - 50) <= 0.02
+        (ci_l, ci_w), = sp["ci"]
+        assert ci_l - 0.01 <= dot <= ci_l + ci_w + 0.01
+        if 0 < ci_l and ci_l + ci_w < 100:
+            assert abs(ci_l + ci_w / 2 - dot) <= 0.02, (mean, ci_l, ci_w, dot)
+        outside = abs(dot - 50) >= abs(t2 - 50)
+        if abs(abs(dot - 50) - abs(t2 - 50)) > slack:                # not on the tick itself
+            assert outside == (word == "beyond"), (mean, t, word, dot, t1, t2)
+        # the interval is the 95% one on Student's t and the ticks the pass bar, both x the same
+        # standard error, so their half-widths stand in the ratio of the two critical values
+        if 0 < ci_l and ci_l + ci_w < 100 and t2 - 50 > 1:
+            ratio = (ci_w / 2) / (t2 - 50)
+            want = X.t_critical(0.05, months - 1) / X.pass_bar(summary["registered"], months)
+            assert abs(ratio / want - 1) < 0.02, (mean, ratio, want)
+        for kind, marks in sp.items():
+            for left, width in marks:
+                assert 0 <= left <= 100 and (width is None or left + width <= 100.001), kind
+    return rows
+
+
+def test_a_mark_past_the_axis_is_drawn_at_its_end_not_off_the_track():
+    """A difference wider than the axis - the Size row moved to +0.0912 against an axis that ends
+    at the page's own last label - is drawn at the track's right end, not past it."""
+    reg, latest = X.load_registry(), _latest()
+    page = rp.build(reg, _size_on_top(latest, 0.0912, 4.0), X.summary_for_page(reg, latest),
+                    X.detectable, X.load_evaluations())
+    labels, rows = _chart(page)
+    assert labels[-1] < 0.0912
+    top = next(r for r in rows if r[0] == 0.091 or r[0] == 0.0912)
+    (dot, _), = top[3]["dot"]
+    assert dot == 100.0
+    (ci_l, ci_w), = top[3]["ci"]
+    assert ci_l + ci_w <= 100.001
+
+
 BASELINE_IC = {
     # se x sqrt(n) per period, each rounding to a different two-decimal figure, so the sentence
     # names which record it is taken over: 2020-2026 is the one the claim states.

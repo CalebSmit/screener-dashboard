@@ -874,6 +874,25 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"shows the largest 2012&ndash;2019 difference, <span class=\"num\">",
     ),
     Claim(
+        id="research.chart_geometry",
+        surface=RESEARCH,
+        asserts=(
+            "The chart's axis reads -L, -L/2, 0, +L/2, +L, evenly spaced, and every row's marks sit "
+            "where that axis says its own printed numbers belong: the dot at its printed mean, on the "
+            "side of zero its sign says; the pass-bar ticks and the detectable band symmetric about "
+            "zero; the 95% interval (Student's t) symmetric about the dot and containing it, in the "
+            "ratio of the two critical values to the ticks; the row's \"inside\"/\"beyond\" word "
+            "matching where the dot is drawn; and a value past the axis drawn at its end."
+        ),
+        made_true_by="research_page:build",
+        checked_by=(
+            "tests/test_research_page.py::test_the_chart_puts_every_mark_where_its_printed_numbers_and_the_axis_say",
+            "tests/test_research_page.py::test_the_word_and_the_picture_agree_between_the_two_bars",
+            "tests/test_research_page.py::test_a_mark_past_the_axis_is_drawn_at_its_end_not_off_the_track",
+        ),
+        detect=r'<div class="axis"><div></div><div class="ticks">',
+    ),
+    Claim(
         id="research.pairing_overlap",
         surface=RESEARCH,
         asserts=(

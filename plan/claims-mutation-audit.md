@@ -1013,3 +1013,35 @@ Harness: `research/measurements/2026-11-02-size-sentence-mutations.py` (9 of 9 c
 the method's lesson again:** a fixture only pins what it makes distinguishable - the first fixture's
 unread months were all in a year with no readings, which no year-mean ever touches. **`KNOWN_OPEN`
 three -> one:** `chart-axis-and-geometry`, the one needing geometry assertions.
+
+## Results, 2026-11-02 (owner-run evening, continued): the chart's geometry - the research page's last open row
+
+`chart-axis-and-geometry`, the one the queue called the biggest because text matching cannot reach
+it. Now `claim:research.chart_geometry`, checked **off the page alone** - the axis labels are read
+and parsed, and every row's marks are compared with where *that* axis puts the row's own *printed*
+numbers, never with `_pos` or `LIM` (a check computed from the code under test moves with it - row
+59's lesson). Per row: dot at its printed mean (to the printing's 0.0005) and on its sign's side of
+zero; ticks and detectable band symmetric about zero; the 95% interval symmetric about the dot,
+containing it, and in the ratio t(0.975, n-1) / pass bar to the ticks; the label's "inside"/"beyond"
+equal to where the dot is drawn; nothing off the track; a value past the axis drawn at its end.
+
+| # | Claim | Mutation | Before | Now |
+|---|---|---|---|---|
+| 163 | `chart-axis-and-geometry` | `_pos` mirrored - every dot on the wrong side of zero | GAP | `test_the_chart_puts_every_mark_where_its_printed_numbers_and_the_axis_say` |
+| 164 | same | `_pos` at twice the scale | GAP | same |
+| 165 | same | `_pos` three points off centre | GAP | same |
+| 166 | same | `_pos` unclamped | GAP | same, and `test_a_mark_past_the_axis_is_drawn_at_its_end_not_off_the_track` |
+| 167 | same | the axis labelled for a different L than the marks are drawn on | GAP | same as 163 |
+| 168 | same | the axis labels reversed | GAP | same |
+| 169 | same | the dot drawn at the held-out mean | GAP | same |
+| 170 | same | ticks at bar x mean instead of bar x standard error | GAP | same |
+| 171 | same | the detectable band drawn from zero, one-sided | GAP | same |
+| 172 | same | the interval at 1.0 standard error instead of Student's t | GAP; **missed by the first test**, which checked the interval's centre and not its width | the ratio check |
+| 173 | same | the row's word judged against the 95% line instead of the pass bar | GAP; **missed on the real ledger**, where no row's \|t\| lies between the two | `test_the_word_and_the_picture_agree_between_the_two_bars` |
+
+Harness: `research/measurements/2026-11-02-chart-geometry-mutations.py` (11 of 11 caught). **Row 173
+is row 146's lesson in a new place:** a branch today's data never takes is a page no test has
+generated, so the Size row is put between the bars (t 2.5) and past them (3.6), its mean set to t x
+its own standard error so the picture is consistent. **`KNOWN_OPEN` is empty** - every computed
+sentence on the research page now has a claim, a check or a reporting verdict.
+`OVERVIEW_KNOWN_OPEN` keeps one row, `coverage-sentence-metric-counts`.
