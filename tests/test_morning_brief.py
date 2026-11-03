@@ -165,6 +165,27 @@ class TestOpenProposals:
         assert "open today" in wb.open_proposals(tmp_path, datetime(2026, 10, 12, 23, 0))[0]
         assert "open 1 day -" in wb.open_proposals(tmp_path, datetime(2026, 10, 13, 2, 0))[0]
 
+    def test_a_wrapped_proposal_is_read_to_its_first_clause_break(self, tmp_path):
+        """2026-11-02: both open proposals wrap, and the brief printed their first lines only -
+        "decide how the screener holds the ranking's growth exposure near"."""
+        from datetime import datetime
+        self.note(tmp_path, "2026-11-02-a.md",
+                  "**Proposal status: OPEN** - decide how the screener holds the ranking's growth\n"
+                  "exposure near neutral (re-fit it; or constrain it, as MSCI does); answer section 4\n"
+                  "first.\n\nNext paragraph.\n")
+        self.note(tmp_path, "2026-11-02-b.md",
+                  "**Proposal status: OPEN** - adopt the floor within sector *and* size band. Then\n"
+                  "more.\n")
+        got = wb.open_proposals(tmp_path, datetime(2026, 11, 2, 6, 0))
+        assert got[0].startswith("**decide how the screener holds the ranking's growth exposure "
+                                 "near neutral (re-fit it; or constrain it, as MSCI does)** - ")
+        assert got[1].startswith("**adopt the floor within sector and size band** - ")
+        long = "**Proposal status: OPEN** - " + "word " * 80 + "\n"
+        self.note(tmp_path, "2026-11-02-c.md", long)
+        third = wb.open_proposals(tmp_path, datetime(2026, 11, 2, 6, 0))[2]
+        assert third.split("**")[1].endswith("...")
+        assert len(third.split("**")[1]) <= wb.PROPOSAL_MAX_CHARS + 3
+
     def test_a_decided_proposal_and_an_ordinary_note_are_not(self, tmp_path):
         self.note(tmp_path, "2026-10-12-a.md", "**Proposal status: DECIDED 2026-10-13** - built\n")
         self.note(tmp_path, "2026-10-12-b.md", "A note that mentions Proposal status: OPEN in a sentence.\n")

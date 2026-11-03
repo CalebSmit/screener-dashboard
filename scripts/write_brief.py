@@ -350,8 +350,40 @@ def open_proposals(research_dir: Path | None = None, today: datetime | None = No
             continue
         days = max(0, (today.date() - opened.date()).days)
         age = "today" if days == 0 else f"{days} day{'' if days == 1 else 's'}"
-        out.append(f"**{found.group(1)}** - open {age} - `research/{note.name}`")
+        out.append(f"**{proposal_text(found)}** - open {age} - `research/{note.name}`")
     return out
+
+
+PROPOSAL_MAX_CHARS = 200
+
+
+def proposal_text(found: re.Match) -> str:
+    """The proposal's own sentence, not just the first line of it.
+
+    Status lines wrap at the note's line width, so the first line alone read "decide how the
+    screener holds the ranking's growth exposure near" and "a later session (not the one that
+    wrote this) decides whether to adopt" (2026-11-02) - nothing a reader could act on. This
+    takes the wrapped paragraph up to its first clause break outside parentheses, drops the
+    note's own emphasis markers (they would break the brief's bold), and cuts at a word.
+    """
+    text = found.string[found.start(1):]
+    para = []
+    for line in text.splitlines():
+        if not line.strip():
+            break
+        para.append(line.strip())
+    s = " ".join(para).replace("*", "")
+    depth, cut = 0, len(s)
+    for i, ch in enumerate(s):
+        depth += ch == "("
+        depth -= ch == ")" and depth > 0
+        if depth == 0 and ch in ";." and (i + 1 == len(s) or s[i + 1] == " "):
+            cut = i
+            break
+    s = s[:cut].rstrip(" ,:")
+    if len(s) > PROPOSAL_MAX_CHARS:
+        s = s[:PROPOSAL_MAX_CHARS].rsplit(" ", 1)[0].rstrip(" ,:(") + "..."
+    return s
 
 
 FILING_LINE = "inputs against SEC filings: "
