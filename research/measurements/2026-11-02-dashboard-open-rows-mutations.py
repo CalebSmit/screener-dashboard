@@ -53,6 +53,7 @@ def checked_by(cid: str) -> tuple:
 CHAIN, PEER, UNSC = "drilldown.composite_chain", "drilldown.peer_rank", "drilldown.unscored_category"
 TURN, LUCK = "context.track_turnover", "context.track_luck"
 FIT, DIST = "dashboard.holdings_fit", "drilldown.composite_distribution"
+REGIME = "overview.momentum_regime"
 
 MUTS = [
     # --- drilldown.composite_chain: the total, the discount line, the composite -------------
@@ -159,6 +160,19 @@ MUTS = [
      "const label = 'Composite ' + fmt(score, 'score')", "const label = 'Composite ' + fmt(Math.round(score), 'score')"),
     (236, "the next bin marked", DIST,
      "(i === on ? ' class=\"cd-on\"' : '')", "(i === on + 1 ? ' class=\"cd-on\"' : '')"),
+    # --- overview.momentum_regime: the Methodology dialog's "Momentum rule, this run." -------
+    (237, "the panic sentence's threshold prints the volatility", REGIME,
+     "'The return is negative and volatility is above ' + pc(m.vol_threshold)", "'The return is negative and volatility is above ' + pc(m.vol)"),
+    (238, "the unchanged sentence's threshold is a fixed 20.6%", REGIME,
+     "'The panic state needs a negative return and volatility above ' + pc(m.vol_threshold)", "'The panic state needs a negative return and volatility above ' + '20.6%'"),
+    (239, "the return printed without taking its size", REGIME,
+     "pc(Math.abs(m.ret)) +", "pc(m.ret) +"),
+    (240, "the months window prints the trading-day window", REGIME,
+     "' over ' + m.return_window_months + ' months", "' over ' + m.vol_window_days + ' months"),
+    (241, "the volatility printed daily, not annualised", REGIME,
+     "realised volatility of ' + pc(m.vol) + ' a year", "realised volatility of ' + pc(m.vol / Math.sqrt(252)) + ' a year"),
+    (242, "the panic sentence chosen on the return alone", REGIME,
+     "m.vol_window_days + ' trading days. ' + (m.state === 'PANIC'", "m.vol_window_days + ' trading days. ' + (m.ret < 0"),
 ]
 
 rows = None

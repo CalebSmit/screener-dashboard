@@ -697,3 +697,77 @@ def test_a_strip_with_no_published_median_says_none(page, data):
         try { delete D.kpis.median_composite; return compDistHtml(D.stock_detail[t].composite); }
         finally { D.kpis.median_composite = keep; } }""", t)
     assert "the median is" not in h and "cd-cap" not in h and "among the" in h, h
+
+
+# ---------------------------------------------------------------------------
+# overview.momentum_regime - "Momentum rule, this run." on the Methodology dialog
+# ---------------------------------------------------------------------------
+_RUN_NOTE_JS = """(m) => { const keep = D.weights.momentum_regime;
+    try { hydrateMethodology();
+          document.querySelectorAll('#methodology-modal .method-run-note').forEach(e => e.remove());
+          if (m) D.weights.momentum_regime = m;
+          methodologyRunNote();
+          const e = document.querySelector('#methodology-modal .method-run-note');
+          return e ? e.innerHTML : null; }
+    finally { D.weights.momentum_regime = keep;
+              document.querySelectorAll('#methodology-modal .method-run-note').forEach(e => e.remove());
+              methodologyRunNote(); } }"""
+_REGIME = r"over (\d+) months, with realised volatility of (\d+\.\d)% a year over (\d+) trading days\. "
+
+
+def _run_note(page, m=None) -> str:
+    h = page.evaluate(_RUN_NOTE_JS, m)
+    assert h is not None, "the Methodology dialog wrote no run note"
+    return _text(h)
+
+
+def test_the_run_note_prints_the_runs_own_regime_reading(page, data, cfg):
+    """The run's reading against the engine's published one and the configured rule: the return and
+    its sign, the two windows and the threshold as configured, and the panic sentence exactly when
+    the return is negative and the volatility above the threshold (strict, as the engine applies it)."""
+    m = data["weights"].get("momentum_regime") or {}
+    rc = cfg["momentum_regime"]
+    txt = _run_note(page)
+    if m.get("state") == "UNKNOWN" or m.get("vol") is None or m.get("ret") is None:
+        assert "could not be read" in txt, txt
+        return
+    g = re.search(r": (−|\+)(\d+\.\d)% " + _REGIME, txt)
+    assert g, txt
+    sign, ret, months, vol, days = g.groups()
+    assert (sign == "−") == (m["ret"] < 0) and abs(float(ret) - abs(m["ret"]) * 100) <= 0.05 + 1e-9, (txt, m)
+    assert abs(float(vol) - m["vol"] * 100) <= 0.05 + 1e-9, (txt, m)
+    assert (int(months), int(days)) == (rc["return_window_months"], rc["vol_window_days"]), txt
+    thr = f"{rc['vol_threshold'] * 100:.1f}%"
+    panic = m["ret"] < 0 and m["vol"] > rc["vol_threshold"]
+    assert (m["state"] == "PANIC") == panic, f"the published state {m['state']} is not the rule's reading"
+    want = (f"The return is negative and volatility is above {thr}, so the market is in the panic state and "
+            "Momentum’s weight is cut for this run." if panic else
+            f"The panic state needs a negative return and volatility above {thr}, so Momentum’s weight is unchanged.")
+    assert txt.endswith(want), (txt, want)
+
+
+_FIX_REGIME = {"ret": -0.0512, "vol": 0.2534, "vol_threshold": 0.206, "return_window_months": 24,
+               "vol_window_days": 126, "as_of": "2026-03-02", "source": "x"}
+
+
+@pytest.mark.parametrize("m,want", [
+    ({**_FIX_REGIME, "state": "PANIC"},
+     "−5.1% over 24 months, with realised volatility of 25.3% a year over 126 trading days. The return is "
+     "negative and volatility is above 20.6%, so the market is in the panic state and Momentum’s weight is cut "
+     "for this run."),
+    ({**_FIX_REGIME, "state": "NORMAL", "vol": 0.152, "ret": -0.031},
+     "−3.1% over 24 months, with realised volatility of 15.2% a year over 126 trading days. The panic state "
+     "needs a negative return and volatility above 20.6%, so Momentum’s weight is unchanged."),
+    ({**_FIX_REGIME, "state": "NORMAL", "vol": 0.2534, "ret": 0.0875, "vol_threshold": 0.25,
+      "return_window_months": 18, "vol_window_days": 100},
+     "+8.8% over 18 months, with realised volatility of 25.3% a year over 100 trading days. The panic state "
+     "needs a negative return and volatility above 25.0%, so Momentum’s weight is unchanged."),
+    ({**_FIX_REGIME, "state": "UNKNOWN", "vol": None},
+     "The index history could not be read, so the momentum regime rule made no change."),
+])
+def test_the_run_note_prints_a_hand_worked_reading(page, m, want):
+    """Each branch with literal figures, whatever the morning's regime: the panic state, a negative
+    return without the volatility, a positive return under other windows and threshold (so a page
+    that printed the configured figures instead of the run's would be caught), and no reading."""
+    txt = _run_note(page, m)
+    assert txt.endswith(want), (txt, want)

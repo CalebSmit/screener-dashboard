@@ -1368,11 +1368,11 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     ', against ${cMoney(ins.buy_value)} of purchases.':
         'open:case-against-purchases-figure - only its presence is asserted',
     "${(m.ret < 0 ? '&minus;' : '+')}${pc(Math.abs(m.ret))} over ${m.return_window_months} months, with realised volatility of ${pc(m.vol)} a year over ${m.vol_window_days} trading days.":
-        "open:market-regime-reading - nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'The return is negative and volatility is above ${pc(m.vol_threshold)}, so the market is in the panic state and Momentum&rsquo;s weight is cut for this run.':
-        "open:market-regime-cut-threshold - nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'The panic state needs a negative return and volatility above ${pc(m.vol_threshold)}, so Momentum&rsquo;s weight is unchanged.':
-        "open:market-regime-unchanged-threshold - nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'Rank ${first[1]} on ${escapeHtml(prettyDate(H.dates[first[0]]))} &rarr; ${last[1]} on ${escapeHtml(prettyDate(H.dates[last[0]]))}, across ${pts.length} comparable runs':
         "open:rank-history-span - nothing reads the page's printing",
     "${rankChartSvg(ser.r)} ${catTable(d.prev, 'Since last run', (H.compare.prev || {}).date || '')} ${catTable(d.m1, 'Since ~1 month', (H.compare.m1 || {}).date || '')} Based on ${H.dates.length} comparable runs.":
@@ -1400,9 +1400,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'key-median-sentence',
     'lower-is-better-count',
     'macro-percentile-label',
-    'market-regime-cut-threshold',
-    'market-regime-reading',
-    'market-regime-unchanged-threshold',
     'metric-points-equation',
     'metric-weight-no-data-line',
     'metric-weight-rescaled-line',

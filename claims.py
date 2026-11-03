@@ -1828,6 +1828,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_momentum_panic_rule.py::test_the_readings_are_the_replays_definitions",
             "tests/test_momentum_panic_rule.py::test_the_threshold_is_strict_and_configurable",
             "tests/test_momentum_panic_rule.py::test_the_configured_thresholds_are_the_pre_registered_ones",
+            "tests/test_dashboard_printed_figures.py::test_the_run_note_prints_the_runs_own_regime_reading",
+            "tests/test_dashboard_printed_figures.py::test_the_run_note_prints_a_hand_worked_reading",
         ),
         detect=r"Momentum regime rule [-–] currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
         caveat=(
