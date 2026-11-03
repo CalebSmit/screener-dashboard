@@ -1,14 +1,25 @@
-# Morning Brief - Tuesday 03 November 2026, 02:23
+# Morning Brief - Tuesday 03 November 2026, 09:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## ONE THING ONLY YOU CAN DO: log the Claude CLI back in
+
+The code sessions run through the Claude Code CLI on this PC, and its login has
+lapsed, so every scheduled session fails within seconds of starting. The data
+loop does not use it and is unaffected. Open a terminal on the PC and run:
+
+    claude.cmd auth login
+
+(`.cmd`, because Windows PowerShell blocks the plain `claude` script.) Then
+`claude.cmd auth status` should say `"loggedIn": true`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (latest) | **failed** - last ran today |
+| Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-11-03 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
@@ -28,7 +39,6 @@ history is in `NIGHTLY_LOG.md`.
 A session researched these, proposed a change and left it for review. The next
 session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 
-- **decide how the screener holds the ranking's growth exposure near neutral now that a fixed 13% weight has drifted from -0.01 to +0.06 in three weeks (re-fit the weight on a schedule, constrain the...** - open 1 day - `research/2026-11-02-growth-exposure-drift.md`
 - **decide whether to fold the Investment category (`asset_growth`, 5%) into Quality at the weight-preserving 18.52% of a 27% Quality (section 3) or keep it standalone, as this note recommends, with the...** - open 1 day - `research/2026-11-02-investment-inside-quality.md`
 - **a later session (not the one that wrote this) decides whether to adopt the three pre-registrations in section 7: the S&P 1500 as the first wider universe, the NYSE 20th-percentile market cap as the...** - open 1 day - `research/2026-11-02-universe-expansion-phase0.md`
 
@@ -42,14 +52,19 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## Things that needed attention
 
-- SESSION DID NOT RUN: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed
-- Treating this as a failure, not as 'nothing to do'. No success marker will be written,
-- so the catch-up trigger will retry rather than skipping the day.
-- No commits, because the session never ran. This is a lost day, not a quiet one.
-- === Run FAILED: session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed ===
+- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
+- tests/test_every_panel_reads_clean.py::test_no_panel_prints_a_value_the_page_could_not_format
+- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
 
 ## What changed in the repo
 
+- `b3ed924 Log and owner queue: the growth-exposure proposal decided, two still open`
+- `007dbcc Decide the growth-exposure proposal: option 3, and the premise does not hold`
+- `c3246c8 NIGHTLY_LOG: 11 false percentages on the live page, and the rule that is now one function`
+- `2708177 Fix what the change broke, including one real coverage regression`
+- `d1248cf The near-zero rule gets a tripwire, and four more formatters`
+- `afc7a5d wip: one near-zero rule for every percentage the page prints`
+- `567e061 brief: data run 2026-11-03`
 - `5a719b6 data: screener run 2026-11-03 - 499 scored, top: VLO EXPE MU SNDK HST`
 - `cf35873 Log the dashboard sweep's second round and queue the expected-move defect first`
 - `55ddf5c plan/claims-mutation-audit.md: the rehearsal's catch`
@@ -58,61 +73,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `46dce22 NIGHTLY_LOG: owner-run night, round 2`
 - `5d6429d plan/claims-mutation-audit.md: results of the late pass (37 of 77 dashboard rows closed, rows 189-271, the expected-move finding, the queue)`
 - `7c688a8 Research engine: rerun all 32 rows on the new config hash (no result changed)`
-- `b46ea1d Claims audit: the KPI row, the score key's median line, the analytics headline (5 more open rows, rows 263-271, 9 of 9 caught)`
-- `68f7467 Claims audit: 'Against its own five years' (2 more open rows, rows 257-262, 6 of 6 caught)`
-- `a1246d2 Claims audit: the expected-move card's divisor is not the price it names (measured; rows left open, marked FALSE)`
-- `c608d13 Claims audit: the drilldown's rate card (2 more open rows, rows 251-256, 6 of 6 caught)`
-- `acd1d23 CLAUDE.md: any config.yaml or factor_engine.py edit stales the research ledger - budget the rerun`
-- `dfc8747 Claims audit: the What Changed footnote and tile counts (4 more open rows, rows 243-250, 8 of 8 caught)`
-- `c51f212 Claims audit: the Methodology dialog's 'Momentum rule, this run' note (3 more open rows, rows 237-242, 6 of 6 caught)`
 
 ## The session's own account
 
-> 2026-11-02 (owner-run, night, round 2) - "Keep finding improvements!"
+> 2026-11-03 - PRODUCT, THROUGH THE NUMBERS. Open the live dashboard as a user would and ask whether it answers what should I look at / should I buy this / should I sell what I hold / how much. The visual design is finished (owner, 2026-10-07), so presentation is not this session's job. When the page cannot answer something the gap is almost always data or methodology: a number the run does not keep, a question no metric answers. Fix that. Check two or three drilldowns still reproduce the engine. A broken or false surface is a defect; one that merely could look different is not.
 > 
-> **Health (rule 8):** as the evening entry above (no scheduled session or data run since); the line
-> now prints from `scripts/health_numbers.py` and the runner hands it to every session in its prompt.
-> **Tests:** 3,663 passed / 3 skipped at the last gate run. Tags `good/2026-11-02-owner-9`, `-10`.
+> **Health (rule 8, all five):** last code session ran? **no** - `logs/nightly-2026-11-02_130000-midday.log`: SESSION DID NOT RUN (session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed). Data loop published? yes - `logs/datarun-2026-11-03_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (43 rows, but overlapping windows are not independent; 110 rows across all horizons), newest 1m run date 2026-10-02 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **22 days**); also open: 0.10 27d; 0.14 20d.
+> **Tests:** before **1 failed / 3,721 passed, 1 skipped**; after **3,766 passed, 1 skipped**. Gate 5 rehearsal PASSED.
+> **Owner queue / rotation:** took the red baseline, which turned out to be a false figure on the live page - a defect, and ahead of the focus by the prompt's own rule. **Deferred: all three OPEN proposals** (growth-exposure drift, Investment-inside-Quality, universe phase 0, each opened 2026-11-02, age 1 day). Each needs a measurement of its own and the day went on the live defect; the next session should take one. The scheduled 13:00 slot and tomorrow are both eligible readers - none of the three was written by a scheduled session.
 > 
 > ### Did
 > 
-> 1. **Gate 5: the runner rehearses the next publish** (`scripts/rehearse_publish.py --changed-since
->    $BaseSha`) whenever a branch changed more than prose, before gate 4; a failure keeps the work off
->    `main`; "no full run to rehearse from" (exit 3) only warns. **It earned its keep within the
->    hour**: the stale-flag fix below passed gates 1-4 locally while the rehearsal failed
->    (`test_the_baseline_weighting_is_hashed_separately_from_the_transformed_one`) - a config edit
->    stales the research ledger. CLAUDE.md now says so up front (`config.yaml` and `factor_engine.py`
->    are in `RESULT_PATHS`; budget ~20 min for `rerun_experiments.py --jobs 4`).
-> 2. **The stale-filing flag waits for the SEC deadline** (display only; `config.yaml` 120 -> 165,
->    METHODOLOGY_CHANGELOG 2026-11-02 night). At 120 it told readers **320 of 499** stocks had stale
->    filings on 10-30 while their Q3 10-Qs were not yet due; every bar from 130 to 210 flags the same
->    **21** genuinely a quarter or more behind. The 32 research rows were rerun on the new config hash
->    - every difference is a provenance field; `summary.json` and `research.html` byte-identical.
-> 3. **Experiment 18 second-read** by a different reader (isolated worktree): every paper figure
->    (NBER w5375, rendered pages) and every measured figure reproduced without importing
->    `factor_lab`; the published article's figures confirmed via Jegadeesh & Titman (2001); the
->    pre-registration order verified; three wording fixes to the note, no figure changed.
-> 4. **Weight question 3 researched** - `research/2026-11-02-investment-inside-quality.md`: keep
->    Investment standalone and state the practitioner convention on the page (**proposal OPEN**); a
->    weight-preserving fold leaves the top 25 unchanged but is not neutral where data is missing,
->    under the panic rule, in the profiles and in the trap flags.
-> 5. **Two load-sensitive browser tests in the publish gate** now measure the page, not the machine
->    (best of five clicks; the reload gets `_open`'s allowance) - one slow sample at 02:00 would have
->    discarded a night's run. No budget loosened.
-> 6. **The brief's "Coming up"** lists dated commitments (2026-11-09 first one-month context
->    reading, 2026-11-16 filing-check promotion, 2027-02-11 backtest) from `COMING_UP`, each tied by a
->    test to the file that commits to it.
-> 7. **Checked and left alone:** Loews (no analyst coverage in any published run; its Revisions move
->    is real short-interest change), Yahoo rate-limiting (40-45 a run since 10-27, all recovered).
+> **The red baseline was a false number on the live site, and fixing it properly meant fixing the family.**
 > 
-> ### Next
-> - The OPEN proposals now waiting for a session that did not write them: growth exposure, universe
->   phase 0, Investment-inside-Quality.
-> - After 02:00: the stale flag should fire for about 21 stocks, not about 320.
-> - **A FALSE sentence on the live page, measured and queued (item 1 of the claims queue):** the
->   expected-move card says the move is the at-the-money straddle divided by *this run's* close, but
->   the 20:00 option refresh (`options_cache.refresh` -> `_fetch_one` -> `context_signals.options_context`)
->   is handed the previous run's `price_latest` and picks the at-the-money strike against it. On the
+> 1. **What was red.** `tests/test_every_panel_reads_clean.py` failed on the payload the 02:00 run
+>    published: NVR's analyst-target card read **"$6262.00 -0.0%"** - a mean target of \$6262.00
+>    against a \$6265.10 close, so 0.05% below, printed as a signed zero. That test exists because
+>    the same family of defect hit twice in two days in October, and it is deliberately **not** in
+>    the data loop's publish gate, so it goes red for the next code session instead of discarding a
+>    day of evidence. It did its job.
+> 
+> 2. **The family, not the instance.** Three of these have now reached the live public site and each
+>    was fixed inside the one formatter it was found in - BXP's unsigned "0.0%" for a close 0.03%
+>    *below* its 200-day average (2026-10-28, the data loop refused that run), AMD's and INTC's
+>    signed "-0.0%" (2026-10-29, fixed in `cPlain` alone), and NVR this morning. So the rule is one
+>    function now - `pctNearZero` / `pctPlain` in `generate_dashboard.py` - and **fourteen call
+>    sites** use it: the analyst-target card, the snapshot and peer tables, the metric workings
+>    (`fmtMetric`, `fmtInput`, the earnings-surprise and ROE tables), the compare table's upside
+>    column, `cPct`, `cPlain`, `cPp`, the share-class price gap, the 10y-3m curve in both places it
+>    is printed, and the track chart's axis ticks and end labels.
+>    **The rule:** a value that is **not** zero takes one more decimal rather than printing as a
+>    zero; if it is still zero there it is zero to the reader and prints **unsigned**, because a
+>    sign on a zero is the glitch and an unsigned zero is true to the precision shown. Both halves
+>    are the project's own precedent (the case-against trend line, 2026-10-28; `cPlain`, 10-29).
+> 
+> 3. **Measured, on today's published payload: 11 figures on the live page were wrong**, out of
+>    29,247 percentage lines across all 499 drilldowns, and **no other line moved**
+>    (`research/measurements/2026-11-03-percent-lines.py`, run before and after and diffed):
+> 
+>    | | before | after |
+>    |---|---|---|
+>    | NVR, analyst target | `$6262.00 -0.0%` | `$6262.00 -0.05%` |
+>    | ESS, vs 200-day average | `0.0%` ("Mixed trend 0.0% vs 200-day") | `−0.03%` |
+>    | VTR | `0.0%` | `−0.01%` |
+>    | ABNB / AMT / PTC, 5 days | `0.0%` | `+0.04%` / `+0.01%` / `+0.03%` |
+>    | EQT / TECH, 5 days | `0.0%` | `−0.02%` / `−0.03%` |
+>    | BKR, rate sensitivity | `0.00%` | `+0.003%` |
+>    | MRSH, analyst target | `+0.0%` | `0.0%` |
+> 
 > ...
 
 ---
