@@ -549,6 +549,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_browser.py::test_composite_chain_sums_for_a_discounted_stock",
             "tests/test_claims_register.py::test_the_engine_applies_the_discount_the_page_states",
             "tests/test_calculation_reproducibility.py::test_points_that_miss_by_more_than_rounding_are_caught",
+            "tests/test_dashboard_printed_figures.py::test_every_drilldown_prints_the_published_composite_and_the_chain_to_it",
+            "tests/test_dashboard_printed_figures.py::test_the_discount_line_prints_a_hand_worked_case",
+            "tests/test_dashboard_printed_figures.py::test_an_undiscounted_chain_prints_no_discount_line",
         ),
     ),
     Claim(
@@ -674,6 +677,48 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_holdings_concentration.py::test_equal_split_depends_only_on_the_count_not_on_which_stocks",
             "tests/test_holdings_concentration.py::test_risk_line_follows_raw_volatility_not_the_sector_percentile",
             "tests/test_holdings_concentration.py::test_risk_line_reports_the_extremes_of_the_whole_list",
+        ),
+    ),
+    # Registered 2026-11-02 (owner-run, late) by the audit's open-row pass (plan/claims-mutation-audit.md,
+    # rows 222+). `tests/test_holdings_panel.py` held 62 checks of the My Holdings panel and was
+    # named by no claim, so the publish gate ran none of them; and none read the fit line's top-25 /
+    # top-100, sector or trap counts, whose fixture ranks (1, 3, 40, 300) sat far from both boundaries.
+    Claim(
+        id="dashboard.holdings_fit",
+        surface=DRILLDOWN,
+        asserts=(
+            "My Holdings' fit line counts the saved names, the sectors they span, the largest sector's "
+            "names and its whole-percent share of the list, how many rank inside the top 25 and the top "
+            "100 (rank at or above the boundary) of the run's universe, and how many carry a trap flag; "
+            "the Concentration block sets the count against the three published diversification counts "
+            "(30, 50, 63), each met at its own count; the remove-all dialog states the list's length."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_holdings_panel.py::test_the_fit_line_prints_its_own_counts",
+            "tests/test_holdings_panel.py::test_fit_line_reports_concentration_not_position_sizes",
+            "tests/test_holdings_panel.py::test_the_remove_all_dialog_counts_the_list_and_a_refusal_keeps_it",
+            "tests/test_holdings_panel.py::test_remove_and_clear",
+            "tests/test_holdings_concentration.py::test_the_count_and_its_standing_at_each_published_threshold",
+            "tests/test_holdings_concentration.py::test_standing_against_the_thresholds",
+        ),
+    ),
+    # Registered the same night. The strip beside the composite in the sheet's masthead prints three
+    # figures; `tests/test_drilldown_presentation.py::test_masthead_marks_the_published_composite_among_all_of_them`
+    # compared them with the page's own arithmetic on one named stock, from the committed page, in a
+    # module no claim names (and whose gesture and animation tests are not fit for the publish gate).
+    Claim(
+        id="drilldown.composite_distribution",
+        surface=DRILLDOWN,
+        asserts=(
+            "The strip beside a stock's composite states that composite, the number of published "
+            "composites and their median, prints the same median under the strip, and marks the one "
+            "bin the stock's composite falls in; with no published median it states none."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_masthead_strip_prints_the_composite_the_count_and_the_median",
+            "tests/test_dashboard_printed_figures.py::test_a_strip_with_no_published_median_says_none",
         ),
     ),
     Claim(
@@ -1048,6 +1093,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_sheet_round_three.py::test_the_price_history_categories_are_built_only_from_the_price_history",
             "tests/test_sheet_round_three.py::test_the_rejection_reason_is_published_and_never_scored",
             "tests/test_sheet_round_three.py::test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history",
+            "tests/test_dashboard_printed_figures.py::test_every_unscored_category_prints_the_engines_count_and_the_runs_weight",
+            "tests/test_dashboard_printed_figures.py::test_an_unscored_category_made_by_hand_prints_the_engines_count",
+            "tests/test_dashboard_printed_figures.py::test_an_unscored_category_gives_up_this_runs_weight_not_the_default",
         ),
     ),
     Claim(
@@ -1252,6 +1300,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_context_layer.py::test_rate_beta_recovers_a_known_slope",
             "tests/test_context_layer_claims.py::test_the_share_of_swings_explained_is_the_squared_correlation",
             "tests/test_context_layer_claims.py::test_sector_rate_bars_are_medians_of_five_or_more_stocks",
+            "tests/test_dashboard_printed_figures.py::test_every_rate_card_prints_the_stocks_slope_window_sector_median_and_share",
+            "tests/test_dashboard_printed_figures.py::test_a_rate_card_worked_by_hand",
         ),
     ),
     Claim(
@@ -1301,6 +1351,10 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_run_overview.py::test_category_shares_weight_absolute_changes",
             "tests/test_run_overview.py::test_top_kept_counts_names_in_both_top_lists",
             "tests/test_run_overview.py::test_rank_25_is_in_the_top_25_on_both_dates_and_26_is_not",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_footnote_prints_the_runs_own_counts",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_footnote_prints_a_hand_worked_window",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_tile_prints_the_runs_own_counts",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_tile_prints_a_hand_worked_window",
         ),
     ),
     Claim(
@@ -1377,6 +1431,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_the_periods_are_not_called_monthly_and_their_count_is_set_against_chance",
             "tests/test_track_record_claims.py::test_the_years_to_two_are_counted_in_years_of_252_trading_days",
             "tests/test_page_fourth_pass.py::test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure",
+            "tests/test_dashboard_printed_figures.py::test_the_track_record_panel_prints_the_records_own_figures",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_prints_a_hand_worked_record",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_drops_the_clauses_it_has_no_figure_for",
         ),
         caveat=(
             "Since 2026-10-27 the page's Track record tile repeats the same figure under the headline return "
@@ -1403,6 +1460,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_turnover_is_the_share_of_the_basket_sold",
             "tests/test_track_record_claims.py::test_turnover_in_the_record_counts_the_drift_by_hand",
             "tests/test_track_record_claims.py::test_the_break_even_cost_erases_the_lead_exactly",
+            "tests/test_dashboard_printed_figures.py::test_the_track_record_panel_prints_the_records_own_figures",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_prints_a_hand_worked_record",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_drops_the_clauses_it_has_no_figure_for",
         ),
         caveat=(
             "Fixed 2026-10-19 (plan/context-layer.md item 6): until then the panel said only 'no trading costs'. A pick held at its last price after its "
@@ -1427,6 +1487,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_valuation_history.py::test_shares_filed_before_a_split_are_scaled_to_todays_units",
             "tests/test_valuation_history.py::test_a_stock_whose_shares_do_not_reproduce_its_market_value_is_not_shown",
             "tests/test_valuation_history.py::test_the_percentile_is_against_the_stocks_own_month_ends",
+            "tests/test_dashboard_printed_figures.py::test_every_valuation_history_row_prints_its_own_series",
+            "tests/test_dashboard_printed_figures.py::test_a_valuation_history_row_worked_by_hand",
         ),
     ),
     Claim(
@@ -1700,6 +1762,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_the_median_composite_the_key_quotes_is_the_median_not_the_mean",
             "tests/test_drilldown_reading.py::test_the_page_carries_the_words_it_shows",
             "tests/test_drilldown_reading.py::test_plain_words_in_the_workings",
+            "tests/test_dashboard_printed_figures.py::test_the_kpi_row_and_the_score_key_print_the_runs_own_counts",
         ),
     ),
     Claim(
@@ -1717,6 +1780,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_the_key_reads_the_trap_thresholds_from_config",
             "tests/test_club_readiness.py::test_the_engine_flags_what_the_key_describes",
             "tests/test_club_readiness.py::test_a_flag_changes_neither_the_score_nor_the_rank",
+            "tests/test_dashboard_printed_figures.py::test_the_kpi_row_and_the_score_key_print_the_runs_own_counts",
         ),
     ),
     Claim(
@@ -1751,6 +1815,10 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_metric_lineage.py::test_percentiles_reproduce_from_the_published_peer_values",
             "tests/test_metric_lineage.py::test_sector_stats_agree_with_the_raw_values",
             "tests/test_methodology_claims_audit.py::test_a_sector_with_exactly_the_minimum_is_ranked_within_itself",
+            "tests/test_dashboard_printed_figures.py::test_every_metric_row_prints_its_own_rank_peer_count_and_sector_figures",
+            "tests/test_dashboard_printed_figures.py::test_a_sector_with_exactly_the_minimum_prints_its_own_rank_and_figures",
+            "tests/test_dashboard_printed_figures.py::test_a_sector_below_the_minimum_prints_the_universe_rank",
+            "tests/test_dashboard_printed_figures.py::test_the_ordinals_the_rank_sentence_prints",
         ),
     ),
     Claim(
@@ -1770,6 +1838,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_momentum_panic_rule.py::test_the_readings_are_the_replays_definitions",
             "tests/test_momentum_panic_rule.py::test_the_threshold_is_strict_and_configurable",
             "tests/test_momentum_panic_rule.py::test_the_configured_thresholds_are_the_pre_registered_ones",
+            "tests/test_dashboard_printed_figures.py::test_the_run_note_prints_the_runs_own_regime_reading",
+            "tests/test_dashboard_printed_figures.py::test_the_run_note_prints_a_hand_worked_reading",
+            "tests/test_dashboard_printed_figures.py::test_the_momentum_weight_card_prints_a_hand_worked_cut",
         ),
         detect=r"Momentum regime rule [-–] currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
         caveat=(

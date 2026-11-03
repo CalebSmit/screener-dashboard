@@ -4493,7 +4493,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
     function renderContribVisual(s, cats) {{
         const ew = effWeights(s);
-        const base = D.weights.base_factor_weights || {{}};
+        // The weight an unscored category gives up is this run's (after the momentum regime rule,
+        // the weights the scores were built from), not the configured default: in the panic state
+        // "its 13% was shared out" would overstate Momentum's 9.1% (claim drilldown.unscored_category,
+        // tests/test_dashboard_printed_figures.py; 2026-11-02 late).
+        const base = D.weights.factor_weights || D.weights.base_factor_weights || {{}};
         let html = '';
         let runningTotal = 0;
         let anyWithheld = false;

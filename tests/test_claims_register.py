@@ -1214,39 +1214,39 @@ def dashboard_sentences() -> list[str]:
 # for both printings, and says which one is pinned.
 DASHBOARD_SENTENCES: dict[str, str] = {
     "${fw.momentum > bw.momentum ? 'raised' : 'cut'} from ${fmtWeight(bw.momentum)} by the momentum regime rule this run":
-        "open:regime-weight-line - the momentum weight before/after the regime rule; nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'value / growth &middot; ${pct(k.value_traps)} and ${pct(k.growth_traps || 0)} of stocks What a flag means':
-        "open:trap-share-kpi - nothing reads the page's printing",
+        'claim:dashboard.trap_flag_key',
     '${top}, ${Number(vt[top].rate).toFixed(1)}% of the sector':
-        "open:value-trap-sector-rate - the sector's value-trap share; nothing reads the page's printing",
+        'claim:dashboard.trap_flag_key',
     "The median this run is ${k.median_composite.toFixed(1)}, so a composite above it is in the upper half of the ${(k.universe_size || '')} stocks.":
-        "open:key-median-sentence - the payload's median is pinned (dashboard.score_key), its printing and the universe size are not",
+        'claim:dashboard.score_key',
     'Show the next ${next}':
         "open:show-next-count - the table's next-page count; nothing reads the page's printing",
     'The ranking covers the ${n} S&amp;P 500 companies this run scored.':
-        "open:ranking-universe-count - nothing reads the page's printing",
+        'claim:dashboard.score_key',
     "It trades ${Math.abs(sc.price_gap_pct).toFixed(1)}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
         'open:share-class-price-gap - drilldown.share_class_second_line checks the ratio identity, not the printed gap',
     ', the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).':
         "open:noise-band-pairs - the paired-run and observation counts; nothing reads the page's printing",
     '${mv.n_up} stocks moved up materially and ${mv.n_down} moved down; showing the largest ${shownUp} and ${shownDown}.':
-        "open:movers-shown-counts - history.run_overview checks the Python overview's counts, not this line's",
+        'claim:history.run_overview',
     '${mv.n_round_trip} of ${mv.n_up + mv.n_down} are flagged round-trip:':
-        "open:movers-round-trip - nothing reads the page's printing",
+        'claim:history.run_overview',
     'Built from ${H.dates.length} comparable runs, ${escapeHtml(prettyDate(H.dates[0]))} to ${escapeHtml(prettyDate(H.dates[H.dates.length - 1]))}.':
         "open:rank-history-built-from - the run count; nothing reads the page's printing",
     'Remove all ${holdings.length} names from this list?':
-        "open:holdings-remove-all - the confirm dialog's count; nothing reads the page's printing",
+        'claim:dashboard.holdings_fit',
     'on this screener’s own history, acting on the top ${(c.num_stocks || 25)} at every run implies ${c.turnover_every_run.toFixed(0)}% monthly one-sided turnover against ${c.turnover_monthly.toFixed(0)}% reviewing the same rule monthly.':
         'open:cadence-turnover - the three turnover figures; no registered check reads them',
     'Novy-Marx &amp; Velikov ( Review of Financial Studies 29(1), 2016) find anomalies under roughly ${c.turnover_ceiling.toFixed(0)}% mostly survive trading costs, and few above it do.':
         "open:cadence-turnover-ceiling - nothing reads the page's printing",
     "${n} name${(n === 1 ? '' : 's')} across ${sectors.length} sector${(sectors.length === 1 ? '' : 's')}":
-        'open:holdings-fit-counts - tests/test_holdings_panel.py is named by no claim',
+        'claim:dashboard.holdings_fit',
     '${inTop25} inside the top 25 of ${universe}, ${inTop100} inside the top 100':
-        'open:holdings-top-counts - tests/test_holdings_panel.py is named by no claim',
+        'claim:dashboard.holdings_fit',
     "${n} name${(n === 1 ? '' : 's')} - ${standing} of the published counts for a diversified portfolio:":
-        "open:holdings-standing - nothing reads the page's printing",
+        'claim:dashboard.holdings_fit',
     'An equal split across ${n} names is ${(100 / n).toFixed(1)}% a position.':
         'claim:dashboard.holdings_concentration',
     '${escapeHtml(hi.t)} at ${(hi.v * 100).toFixed(0)}% annualised volatility against ${escapeHtml(lo.t)} at ${(lo.v * 100).toFixed(0)}% , a ${ratio.toFixed(1)}&times; spread.':
@@ -1262,25 +1262,25 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '${f.short_ratio.toFixed(1)} days to cover':
         "open:short-ratio - nothing reads the page's printing",
     '${CAT_LABELS[c]} no data Not scored for this stock - its ${fmtWeight(base[c] || 0)} was shared out across the categories below.':
-        "open:unscored-weight-shared - drilldown.unscored_category reads the note's words, not the weight",
+        'claim:drilldown.unscored_category',
     'Category points add up to ${runningTotal.toFixed(1)}':
-        "open:composite-chain-total - drilldown.composite_chain's page check asserts the words only",
+        'claim:drilldown.composite_chain',
     'Coverage discount - values for ${cov.n} of ${cov.of} applicable metrics (${covPct}%), below the ${cd ? Math.round(cd.threshold * 100) : 80}% threshold, so the composite is reduced by ${(disc * 100).toFixed(1)}% &minus;${(runningTotal - composite).toFixed(1)}':
-        "open:composite-chain-discount-line - n, of, the coverage, the threshold, the rate and the cut; drilldown.composite_chain's page check asserts the words only",
+        'claim:drilldown.composite_chain',
     'none of its ${n} metrics has data':
-        "open:unscored-tile-count - the count is a \\d+ wildcard in drilldown.unscored_category's check",
+        'claim:drilldown.unscored_category',
     'None of the ${n} metrics this category weights for this stock has data in this run (${listed(names)})${shared}':
-        "open:unscored-workings-count - nothing reads the page's printing",
+        'claim:drilldown.unscored_category',
     'Configured ${fmtWeight(r.configured)} of this weighting; ${fmtWeight(r.share)} of this score after rescaling to the metrics that have data.':
         'open:metric-weight-rescaled-line - drilldown.metric_weights reads the weight column, not this line',
     'Configured ${fmtWeight(r.configured)}; no data for this stock, so it carries no weight here.':
         "open:metric-weight-no-data-line - nothing reads the page's printing",
     "Ranked ${ordinal(pc0.rank)} of ${pc0.n} in ${where}, ${pc0.lower ? 'lower' : 'higher'} being better":
-        "open:peer-rank-sentence - drilldown.peer_rank's checks are on the payload and the engine",
+        'claim:drilldown.peer_rank',
     '; sector median ${fmtMetric(pc0.st[2], meta.fmt)} , middle half ${fmtMetric(pc0.st[1], meta.fmt)} to ${fmtMetric(pc0.st[3], meta.fmt)}':
-        "open:peer-sector-stats - nothing reads the page's printing",
+        'claim:drilldown.peer_rank',
     'That is the ${ordinal(Math.round(pctv0))} percentile.':
-        "open:peer-percentile-ordinal - nothing reads the page's printing",
+        'claim:drilldown.peer_rank',
     '${r.pct.toFixed(2)} percentile &times; ${fmtWeight(r.share)} weight = ${r.points.toFixed(2)} points toward the category score':
         "open:metric-points-equation - nothing reads the page's printing",
     "${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}":
@@ -1302,27 +1302,27 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${escapeHtml(a)} scores ${Math.abs(gap).toFixed(1)} composite points ${(gap >= 0 ? 'above' : 'below')} ${escapeHtml(b)} ${(lead.length ? '. The largest differences: ' + lead.join(' and ') + '.' : '.')}":
         "open:compare-gap-sentence - compare.composite_gap's page check reads the gap rows, not this sentence",
     '${vhChartSvg(y, m0, label)} ${label} ${cPlain(y.now)} of its past ${y.n} month-ends':
-        'open:valuation-history-reading - context.valuation_history checks the percentile, not its printing',
+        'claim:context.valuation_history',
     'higher than at ${above}%':
-        "open:valuation-history-above - nothing reads the page's printing",
+        'claim:context.valuation_history',
     "From 52-week high ${cPct(c.px / c.hi - 1)} high ${cPrice(c.hi)}${(c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '')}, low ${cPrice(c.lo)}":
         "open:price-trend-52w-line - context.price_trend's page check looks for the words",
     '&plusmn;${cPlain(c.om)} The average move options are paying for by ${escapeHtml(cDate(c.ox))} (${c.od} days)':
-        "open:expected-move-figure - context.expected_move checks the engine's move, not this printing",
+        "open:expected-move-figure - FALSE for 20 stocks in the 2026-10-30 run's payload: the ATM strike was chosen against the close before the quoted session, >5% from this price (NOW +/-27.3% is mostly put intrinsic); research/measurements/2026-11-02-expected-move-divisor.py",
     'Expected move = at-the-money call + put, divided by the price ${cPrice(c.px)}:':
-        "open:expected-move-price - nothing reads the page's printing",
+        "open:expected-move-price - FALSE in the 2026-10-30 run's payload: names this run's close as the divisor, but the move was divided by the close before the quoted session (273 of 359 differ >1%, NOW by 37%); research/measurements/2026-11-02-expected-move-divisor.py",
     "Open-market buys, 90 days ${(ins.buy_n ? cMoney(ins.buy_value) : 'None')} ${(ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;')} Open-market sales, 90 days ${(ins.sell_n ? cMoney(ins.sell_value) : 'None')} ${(ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + (ins.sell_planned_value != null && ins.sell_value > 0 ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '') : '&nbsp;')}":
         "open:insider-card-rows - nothing reads the page's printing",
     ', ${Math.round(100 * ins.sell_planned_value / ins.sell_value)}% on pre-set plans':
         "open:insider-plan-share - printed twice; the case-against copy is pinned, the Insider card's is not",
     "${cPct(c.rb * RATE_STEP, 2)} How the stock has typically moved for each +0.10 percentage point rise in the 10-year Treasury yield (a large day for the 10-year), from the past ${Math.round(c.rn / 21)} months of daily moves${(sr ? '; ' + escapeHtml(s.sector) + ' median ' + cPct(sr.median * RATE_STEP, 2) : '')}.":
-        'open:rate-sensitivity-line - context.rate_sensitivity checks the engine and the sector bars, not this line',
+        'claim:context.rate_sensitivity',
     "Rate moves explained ${cPlain(c.rr2, 0)} of its daily swings${(c.rr2 < 0.05 ? ', very little, so read the figure loosely' : '')}.":
-        'open:rate-share-explained - context.rate_sensitivity checks the squared correlation, not its printing',
+        'claim:context.rate_sensitivity',
     'a coin toss does at least this well ${chance}% of the time':
-        'open:track-coin-toss-share - the panel check asserts the words; the share is pinned only in track_record.py',
+        'claim:context.track_luck',
     'one way, on average; ${cPlain(TO.min, 0)} to ${cPlain(TO.max, 0)}':
-        "open:track-turnover-range - nothing reads the page's printing",
+        'claim:context.track_turnover',
     'Every holding period (${T.periods.length})':
         "open:track-period-count - nothing reads the page's printing",
     "${(T.unpriced[k].length)} of the ${picks[k]} picks in the ${({ top: 'top-25', q1: 'top-fifth', q5: 'bottom-fifth' })[k]} baskets":
@@ -1330,15 +1330,15 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${(X && X.t !== null && X.t !== undefined ? 'Measured day by day against RSP over ' + X.days + ' trading days, the top 25&rsquo;s lead is ' + Number(X.t).toFixed(1) + ' standard errors from zero; two is the usual minimum for telling skill from luck' + (X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '') + '. ' : '')}The methodology changelog has entries on ${(T.methodology_changes || []).length} dates inside this window (the ticks under the chart); not every entry changed how stocks are scored.":
         "open:track-changelog-entries - nothing reads the page's printing",
     "${(TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' + (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. ' : 'No trading costs or taxes are deducted. ')}${((T.days || 0) < 365 ? 'No return here is annualised, because none covers a full year. ' : '')}This record is not used to set the methodology.":
-        'open:track-costs-paragraph - context.track_turnover checks the engine, not this printing',
+        'claim:context.track_turnover',
     "Measured day by day against RSP over ${X.days} trading days, the top 25&rsquo;s lead is ${Number(X.t).toFixed(1)} standard errors from zero; two is the usual minimum for telling skill from luck${(X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '')}.":
-        'open:track-excess-days-and-years - t is pinned (tile test, |t| < 2 only); the days and the years clause are not',
+        'claim:context.track_luck',
     ', and even if the lead went on at the same pace it would take about ${Number(X.years_to_two).toFixed(1)} years of record to get there':
-        "open:track-years-to-two-printing - the engine's figure is pinned, its printing is not",
+        'claim:context.track_luck',
     "At each rebalance the top 25 traded ${cPlain(TO.mean, 0)} of its value on average, one way${(TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '')}.":
-        'open:track-turnover-mean - context.track_turnover checks the engine, not this printing',
+        'claim:context.track_turnover',
     '; a cost of ${cPlain(TO.break_even_cost, 2)} on every dollar traded would have erased its lead over RSP':
-        'open:track-break-even-cost - context.track_turnover checks the engine, not this printing',
+        'claim:context.track_turnover',
     '${a} report within 7 days of this run · ${b} within 14':
         "open:reporting-soon-counts - nothing reads the page's printing",
     '${Math.abs(X.t).toFixed(1)} standard errors, where two is the usual bar':
@@ -1348,9 +1348,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${n} companies by composite score, from ${fmt(Math.min.apply(null, vals), 'score')} to ${fmt(Math.max.apply(null, vals), 'score')}${(typeof med === 'number' ? ', median ' + med.toFixed(1) : '')}.":
         "open:distribution-range - nothing reads the page's printing",
     '${mv.n_up} up of ${N} ${mv.n_down} down':
-        "open:movers-tile-counts - nothing reads the page's printing",
+        'claim:history.run_overview',
     '${mv.n_up} of ${N} stocks moved up materially and ${mv.n_down} moved down':
-        'open:movers-overview-counts - history.run_overview checks the Python overview, not this line',
+        'claim:history.run_overview',
     '${p[1]} at the ${ord(S[p[0]].pct_10y)} percentile of ten years':
         'open:macro-percentile-label - context.macro_series checks the percentile, not its printing',
     '#1 Where they rank #${N}':
@@ -1358,9 +1358,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "Your saved names rank ${ranks.sort((a, b) => a - b).map(v => '#' + v).join(', ')} of ${N}":
         "open:holdings-rank-strip - nothing reads the page's printing",
     "Composite ${fmt(score, 'score')} among the ${d.n} published composites${(hasMed ? '; the median is ' + fmt(med, 'score') : '')}":
-        'open:drilldown-distribution-caption - tests/test_drilldown_presentation.py is named by no claim',
+        'claim:drilldown.composite_distribution',
     "; the median is ${fmt(med, 'score')}":
-        'open:drilldown-distribution-median - tests/test_drilldown_presentation.py is named by no claim',
+        'claim:drilldown.composite_distribution',
     "Its last close is −${gap.toFixed(gap < 0.1 ? 2 : 1)}% against its 200-day average of ${cPrice(c.s200)}${(tr ? ' (' + TREND_WORD[tr] + ')' : '')}.":
         'claim:drilldown.case_against',
     "Officers and directors made ${cMoney(ins.sell_value)} of open-market sales in the last 90 days (${ins.sell_people} insider${(ins.sell_people === 1 ? '' : 's')}${plan})${(ins.buy_n ? ', against ' + cMoney(ins.buy_value) + ' of purchases.' : ' and no open-market purchases.')} The panel gives the evidence that sales have historically said less than purchases.":
@@ -1368,11 +1368,11 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     ', against ${cMoney(ins.buy_value)} of purchases.':
         'open:case-against-purchases-figure - only its presence is asserted',
     "${(m.ret < 0 ? '&minus;' : '+')}${pc(Math.abs(m.ret))} over ${m.return_window_months} months, with realised volatility of ${pc(m.vol)} a year over ${m.vol_window_days} trading days.":
-        "open:market-regime-reading - nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'The return is negative and volatility is above ${pc(m.vol_threshold)}, so the market is in the panic state and Momentum&rsquo;s weight is cut for this run.':
-        "open:market-regime-cut-threshold - nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'The panic state needs a negative return and volatility above ${pc(m.vol_threshold)}, so Momentum&rsquo;s weight is unchanged.':
-        "open:market-regime-unchanged-threshold - nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'Rank ${first[1]} on ${escapeHtml(prettyDate(H.dates[first[0]]))} &rarr; ${last[1]} on ${escapeHtml(prettyDate(H.dates[last[0]]))}, across ${pts.length} comparable runs':
         "open:rank-history-span - nothing reads the page's printing",
     "${rankChartSvg(ser.r)} ${catTable(d.prev, 'Since last run', (H.compare.prev || {}).date || '')} ${catTable(d.m1, 'Since ~1 month', (H.compare.m1 || {}).date || '')} Based on ${H.dates.length} comparable runs.":
@@ -1389,40 +1389,21 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'case-against-insider-purchases',
     'case-against-purchases-figure',
     'compare-gap-sentence',
-    'composite-chain-discount-line',
-    'composite-chain-total',
     'distribution-dot-count',
     'distribution-range',
-    'drilldown-distribution-caption',
-    'drilldown-distribution-median',
     'expected-move-figure',
     'expected-move-price',
-    'holdings-fit-counts',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
-    'holdings-remove-all',
-    'holdings-standing',
-    'holdings-top-counts',
     'insider-card-rows',
     'insider-plan-share',
-    'key-median-sentence',
     'lower-is-better-count',
     'macro-percentile-label',
-    'market-regime-cut-threshold',
-    'market-regime-reading',
-    'market-regime-unchanged-threshold',
     'metric-points-equation',
     'metric-weight-no-data-line',
     'metric-weight-rescaled-line',
-    'movers-overview-counts',
-    'movers-round-trip',
-    'movers-shown-counts',
-    'movers-tile-counts',
     'ni-growth-yoy',
     'noise-band-pairs',
-    'peer-percentile-ordinal',
-    'peer-rank-sentence',
-    'peer-sector-stats',
     'piotroski-parts-line',
     'piotroski-signals-line',
     'price-target-strip',
@@ -1430,10 +1411,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'rank-history-built-from',
     'rank-history-run-count',
     'rank-history-span',
-    'ranking-universe-count',
-    'rate-sensitivity-line',
-    'rate-share-explained',
-    'regime-weight-line',
     'reporting-soon-counts',
     'roe-sd-line',
     'same-value-scored',
@@ -1444,23 +1421,9 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'surprise-change-line',
     'surprise-median-line',
     'surprise-quarter-count',
-    'track-break-even-cost',
     'track-changelog-entries',
-    'track-coin-toss-share',
-    'track-costs-paragraph',
-    'track-excess-days-and-years',
     'track-period-count',
-    'track-turnover-mean',
-    'track-turnover-range',
     'track-unpriced-picks',
-    'track-years-to-two-printing',
-    'trap-share-kpi',
-    'unscored-tile-count',
-    'unscored-weight-shared',
-    'unscored-workings-count',
-    'valuation-history-above',
-    'valuation-history-reading',
-    'value-trap-sector-rate',
 })
 
 

@@ -335,6 +335,24 @@ def test_standing_against_the_thresholds(script, tmp_path, n, expected):
 
 
 @pytestmark_node
+@pytest.mark.parametrize("n,expected", [
+    (29, "below all three"), (30, "above 1 of the three"), (49, "above 1 of the three"),
+    (50, "above 2 of the three"), (62, "above 2 of the three"), (63, "at or above all three"),
+    (64, "at or above all three"),
+])
+def test_the_count_and_its_standing_at_each_published_threshold(script, tmp_path, n, expected):
+    """The test above reaches only "below all three" - the fixture holds four names. Each of the
+    three marks (30, 50, 63) is met at its own count and not one name earlier, and the count
+    printed beside the standing is the list's (claim dashboard.holdings_fit; plan/claims-mutation-
+    audit.md, 2026-11-02 late). Called on n synthetic rows, so no fixture of 63 stocks is needed."""
+    out = _run_js(script, (
+        f"const rows = Array.from({{length: {n}}}, (_, i) => ({{t: 'T' + i, s: {{raw: {{volatility: 0.2 + i / 1000}}}}}}));\n"
+        "console.log(JSON.stringify({html: A.holdingsConcentration(rows)}));"), tmp_path)
+    assert (f"<p><strong>{n}</strong> names &mdash; <strong>{expected}</strong> of the published counts "
+            "for a diversified portfolio: ") in out["html"], out["html"][:300]
+
+
+@pytestmark_node
 def test_randomly_chosen_condition_is_always_stated(script, tmp_path):
     """The three counts measure randomly selected portfolios. Quoting them
     without that clause overstates them for a pre-screened large-cap list."""
