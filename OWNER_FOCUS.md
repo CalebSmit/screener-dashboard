@@ -193,8 +193,33 @@ Two things still outrank this file, and neither is negotiable:
      says plainly that whether it is worth building is still open.
      **Five of six proposals have now been refused by their reviewer, and this is the first whose
      review found the note *understating* its own case.** No weight, metric, threshold or published
-     sentence changed. **No proposal is waiting for a decision**
-     (`write_brief.open_proposals()` returns `[]`).
+     sentence changed.
+     **A seventh arrived 2026-11-02 (owner-run) and was DECIDED 2026-11-03 (06:00) - one option
+     accepted, two refused, and the premise all three rest on does not survive the longer record.**
+     `research/2026-11-02-growth-exposure-drift.md` asked how to hold the ranking near
+     growth-neutral now that a fixed 13% had "drifted" from -0.01 to +0.06 in three weeks: re-fit
+     the weight on a schedule, constrain the exposure as MSCI does, or state the lean and leave it.
+     The review ran the note's own sweep over **every published run** instead of three of them
+     (`research/measurements/2026-11-03-neutral-weight-history.py`). **The Growth weight that would
+     leave a run exactly neutral sat between 8.8 and 12.0 on all 40 runs from 2026-08-12 to the
+     morning of 2026-10-09, was 13.6 on the evening run of the same day, and is 8.8 again today.**
+     Between those two runs are the five changelog entries that changed how `operating_leverage`,
+     `revenue_growth`, Piotroski 3/8/9, EBITDA and `forward_eps_growth` are computed. So **13% was
+     never the neutral point** - it was neutral for about six runs, the 2026-10-13 review measured
+     in the middle of them, and the "drift" is that step decaying back to where it was.
+     **Option 1 (re-fit monthly) refused**: it would have moved the weight three times in a month,
+     each time following the decay of this screener's own edit. **Option 2 (neutralise the
+     composite) refused as a response to this evidence** and left open on its merits - there is no
+     persistent drift to constrain, the exposure being stationary in +0.02..+0.08 across the 40
+     pre-change runs. **Option 3 (state the lean, leave the weight) accepted** - which is what
+     shipped on 11-02, so this is ratification, with one correction: the page said the balance
+     moves "with the market", and the record says the one large move was ours. It now states the
+     measured range and the cause. The note's own unanswered question is answered too - it is
+     **not** the bank entries: excluding Financials the rise is *larger* (+0.0949 against +0.0814)
+     and it continues through five runs sharing one `methodology_version`. Note section 6; no
+     weight, metric or threshold moved.
+     **Two proposals are still waiting for a decision** (`write_brief.open_proposals()`):
+     Investment-inside-Quality and universe phase 0, both opened 2026-11-02.
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error

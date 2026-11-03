@@ -877,14 +877,33 @@ _RATE_JS = """([tickers, patch]) => { const out = {}; const keepSr = (D.market |
               out[t] = i < 0 ? null : h.slice(i, h.indexOf('</p></div>', i)); } }
     finally { if (D.market) D.market.sector_rate = keepSr; }
     return out; }"""
-_RATE = re.compile(r"^Sensitivity to interest rates ([+−]?)(\d+\.\d\d)% How the stock has typically moved for each "
+# Two decimals, or three where the slope would round to zero at two - `pctNearZero`'s rule, which
+# `cPct` has taken since 2026-11-03 (BKR's +0.003% printed as an unsigned "0.00%" until then).
+_RATE = re.compile(r"^Sensitivity to interest rates ([+−]?)(\d+\.\d\d\d?)% How the stock has typically moved for each "
                    r"\+0\.10 percentage point rise in the 10-year Treasury yield \(a large day for the 10-year\), from "
-                   r"the past (\d+) months of daily moves(?:; (.+) median ([+−]?)(\d+\.\d\d)%)?\. Rate moves explained "
+                   r"the past (\d+) months of daily moves(?:; (.+) median ([+−]?)(\d+\.\d\d\d?)%)?\. Rate moves explained "
                    r"(\d+(?:\.\d)?)% of its daily swings(, very little, so read the figure loosely)?\.?$")
 
 
 def _signed(sign: str, v: str) -> float:
     return -float(v) if sign == "−" else float(v)
+
+
+def _check_near_zero(sign: str, printed: str, want: float, what: str, slack: float = 0.0) -> list[str]:
+    """A figure printed by ``cPct``, checked against the value and against the page's near-zero
+    rule (``generate_dashboard.pctNearZero``, 2026-11-03): the decimals shown bound the error, a
+    figure that prints as a zero is **unsigned**, and a value that is not zero does not print as
+    a zero while a decimal would show it."""
+    out = []
+    dec = len(printed.split(".")[1]) if "." in printed else 0
+    if abs(_signed(sign, printed) - want) > 0.5 * 10 ** -dec + 1e-6 + slack:
+        out.append(f"printed {sign}{printed}% for {what}, which is {want:.4f}%")
+    if float(printed) == 0:
+        if sign:
+            out.append(f"printed a signed zero, {sign}{printed}%, for {what}")
+        if round(want, dec + 1) != 0:
+            out.append(f"printed {printed}% for {what}, which is {want:.4f}% - a decimal would show it")
+    return out
 
 
 def _check_rate(txt: str, c: dict, sector: str, sector_median: float | None) -> list[str]:
@@ -893,14 +912,15 @@ def _check_rate(txt: str, c: dict, sector: str, sector_median: float | None) -> 
         return [f"unreadable: {txt!r}"]
     out = []
     sg, big, months, sec, ssg, smed, r2, loose = g.groups()
-    if abs(_signed(sg, big) - c["rb"] * 10) > 0.005 + 1e-6:
-        out.append(f"printed {sg}{big}% per +0.10pp, the slope gives {c['rb'] * 10:.4f}%")
+    out += _check_near_zero(sg, big, c["rb"] * 10, "the stock's slope")
     if int(months) != _jsround(c["rn"] / 21):
         out.append(f"printed {months} months, {c['rn']} trading days is {c['rn'] / 21:.2f}")
     if (sec is None) != (sector_median is None):
         out.append(f"sector clause {'absent' if sec is None else 'present'}, sector median {sector_median}")
-    elif sec is not None and (sec != sector or abs(_signed(ssg, smed) - sector_median * 10) > 0.005 + 2e-4):
-        out.append(f"printed '{sec} median {ssg}{smed}%', the sector's is {sector_median * 10:.4f}%")
+    elif sec is not None:
+        if sec != sector:
+            out.append(f"printed '{sec} median', the stock's sector is {sector}")
+        out += _check_near_zero(ssg, smed, sector_median * 10, f"{sector}'s median slope", 2e-4)
     whole = c["rr2"] * 100
     # cPlain's rule: a whole percent; a non-zero share that rounds to 0 gets one decimal, and one
     # still 0 at one decimal reads "0"

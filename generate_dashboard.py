@@ -4154,9 +4154,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const fmtPct = (target, cur) => {{
             if (!target || !cur || cur === 0) return '';
             const pct = ((target - cur) / cur * 100);
-            const sign = pct >= 0 ? '+' : '';
+            const z = pctNearZero(pct, 1);
+            const sign = z.zero ? '' : (pct > 0 ? '+' : '-');
             const cls = pct >= 0 ? 'pt-up' : 'pt-down';
-            return `<span class="${{cls}}">${{sign}}${{pct.toFixed(1)}}%</span>`;
+            return `<span class="${{cls}}">${{sign}}${{z.mag}}%</span>`;
         }};
 
         // Compute range bar positions (if we have low, mean, high, and price)
@@ -4228,14 +4229,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }};
     const fmtPctChg = (v) => {{
         if (v === null || v === undefined) return '';
-        const pct = (v * 100).toFixed(1);
-        const sign = v >= 0 ? '+' : '';
+        const z = pctNearZero(v * 100, 1);
+        const sign = z.zero ? '' : (v > 0 ? '+' : '-');
         const cls = v >= 0 ? 'snap-up' : 'snap-down';
-        return `<span class="${{cls}}">${{sign}}${{pct}}%</span>`;
+        return `<span class="${{cls}}">${{sign}}${{z.mag}}%</span>`;
     }};
     const fmtPct2 = (v) => {{
         if (v === null || v === undefined) return '\u2014';
-        return (v * 100).toFixed(1) + '%';
+        return pctPlain(v, 1);
     }};
 
     function renderCompanySnapshot(s) {{
@@ -4334,7 +4335,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             return (v >= 0 ? '+' : '') + p + '%';
         }};
         const fmtPE = (v) => v !== null && v !== undefined ? v.toFixed(1) + 'x' : '\u2014';
-        const fmtPct1 = (v) => v !== null && v !== undefined ? (v * 100).toFixed(1) + '%' : '\u2014';
+        const fmtPct1 = (v) => v !== null && v !== undefined ? pctPlain(v, 1) : '\u2014';
         const fmtDE = (v) => v !== null && v !== undefined ? v.toFixed(2) + 'x' : '\u2014';
 
         // No green/red verdicts on peers' figures. They used to colour a peer green when it
@@ -4604,9 +4605,38 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 {_js_page()}
 {_js_drilldown()}
 
+    // ONE RULE FOR A PERCENTAGE NEAR ZERO (2026-11-03). Two defects of one family have reached the
+    // live site, in opposite directions. Unsigned: BXP's close 0.03% below its 200-day average
+    // printed "0.0%", which asserts an equality that is not true, and the data loop refused that
+    // run (2026-10-28). Signed: AMD's and INTC's five-year earnings-yield range printed "-0.0%"
+    // (2026-10-29) and NVR's average analyst target, 0.05% below its price, printed "$6262.00
+    // -0.0%" this morning - gate 1 red on the published payload. Each was fixed in the single
+    // formatter it was found in, so the page carried a dozen private copies of the rule and the
+    // next formatter failed the same way.
+    //
+    // The rule, now in one place: a value that is **not** zero takes one more decimal rather than
+    // printing as a zero; if it is still zero at that precision it is zero to the reader and
+    // prints **unsigned**, because a sign on a zero is the glitch and an unsigned zero is true to
+    // the precision shown. Takes a percentage already in percent units and returns the decimals
+    // to use, whether it prints as zero, and |pct| as text. Every percent formatter on the page
+    // goes through it; tests/test_percent_near_zero.py fails if a new one does not.
+    function pctNearZero(pct, d) {{
+        d = (d === undefined || d === null) ? 1 : d;
+        const ok = typeof pct === 'number' && isFinite(pct);
+        let dd = d;
+        if (ok && pct !== 0 && Number(pct.toFixed(d)) === 0) dd = d + 1;
+        const zero = !ok || Number(pct.toFixed(dd)) === 0;
+        return {{ d: zero ? d : dd, zero: zero, mag: Math.abs(zero ? 0 : pct).toFixed(zero ? d : dd) }};
+    }}
+    // The unsigned form: a bare percentage, its own minus sign only when it is not a zero.
+    function pctPlain(v, d) {{
+        const z = pctNearZero(v * 100, d);
+        return (z.zero || v > 0 ? '' : '-') + z.mag + '%';
+    }}
+
     function fmtMetric(v, type) {{
         if (v === null || v === undefined) return '—';
-        if (type === 'pct') return (v * 100).toFixed(1) + '%';
+        if (type === 'pct') return pctPlain(v, 1);
         // Basis points of price. 'pct' at one decimal would round most of the
         // universe to 0.0%/0.1% and manufacture display ties in a metric that
         // has none (0.0% ties measured on all 502 names).
@@ -4692,7 +4722,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const body = document.querySelector('#methodology-modal .methodology-body');
         const m = (D.weights || {{}}).momentum_regime;
         if (!body || !m || body.querySelector('.method-run-note')) return;
-        const pc = v => (v * 100).toFixed(1) + '%';
+        const pc = v => pctPlain(v, 1);
         let h = '<strong>Momentum rule, this run.</strong> ';
         if (m.state === 'UNKNOWN' || m.vol == null || m.ret == null) {{
             h += 'The index history could not be read, so the momentum regime rule made no change.';
@@ -5360,7 +5390,7 @@ def _js_workings() -> str:
         if (v === null || v === undefined) return '&mdash;';
         if (f === 'usd') return fmtBig(v);
         if (f === 'price') return '$' + Number(v).toFixed(2);
-        if (f === 'pct') return (v * 100).toFixed(1) + '%';
+        if (f === 'pct') return pctPlain(v, 1);
         if (f === 'ratio') return Number(v).toFixed(2);
         if (f === 'num' && typeof v === 'number' && !Number.isInteger(v)) return Number(v.toPrecision(4)).toString();
         return String(v);
@@ -5437,7 +5467,11 @@ def _js_workings() -> str:
         }
         if (['analyst_surprise', 'earnings_acceleration', 'consecutive_beat_streak'].indexOf(m) >= 0 && s.eq4 && s.eq4.length) {
             const q = s.eq4;
-            const sp = v => (v === null || v === undefined) ? '&ndash;' : (v >= 0 ? '+' : '&minus;') + Math.abs(v * 100).toFixed(1) + '%';
+            const sp = v => {
+                if (v === null || v === undefined) return '&ndash;';
+                const z = pctNearZero(v * 100, 1);
+                return (z.zero ? '' : v > 0 ? '+' : '&minus;') + z.mag + '%';
+            };
             const eps = v => (v === null || v === undefined) ? '&ndash;' : '$' + Number(v).toFixed(2);
             const valid = q.map((r, i) => [i, r[3]]).filter(x => x[1] !== null && x[1] !== undefined);
             h += `<div class="wk-k">The last ${q.length} quarters, oldest first</div><table class="wk-mini"><thead><tr><th>Quarter</th><th class="wk-num">Actual EPS</th><th class="wk-num">Estimate</th><th class="wk-num">Surprise</th></tr></thead><tbody>` +
@@ -5458,7 +5492,7 @@ def _js_workings() -> str:
             if (sum) h += `<div class="wk-sum">${sum}</div>`;
         }
         if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
-            const pc = v => (v === null || v === undefined) ? '&ndash;' : (v * 100).toFixed(1) + '%';
+            const pc = v => (v === null || v === undefined) ? '&ndash;' : pctPlain(v, 1);
             h += `<div class="wk-k">Return on equity, last five fiscal years (the company&rsquo;s 10-K filings)</div><table class="wk-mini"><thead><tr><th>Year</th><th class="wk-num">Net income</th><th class="wk-num">Equity, year end</th><th class="wk-num">ROE</th></tr></thead><tbody>` +
                 s.roe5.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${r[0]}${r[3] === null ? ' <span class="wk-dim">&middot; ' + (r[2] !== null && r[2] <= 0 ? 'equity not positive' : 'not reported') + '</span>' : ''}</td><td class="wk-num">${r[1] === null ? '&ndash;' : fmtBig(r[1])}</td><td class="wk-num">${r[2] === null ? '&ndash;' : fmtBig(r[2])}</td><td class="wk-num">${pc(r[3])}</td></tr>`).join('') +
                 `</tbody></table><div class="wk-sum">${s.raw[m] === null || s.raw[m] === undefined ? 'Needs all five years - not computed for this stock' : 'Sample standard deviation of the five ROEs = ' + fmtMetric(s.raw[m], meta.fmt)}</div>`;
@@ -5935,7 +5969,7 @@ def _js_table() -> str:
     // price, so the price gap states the whole difference between the two tickets.
     function shareClassText(t, sc) {
         const gap = (sc.price_gap_pct === null || sc.price_gap_pct === undefined)
-            ? '' : ' It trades ' + Math.abs(sc.price_gap_pct).toFixed(1) + '% ' +
+            ? '' : ' It trades ' + pctNearZero(sc.price_gap_pct, 1).mag + '% ' +
                    (sc.price_gap_pct < 0 ? 'below ' : 'above ') + escapeHtml(sc.scored_as) +
                    ' for the same claim on the same earnings.';
         const rank = (sc.rank === null || sc.rank === undefined)
@@ -9032,8 +9066,8 @@ def _js_ux() -> str:
         body += '<tr class="cmp-meta"><th>Trap flags</th>' + S.map(s => '<td>' + ([s.vt ? 'Value' : '', s.gt ? 'Growth' : ''].filter(Boolean).join(', ') || 'None') + '</td>').join('') + '</tr>';
         body += '<tr class="cmp-meta"><th>Price vs mean analyst target</th>' + S.map(s => {
             if (!s.price || !s.pt_mean) return '<td>&mdash;</td>';
-            const u = (s.pt_mean / s.price - 1) * 100;
-            return '<td>' + (u >= 0 ? '+' : '−') + Math.abs(u).toFixed(1) + '%<span class="cmp-sub">' + (s.num_analysts || 0) + ' analysts</span></td>';
+            const u = (s.pt_mean / s.price - 1) * 100, z = pctNearZero(u, 1);
+            return '<td>' + (z.zero ? '' : u > 0 ? '+' : '−') + z.mag + '%<span class="cmp-sub">' + (s.num_analysts || 0) + ' analysts</span></td>';
         }).join('') + '</tr>';
         let gaps = '';
         for (let i = 1; i < ts.length; i++) gaps += gapSentence(ts[0], ts[i]);
@@ -10156,26 +10190,19 @@ def _js_context() -> str:
     const RATE_STEP = 0.10;   // show rate sensitivity per +0.10pp in the 10-year yield
     const CTX_NOTE = 'Context only; none of these readings enters the score. Each is logged every run so its predictive value can be measured.';
 
+    // Both of these take the page's one near-zero rule (`pctNearZero`, 2026-11-03). `cPlain` has
+    // held that rule privately since 2026-10-29; `cPct` did not, and printed an **unsigned**
+    // "0.0%" for any value inside half a tenth of zero - the BXP defect of 2026-10-28 still
+    // live in the signed context formatter, and invisible to the all-panel sweep, whose pattern
+    // looks for a signed zero.
     function cPct(v, d) {
         if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
-        const dd = d === undefined ? 1 : d;
-        const x = Number((v * 100).toFixed(dd));
-        return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(dd) + '%';
+        const z = pctNearZero(v * 100, d);
+        return (z.zero ? '' : v > 0 ? '+' : '−') + z.mag + '%';
     }
     function cPlain(v, d) {
         if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
-        d = d === undefined ? 1 : d;
-        let s = (v * 100).toFixed(d);
-        // A small non-zero value that rounds to zero keeps its sign and size: AMD's five-year
-        // low earnings yield, a loss, read "-0.0%" and INTC's median "-0.0%" (all-panel sweep,
-        // 2026-10-29) - the BXP "0.0%" defect of 2026-10-28 in another formatter. One more
-        // decimal, as the case-against trend line takes; if that is still zero the value is zero
-        // to the reader and says so unsigned.
-        if (Number(s) === 0 && v !== 0) {
-            s = (v * 100).toFixed(d + 1);
-            if (Number(s) === 0) s = (0).toFixed(d);
-        }
-        return s + '%';
+        return pctPlain(v, d);
     }
     function cMoney(v) {
         if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
@@ -10443,7 +10470,7 @@ def _js_context() -> str:
         const S = M.series;
         if (meta) {
             const bits = [];
-            if (S.T10Y3M) bits.push('10y\u20113m curve ' + (S.T10Y3M.last >= 0 ? '+' : '\u2212') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            if (S.T10Y3M && typeof S.T10Y3M.last === 'number') bits.push('10y\u20113m curve ' + cPp(S.T10Y3M.last / 100, 2));
             if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             meta.textContent = bits.join(' · ');
@@ -10488,7 +10515,7 @@ def _js_context() -> str:
         const W = Math.round(Math.min(1300, Math.max(300, (document.getElementById('track-body') || {}).clientWidth || 900))), Hh = 240, L = 44, R = 92, Tt = 12, B = 26;
         const X = i => L + i / n * (W - L - R), Y = v => Tt + (hi + pad - v) / (hi - lo + 2 * pad) * (Hh - Tt - B);
         let g = '';
-        [lo, 100, hi].forEach(v => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="tr-grid' + (v === 100 ? ' tr-base' : '') + '"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4).toFixed(1) + '" class="tr-tick" text-anchor="end">' + (v - 100 >= 0 ? '+' : '−') + Math.abs(v - 100).toFixed(0) + '%</text>'; });
+        [lo, 100, hi].forEach(v => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="tr-grid' + (v === 100 ? ' tr-base' : '') + '"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4).toFixed(1) + '" class="tr-tick" text-anchor="end">' + cPct((v - 100) / 100, 0) + '</text>'; });
         // methodology changes along the bottom
         const dIdx = d => { let k = 0; S.d.forEach((x, i) => { if (x <= d) k = i; }); return k; };
         const marks = (T.methodology_changes || []).map(m => '<line x1="' + X(dIdx(m.date)).toFixed(1) + '" x2="' + X(dIdx(m.date)).toFixed(1) + '" y1="' + (Hh - B) + '" y2="' + (Hh - B + 5) + '" class="tr-mark"><title>' + escapeHtml(m.date + ' - ' + m.title) + '</title></line>').join('');
@@ -10504,7 +10531,7 @@ def _js_context() -> str:
         });
         ends.sort((a, b) => a.y - b.y);
         for (let j = 1; j < ends.length; j++) if (ends[j].y - ends[j - 1].y < 14) ends[j].y = ends[j - 1].y + 14;
-        ends.forEach(e => { labels += '<text x="' + (W - R + 8) + '" y="' + (e.y + 4).toFixed(1) + '" class="tr-end ' + e.cls + '">' + (e.v - 100 >= 0 ? '+' : '−') + Math.abs(e.v - 100).toFixed(1) + '%</text>'; });
+        ends.forEach(e => { labels += '<text x="' + (W - R + 8) + '" y="' + (e.y + 4).toFixed(1) + '" class="tr-end ' + e.cls + '">' + cPct((e.v - 100) / 100, 1) + '</text>'; });
         return '<svg class="tr-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Growth of 100 since ' + escapeHtml(T.start) + '">' + g + marks + lines + labels +
             '<text x="' + L + '" y="' + (Hh - 6) + '" class="tr-tick">' + escapeHtml(cDate(S.d[0])) + '</text><text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="tr-tick" text-anchor="end">' + escapeHtml(cDate(S.d[n])) + '</text></svg>' +
             '<div class="tr-legend">' + keys.map(k => '<span><i class="tr-k ' + k[2] + '"></i>' + escapeHtml(k[1]) + '</span>').join('') + '<span><i class="tr-k tr-k-mark"></i>Methodology changelog entry (hover)</span></div>';
@@ -10517,9 +10544,8 @@ def _js_context() -> str:
     // A difference between two returns is in percentage points, not percent.
     function cPp(v, d) {
         if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
-        const dd = d === undefined ? 1 : d;
-        const x = Number((v * 100).toFixed(dd));
-        return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(dd) + 'pp';
+        const z = pctNearZero(v * 100, d);
+        return (z.zero ? '' : v > 0 ? '+' : '−') + z.mag + 'pp';
     }
     // Every sentence below is checked against track_record.build (claims context.track_record,
     // context.track_luck, context.track_turnover; tests/test_track_record_claims.py;
@@ -10655,7 +10681,8 @@ def _js_context() -> str:
                 // The last reported quarter's surprise, from the four quarters behind the surprise
                 // metrics (eq4: [date, actual, estimate, surprise]) - context for the next report.
                 const lq = (x.s.eq4 || []).filter(q => q[3] !== null && q[3] !== undefined).slice(-1)[0];
-                const lqTxt = lq ? (lq[3] >= 0 ? '+' : '&minus;') + Math.abs(lq[3] * 100).toFixed(1) + '%' : '<span class="rp-none">&ndash;</span>';
+                const lqZ = lq ? pctNearZero(lq[3] * 100, 1) : null;
+                const lqTxt = lq ? (lqZ.zero ? '' : lq[3] > 0 ? '+' : '&minus;') + lqZ.mag + '%' : '<span class="rp-none">&ndash;</span>';
                 // On a phone the last two columns do not fit; the same two figures ride under the
                 // company name instead (shown below 640px only), so nothing is withheld from a phone
                 // reader (ui-elevation fourth pass, 2026-10-27).
@@ -10689,7 +10716,10 @@ def _js_context() -> str:
         const mm = document.getElementById('meta-market');
         if (mm && M && M.series) {
             const S = M.series, bits = [];
-            if (S.T10Y3M) bits.push('10y\u20113m curve ' + (S.T10Y3M.last >= 0 ? '+' : '−') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            // cPp is the page's one rule for a signed figure near zero (2026-11-03). Both
+            // readers of this line write textContent, so the figure must be a number:
+            // cPp answers a missing one with an entity, which textContent would print.
+            if (S.T10Y3M && typeof S.T10Y3M.last === 'number') bits.push('10y\u20113m curve ' + cPp(S.T10Y3M.last / 100, 2));
             if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             mm.textContent = bits.join(' · ');
@@ -10697,7 +10727,7 @@ def _js_context() -> str:
         const mt = document.getElementById('meta-track');
         if (mt && T && T.available) {
             const tot = T.total || {};
-            const f = v => (v === null || v === undefined) ? '-' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%';
+            const f = v => (v === null || v === undefined) ? '-' : cPct(v, 1);
             // Both benchmarks, always: the tile quoted only the equal-weight index, which the top 25
             // beat, while the S&P 500 itself had beaten the top 25 (2026-10-16).
             const hasSpy = tot.SPY !== null && tot.SPY !== undefined;
@@ -11786,7 +11816,7 @@ def _js_page() -> str:
         // Track record: the three published totals on one scale
         const T = D.track;
         if (T && T.available && T.total && typeof T.total.top === 'number') {
-            const t = T.total, pc = v => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%';
+            const t = T.total, pc = v => cPct(v, 1);
             const items = [{ l: 'Top 25', v: t.top, t: pc(t.top), hi: true }];
             if (typeof t.RSP === 'number') items.push({ l: 'Equal-weight', v: t.RSP, t: pc(t.RSP) });
             if (typeof t.SPY === 'number') items.push({ l: 'S&amp;P 500', v: t.SPY, t: pc(t.SPY) });
