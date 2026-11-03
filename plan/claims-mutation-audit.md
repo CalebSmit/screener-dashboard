@@ -1175,3 +1175,194 @@ published sentence changed - the diff is `claims.py` (one claim), `tests/js_swee
 
 Table cells stay outside the sweep on this surface as on the other two, and so does text inside a
 tag (`title=` tooltips, `style=` widths) - both stated in section 7's comment.
+
+## Results, 2026-11-02 (owner-run, late): 37 of the dashboard's open rows
+
+**37 of the 77 `open:` rows closed; 40 remain.** `DASHBOARD_SENTENCES` now holds 44 `claim:` rows
+and 40 `open:`. Every closure is a check that runs **the JavaScript that prints the figure** - the
+generator's own page (`generate_dashboard.generate_html()`, never the committed `index.html`) under
+Chromium, or the emitted script under Node - and compares the printed figure with a value worked
+out in the test from the engine's rule or the payload's inputs, for every stock where the sentence
+is per stock, plus hand-worked fixtures with literal expected text for every branch today's data
+does not take (a coverage discount at a non-default threshold, a sector of exactly ten, a panic
+regime, no lead to erase, a share explained too small for a whole percent, a five-year series with
+a gap). The publish gate runs them: each check sits in a module a registered claim names, and the
+gate's membership went from **71 to 73 modules** (`tests/test_dashboard_printed_figures.py`, new;
+`tests/test_holdings_panel.py`, named by a claim for the first time).
+
+**The measurement: 83 mutations, 83 caught now; 82 of them passed every check that existed
+before tonight** (`--before` drops the new checks; row 227 was the one an existing assertion
+reached). Harness: `research/measurements/2026-11-02-dashboard-open-rows-mutations.py` (`--before`,
+`--rows 189-271`; one exact single-occurrence replacement in `generate_dashboard.py`, the claim's
+own `checked_by`, source restored byte for byte in `finally`). Read the anchors from the file with
+`read_bytes()`: it is CRLF on disk, so a multi-line anchor matches nothing - the first draft's rows
+196 and 206 failed that way and were rewritten as single-line anchors.
+
+| # | Claim | Mutation (generator) | Before | Now |
+|---|---|---|---|---|
+| 189 | `drilldown.composite_chain` | the total prints the composite, not the category points | MISSED | caught |
+| 190 | same | the discount line's n prints the denominator | MISSED | caught |
+| 191 | same | the coverage share truncated, not rounded | MISSED | caught |
+| 192 | same | the threshold printed as a fixed 80 | MISSED | caught (fixture at 85%) |
+| 193 | same | the discount rate printed x10 too small | MISSED | caught |
+| 194 | same | the cut taken off the composite, not the points | MISSED | caught |
+| 195 | same | the composite line prints the undiscounted points | MISSED | caught |
+| 196 | same | the discount line needs a discount above 2% | MISSED | caught |
+| 197 | `drilldown.peer_rank` | rank = the count of better peers (off by one) | MISSED | caught |
+| 198 | same | ties counted as better | MISSED | caught |
+| 199 | same | a universe-ranked stock counted against its sector only | MISSED | caught (fixture: 9 in a sector) |
+| 200 | same | a sector of exactly the minimum falls back to the universe | MISSED | caught (fixture: 10 in a sector) |
+| 201 | same | the sector median prints the lower quartile | MISSED | caught |
+| 202 | same | the middle half ends at the median | MISSED | caught |
+| 203 | same | the percentile ordinal truncated | MISSED | caught |
+| 204 | same | the direction words swapped | MISSED | caught |
+| 205 | same | 13 takes 'rd' | MISSED | caught |
+| 206 | `drilldown.unscored_category` | both counts are the whole table, not the weighted metrics | MISSED | caught |
+| 207 | same | the workings' count alone is the whole table | MISSED | caught |
+| 208 | same | the weight shared out is the category's effective weight (0) | MISSED | caught |
+| 209 | same | the weight shared out is the configured default (the code before tonight) | MISSED | caught (panic fixture) |
+| 210 | same | a weight-0 metric counted as weighted | MISSED | caught |
+| 211 | `context.track_turnover` | the tile's mean prints the most traded | MISSED | caught |
+| 212 | same | the range starts at the mean | MISSED | caught |
+| 213 | same | the paragraph's mean counts both sides of each trade | MISSED | caught |
+| 214 | same | the break-even cost doubled | MISSED | caught |
+| 215 | same | a null break-even cost still printed | MISSED | caught (fixture) |
+| 216 | `context.track_luck` | the coin-toss share is the complement | MISSED | caught |
+| 217 | same | the trading days are the record's calendar days | MISSED | caught |
+| 218 | same | the years to two to a whole number | MISSED | caught |
+| 219 | same | a negative lead printed without its sign | MISSED | caught (fixture t = -0.4) |
+| 220 | same | a null years-to-two still printed | MISSED | caught (fixture) |
+| 221 | same | periods compared printed as all periods | MISSED | caught (fixture 3 of 4) |
+| 222 | `dashboard.holdings_fit` (new) | the top 25 counted strictly below 25 | MISSED | caught (ranks 25/26/100/101) |
+| 223 | same | the top 100 counted strictly below 100 | MISSED | caught |
+| 224 | same | the universe is the table's length, not the run's | MISSED | caught (universe 503 against 4 rows) |
+| 225 | same | the sector count prints the largest sector's names | MISSED | caught |
+| 226 | same | only value traps counted as flagged | MISSED | caught |
+| 227 | same | the largest sector's share over the sectors, not the names | caught | caught |
+| 228 | same | a published count met only above it | MISSED | caught (29..64 names) |
+| 229 | same | 'above k' counts the marks not cleared | MISSED | caught |
+| 230 | same | the count beside the standing prints the marks cleared | MISSED | caught |
+| 231 | same | the remove-all dialog states the list's cap | MISSED | caught |
+| 232 | `drilldown.composite_distribution` (new) | the count is the number of bins | MISSED | caught |
+| 233 | same | the label's median is the middle of the range | MISSED | caught |
+| 234 | same | the caption under the strip prints the stock's composite | MISSED | caught |
+| 235 | same | the label's composite rounded to a whole number | MISSED | caught |
+| 236 | same | the next bin marked | MISSED | caught |
+| 237 | `overview.momentum_regime` | the panic sentence's threshold prints the volatility | MISSED | caught (fixture) |
+| 238 | same | the unchanged sentence's threshold is a fixed 20.6% | MISSED | caught (fixture at 25%) |
+| 239 | same | the return printed without taking its size | MISSED | caught |
+| 240 | same | the months window prints the trading-day window | MISSED | caught |
+| 241 | same | the volatility printed daily, not annualised | MISSED | caught |
+| 242 | same | the panic sentence chosen on the return alone | MISSED | caught (fixture) |
+| 243 | `history.run_overview` | the footnote's up count is the listed movers | MISSED | caught |
+| 244 | same | the shown-up count is the whole count | MISSED | caught |
+| 245 | same | the shown-down count capped by the up count | MISSED | caught |
+| 246 | same | the round-trip share over the listed movers | MISSED | caught |
+| 247 | same | the round-trip sentence printed with none | MISSED | caught (fixture) |
+| 248 | same | the tile reads the last run, not the ~1-month window | MISSED | caught |
+| 249 | same | the tile's 'of N' is the movers, not the universe | MISSED | caught |
+| 250 | same | the tile caption's up count prints the down count | MISSED | caught |
+| 251 | `context.rate_sensitivity` | the slope printed per +1 point, not per +0.10 | MISSED | caught |
+| 252 | same | the window counted in 22-day months | MISSED | caught |
+| 253 | same | the sector median printed per +1 point | MISSED | caught |
+| 254 | same | the share explained is the correlation, not its square | MISSED | caught |
+| 255 | same | 'read loosely' only under 1% | MISSED | caught |
+| 256 | same | the sector median looked up by industry | MISSED | caught |
+| 257 | `context.valuation_history` | the share printed is the share with a higher yield | MISSED | caught |
+| 258 | same | the month-ends counted with the missing ones | MISSED | caught |
+| 259 | same | the range ends at today's yield | MISSED | caught |
+| 260 | same | the median is the middle of the range | MISSED | caught |
+| 261 | same | a yield equal to the five-year high called 'above every one' | MISSED | caught (fixture) |
+| 262 | same | today's yield prints the median | MISSED | caught |
+| 263 | `dashboard.trap_flag_key` | the growth-trap share prints the value-trap share | MISSED | caught |
+| 264 | same | the trap card's counts swapped | MISSED | caught |
+| 265 | `dashboard.score_key` | the key's median prints the average | MISSED | caught |
+| 266 | `dashboard.trap_flag_key` | the analytics headline names the lowest rate | MISSED | caught |
+| 267 | same | the analytics headline prints the flagged count as a rate | MISSED | caught |
+| 268 | `dashboard.score_key` | the ranking's size hard-coded to the index's 503 | MISSED | caught |
+| 269 | `overview.momentum_regime` | the momentum card prints the configured weight | MISSED | caught (fixture) |
+| 270 | same | the momentum card's 'from' prints this run's weight | MISSED | caught (fixture) |
+| 271 | same | a cut called a raise | MISSED | caught (fixture) |
+
+**Rows closed (slug -> claim):** `composite-chain-total`, `composite-chain-discount-line` ->
+`drilldown.composite_chain`; `peer-rank-sentence`, `peer-sector-stats`, `peer-percentile-ordinal` ->
+`drilldown.peer_rank`; `unscored-weight-shared`, `unscored-tile-count`, `unscored-workings-count` ->
+`drilldown.unscored_category`; `track-turnover-mean`, `track-turnover-range`, `track-break-even-cost`,
+`track-costs-paragraph` -> `context.track_turnover`; `track-excess-days-and-years`,
+`track-years-to-two-printing`, `track-coin-toss-share` -> `context.track_luck`; `holdings-fit-counts`,
+`holdings-top-counts`, `holdings-standing`, `holdings-remove-all` -> `dashboard.holdings_fit` (new);
+`drilldown-distribution-caption`, `drilldown-distribution-median` -> `drilldown.composite_distribution`
+(new); `market-regime-reading`, `market-regime-cut-threshold`, `market-regime-unchanged-threshold`,
+`regime-weight-line` -> `overview.momentum_regime`; `movers-shown-counts`, `movers-round-trip`,
+`movers-tile-counts`, `movers-overview-counts` -> `history.run_overview`; `rate-sensitivity-line`,
+`rate-share-explained` -> `context.rate_sensitivity`; `valuation-history-reading`,
+`valuation-history-above` -> `context.valuation_history`; `trap-share-kpi`, `value-trap-sector-rate` ->
+`dashboard.trap_flag_key`; `key-median-sentence`, `ranking-universe-count` -> `dashboard.score_key`.
+
+**A FALSE sentence, measured and left open: the expected-move card's divisor.** The drilldown says
+"Expected move = at-the-money call + put, divided by the price $<c.px>", where `c.px` is this run's
+last close. The engine divided the straddle by the price the 20:00 option refresh was handed -
+`price_latest` from the newest run *at refresh time*, the close **before** the session whose quotes
+it records (`options_cache.refresh` -> `_fetch_one` -> `context_signals.options_context`) - and
+chose the at-the-money strike against that older price too. On the 2026-10-30 run's payload
+(`research/measurements/2026-11-02-expected-move-divisor.py`): of 359 stocks with a move, the
+divisor differs from the price the page names by more than 1% for **273** (median 1.7%), by more
+than 5% for 16 and by more than 10% for 6; for **20** stocks the "at-the-money" strike is more than
+5% from the named price, the bar `options_context` itself refuses. NOW is the worst: strike 150
+against $109.67, so its "+/-27.3%" is mostly the put's intrinsic value, not a move options are
+paying for. Both rows (`expected-move-price`, `expected-move-figure`) stay `open:` with the finding
+in their notes. **Not fixed tonight** - the cure is in the pipeline, not the generator (hand the
+refresh the quoted session's own close, or take the spot from the chain, and publish the spot the
+move was divided by), it changes published numbers, and it needs its own session and changelog
+entry. It is the top item of the queue below.
+
+**One generator change, no sentence changed today.** An unscored category's contribution row said
+"its N% was shared out" with N the *configured* weight (`base_factor_weights`). In the momentum
+panic state the run scores Momentum at 13 x 0.70 = 9.1%, so a stock with Momentum unscored gives up
+9.1%, and the row would have said 13%. It now prints the run's weight (`factor_weights`, the
+weights the scores were built from); identical on every run outside the panic state, so the page
+was rebuilt with `scripts/rebuild_page.py` and the payload is byte-identical. Row 209 is that change
+as a mutation.
+
+**A rounding note, not a defect worth a change:** the valuation-history share is published to one
+decimal and the page rounds that again, so a share of 53.45% prints "54%" (TGT and MRVL on the
+2026-10-30 payload). The check accepts the double rounding and says so in a comment.
+
+**Why `tests/test_drilldown_presentation.py` was not registered:** the queue's group 2 named it for
+the masthead strip's caption. Its one check of the caption reads the committed page, names a stock,
+and compares the label with the page's own arithmetic; the module's other tests drag a phone sheet
+and wait on animations, which is load-sensitive and does not belong in the data loop's publish gate.
+The caption's check was written in `test_dashboard_printed_figures.py` instead (claim
+`drilldown.composite_distribution`), against `table_data` for every stock.
+
+**One observation for whoever touches the tests next:**
+`tests/test_sheet_round_three.py::test_every_published_unscored_category_has_no_weighted_metric_with_data`
+ends `assert unscored >= 1` - a premise about the morning's data (row "data->red"): a run in which
+every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
+unscored checks do not depend on it, because a hand-made unscored category runs every day.
+
+**What remains, as a queue (40 `open:` rows):**
+
+1. **The expected-move card (2 rows) - FALSE, fix first.** Above. Pipeline change plus a changelog
+   entry; then a page check of the form used tonight (the printed divisor equals the published
+   spot, the move equals straddle over it).
+2. **The workings' equation lines (11 rows):** `metric-points-equation`,
+   `metric-weight-rescaled-line`, `metric-weight-no-data-line`, `piotroski-parts-line`,
+   `piotroski-signals-line`, the four `surprise-*` lines, `roe-sd-line`, `same-value-scored`. The
+   pattern is tonight's `_RANK_JS`: `metricDetailHtml(m, s, r)` and `categoryWorkings` for every
+   stock, compared with `calc_trace`'s published points and `metric_lineage`'s recomputation; read
+   `drilldown.row_equation`'s browser check first, it may already pin part of this.
+3. **The track record's remaining three:** `track-period-count`, `track-changelog-entries` (count
+   the changelog's dated entries inside the window independently; on the 2026-10-30 payload its 33
+   entries fall on 33 distinct dates, so "on N dates" holds today but nothing checks it), `track-unpriced-picks`.
+4. **Context cards:** `insider-card-rows`, `insider-plan-share` (the case against's copy is pinned),
+   `case-against-insider-purchases`, `case-against-purchases-figure`, `price-trend-52w-line`,
+   `macro-percentile-label`.
+5. **History and counts:** `rank-history-span`, `rank-history-run-count`, `rank-history-built-from`,
+   `noise-band-pairs`, `reporting-soon-counts`, `distribution-range`, `distribution-dot-count`,
+   `holdings-rank-strip`, `holdings-rank-strip-axis` (drawn by `renderTileViz`; tonight's `_TILE_JS`
+   is the pattern), `show-next-count`.
+6. **Single-stock figures with no claim yet:** `price-target-strip`, `ni-growth-yoy`, `short-ratio`,
+   `share-class-price-gap`, `lower-is-better-count`, `compare-gap-sentence`, `cadence-turnover`,
+   `cadence-turnover-ceiling` (`tests/test_review_cadence.py` - register it first, as row 222 shows
+   is worth doing).
