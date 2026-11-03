@@ -186,6 +186,38 @@ def test_equal_split_arithmetic(script, tmp_path, tickers, expected):
     assert expected + "</strong> a position" in _fit_of(script, tickers, tmp_path)
 
 
+_RISK_SENTENCE = re.compile(
+    r"<strong>(\w+)</strong> at <strong>(\d+)%</strong> annualised volatility against "
+    r"<strong>(\w+)</strong> at <strong>(\d+)%</strong>, a <strong>([\d.]+)&times;</strong> "
+    r"spread\. Held in equal dollar amounts, (\w+) moves the value of the list about "
+    r"([\d.]+)&times; as much as (\w+)\.")
+
+
+@pytestmark_node
+@pytest.mark.parametrize("tickers,split,risk", [
+    # AAA 0.60, DDD 0.40: a ratio of 1.5, so a whole-number ratio cannot pass by accident
+    (["AAA", "DDD"], "An equal split across 2 names is <strong>50.0%</strong> a position.",
+     ("AAA", "60", "DDD", "40", "1.5", "AAA", "1.5", "DDD")),
+    # the extremes of three, not the first two added: AAA 0.60 against CCC 0.30
+    (["DDD", "AAA", "CCC"], "An equal split across 3 names is <strong>33.3%</strong> a position.",
+     ("AAA", "60", "CCC", "30", "2.0", "AAA", "2.0", "CCC")),
+])
+def test_the_concentration_sentences_print_their_own_figures(script, tmp_path, tickers, split, risk):
+    """claims.py ``dashboard.holdings_concentration`` (claims mutation audit, 2026-11-02).
+
+    The checks above pin the equal-split **percentage** and the spread's first printing, and
+    nothing read the rest: the count of names in the same sentence, or the ratio's **second**
+    printing ("moves the value of the list about N x as much"), which is the clamp-bullet and
+    pass-bar shape - one figure printed twice, one copy pinned. Every figure here is a literal
+    worked by hand from the fixture's raw volatilities, never read back from the code.
+    """
+    fit = _fit_of(script, tickers, tmp_path)
+    assert split in fit, fit
+    m = _RISK_SENTENCE.search(fit)
+    assert m, fit
+    assert m.groups() == risk
+
+
 @pytestmark_node
 def test_single_holding_reads_as_english(script, tmp_path):
     """One saved name is a common starting state - somebody has just added
