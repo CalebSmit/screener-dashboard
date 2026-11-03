@@ -48,6 +48,27 @@ FLOOR_M = 1224.13
 FLOOR_N_NYSE = 1079
 
 
+def pinned(text: str, needle: str, copies: int, why: str) -> None:
+    """Assert `needle` survives in EVERY place the document commits to it.
+
+    This is the module's own hard-won rule. The first version of these tests asked
+    `needle in text`, and `research/measurements/2026-11-03-preregistration-mutations.py`
+    found **five gaps that were all the same defect**: the plan states each decision twice -
+    once in the decisions block, once in the phase section that acts on it - so changing one
+    copy left the other to satisfy the test. A floor re-fitted from $1,224.13M to $1,200M in
+    the decisions block passed.
+
+    That is `DECISIONS.md`'s share-class lesson (2026-10-31, "two literals for one number are
+    free to drift") one level up: here it was the *check* that tolerated the drift. Counting
+    is the fix - `>=` rather than `==`, so adding a legitimate third mention is allowed while
+    removing one is not.
+    """
+    found = text.count(needle)
+    assert found >= copies, (
+        f"expected {needle!r} in at least {copies} place(s), found {found}. {why}"
+    )
+
+
 @pytest.fixture(scope="module")
 def plan() -> str:
     return PLAN.read_text(encoding="utf-8")
@@ -61,11 +82,12 @@ def note() -> str:
 # --- 1. the floor ----------------------------------------------------------------
 
 def test_the_plan_states_the_pre_registered_floor_to_the_cent(plan):
-    """$1,224.13M, written out, not rounded and not a range."""
-    assert "$1,224.13M" in plan, (
-        "the phase-4 floor must be stated exactly in plan/universe-expansion.md; "
-        "re-derive it with research/measurements/2026-11-03-nyse-breakpoints.py "
-        "before changing this"
+    """$1,224.13M, written out, not rounded and not a range - in both places it is stated."""
+    pinned(
+        plan, "$1,224.13M", 2,
+        "The phase-4 floor is stated twice: in decision 2 and in the phase-4 section that "
+        "applies it. Re-derive it with research/measurements/2026-11-03-nyse-breakpoints.py "
+        "before changing either.",
     )
 
 
@@ -83,9 +105,10 @@ def test_the_floor_names_its_source_and_its_june_provenance(plan):
 
 def test_the_floor_is_held_twelve_months_not_recomputed_per_run(plan):
     """Fama-French timing: read in June, applied from July, fixed for a year."""
-    assert re.search(r"held\s+twelve\s+months", plan, re.I), (
-        "a floor recomputed every run is a moving universe boundary; the decision is a June "
-        "reading held for twelve months"
+    pinned(
+        plan, "held twelve months", 2,
+        "A floor recomputed every run is a moving universe boundary. Both the decision and "
+        "the phase-4 section must say the June reading is held for twelve months.",
     )
 
 
@@ -101,10 +124,13 @@ def test_the_adopted_reason_is_the_replication_papers_not_the_sp_alignment(plan)
         "the agreement with S&P's $1.2B addition floor was measured to be this June's "
         "coincidence (June 2025: $870M; June 2020: $484M) - that finding must not be lost"
     )
-    assert "+112.1%" in plan and "-34.4%" in plan and "+40.7%" in plan, (
-        "the floor's year-to-year moves are why 'it never needs re-tuning' was struck; "
-        "keep the three figures that show it"
-    )
+    for figure in ("+112.1%", "-34.4%", "+40.7%"):
+        pinned(
+            plan, figure, 2,
+            "The floor's year-to-year moves are why 'it never needs re-tuning' was struck. "
+            "All three figures appear in decision 2 and again in phase 4, where they are the "
+            "reason the input gates need a July replay.",
+        )
 
 
 def test_the_july_churn_consequence_is_carried_into_phase_4(plan):
@@ -119,9 +145,16 @@ def test_the_july_churn_consequence_is_carried_into_phase_4(plan):
 
 def test_the_plan_states_the_band_split_and_the_band_wide_fallback(plan):
     assert "(Sector, size_band)" in plan or "`(Sector, size_band)`" in plan
-    assert re.search(r"band-?\s*wide", plan, re.I), (
-        "the fallback below ten peers becomes band-wide, not universe-wide; falling back "
-        "across bands reintroduces the size mixing the split removes"
+    # Both statements of the fallback are pinned separately. A loose /band-?wide/i search
+    # matched either one, so flipping the decision to "universe-wide" passed on the strength
+    # of the phase-1 sentence - the defect `pinned` exists for.
+    assert "to **band**-wide" in plan, (
+        "decision 3 must say the fallback changes from universe-wide to band-wide; falling "
+        "back across bands reintroduces the size mixing the split removes"
+    )
+    assert "fallback becomes band-wide" in plan, (
+        "phase 1's engineering instruction must say band-wide too, or the decision and the "
+        "work order disagree"
     )
 
 
@@ -160,9 +193,11 @@ def test_the_one_thin_group_is_named_with_its_count(plan):
 # --- 3. the min_market_cap resolution --------------------------------------------
 
 def test_the_min_market_cap_contradiction_stays_resolved_with_its_measurement(plan):
-    assert "min_market_cap: 0" in plan, (
-        "the note gave two answers for the S&P 500 band; the measurement (0 of 503 members "
-        "below $2B) resolves it to one rule for every S&P index band"
+    pinned(
+        plan, "min_market_cap: 0", 2,
+        "The note gave two answers for the S&P 500 band; the measurement (0 of 503 members "
+        "below $2B) resolves it to one rule for every S&P index band. It is stated in the "
+        "resolution and again in phase 1's work order - both must say 0.",
     )
     assert "$6.050B" in plan or "6.050B" in plan, (
         "keep the measured headroom (smallest member MOS at $6.050B against a $2B floor); "
