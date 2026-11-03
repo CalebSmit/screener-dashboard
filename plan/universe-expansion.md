@@ -47,6 +47,15 @@ the S&P 500 and must become a property of *the universe being run*, not a litera
 
 ### Phase 0 - Research (a Monday): what changes below the large caps
 
+**WRITTEN 2026-11-02 (owner-run evening): `research/2026-11-02-universe-expansion-phase0.md`.**
+Its proposal is OPEN and **must be decided by a session that did not write it**: S&P 1500 first;
+the phase-4 floor at the NYSE 20th-percentile breakpoint from Ken French's June file ($1,224.13M
+for July 2026-June 2027); percentiles within `(Sector, size_band)` with a band-wide fallback. It also
+adds to phase 1 (`universe.min_market_cap: 2e9` must become per-universe, or an S&P 600 run silently
+drops its bottom) and to phase 2's measurements, and finds a present-day gap that is not phase work:
+a stock with no analyst coverage has its whole Revisions category scored on days-to-cover alone
+(about 5 S&P 500 names; section 4, options a-c - a methodology change of its own).
+
 One complete note in `research/`, literature and practice, ending in a `**Proposal status: OPEN**`
 line. Questions it must answer:
 

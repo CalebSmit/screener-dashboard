@@ -36,8 +36,11 @@ Two things still outrank this file, and neither is negotiable:
   **phase 2** scores the S&P 400 + 600 in shadow, unpublished, and writes the numbers down;
   **phase 3** publishes the S&P 1500 beside the S&P 500; **phase 4** is all NYSE and NASDAQ common
   stocks above a pre-registered floor. **Throughout: the S&P 500 ranking, `signals.json` and the
-  bot are unchanged, and each universe keeps its own evidence series.** Next: phase 0, the next
-  research Monday (2026-11-02).
+  bot are unchanged, and each universe keeps its own evidence series.** **Phase 0 written
+  2026-11-02 (owner-run evening; the scheduled Monday session could not run):**
+  `research/2026-11-02-universe-expansion-phase0.md` - S&P 1500 first, the phase-4 floor at the
+  NYSE 20th percentile ($1.22B today), percentiles within sector *and* size band, and why. Next: a
+  later session decides its OPEN proposal (the brief lists it), then phase 1.
 
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test
