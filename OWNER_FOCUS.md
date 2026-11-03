@@ -910,7 +910,8 @@ Completed items, newest first.
   Monday could not run) - S&P 1500 first, NYSE-20th-percentile floor, size-band percentiles, OPEN for
   a later session; the filing cross-check's normal range measured and its promotion to a gate
   pre-registered for 2026-11-16. **Credibility:** the claims audit's last open rows on the research
-  and methodology pages closed (30 mutations, each caught by a new check). **Factor Lab:**
+  and methodology pages closed (30 mutations, each caught by a new check), and the dashboard's own
+  sentences swept for the first time (84 found, 7 pinned, 77 queued; none false). **Factor Lab:**
   experiment 18, analyst revisions (Chan, Jegadeesh & Lakonishok 1996) - the Revisions category's
   first rerunnable result, 3 of 3 within; second read pending. **Speed:** the research
   page builds 5.8x faster with byte-identical output; the suite fell from 4:36 to about 3:00. No

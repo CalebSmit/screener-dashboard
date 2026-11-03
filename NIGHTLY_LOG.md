@@ -18046,4 +18046,12 @@ item, due today; the scheduled Monday could not run) done here.
   2026-12-02 10:28", the brief a "Code-session login" row, and the payload a `sec_facts` stamp.
 - **Decide the phase 0 proposal** (not this session) and the growth-exposure one.
 - **Second-read experiment 18** (Friday 2026-11-06 or any session that did not build it).
-- `generate_dashboard.py`'s claims sweep - see the entry below if it merged tonight.
+- **The dashboard's own claims queue:** `generate_dashboard.py`'s sweep merged tonight (delegated,
+  isolated worktree; `tests/js_sweep.py` reads the JavaScript the generator emits, since every
+  number in the page's prose is formatted there). **84 computed sentences: 7 claim, 77 open** -
+  almost all open because the claims' checks pin the engine's or payload's number and no
+  registered test runs the JavaScript that prints it. No false sentence found. Closed: the
+  Concentration block in My Holdings (`dashboard.holdings_concentration`; its 34-test module had
+  been outside the publish gate, which now runs it - 71 modules), rows 178-188, 11 of 11 caught.
+  The 77-row queue, grouped in three, is in `plan/claims-mutation-audit.md`'s newest section:
+  `DASHBOARD_KNOWN_OPEN` only shrinks from here.
