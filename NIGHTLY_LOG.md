@@ -18228,7 +18228,100 @@ check_published_claims 2,025 passed, published files restored byte for byte.
   A 0.4%-wide bar and a trap rate shown as "0 of 12" are not the defect; each is listed with the
   reason, so the decision is re-readable rather than silent.
 
-### Next
+
+### Did, second half - the open proposal decided (added after the branch was first pushed)
+
+With the defect shipped and the gates green, took the highest-leverage thing a scheduled session
+can do: **decided one of the three OPEN proposals**, as a reader who did not write it.
+`research/2026-11-02-growth-exposure-drift.md` - **DECIDED: option 3 accepted, options 1 and 2
+refused as responses to this evidence, and the premise all three rest on does not survive the
+longer record.** The reasoning is the note's new section 6, not only here.
+
+8. **The question the note set aside is the one that decides it.** Section 3 says in writing:
+   "Five changelog entries changed how scores are computed between 10-14 and 10-21, mostly for
+   banks; they may account for part of it. **This note does not separate the two.**" Separating
+   them is all this review did.
+
+9. **It is not the banks**
+   (`research/measurements/2026-11-03-growth-drift-decomposition.py`, every committed payload).
+   With Financials removed - the cohort those entries rescored - the rise over the same window is
+   **larger, +0.0949 against +0.0814**. And it continues through 10-23..10-30, five runs sharing
+   one `kpis.methodology_version`, so no scoring rule changed underneath them.
+
+10. **It is not a drift either, and that is the finding.**
+    `research/measurements/2026-11-03-neutral-weight-history.py` runs the note's **own** sweep
+    script, unmodified, over all 60 published payloads rather than the three it used. The Growth
+    weight at which a run would be exactly growth-neutral:
+
+    | period | runs | neutral weight |
+    |---|---|---|
+    | 2026-08-12 .. 2026-10-09 **morning** | 40 | **8.8 - 12.0**, mean 9.9 |
+    | 2026-10-09 **evening** | 1 | **13.6** |
+    | 2026-10-12 .. 2026-10-16 | 5 | 13.2 - 13.7 |
+    | 2026-10-19 .. 2026-10-30 | 8 | 12.9 down to 10.2 |
+    | 2026-11-03 | 1 | **8.8** |
+
+    The step is **one run wide**: 10.2 on the 2026-10-09 morning run, 13.6 on the evening run the
+    same day. Between them sit the five `METHODOLOGY_CHANGELOG.md` entries of 2026-10-09 -
+    `operating_leverage`, `revenue_growth`, Piotroski 3/8/9, EBITDA, `forward_eps_growth`, four of
+    the five inside Growth or Quality. Growth against Valuation goes -0.322 -> -0.443 across the
+    same pair and is -0.359 today. **So 13% was never the neutral point.** It was neutral for about
+    six runs, beginning four days before the review that measured it; the "drift" is that step
+    decaying back to the level that held for the two months before.
+
+11. **The decisions.** *Option 1, re-fit on the review cadence - **REFUSED**:* it would have set
+    Growth to ~13.5 in mid-October, ~11.4 in late October and ~8.8 today, **three moves in a
+    month, every one following the decay of this screener's own edit**. A weight that follows a
+    correlation is not a weight, and this one would have been following an artifact. *Option 2,
+    neutralise the composite after it is built (MSCI's instrument) - **REFUSED as a response to
+    this evidence**, explicitly not on its merits:* at the configured weight the exposure is
+    stationary in +0.02..+0.08 across the 40 pre-change runs and has returned into that band, so
+    there is nothing persistent to constrain, and the step touches row 0.8 (the page must
+    reproduce it). It stays open as a design question about the instrument. *Option 3, state the
+    lean and leave the weight - **ACCEPTED***, which is what shipped on 11-02, so this ratifies
+    rather than builds.
+
+12. **One page correction it forced.** The methodology page said the balance "moves as the scores
+    Growth offsets move **with the market**". The record does not support that attribution. The
+    paragraph now gives the measured range, the one-run step, and what caused it, and says the
+    weight is not re-fitted run by run **because** a re-fit would have chased that decay.
+    Generated (`build_screener_overview`), so `SCREENER_OVERVIEW.md` was regenerated from the
+    generator and `index.html`/`dashboard.html` rebuilt - never hand-edited (rule 10).
+    **Read back out of the Methodology dialog as a reader opens it**, at 1440 and 375
+    (`research/measurements/2026-11-03-shot-methodology-growth.py`): the paragraph renders in full
+    at both widths, figures and both script paths intact, nothing clipped.
+
+13. **Tests, not prose.** `tests/test_growth_category.py` (17): every dated figure the page gives
+    is asserted against the table in the note that measured it; "with the market" must **not**
+    appear; all three option verdicts must be in the note; and
+    `test_the_neutral_weight_history_runs_and_reports_a_weight_per_run` reruns the sweep over the
+    whole record and fails unless the 2026-10-09 evening run is above 11 and the morning run below
+    it - so the claim the page makes about 40 runs is re-measured by the suite, not quoted from
+    this log.
+
+**What this does not do:** it does not reopen Growth's weight. The long-run neutral level is about
+10 and the refused 2026-10-12 proposal asked for exactly 10, which is recorded in section 6.4 and
+deliberately not acted on - fitting a weight to a correlation is what option 1 was just refused
+for, and the 2026-10-13 refusal rested on what growth *earns*, which this measurement says nothing
+about. No weight, metric or threshold changed today.
+
+**Gates, re-run after this half:** 1 green (**3,769 passed, 1 skipped**); 5 rehearsal **PASSED**
+again after the page change (page tests and `check_published_claims` both pass on the regenerated
+page; published files restored byte for byte).
+
+### Next (revised)
+
+- **Two proposals still open**, both from 2026-11-02 and neither written by a scheduled session:
+  Investment-inside-Quality (`research/2026-11-02-investment-inside-quality.md`) and universe
+  phase 0 (`research/2026-11-02-universe-expansion-phase0.md`). The 13:00 slot can take one.
+- **The expected-move divisor is still FALSE on the live page** - unchanged from the first half of
+  this entry; it needs a session that can make a live option pull.
+- **One habit worth adding to the changelog's measurement routine**, from section 6.4: when a
+  metric inside Growth or Quality changes, record the composite's correlation with each category
+  score before and after. The 2026-10-09 evening entry measured rank and score changes carefully
+  and the exposure shift it caused stayed invisible for three weeks.
+
+### Next (written in the first half, superseded by the section above)
 
 - **Decide one of the three OPEN proposals** - growth-exposure drift
   (`research/2026-11-02-growth-exposure-drift.md`), Investment-inside-Quality, universe phase 0.
