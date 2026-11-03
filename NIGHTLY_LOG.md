@@ -18113,3 +18113,133 @@ now prints from `scripts/health_numbers.py` and the runner hands it to every ses
   `DASHBOARD_KNOWN_OPEN` 77 -> 40; the publish gate 71 -> 73 modules. One generator fix with no
   text change today: an unscored category's 'its N% was shared out' now prints this run's weight
   (it would have printed 13% for a panic-state Momentum scored at 9.1%).
+
+## 2026-11-03 - PRODUCT, THROUGH THE NUMBERS. Open the live dashboard as a user would and ask whether it answers what should I look at / should I buy this / should I sell what I hold / how much. The visual design is finished (owner, 2026-10-07), so presentation is not this session's job. When the page cannot answer something the gap is almost always data or methodology: a number the run does not keep, a question no metric answers. Fix that. Check two or three drilldowns still reproduce the engine. A broken or false surface is a defect; one that merely could look different is not.
+
+**Health (rule 8, all five):** last code session ran? **no** - `logs/nightly-2026-11-02_130000-midday.log`: SESSION DID NOT RUN (session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed). Data loop published? yes - `logs/datarun-2026-11-03_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (43 rows, but overlapping windows are not independent; 110 rows across all horizons), newest 1m run date 2026-10-02 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **22 days**); also open: 0.10 27d; 0.14 20d.
+**Tests:** before **1 failed / 3,721 passed, 1 skipped**; after **3,766 passed, 1 skipped**. Gate 5 rehearsal PASSED.
+**Owner queue / rotation:** took the red baseline, which turned out to be a false figure on the live page - a defect, and ahead of the focus by the prompt's own rule. **Deferred: all three OPEN proposals** (growth-exposure drift, Investment-inside-Quality, universe phase 0, each opened 2026-11-02, age 1 day). Each needs a measurement of its own and the day went on the live defect; the next session should take one. The scheduled 13:00 slot and tomorrow are both eligible readers - none of the three was written by a scheduled session.
+
+### Did
+
+**The red baseline was a false number on the live site, and fixing it properly meant fixing the family.**
+
+1. **What was red.** `tests/test_every_panel_reads_clean.py` failed on the payload the 02:00 run
+   published: NVR's analyst-target card read **"$6262.00 -0.0%"** - a mean target of \$6262.00
+   against a \$6265.10 close, so 0.05% below, printed as a signed zero. That test exists because
+   the same family of defect hit twice in two days in October, and it is deliberately **not** in
+   the data loop's publish gate, so it goes red for the next code session instead of discarding a
+   day of evidence. It did its job.
+
+2. **The family, not the instance.** Three of these have now reached the live public site and each
+   was fixed inside the one formatter it was found in - BXP's unsigned "0.0%" for a close 0.03%
+   *below* its 200-day average (2026-10-28, the data loop refused that run), AMD's and INTC's
+   signed "-0.0%" (2026-10-29, fixed in `cPlain` alone), and NVR this morning. So the rule is one
+   function now - `pctNearZero` / `pctPlain` in `generate_dashboard.py` - and **fourteen call
+   sites** use it: the analyst-target card, the snapshot and peer tables, the metric workings
+   (`fmtMetric`, `fmtInput`, the earnings-surprise and ROE tables), the compare table's upside
+   column, `cPct`, `cPlain`, `cPp`, the share-class price gap, the 10y-3m curve in both places it
+   is printed, and the track chart's axis ticks and end labels.
+   **The rule:** a value that is **not** zero takes one more decimal rather than printing as a
+   zero; if it is still zero there it is zero to the reader and prints **unsigned**, because a
+   sign on a zero is the glitch and an unsigned zero is true to the precision shown. Both halves
+   are the project's own precedent (the case-against trend line, 2026-10-28; `cPlain`, 10-29).
+
+3. **Measured, on today's published payload: 11 figures on the live page were wrong**, out of
+   29,247 percentage lines across all 499 drilldowns, and **no other line moved**
+   (`research/measurements/2026-11-03-percent-lines.py`, run before and after and diffed):
+
+   | | before | after |
+   |---|---|---|
+   | NVR, analyst target | `$6262.00 -0.0%` | `$6262.00 -0.05%` |
+   | ESS, vs 200-day average | `0.0%` ("Mixed trend 0.0% vs 200-day") | `−0.03%` |
+   | VTR | `0.0%` | `−0.01%` |
+   | ABNB / AMT / PTC, 5 days | `0.0%` | `+0.04%` / `+0.01%` / `+0.03%` |
+   | EQT / TECH, 5 days | `0.0%` | `−0.02%` / `−0.03%` |
+   | BKR, rate sensitivity | `0.00%` | `+0.003%` |
+   | MRSH, analyst target | `+0.0%` | `0.0%` |
+
+   **Eight of the eleven are the BXP direction** - an unsigned zero stating an equality that is
+   not true - and the all-panel sweep **cannot see those**: its pattern looks for a *signed* zero.
+   ESS is the sharpest: its close is 0.03% below its 200-day average and the page said the gap was
+   zero, which is the exact statement a data run was refused over six days ago, still live in
+   `cPct` because the fix went into `cPlain` beside it.
+
+4. **The tripwire, so there is no fourth.** `tests/test_percent_near_zero.py`, **44 tests**: the
+   rule at its boundaries (including the three live figures above), every formatter's own output,
+   and a scan of the **generated** page - every line that builds a percentage must use the rule or
+   be named in `EXEMPT` with the reason a zero cannot mislead there. **34 exempt** (bar and SVG
+   geometry, shares printed beside the count they are taken from, category and metric weights, two
+   macro levels), **0 unexplained**. A floor test confirms the tripwire fires on a formatter added
+   without the rule, so the exemption list cannot pass vacuously.
+
+5. **One real coverage regression, caught by the suite and worth recording.** Routing the
+   share-class sentence through the rule made it **stop being a computed sentence to
+   `tests/js_sweep.py`** - the register had a verdict for it, and after the change the sweep found
+   no sentence there at all. `pctNearZero`/`pctPlain` are number helpers now, and `FORMATTER_SHAPE`
+   covers `pct[A-Z]`, which is the part that generalises: the sweep's own
+   "every formatter is classified" test could not see the gap, because it only looks at names
+   shaped `fmt*`/`cX`/`mkX`. A new helper with a new prefix was invisible by construction.
+
+6. **The rate card's check now asserts the rule instead of tolerating it.**
+   `test_every_rate_card_...` pinned exactly two decimals, so BKR's corrected `+0.003%` failed it.
+   `_check_near_zero` bounds the error by the decimals actually printed, and adds two assertions
+   that were in no test anywhere: a figure that prints as zero carries **no sign**, and a value
+   that is not zero does **not** print as a zero while a decimal would show it.
+
+7. **Looked at the page, 1440 and 375** (`research/measurements/2026-11-03-shot-fixed-cards.py`;
+   `logs/design/2026-11-03-*.png`). NVR's Avg Target card reads `$6262.00 -0.05%` in the
+   down-colour at both widths, same card, same line-up, nothing reflowed - the extra decimal costs
+   one character. ESS's Before-you-decide trend row reads `vs 200-day average −0.03%` beside
+   `$265.65, rising over the last month`, where it read `0.0%` this morning; the rows are
+   identical otherwise at both widths.
+
+**Gates:** 1 green (3,766 / 1 skipped, no new failures); 2 `--dry-run` passed; 3 artifacts intact
+and the payload byte-identical to what the 02:00 run published (`scripts/rebuild_page.py` rebuilt
+`index.html`/`dashboard.html` only); 5 `rehearse_publish.py` **PASSED** - page tests 366 passed,
+check_published_claims 2,025 passed, published files restored byte for byte.
+
+### Evidence / research
+
+- **A documented failure, demonstrated and measured** - the category the mandate names. The
+  defect is in the published payload, the count is 11 of 29,247 printed percentages, and the
+  before/after diff is reproducible from the committed measurement script.
+- The rule itself is this project's own precedent rather than an invention: the two decimals
+  under 0.1% come from the case-against trend line (2026-10-28), the unsigned fallback from
+  `cPlain` (2026-10-29). This session's contribution is that there is now **one** copy of it.
+
+### Methodology changed
+
+- **None.** Every change is display-only: no weight, metric, threshold, score or ranking moved,
+  and the payload is byte-identical. `METHODOLOGY_CHANGELOG.md` is deliberately untouched.
+
+### Tried and rejected
+
+- **Extending the all-panel sweep's `BROKEN` pattern to catch an unsigned "0.0%"** - the obvious
+  first idea, and it cannot work: a true zero legitimately prints "0.0%", so the pattern would
+  fire on correct sentences. The defect is only visible against the *value*, which is why the fix
+  had to be in the formatter and the check had to be a source-level tripwire plus per-formatter
+  boundary tests.
+- **Routing the case-against trend line through the shared rule.** It already carries the rule
+  inline and its sentence template is pinned in `claims.py`; changing its text would have moved a
+  registered claim for no gain. It is in `EXEMPT` with that reason, printed where the next session
+  reads it.
+- **Touching bar widths, SVG geometry, and shares printed beside their own count** (34 lines).
+  A 0.4%-wide bar and a trap rate shown as "0 of 12" are not the defect; each is listed with the
+  reason, so the decision is re-readable rather than silent.
+
+### Next
+
+- **Decide one of the three OPEN proposals** - growth-exposure drift
+  (`research/2026-11-02-growth-exposure-drift.md`), Investment-inside-Quality, universe phase 0.
+  All three were written by owner-run sessions on 2026-11-02, so any scheduled session is an
+  eligible second reader, and the brief lists them with their ages.
+- **The expected-move divisor is still FALSE on the live page** (queued by the 2026-11-02 night
+  session as item 1): the card says the move is the at-the-money straddle over *this run's* close,
+  but the 20:00 refresh prices the straddle against the previous run's `price_latest` - 273 of 359
+  divisors differ by >1% on the 10-30 payload. It needs a live option pull to verify, so it wants
+  a session that can run one, not a morning slot. Rows `expected-move-price` and
+  `expected-move-figure` stay open, marked FALSE.
+- Worth one measurement some morning: this session's defect and that one are the same shape - a
+  figure whose *inputs* the page cannot check. The near-zero family is now closed by a tripwire;
+  nothing yet holds a printed figure to the price it was actually computed against.
