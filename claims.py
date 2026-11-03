@@ -1300,6 +1300,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_context_layer.py::test_rate_beta_recovers_a_known_slope",
             "tests/test_context_layer_claims.py::test_the_share_of_swings_explained_is_the_squared_correlation",
             "tests/test_context_layer_claims.py::test_sector_rate_bars_are_medians_of_five_or_more_stocks",
+            "tests/test_dashboard_printed_figures.py::test_every_rate_card_prints_the_stocks_slope_window_sector_median_and_share",
+            "tests/test_dashboard_printed_figures.py::test_a_rate_card_worked_by_hand",
         ),
     ),
     Claim(

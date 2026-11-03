@@ -54,6 +54,7 @@ CHAIN, PEER, UNSC = "drilldown.composite_chain", "drilldown.peer_rank", "drilldo
 TURN, LUCK = "context.track_turnover", "context.track_luck"
 FIT, DIST = "dashboard.holdings_fit", "drilldown.composite_distribution"
 REGIME, OVER = "overview.momentum_regime", "history.run_overview"
+RATE = "context.rate_sensitivity"
 
 MUTS = [
     # --- drilldown.composite_chain: the total, the discount line, the composite -------------
@@ -190,6 +191,19 @@ MUTS = [
      "mv.n_up + ' of ' + N + ' stocks moved up materially", "mv.n_up + ' of ' + (mv.n_up + mv.n_down) + ' stocks moved up materially"),
     (250, "the tile caption's up count prints the down count", OVER,
      "'<div class=\"tv-cap\"><span>' + mv.n_up + ' up</span>", "'<div class=\"tv-cap\"><span>' + mv.n_down + ' up</span>"),
+    # --- context.rate_sensitivity: the drilldown's rate card --------------------------------
+    (251, "the slope printed per +1 point, not per +0.10", RATE,
+     "cPct(c.rb * RATE_STEP, 2) + '</div>'", "cPct(c.rb, 2) + '</div>'"),
+    (252, "the window counted in 22-day months", RATE,
+     "Math.round(c.rn / 21)", "Math.round(c.rn / 22)"),
+    (253, "the sector median printed per +1 point", RATE,
+     "cPct(sr.median * RATE_STEP, 2)", "cPct(sr.median, 2)"),
+    (254, "the share explained is the correlation, not its square", RATE,
+     "cPlain(c.rr2, 0) + ' of its daily swings'", "cPlain(Math.sqrt(c.rr2), 0) + ' of its daily swings'"),
+    (255, "'read loosely' only under 1%", RATE,
+     "(c.rr2 < 0.05 ?", "(c.rr2 < 0.01 ?"),
+    (256, "the sector median looked up by industry", RATE,
+     "((D.market || {}).sector_rate || {})[s.sector]", "((D.market || {}).sector_rate || {})[s.industry]"),
 ]
 
 rows = None

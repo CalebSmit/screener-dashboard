@@ -1316,9 +1316,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     ', ${Math.round(100 * ins.sell_planned_value / ins.sell_value)}% on pre-set plans':
         "open:insider-plan-share - printed twice; the case-against copy is pinned, the Insider card's is not",
     "${cPct(c.rb * RATE_STEP, 2)} How the stock has typically moved for each +0.10 percentage point rise in the 10-year Treasury yield (a large day for the 10-year), from the past ${Math.round(c.rn / 21)} months of daily moves${(sr ? '; ' + escapeHtml(s.sector) + ' median ' + cPct(sr.median * RATE_STEP, 2) : '')}.":
-        'open:rate-sensitivity-line - context.rate_sensitivity checks the engine and the sector bars, not this line',
+        'claim:context.rate_sensitivity',
     "Rate moves explained ${cPlain(c.rr2, 0)} of its daily swings${(c.rr2 < 0.05 ? ', very little, so read the figure loosely' : '')}.":
-        'open:rate-share-explained - context.rate_sensitivity checks the squared correlation, not its printing',
+        'claim:context.rate_sensitivity',
     'a coin toss does at least this well ${chance}% of the time':
         'claim:context.track_luck',
     'one way, on average; ${cPlain(TO.min, 0)} to ${cPlain(TO.max, 0)}':
@@ -1413,8 +1413,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'rank-history-run-count',
     'rank-history-span',
     'ranking-universe-count',
-    'rate-sensitivity-line',
-    'rate-share-explained',
     'regime-weight-line',
     'reporting-soon-counts',
     'roe-sd-line',

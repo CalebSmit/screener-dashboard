@@ -863,3 +863,101 @@ def test_the_whats_changed_tile_prints_a_hand_worked_window(page, data):
     N = data["kpis"]["universe_size"]
     assert got and got[0] == f"7 of {N} stocks moved up materially and 4 moved down", got
     assert _text(got[1]) == f"7 up of {N} 4 down", got
+
+
+# ---------------------------------------------------------------------------
+# context.rate_sensitivity - the drilldown's "Sensitivity to interest rates" card
+# ---------------------------------------------------------------------------
+_RATE_JS = """([tickers, patch]) => { const out = {}; const keepSr = (D.market || {}).sector_rate;
+    try { for (const t of tickers) { let s = D.stock_detail[t];
+              if (patch) { s = structuredClone(s); (new Function('s', 'D', patch))(s, D); }
+              renderContext(t, s);
+              const h = document.getElementById('modal-context').innerHTML;
+              const i = h.indexOf('<span>Sensitivity to interest rates</span>');
+              out[t] = i < 0 ? null : h.slice(i, h.indexOf('</p></div>', i)); } }
+    finally { if (D.market) D.market.sector_rate = keepSr; }
+    return out; }"""
+_RATE = re.compile(r"^Sensitivity to interest rates ([+−]?)(\d+\.\d\d)% How the stock has typically moved for each "
+                   r"\+0\.10 percentage point rise in the 10-year Treasury yield \(a large day for the 10-year\), from "
+                   r"the past (\d+) months of daily moves(?:; (.+) median ([+−]?)(\d+\.\d\d)%)?\. Rate moves explained "
+                   r"(\d+(?:\.\d)?)% of its daily swings(, very little, so read the figure loosely)?\.?$")
+
+
+def _signed(sign: str, v: str) -> float:
+    return -float(v) if sign == "−" else float(v)
+
+
+def _check_rate(txt: str, c: dict, sector: str, sector_median: float | None) -> list[str]:
+    g = _RATE.match(txt)
+    if not g:
+        return [f"unreadable: {txt!r}"]
+    out = []
+    sg, big, months, sec, ssg, smed, r2, loose = g.groups()
+    if abs(_signed(sg, big) - c["rb"] * 10) > 0.005 + 1e-6:
+        out.append(f"printed {sg}{big}% per +0.10pp, the slope gives {c['rb'] * 10:.4f}%")
+    if int(months) != _jsround(c["rn"] / 21):
+        out.append(f"printed {months} months, {c['rn']} trading days is {c['rn'] / 21:.2f}")
+    if (sec is None) != (sector_median is None):
+        out.append(f"sector clause {'absent' if sec is None else 'present'}, sector median {sector_median}")
+    elif sec is not None and (sec != sector or abs(_signed(ssg, smed) - sector_median * 10) > 0.005 + 2e-4):
+        out.append(f"printed '{sec} median {ssg}{smed}%', the sector's is {sector_median * 10:.4f}%")
+    whole = c["rr2"] * 100
+    # cPlain's rule: a whole percent; a non-zero share that rounds to 0 gets one decimal, and one
+    # still 0 at one decimal reads "0"
+    want = str(_jsround(whole))
+    if want == "0" and whole != 0:
+        one = _jsround(whole * 10) / 10
+        want = f"{one:.1f}" if one else "0"
+    if r2 != want:
+        out.append(f"explained printed {r2}%, the squared correlation is {whole:.3f}% (want {want}%)")
+    if bool(loose) != (c["rr2"] < 0.05):
+        out.append(f"'very little' clause {'present' if loose else 'absent'} at rr2={c['rr2']}")
+    return out
+
+
+def test_every_rate_card_prints_the_stocks_slope_window_sector_median_and_share(page, data):
+    """For every stock with a rate reading: the slope per +0.10 point, the window in months (21
+    trading days each), the sector median - recomputed here as the median slope of the sector's
+    stocks, shown only for a sector of five or more - and the share of daily swings explained, with
+    the 'read loosely' clause exactly under 5%."""
+    import statistics
+    ctx = _payload("dashboard_context.js")["ctx"]
+    sd = data["stock_detail"]
+    have = [t for t in sd if (ctx.get(t) or {}).get("rb") is not None]
+    assert len(have) >= 400, f"only {len(have)} stocks carry a rate reading"
+    by_sector: dict[str, list[float]] = {}
+    for t in have:
+        by_sector.setdefault(sd[t]["sector"], []).append(ctx[t]["rb"])
+    med = {k: (statistics.median(v) if len(v) >= 5 else None) for k, v in by_sector.items()}
+    printed = page.evaluate(_RATE_JS, [have, ""])
+    problems = []
+    for t in have:
+        if printed.get(t) is None:
+            problems.append(f"{t}: no rate card")
+            continue
+        problems += [f"{t}: {p}" for p in _check_rate(_text(printed[t]), ctx[t], sd[t]["sector"], med[sd[t]["sector"]])]
+    assert not problems, f"{len(problems)} problems:\n" + "\n".join(problems[:30])
+
+
+@pytest.mark.parametrize("rb,rn,rr2,sr,want", [
+    (0.2312, 252, 0.031, None,
+     "+2.31% How the stock has typically moved for each +0.10 percentage point rise in the 10-year Treasury yield "
+     "(a large day for the 10-year), from the past 12 months of daily moves. Rate moves explained 3% of its daily "
+     "swings, very little, so read the figure loosely."),
+    (-0.0874, 273, 0.12, {"median": -0.05, "n": 7},
+     "−0.87% How the stock has typically moved for each +0.10 percentage point rise in the 10-year Treasury yield "
+     "(a large day for the 10-year), from the past 13 months of daily moves; Fixture Sector median −0.50%. Rate "
+     "moves explained 12% of its daily swings."),
+    (0.0, 273, 0.004, None, "0.00% How the stock"),
+    (0.05, 273, 0.004, None, "explained 0.4% of its daily swings, very little"),
+])
+def test_a_rate_card_worked_by_hand(page, data, rb, rn, rr2, sr, want):
+    """Literal figures for each branch: no sector median, a sector median, a zero slope, and a share
+    explained too small to print as a whole percent."""
+    t = _any_ticker(data)
+    patch = (f"s.ctx = Object.assign({{}}, s.ctx || {{}}, {{rb: {rb}, rn: {rn}, rr2: {rr2}}}); s.sector = 'Fixture Sector'; "
+             + (f"D.market.sector_rate = Object.assign({{}}, D.market.sector_rate, {{'Fixture Sector': {json.dumps(sr)}}});"
+                if sr else ""))
+    got = page.evaluate(_RATE_JS, [[t], patch])[t]
+    assert got is not None, "no rate card"
+    assert want in _text(got), (want, _text(got))
