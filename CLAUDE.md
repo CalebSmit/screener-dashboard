@@ -843,7 +843,11 @@ and the reasoning is there rather than here.
   on the methodology page** (`tests/test_large_company_evidence.py`).
 - **Size stays at 5%** (2026-10-20). The trigger to reopen it is lab experiment 4b, criterion
   pre-written in the note.
-- **Questions 3 and 5 are open Mondays.**
+- **Question 3 researched 2026-11-02** (`research/2026-11-02-investment-inside-quality.md`): keep
+  Investment standalone and state the practitioner convention on the page - **proposal OPEN** for a
+  session that did not write it; its section 4 lists where a weight-preserving fold is *not*
+  neutral (missing-data renormalisation, the panic rule, the profiles, trap flags). **Question 5 is
+  an open Monday.**
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07).**
 A data change, not design - the residual of the transparency work. **(a)-(d) are BUILT**
