@@ -1225,7 +1225,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         "open:show-next-count - the table's next-page count; nothing reads the page's printing",
     'The ranking covers the ${n} S&amp;P 500 companies this run scored.':
         'claim:dashboard.score_key',
-    "It trades ${Math.abs(sc.price_gap_pct).toFixed(1)}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
+    "It trades ${pctNearZero(sc.price_gap_pct, 1).mag}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
         'open:share-class-price-gap - drilldown.share_class_second_line checks the ratio identity, not the printed gap',
     ', the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).':
         "open:noise-band-pairs - the paired-run and observation counts; nothing reads the page's printing",

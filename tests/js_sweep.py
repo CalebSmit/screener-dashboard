@@ -316,9 +316,15 @@ NUMBER_HELPERS = frozenset({
     "fmt", "fmtWeight", "fmtMetric", "fmtDollar", "fmtPct", "fmtPctChg", "fmtBig", "fmtPE",
     "fmtPct1", "fmtDE", "fmtInput", "fmtRG", "cPct", "cPrice", "cMoney", "cPlain", "cPp", "pc",
     "pct", "sp", "ordinal", "ord", "mkChg", "mkOrd", "mkVal",
+    # The page's one near-zero rule (2026-11-03). `pctNearZero` returns an object, so a sentence
+    # prints `pctNearZero(x, 1).mag`; without it here the share-class sentence stopped being a
+    # computed sentence the moment it started using the rule, and the sweep's own
+    # classification test could not see that, because the name does not have a `fmt`/`cX` shape.
+    # `pct[A-Z]` is in FORMATTER_SHAPE now, so the next one must be classified.
+    "pctNearZero", "pctPlain",
 })
 # a called name of these shapes must be in one of the two lists above
-FORMATTER_SHAPE = re.compile(r"^(?:fmt|c[A-Z]|mk[A-Z])")
+FORMATTER_SHAPE = re.compile(r"^(?:fmt|c[A-Z]|mk[A-Z]|pct[A-Z])")
 NOT_NUMBER_HELPERS = frozenset({"fmtD", "fmtDate", "fmtTime", "prettyDate", "cDate"})
 _NUMBER_WORDS = frozenset({"toFixed", "toPrecision", "toLocaleString", "length", "Math"})
 
