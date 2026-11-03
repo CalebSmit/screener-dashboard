@@ -18055,3 +18055,45 @@ item, due today; the scheduled Monday could not run) done here.
   been outside the publish gate, which now runs it - 71 modules), rows 178-188, 11 of 11 caught.
   The 77-row queue, grouped in three, is in `plan/claims-mutation-audit.md`'s newest section:
   `DASHBOARD_KNOWN_OPEN` only shrinks from here.
+
+## 2026-11-02 (owner-run, night, round 2) - "Keep finding improvements!"
+
+**Health (rule 8):** as the evening entry above (no scheduled session or data run since); the line
+now prints from `scripts/health_numbers.py` and the runner hands it to every session in its prompt.
+**Tests:** 3,663 passed / 3 skipped at the last gate run. Tags `good/2026-11-02-owner-9`, `-10`.
+
+### Did
+
+1. **Gate 5: the runner rehearses the next publish** (`scripts/rehearse_publish.py --changed-since
+   $BaseSha`) whenever a branch changed more than prose, before gate 4; a failure keeps the work off
+   `main`; "no full run to rehearse from" (exit 3) only warns. **It earned its keep within the
+   hour**: the stale-flag fix below passed gates 1-4 locally while the rehearsal failed
+   (`test_the_baseline_weighting_is_hashed_separately_from_the_transformed_one`) - a config edit
+   stales the research ledger. CLAUDE.md now says so up front (`config.yaml` and `factor_engine.py`
+   are in `RESULT_PATHS`; budget ~20 min for `rerun_experiments.py --jobs 4`).
+2. **The stale-filing flag waits for the SEC deadline** (display only; `config.yaml` 120 -> 165,
+   METHODOLOGY_CHANGELOG 2026-11-02 night). At 120 it told readers **320 of 499** stocks had stale
+   filings on 10-30 while their Q3 10-Qs were not yet due; every bar from 130 to 210 flags the same
+   **21** genuinely a quarter or more behind. The 32 research rows were rerun on the new config hash
+   - every difference is a provenance field; `summary.json` and `research.html` byte-identical.
+3. **Experiment 18 second-read** by a different reader (isolated worktree): every paper figure
+   (NBER w5375, rendered pages) and every measured figure reproduced without importing
+   `factor_lab`; the published article's figures confirmed via Jegadeesh & Titman (2001); the
+   pre-registration order verified; three wording fixes to the note, no figure changed.
+4. **Weight question 3 researched** - `research/2026-11-02-investment-inside-quality.md`: keep
+   Investment standalone and state the practitioner convention on the page (**proposal OPEN**); a
+   weight-preserving fold leaves the top 25 unchanged but is not neutral where data is missing,
+   under the panic rule, in the profiles and in the trap flags.
+5. **Two load-sensitive browser tests in the publish gate** now measure the page, not the machine
+   (best of five clicks; the reload gets `_open`'s allowance) - one slow sample at 02:00 would have
+   discarded a night's run. No budget loosened.
+6. **The brief's "Coming up"** lists dated commitments (2026-11-09 first one-month context
+   reading, 2026-11-16 filing-check promotion, 2027-02-11 backtest) from `COMING_UP`, each tied by a
+   test to the file that commits to it.
+7. **Checked and left alone:** Loews (no analyst coverage in any published run; its Revisions move
+   is real short-interest change), Yahoo rate-limiting (40-45 a run since 10-27, all recovered).
+
+### Next
+- The OPEN proposals now waiting for a session that did not write them: growth exposure, universe
+  phase 0, Investment-inside-Quality.
+- After 02:00: the stale flag should fire for about 21 stocks, not about 320.
