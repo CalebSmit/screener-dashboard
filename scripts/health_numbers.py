@@ -31,6 +31,28 @@ import write_brief as wb  # noqa: E402
 FINISHED = ("Morning brief published", "Morning brief written", "=== Run ")
 OPEN_ITEM = re.compile(r"^\*\*(\d+(?:\.\d+)?)\. ([^*(]+?)\s*\(opened (\d{4}-\d{2}-\d{2})", re.M)
 
+# The runner's own marker for a session that never started, and nothing else.
+#
+# WHY THIS IS A PATTERN AND NOT A SUBSTRING - 2026-11-03. This function used to ask
+# ``"SESSION DID NOT RUN" in text``, and the runner *logs this module's output* into every run log
+# ("[INFO] Health: **Health (rule 8, all five):** last code session ran? **no** - ... SESSION DID
+# NOT RUN (...)"). So the phrase appears in the log of a session that ran perfectly, carried there
+# by the previous session's verdict - and the next run reads it back as its own.
+#
+# That makes the alarm **self-perpetuating**: from the first genuine failure onward, every later
+# session is reported as "did not run" for ever, however healthy. Measured that day:
+# `logs/nightly-2026-11-03_080346.log` ends "=== Run complete: shipped to main ===", merged six
+# commits and tagged `good/2026-11-03`, and was reported as "**no** - SESSION DID NOT RUN ()" -
+# with an empty reason, because the echoed copy reads "RUN (" where the real marker reads "RUN:".
+# Both the 06:00 and 13:00 sessions were handed that false line in their prompts.
+#
+# It is the stuck-alarm twin of the stuck-green defect rule 8 exists for (2026-09-18: "a tripwire
+# wired to a number that cannot stand still is decoration"). A health line that cannot leave the
+# alarm state gets ignored, and an ignored line still looks like coverage - the watchdog row's own
+# argument. So: match the runner's line shape (`[ERROR] SESSION DID NOT RUN: <reason>`), never the
+# phrase wherever it appears.
+DID_NOT_RUN = re.compile(r"\[ERROR\]\s*SESSION DID NOT RUN:\s*(.*)")
+
 
 def last_code_session() -> str:
     for path in sorted(wb.LOGS.glob("nightly-*.log"), key=lambda p: p.stat().st_mtime, reverse=True):
@@ -38,9 +60,9 @@ def last_code_session() -> str:
         text = "\n".join(lines)
         if any(m in text for m in wb.NOT_A_SESSION) or not any(m in text for m in FINISHED):
             continue
-        if "SESSION DID NOT RUN" in text:
-            why = next((ln.split("SESSION DID NOT RUN:", 1)[1].strip() for ln in lines
-                        if "SESSION DID NOT RUN:" in ln), "")
+        marker = next((m for m in (DID_NOT_RUN.search(ln) for ln in lines) if m), None)
+        if marker:
+            why = marker.group(1).strip()
             return f"**no** - `logs/{path.name}`: SESSION DID NOT RUN ({why[:140]})"
         state, _ = wb.outcome(lines)
         verdict = "yes" if state.startswith("completed") else f"**{state}**"

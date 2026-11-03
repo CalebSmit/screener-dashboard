@@ -70,6 +70,96 @@ def test_a_session_that_did_not_run_says_so_and_why(tmp_path, monkeypatch):
     assert got.startswith("**no**") and "Failed to authenticate" in got
 
 
+# The health line the runner prints into every log, verbatim in shape: it quotes a *previous*
+# session's verdict, so it carries the phrase "SESSION DID NOT RUN" into the log of a session
+# that ran perfectly. Note "RUN (" rather than the runner's "RUN:".
+ECHOED_HEALTH_LINE = (
+    "[08:07:01] [INFO] Health: **Health (rule 8, all five):** last code session ran? "
+    "**no** - `logs/nightly-2026-11-02_130000-midday.log`: SESSION DID NOT RUN "
+    "(session reported an error - Failed to authenticate: OAuth session expired and could "
+    "not be refreshed). Data loop published? yes - `logs/datarun-2026-11-03_020000.log` "
+    "(completed; HEALTH: PASS).\n"
+)
+
+
+def test_a_healthy_session_is_not_called_dead_by_the_previous_verdict_in_its_own_log(
+        tmp_path, monkeypatch):
+    """The echo defect, 2026-11-03: the alarm could not leave the alarm state.
+
+    `last_code_session` asked `"SESSION DID NOT RUN" in text`, and the runner logs this
+    module's own output into every run log. So from the first genuine failure onward every
+    later session read the previous verdict back out of its own log and reported itself dead -
+    for ever, however healthy. `logs/nightly-2026-11-03_080346.log` shipped six commits and
+    tagged `good/2026-11-03`, and was reported "**no** - SESSION DID NOT RUN ()".
+
+    This is the stuck-alarm twin of the stuck-green defect rule 8 exists for. A line that can
+    only say "broken" gets ignored, and an ignored line still looks like coverage.
+    """
+    monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
+    _log(tmp_path, "nightly-a.log",
+         "[08:03:46] [INFO] === Code loop 2026-11-03 ===\n"
+         + ECHOED_HEALTH_LINE +
+         "[09:14:34] [INFO] === Run complete: shipped to main ===\n"
+         "[09:14:41] [INFO] Morning brief published.\n", 1000)
+    got = hn.last_code_session()
+    assert got.startswith("yes - `logs/nightly-a.log`"), (
+        f"a session that shipped to main must read as healthy whatever the previous "
+        f"session's verdict was; got {got!r}"
+    )
+    assert "DID NOT RUN" not in got
+
+
+def test_the_marker_is_the_runners_error_line_not_the_phrase_anywhere(tmp_path, monkeypatch):
+    """A real failure is still caught when the echo sits in the same log.
+
+    The echo is the normal state of a failed session's successor, so the two must be
+    distinguishable *together*, not just apart.
+    """
+    monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
+    _log(tmp_path, "nightly-a.log",
+         ECHOED_HEALTH_LINE +
+         "[13:04:04] [ERROR] SESSION DID NOT RUN: usage limit reached\n"
+         "[13:08:00] [INFO] Morning brief published.\n", 1000)
+    got = hn.last_code_session()
+    assert got.startswith("**no**"), f"a genuine marker must still fire; got {got!r}"
+    assert "usage limit reached" in got, (
+        "the reason must come from the runner's own marker, not from the echoed line - the "
+        "echo is why the reason printed empty on 2026-11-03"
+    )
+    assert "OAuth" not in got, "the reason was taken from the echoed previous verdict"
+
+
+def test_the_reason_is_never_empty_when_the_verdict_is_no(tmp_path, monkeypatch):
+    """The empty "()" was the visible symptom; pin it directly."""
+    monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
+    _log(tmp_path, "nightly-a.log",
+         "[13:04:04] [ERROR] SESSION DID NOT RUN: tree was dirty\n"
+         "[13:08:00] [INFO] Morning brief published.\n", 1000)
+    got = hn.last_code_session()
+    assert "SESSION DID NOT RUN ()" not in got, (
+        "a verdict of no with no reason tells the next session nothing; it meant the phrase "
+        "had been matched somewhere that is not the runner's marker"
+    )
+    assert "tree was dirty" in got
+
+
+def test_the_real_logs_do_not_report_a_shipped_session_as_dead():
+    """A tripwire on the live folder, since the echo is in every log written since 2026-11-02.
+
+    Asserts its own premise rather than today's outcome: if the newest finished log says it
+    shipped, the verdict must not be "no". Says nothing when no such log exists.
+    """
+    got = hn.last_code_session()
+    if not got.startswith("yes") and "`logs/" in got:
+        name = got.split("`logs/", 1)[1].split("`", 1)[0]
+        path = hn.wb.LOGS / name
+        if path.exists():
+            text = "\n".join(hn.wb.tail(path, 400))
+            assert "shipped to main" not in text, (
+                f"{name} says it shipped to main and the health line calls it dead: {got!r}"
+            )
+
+
 def test_the_top_item_line_names_the_first_and_counts_the_rest(monkeypatch):
     monkeypatch.setattr(hn, "open_items", lambda claude_md=None, today=None:
                         [("0.13", "The Factor Lab", 21), ("0.10", "Keep the inputs", 26)])
