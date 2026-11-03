@@ -69,6 +69,15 @@ def test_the_data_loop_runs_it_as_a_note_after_the_network_check():
     assert "'WARN'" in block                                         # the brief collects WARN lines
 
 
+def test_the_code_runner_names_the_fix_when_a_session_dies_on_the_login():
+    ps = (ROOT / "scripts" / "nightly-screener.ps1").read_text(encoding="utf-8")
+    i = ps.index("Failed to authenticate|OAuth")
+    assert ps.index('Write-Log "SESSION DID NOT RUN: $SessionError"') < i
+    assert "claude.cmd auth login" in ps[i:i + 400]
+    # the message the brief used to print as two fragments is one line now
+    assert "No success marker will be written,\" 'ERROR'" not in ps
+
+
 # --------------------------------------------------------------------------- the brief
 def test_the_brief_leads_with_the_login_when_a_session_died_on_it():
     code = ["[13:04:04] [ERROR] SESSION DID NOT RUN: session reported an error - Failed to "

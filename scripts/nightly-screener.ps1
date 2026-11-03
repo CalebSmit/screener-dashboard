@@ -641,8 +641,12 @@ try {
             [System.IO.File]::WriteAllText($UsageLimitFile, (Get-Date -Format 's'))
             Write-Log "Recorded a usage limit in logs/.usage-limited - the extra sessions will stand down for 24h." 'WARN'
         }
-        Write-Log "Treating this as a failure, not as 'nothing to do'. No success marker will be written," 'ERROR'
-        Write-Log "so the catch-up trigger will retry rather than skipping the day." 'ERROR'
+        # 2026-11-01..02: four sessions in a row died here on a lapsed login. Say who can fix it.
+        if ($SessionError -match 'Failed to authenticate|OAuth|not logged in|Invalid API key') {
+            Write-Log "The Claude CLI on this PC is logged out. Only the owner can fix it: run 'claude.cmd auth login' in a terminal and sign in." 'ERROR'
+        }
+        # One line, so the brief's attention list does not print it as two fragments.
+        Write-Log "Treating this as a failure, not as 'nothing to do': no success marker will be written, so the catch-up trigger will retry rather than skipping the day." 'ERROR'
     }
 
     Restore-Artifacts 'left by session test runs'
