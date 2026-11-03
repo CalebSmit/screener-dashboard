@@ -652,6 +652,30 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dead_badges.py::test_an_unmeasurable_beta_says_why",
         ),
     ),
+    # Registered 2026-11-02 by the claims mutation audit's `generate_dashboard.py` sweep
+    # (plan/claims-mutation-audit.md, rows 178+). `tests/test_holdings_concentration.py` had
+    # 34 checks and was named by no claim, so none of them ran in the data loop's publish gate;
+    # and the ones that existed pinned the split's percentage and the spread's first printing,
+    # not the count beside the percentage or the ratio's second printing.
+    Claim(
+        id="dashboard.holdings_concentration",
+        surface=DRILLDOWN,
+        asserts=(
+            "My Holdings' Concentration block: an equal split across the list's n names is 100/n "
+            "percent a position, to one decimal - arithmetic on the count alone, the same for any n "
+            "names; the widest risk gap names the most and the least volatile names on the list by "
+            "raw annualised volatility (never the sector-relative percentile), each as a whole "
+            "percent, and their ratio to one decimal, printed twice and the same both times."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_holdings_concentration.py::test_the_concentration_sentences_print_their_own_figures",
+            "tests/test_holdings_concentration.py::test_equal_split_arithmetic",
+            "tests/test_holdings_concentration.py::test_equal_split_depends_only_on_the_count_not_on_which_stocks",
+            "tests/test_holdings_concentration.py::test_risk_line_follows_raw_volatility_not_the_sector_percentile",
+            "tests/test_holdings_concentration.py::test_risk_line_reports_the_extremes_of_the_whole_list",
+        ),
+    ),
     Claim(
         id="overview.no_financial_sector_flag",
         surface=OVERVIEW,

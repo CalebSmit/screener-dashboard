@@ -812,7 +812,9 @@ done** (rows 89-105), **its item 3 - the research page's unregistered sentences 
 registered at all - is done for `research_page.py`** (2026-10-29 13:00, rows 118-126). What is
 left:
 
-0. **`generate_dashboard.py` is the last of the three generated surfaces.**
+0. **`generate_dashboard.py` is the last of the three generated surfaces.** **SWEPT 2026-11-02
+   (owner-run night, rows 178-188): 84 sentences, 7 `claim:`, 77 `open:` - the open rows and
+   their grouped queue are at the end of this file, and they are now this item.**
    `build_screener_overview` is **DONE** (2026-10-30, rows 127-130: 11 sentences, 4 `checked:`,
    7 `open:`). `computed_sentences()` now takes `within=` and `markup=`; the dashboard is html, so
    `markup="html"` as the research page uses, and it is 13,485 lines, so expect the biggest table
@@ -1067,5 +1069,109 @@ Harness: `research/measurements/2026-11-02-coverage-sentence-mutations.py` (4 of
 is the one a page-text check can never see: the sentence is right only while the code it describes
 behaves, so the check runs that code. **Both open lists are now empty** - `KNOWN_OPEN` and
 `OVERVIEW_KNOWN_OPEN`. Every computed sentence the two sweeps find on the research and methodology
-pages has a claim, a check or a reporting verdict. What remains for this audit is `generate_dashboard.py`'s
-own sweep, which the 2026-10-31 entry said "still wants a session of its own".
+pages has a claim, a check or a reporting verdict. ~~What remains for this audit is `generate_dashboard.py`'s
+own sweep~~ - done the same night, next section.
+
+## Results, 2026-11-02 (owner-run night): generate_dashboard.py's sweep
+
+**The finding that shaped the work: the Python sweep sees nothing on this surface.**
+`computed_sentences(generate_dashboard.py)` returns one sentence, and it is a `print()` log line.
+Every number in the dashboard's prose is formatted **in the browser**, by JavaScript the generator
+emits - template literals and `'...' + x.toFixed(1) + '...'` chains inside `generate_html()`'s
+f-string and the `_js_*` functions. A sweep that read only Python would have reported this surface
+as nearly empty and passed with every one of its sentences unregistered.
+
+**`tests/js_sweep.py`** is a small reader for this generator's JavaScript (strings, nested
+templates, comments, regex literals, `+` chains by operand). `test_claims_register.py` section 7
+feeds it **`generate_html()`'s inline scripts** - the generator's output, never the committed
+`index.html` - and splits the result with the same `_units` the Python sweeps now share, so the
+three surfaces cannot drift apart on what a sentence is. JavaScript needed four scope rules the
+Python sweeps did not, each found by the sweep's own output being wrong and each in a negative
+control (`test_the_javascript_sweep_reads_chains_and_templates_and_not_conditions`):
+
+- a figure is a call to one of the page's **number formatters** (`js_sweep.NUMBER_HELPERS`),
+  `toFixed`/`toLocaleString`/`Math.*`/`.length`, arithmetic, or a variable whose **last assignment
+  before the sentence** is one of those (`const covPct = (...).toFixed(0)` one line up). "Last
+  before" rather than "anywhere": the page reuses `t` as a ticker in the holdings toasts and as a
+  figure in a chart, and the first draft swept six "${t} added to My Holdings" toasts;
+- a ternary's **condition** is not printed - `(x.length ? 'see ' + ... : '')` is not a figure
+  because of its `.length` (two LTM badge sentences and a track-record footnote were swept on it);
+- a hole that inserts **markup** ends the unit like a block-level tag, so a `.map()` of table rows
+  is not a "figure" glued to the caption after it; an SVG path's `M ... L ... Z` is not three words;
+- `test_every_formatter_the_sweep_meets_is_classified`: a helper of the formatter shapes
+  (`fmt*`, `c[A-Z]*`, `mk[A-Z]*`) called in a sentence must be on the number list or the date
+  list. **Eight sentences were invisible** until `cPlain`, `cPp`, `fmtRG`, `pct` and the `mk*`
+  helpers were listed - the track record's turnover and break-even cost among them.
+
+**The yield: 84 distinct sentences (85 printings - ", N% on pre-set plans" is built at two
+sites). 7 `claim:`, 0 `checked:`, 0 `reported:`, 77 `open:`.** `DASHBOARD_KNOWN_OPEN` lists the 77
+by literal slug; an `open:` verdict here carries its note (`open:<slug> - <what>`).
+
+**Why so many are open, and it is one reason, not 77.** Most dashboard claims - row 0.8's whole
+design - pin the **engine's** number or the **payload's**: `context.track_turnover` checks the
+turnover arithmetic, `history.run_overview` checks the Python overview's counts,
+`drilldown.peer_rank` checks the percentiles against the peer values. The JavaScript that
+formats that number into a sentence is a second step, and **no registered check runs it**: wrong
+field, wrong scale (`x 100` dropped), wrong copy of a figure printed twice - all invisible. A claim
+whose checks stop at the payload does not cover the sentence, and the rows say so rather than
+borrowing the claim's name. The seven `claim:` rows are the ones whose checks drive the page:
+`drilldown.beta_overlap` and `drilldown.ev_substituted` (`_prov(page, ...)` with the figure set in
+the test), `drilldown.case_against` (the generator's page, `caseItems` for every stock, both
+figures against the context file), `context.track_luck` (the tile's t against the payload's, in the
+only branch where the sentence exists), and the three below.
+
+**Closed tonight: the Concentration block, which was outside the publish gate entirely.**
+`tests/test_holdings_concentration.py` drives the emitted script under Node and had 34 checks -
+**named by no claim**, so the data loop's gate ran none of them (the 2026-10-31 bookkeeping
+lesson, a fourth time). And of what it checked, the split's **count** and the ratio's **second
+printing** were read by nothing: the clamp-bullet shape again. Now `claim:dashboard.holdings_concentration`
+with a new parametrized check whose figures are literals worked from the fixture's raw
+volatilities (1.5 and 2.0, so a whole-number ratio cannot pass by accident).
+
+| # | Claim | Mutation | Before (the module's 4 existing checks; the gate ran none) | Now (the claim's `checked_by`) |
+|---|---|---|---|---|
+| 178 | `dashboard.holdings_concentration` | the count beside the split prints n + 1 | **MISSED** | caught: `test_the_concentration_sentences_print_their_own_figures` |
+| 179 | same | the split is over n + 1 names | caught | caught |
+| 180 | same | the ratio's second printing doubled | **MISSED** | caught: same new test |
+| 181 | same | the ratio's second printing rounded to a whole number | **MISSED** | caught: same |
+| 182 | same | "moves the value of the list" names the calmer stock | **MISSED** | caught: same |
+| 183 | same | the sector percentile instead of raw volatility | caught | caught |
+| 184 | same | the list sorted the wrong way (extremes swapped) | caught | caught |
+| 185 | the sweep | a **new** computed sentence appended to the emitted JavaScript | - | caught: `test_every_computed_sentence_on_the_dashboard_has_a_verdict` |
+| 186 | the sweep | a registered sentence reworded | - | caught: same |
+| 187 | the sweep | `toFixed` dropped from the figure words (would pass vacuously) | - | caught: same (stale rows, and the `>= 75` floor) |
+| 188 | the sweep | a ternary's condition counted as a printed figure | - | caught: same (new keys) |
+
+Harness: `research/measurements/2026-11-02-dashboard-sentence-mutations.py` (11 of 11 caught;
+`--before` reproduces the left-hand column; source restored byte for byte in `finally`). Rows
+185-188 are the sweep detecting **edits**, not checking arithmetic (the 2026-10-31 06:00 lesson) -
+they say the sweep has teeth, not that any figure is right.
+
+**No sentence was found to be false.** The 77 open rows are unpinned, not wrong: nothing tonight
+read a figure that disagreed with its source. No production line, number, rank, weight or
+published sentence changed - the diff is `claims.py` (one claim), `tests/js_sweep.py`,
+`tests/test_claims_register.py`, `tests/test_holdings_concentration.py`, the harness and this file.
+
+**What remains, as a queue (the 77 `open:` rows, grouped by what would close them):**
+
+1. **Page-printing checks for claims that already exist** - the largest group and the cheapest
+   per row, because the engine side is pinned: `context.track_turnover` (4 rows: mean, range,
+   break-even, costs paragraph), `context.track_luck` (days, years clause, coin-toss share),
+   `drilldown.composite_chain` (the total and the discount line's six figures - its browser check
+   asserts the words only), `drilldown.unscored_category` (two counts, one a `\d+` wildcard),
+   `drilldown.peer_rank` (rank, n, percentile ordinal, sector stats), `history.run_overview`'s
+   JavaScript twins (movers counts, three rows), `context.macro_momentum_rule` (the panic threshold,
+   printed twice), `context.rate_sensitivity`, `context.expected_move`, `context.valuation_history`.
+   Pattern to copy: `test_case_against.py` - the generator's page, a JS function called for every
+   stock, each figure parsed and compared with the payload.
+2. **Modules named by no claim**: `tests/test_holdings_panel.py` (holdings fit counts, top-25/100),
+   `tests/test_drilldown_presentation.py` (the distribution caption and median),
+   `tests/test_review_cadence.py` (the turnover sentence's three figures, if it reads them - not
+   verified). Register first, then mutate - tonight's row 178 is what that finds.
+3. **Figures with no check anywhere**: the KPI strip (trap shares, median, universe), the
+   workings' equation lines (`r.pct x w = points`, the surprise and Piotroski lines - verify against
+   `drilldown.row_equation`'s browser check before writing new ones), the price-target strip, the
+   rank-history and Reporting Soon counts, the confirm dialog.
+
+Table cells stay outside the sweep on this surface as on the other two, and so does text inside a
+tag (`title=` tooltips, `style=` widths) - both stated in section 7's comment.
