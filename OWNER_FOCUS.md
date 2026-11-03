@@ -722,8 +722,9 @@ Add items below. Anything under this heading is unclaimed work.
     still wants its first paint measured in the same session (item 7 above).
     **Update 2026-11-02 (owner-run evening): experiment 18 SHIPPED** - analyst revisions (Chan,
     Jegadeesh & Lakonishok 1996) on OSAP `REV6`, 3 of 3 within tolerances committed first
-    (`4e1f6a7`); `research/2026-11-02-lab-revisions.md`. **Second read: pending** - the Friday
-    2026-11-06 session (or any session that did not build it) does it under item 2's rules.
+    (`4e1f6a7`); `research/2026-11-02-lab-revisions.md`. **Second-read the same night** by a
+    different reader: every paper and measured figure reproduced without importing `factor_lab`,
+    the pre-registration order verified; three wording fixes to the note, no figure changed.
   - **2026-10-23 (06:00 nightly) - deferred, and why; nothing started, so nothing is half-done.**
     This was the lab's Friday, but a proposal was waiting for a decision (1 day open) and both the
     prompt and item 1 above put that ahead of the day's focus. It was decided - all three of its
@@ -913,7 +914,7 @@ Completed items, newest first.
   and methodology pages closed (30 mutations, each caught by a new check), and the dashboard's own
   sentences swept for the first time (84 found, 7 pinned, 77 queued; none false). **Factor Lab:**
   experiment 18, analyst revisions (Chan, Jegadeesh & Lakonishok 1996) - the Revisions category's
-  first rerunnable result, 3 of 3 within; second read pending. **Speed:** the research
+  first rerunnable result, 3 of 3 within, second-read the same night. **Speed:** the research
   page builds 5.8x faster with byte-identical output; the suite fell from 4:36 to about 3:00. No
   number, rank, weight or published sentence changed. NIGHTLY_LOG.md 2026-11-02 (owner-run, evening).
 
