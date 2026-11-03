@@ -54,7 +54,7 @@ CHAIN, PEER, UNSC = "drilldown.composite_chain", "drilldown.peer_rank", "drilldo
 TURN, LUCK = "context.track_turnover", "context.track_luck"
 FIT, DIST = "dashboard.holdings_fit", "drilldown.composite_distribution"
 REGIME, OVER = "overview.momentum_regime", "history.run_overview"
-RATE = "context.rate_sensitivity"
+RATE, VH = "context.rate_sensitivity", "context.valuation_history"
 
 MUTS = [
     # --- drilldown.composite_chain: the total, the discount line, the composite -------------
@@ -204,6 +204,19 @@ MUTS = [
      "(c.rr2 < 0.05 ?", "(c.rr2 < 0.01 ?"),
     (256, "the sector median looked up by industry", RATE,
      "((D.market || {}).sector_rate || {})[s.sector]", "((D.market || {}).sector_rate || {})[s.industry]"),
+    # --- context.valuation_history: "Against its own five years" ----------------------------
+    (257, "the share printed is the share with a higher yield", VH,
+     "const above = Math.round(y.pct);", "const above = Math.round(100 - y.pct);"),
+    (258, "the month-ends counted with the missing ones", VH,
+     "' of its past ' + y.n + ' month-ends", "' of its past ' + y.s.length + ' month-ends"),
+    (259, "the range ends at today's yield", VH,
+     "cPlain(y.lo) + ' &ndash; ' + cPlain(y.hi)", "cPlain(y.lo) + ' &ndash; ' + cPlain(y.now)"),
+    (260, "the median is the middle of the range", VH,
+     "median ' + cPlain(y.med) + ' (dashed line)", "median ' + cPlain((y.lo + y.hi) / 2) + ' (dashed line)"),
+    (261, "a yield equal to the five-year high called above every one", VH,
+     "(y.now > y.hi ? 'above every one'", "(y.now >= y.hi ? 'above every one'"),
+    (262, "today's yield prints the median", VH,
+     "<span class=\"ctx-fv\">' + cPlain(y.now) + '</span>", "<span class=\"ctx-fv\">' + cPlain(y.med) + '</span>"),
 ]
 
 rows = None

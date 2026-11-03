@@ -1302,9 +1302,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${escapeHtml(a)} scores ${Math.abs(gap).toFixed(1)} composite points ${(gap >= 0 ? 'above' : 'below')} ${escapeHtml(b)} ${(lead.length ? '. The largest differences: ' + lead.join(' and ') + '.' : '.')}":
         "open:compare-gap-sentence - compare.composite_gap's page check reads the gap rows, not this sentence",
     '${vhChartSvg(y, m0, label)} ${label} ${cPlain(y.now)} of its past ${y.n} month-ends':
-        'open:valuation-history-reading - context.valuation_history checks the percentile, not its printing',
+        'claim:context.valuation_history',
     'higher than at ${above}%':
-        "open:valuation-history-above - nothing reads the page's printing",
+        'claim:context.valuation_history',
     "From 52-week high ${cPct(c.px / c.hi - 1)} high ${cPrice(c.hi)}${(c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '')}, low ${cPrice(c.lo)}":
         "open:price-trend-52w-line - context.price_trend's page check looks for the words",
     '&plusmn;${cPlain(c.om)} The average move options are paying for by ${escapeHtml(cDate(c.ox))} (${c.od} days)':
@@ -1428,8 +1428,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'track-period-count',
     'track-unpriced-picks',
     'trap-share-kpi',
-    'valuation-history-above',
-    'valuation-history-reading',
     'value-trap-sector-rate',
 })
 

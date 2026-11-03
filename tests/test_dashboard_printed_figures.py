@@ -961,3 +961,98 @@ def test_a_rate_card_worked_by_hand(page, data, rb, rn, rr2, sr, want):
     got = page.evaluate(_RATE_JS, [[t], patch])[t]
     assert got is not None, "no rate card"
     assert want in _text(got), (want, _text(got))
+
+
+# ---------------------------------------------------------------------------
+# context.valuation_history - "Against its own five years"
+# ---------------------------------------------------------------------------
+_VH_JS = """(vhs) => { const out = {};
+    for (const t of Object.keys(vhs)) { const h = vhCard({vh: vhs[t]});
+        out[t] = [...h.matchAll(/<div class="ctx-facts">([\\s\\S]*?)<\\/div><\\/div><\\/div>/g)].map(m => m[1]); }
+    return out; }"""
+_VH = re.compile(r"^(Earnings yield|Free-cash-flow yield) (-?\d+\.\d+)% (above every one|below every one|the highest|"
+                 r"the lowest|higher than at (\d+)%) of its past (\d+) month-ends Five-year range (-?\d+\.\d+)% – "
+                 r"(-?\d+\.\d+)% median (-?\d+\.\d+)% \(dashed line\)\. ")
+
+
+def _pc(printed: str) -> tuple[float, float]:
+    """A cPlain printing as a fraction, and half its last printed digit."""
+    return float(printed) / 100, 0.5 * 10 ** -len(printed.split(".")[1]) / 100
+
+
+def _check_vh_row(txt: str, y: dict) -> list[str]:
+    g = _VH.match(txt)
+    if not g:
+        return [f"unreadable: {txt[:200]!r}"]
+    out = []
+    _label, now, words, above, n, lo, hi, med = g.groups()
+    past = [v / 10000 for v in y["s"] if v is not None]
+    bp = 0.5 / 10000                                          # the series is rounded to basis points
+    if int(n) != len(past) or int(n) != y["n"]:
+        out.append(f"printed {n} month-ends; the series has {len(past)}, the record says {y['n']}")
+    for name, got, want in (("now", now, y["now"]), ("low", lo, min(past)), ("high", hi, max(past)),
+                            ("median", med, float(np.median(past)))):
+        v, half = _pc(got)
+        if abs(v - want) > half + bp + 1e-9:
+            out.append(f"{name} printed {got}%, the series gives {want:.5f}")
+    if y["now"] > y["hi"]:
+        want_words = "above every one"
+    elif y["now"] < y["lo"]:
+        want_words = "below every one"
+    elif y["now"] == y["hi"]:
+        want_words = "the highest"
+    elif y["now"] == y["lo"]:
+        want_words = "the lowest"
+    else:
+        sure = sum(1 for v in past if v < y["now"] - bp)
+        maybe = sum(1 for v in past if v < y["now"] + bp)
+        # the record publishes the share to one decimal and the page rounds that, so a share of
+        # 53.45% prints 54 (double rounding - half a point at most; noted in the audit, not fixed)
+        ok = {_jsround(f) for k in range(sure, maybe + 1)
+              for f in (100 * k / len(past), _jsround(1000 * k / len(past)) / 10, round(100 * k / len(past), 1))}
+        if above is None or int(above) not in ok:
+            out.append(f"printed 'higher than at {above}%', the series gives {sorted(ok)}")
+        want_words = words if above is not None else "higher than at"
+    if not words.startswith(want_words.split(" at")[0]) and words != want_words:
+        out.append(f"printed '{words}', the record's now/lo/hi give '{want_words}'")
+    return out
+
+
+def test_every_valuation_history_row_prints_its_own_series(page):
+    """For every stock with a five-year record: today's yield, the share of past month-ends with a
+    lower yield (recounted here from the published monthly series, to its basis-point rounding),
+    the number of month-ends, and the range and median of that same series."""
+    ctx = _payload("dashboard_context.js")["ctx"]
+    vhs = {t: c["vh"] for t, c in ctx.items() if c.get("vh") and (c["vh"].get("ey") or c["vh"].get("fy"))}
+    assert len(vhs) >= 300, f"only {len(vhs)} stocks carry a five-year record"
+    printed = page.evaluate(_VH_JS, vhs)
+    problems, rows = [], 0
+    for t, vh in vhs.items():
+        ys = [vh[k] for k in ("ey", "fy") if vh.get(k)]
+        if len(printed[t]) != len(ys):
+            problems.append(f"{t}: {len(printed[t])} rows printed for {len(ys)} yields")
+            continue
+        for y, h in zip(ys, printed[t]):
+            rows += 1
+            problems += [f"{t}: {p}" for p in _check_vh_row(_text(h), y)]
+    assert not problems, f"{len(problems)} problems in {rows} rows:\n" + "\n".join(problems[:30])
+
+
+def _vh_fixture(now, n=48):
+    s = [100 + 10 * i for i in range(n)]                      # 1.00% .. 5.70%, rising
+    s[3] = None                                               # a month-end with no figure
+    vals = [v / 10000 for v in s if v is not None]
+    return {"m0": "2022-01-01", "ey": {"now": now, "pct": round(100 * sum(v < now for v in vals) / len(vals), 1),
+                                       "lo": min(vals), "med": float(np.median(vals)), "hi": max(vals),
+                                       "n": len(vals), "s": s}}
+
+
+@pytest.mark.parametrize("now,words", [
+    (0.03, "higher than at 40%"),        # 19 of the 47 month-ends (1.0%..2.9%, less the missing 1.3%) - 40.4
+    (0.057, "the highest"), (0.06, "above every one"), (0.01, "the lowest"), (0.005, "below every one"),
+])
+def test_a_valuation_history_row_worked_by_hand(page, now, words):
+    """47 month-ends from 1.0% to 5.7% in 0.1-point steps with one missing: each branch of the
+    sentence, the count of month-ends with data, and the range and median (3.4%) of the series."""
+    txt = _text(page.evaluate(_VH_JS, {"X": _vh_fixture(now)})["X"][0])
+    assert f"{words} of its past 47 month-ends Five-year range 1.0% – 5.7% median 3.4% (dashed line)." in txt, txt

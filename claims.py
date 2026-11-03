@@ -1487,6 +1487,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_valuation_history.py::test_shares_filed_before_a_split_are_scaled_to_todays_units",
             "tests/test_valuation_history.py::test_a_stock_whose_shares_do_not_reproduce_its_market_value_is_not_shown",
             "tests/test_valuation_history.py::test_the_percentile_is_against_the_stocks_own_month_ends",
+            "tests/test_dashboard_printed_figures.py::test_every_valuation_history_row_prints_its_own_series",
+            "tests/test_dashboard_printed_figures.py::test_a_valuation_history_row_worked_by_hand",
         ),
     ),
     Claim(
