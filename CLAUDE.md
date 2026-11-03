@@ -918,6 +918,12 @@ before quoting any number here, and remember nothing either produces decides any
   `METHOD_VERSION`, every ledger row carries it, and `report`/`summary_for_page` refuse to mix
   versions. The methodology page states the result (claim `overview.research_engine`, read from
   `research/experiments/summary.json`, which `report` writes - **commit it with the ledger**).
+- **Any edit to `config.yaml` or `factor_engine.py` - even a display-only key or a comment - stales
+  every ledger row** (both are in `v2_experiments.RESULT_PATHS`), and
+  `test_the_baseline_weighting_is_hashed_separately_from_the_transformed_one` stays red, in the
+  publish gate too, until `python scripts/rerun_experiments.py --jobs 4` (~20 min, 32 rows) and its
+  report are committed. Budget the rerun before you start such an edit (2026-11-02: a one-number
+  display fix to `data_quality` cost one; gate 5's rehearsal is what caught it before a push).
 - `price_target_upside` is rebuilt from `pt_mean`, never by inverting the clamped metric;
   enterprise value is restated as `ev + mc*(r-1)`, never `ev*r`;
   `universe_history.validate_membership` refuses a universe outside 495-515; and availability of a
