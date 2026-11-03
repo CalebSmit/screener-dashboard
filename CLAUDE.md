@@ -302,6 +302,7 @@ and a session that hands the runner a broken tree has wasted the day.
 | 2 | Pipeline wiring intact | `python run_screener.py --dry-run` |
 | 3 | Dashboard artifacts intact | `index.html` non-trivial and `dashboard_data.js` parses (`node --check`) |
 | 4 | No stray uncommitted files | `git status --porcelain` |
+| 5 | The next data run's page passes its tests (whenever the branch changes more than prose; the runner runs it before gate 4, since 2026-11-02) | `python scripts/rehearse_publish.py --changed-since <base>` |
 
 **Gate 1 runs in parallel since 2026-10-26** (owner-run night): `scripts/run_tests.py` adds
 `-n auto` (pytest-xdist, pinned in `requirements.txt`) and runs the exact serial
@@ -325,6 +326,10 @@ page sat 8 elements over its first-paint budget - the 06:00 baseline would have 
 reason no gate had shown. The script regenerates the page from the newest full run with the
 working tree's code, installs it, runs the tests that read it plus the data loop's claims gate,
 and restores the published files byte for byte. `tests/test_rehearse_publish.py`, 5 tests.
+**Since 2026-11-02 the runner enforces it as gate 5** (`--changed-since $BaseSha`): any branch that
+changed more than prose (`*.md`, `*.txt`) is rehearsed before gate 4, a failure keeps the work off
+`main`, and "no full run to rehearse from" (exit 3) is a warning, never a failure. Still run it
+yourself - a session that hands the runner a red rehearsal has wasted the day.
 The fix that night is a constraint too: **the Methodology dialog is filled on first open**
 (`hydrateMethodology`); `.methodology-body` is empty before that by design.
 

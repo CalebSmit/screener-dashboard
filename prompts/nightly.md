@@ -363,7 +363,9 @@ cleanly, revert your change - the gate is doing its job.
 
 **If your diff touches anything the page is built from** - `generate_dashboard.py`, the
 methodology generator in `run_screener.py`, `stock_summary.py`, `metric_lineage.py`, `claims.py` -
-**also run `python scripts/rehearse_publish.py` and treat a failure as a failed gate.** The four
+**also run `python scripts/rehearse_publish.py` and treat a failure as a failed gate** - since
+2026-11-02 the runner runs it too, as gate 5, on any branch that changed more than prose, and will
+not merge a red one. The four
 gates above read the *committed* `index.html` and payload, which only a full screener run
 rewrites, so they cannot see what your change does to the page the 02:00 data loop will publish
 next. The script regenerates the page from the newest run with your code, runs the tests that

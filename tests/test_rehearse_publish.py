@@ -110,3 +110,33 @@ def test_a_write_that_never_succeeds_still_restores_the_others_and_says_so(tmp_p
         rp.with_installed({a: b"new-a", b: b"new-b"}, lambda: None)
     assert b.read_bytes() == b"live-b"                     # the file after it was still restored
 
+
+
+# ---------------------------------------------------------------------------
+# Gate 5 (2026-11-02): the code runner runs this whenever a branch changes more than prose.
+# ---------------------------------------------------------------------------
+
+def test_only_a_prose_only_diff_skips_the_rehearsal():
+    assert not rp.needs_rehearsal([])
+    assert not rp.needs_rehearsal(["NIGHTLY_LOG.md", "research/x.md", "notes.TXT", ""])
+    for code in ("generate_dashboard.py", "claims.py", "tests/test_x.py", "config.yaml",
+                 "research/experiments/summary.json", "lab.html", "scripts/data-run.ps1"):
+        assert rp.needs_rehearsal(["NIGHTLY_LOG.md", code]), code
+
+
+def test_a_prose_only_branch_passes_without_regenerating(monkeypatch, capsys):
+    monkeypatch.setattr(rp, "changed_since", lambda base: ["NIGHTLY_LOG.md", "OWNER_FOCUS.md"])
+    monkeypatch.setattr(rp, "regenerate", lambda run: pytest.fail("regenerated for a prose diff"))
+    assert rp.main(["--changed-since", "abc123"]) == 0
+    assert "NOT NEEDED" in capsys.readouterr().out
+
+
+def test_no_full_run_is_a_warning_not_a_verdict(monkeypatch, capsys):
+    """A gate that can only fail closed jams an unattended loop: with nothing to regenerate from
+    the script exits NO_RUN (3), which the runner logs as SKIPPED and never as a failure."""
+    def none(_):
+        raise SystemExit("no full run under runs/ to regenerate from")
+    monkeypatch.setattr(rp, "newest_full_run", none)
+    monkeypatch.setattr(rp, "changed_since", lambda base: ["generate_dashboard.py"])
+    assert rp.main(["--changed-since", "abc123"]) == rp.NO_RUN == 3
+    assert "SKIPPED" in capsys.readouterr().out

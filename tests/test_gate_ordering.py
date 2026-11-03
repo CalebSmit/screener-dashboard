@@ -266,3 +266,18 @@ def test_the_prompt_tells_the_session_to_stop_at_its_branch():
     text = PROMPT.read_text(encoding="utf-8")
     assert "push the branch" in text
     assert "does not merge" in text or "do not merge" in text.lower()
+
+
+def test_the_publish_rehearsal_is_a_gate_before_the_clean_tree_check():
+    """Gate 5 (2026-11-02): the rehearsal runs inside the gate block, before gate 4 - so a restore
+    that failed shows as a dirty tree - and before the decision; a failure joins $gateFailures; its
+    'no full run' exit (3) is a warning only."""
+    g3 = CODE.index("GATE 3 dashboard artifacts: PASS")
+    g5 = CODE.index("scripts/rehearse_publish.py', '--changed-since', $BaseSha")
+    g4 = CODE.index("GATE 4 clean tree")
+    decide = CODE.index("SHIP GATES FAILED")
+    assert g3 < g5 < g4 < decide
+    block = CODE[g5:g4]
+    assert "$gateFailures += 'publish-rehearsal'" in block
+    assert "-eq 3" in block and "SKIPPED" in block
+    assert "Stop-Run" not in block and "merge" not in block.lower()

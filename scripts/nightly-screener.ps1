@@ -819,6 +819,25 @@ try {
     }
     if ($g3) { Write-Log "GATE 3 dashboard artifacts: PASS" } else { $gateFailures += 'dashboard' }
 
+    # Gate 5: the publish rehearsal, whenever the branch changed more than prose (2026-11-02).
+    # Gates 1 and 3 read the *committed* page and payload, which only a full run rewrites, so a
+    # change to a generator, claims.py or a publish-gate test passes them and changes what the
+    # 02:00 loop publishes next. CLAUDE.md has asked sessions to run this by hand since 2026-10-12;
+    # here it no longer depends on one remembering. It restores the published files byte for byte,
+    # and runs before gate 4 so a failed restore is caught there as a dirty tree. Exit 3 means no
+    # full run exists to rehearse from - a warning, never a failure (the node precedent above).
+    $r5 = Invoke-Native 'python' @('scripts/rehearse_publish.py', '--changed-since', $BaseSha)
+    $r5tail = ($r5.Output | Where-Object { "$_".Trim() } | Select-Object -Last 1)
+    if ($r5.ExitCode -eq 0) { Write-Log "GATE 5 publish rehearsal: PASS ($r5tail)" }
+    elseif ($r5.ExitCode -eq 3) { Write-Log "GATE 5 publish rehearsal: SKIPPED ($r5tail)" 'WARN' }
+    else {
+        Write-Log "GATE 5 publish rehearsal: FAIL ($r5tail)" 'ERROR'
+        foreach ($ln in ($r5.Output | Where-Object { "$_" -match '^\s*(FAIL|FAILED)\b' } | Select-Object -First 15)) {
+            Write-Log "    $("$ln".Trim())" 'ERROR'
+        }
+        $gateFailures += 'publish-rehearsal'
+    }
+
     # Gate 4: nothing stray left behind
     $leftover = Invoke-Native 'git' @('status', '--porcelain')
     if ($leftover.Text.Trim()) {

@@ -41,6 +41,30 @@ PAGE_TESTS = ("tests/test_dashboard_browser.py", "tests/test_dashboard_navigatio
               "tests/test_metric_lineage.py", "tests/test_holdings_panel.py",
               "tests/test_dashboard_interaction.py", "tests/test_club_readiness.py")
 MIN_UNIVERSE = 495
+# Exit status when there is no full run to regenerate from: not a verdict on the code. The code
+# runner (gate 5) warns and goes on, the `node` fallback's precedent - a gate that can only fail
+# closed jams an unattended loop.
+NO_RUN = 3
+# A diff touching only these is prose: nothing the 02:00 loop builds the page from can have moved.
+PROSE_SUFFIXES = (".md", ".txt")
+
+
+def needs_rehearsal(changed: list[str]) -> bool:
+    """Whether a diff can change what the next data run publishes or the tests that gate it.
+
+    Deliberately wide (2026-11-02, when the code runner began enforcing it): the generators are
+    the obvious cases, but a test module in the publish gate, `claims.py`, `config.yaml` or a JSON
+    file the methodology page reads moves the verdict too, and a session reasoning about which
+    files "count" is the judgement this gate exists to take out of the loop. Only prose is exempt."""
+    return any(not p.lower().endswith(PROSE_SUFFIXES) for p in changed if p.strip())
+
+
+def changed_since(base: str) -> list[str]:
+    out = subprocess.run(["git", "diff", "--name-only", f"{base}..HEAD"], cwd=ROOT,
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        raise SystemExit(f"git diff {base}..HEAD failed: {out.stderr.strip()}")
+    return [p for p in out.stdout.splitlines() if p.strip()]
 
 
 def newest_full_run(runs: Path) -> Path:
@@ -126,9 +150,23 @@ def regenerate(run: Path, scratch: Path = SCRATCH) -> dict[str, bytes]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--full", action="store_true", help="run the whole suite, not only the page's tests")
+    ap.add_argument("--changed-since", metavar="SHA",
+                    help="rehearse only if the diff from SHA to HEAD touches more than prose "
+                         "(the code runner's gate 5)")
     args = ap.parse_args(argv)
 
-    run = newest_full_run(ROOT / "runs")
+    if args.changed_since:
+        changed = changed_since(args.changed_since)
+        if not needs_rehearsal(changed):
+            print(f"REHEARSAL NOT NEEDED: {len(changed)} changed file(s), all prose.")
+            return 0
+        print(f"rehearsing: {len(changed)} changed file(s) since {args.changed_since[:8]}, not all prose")
+
+    try:
+        run = newest_full_run(ROOT / "runs")
+    except SystemExit as e:
+        print(f"REHEARSAL SKIPPED: {e}")
+        return NO_RUN
     print(f"regenerating from a copy of run {run.name} with the working tree's code")
     files = regenerate(run)
     for name, data in files.items():
