@@ -1308,9 +1308,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "From 52-week high ${cPct(c.px / c.hi - 1)} high ${cPrice(c.hi)}${(c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '')}, low ${cPrice(c.lo)}":
         "open:price-trend-52w-line - context.price_trend's page check looks for the words",
     '&plusmn;${cPlain(c.om)} The average move options are paying for by ${escapeHtml(cDate(c.ox))} (${c.od} days)':
-        "open:expected-move-figure - context.expected_move checks the engine's move, not this printing",
+        "open:expected-move-figure - FALSE for 20 stocks in the 2026-10-30 run's payload: the ATM strike was chosen against the close before the quoted session, >5% from this price (NOW +/-27.3% is mostly put intrinsic); research/measurements/2026-11-02-expected-move-divisor.py",
     'Expected move = at-the-money call + put, divided by the price ${cPrice(c.px)}:':
-        "open:expected-move-price - nothing reads the page's printing",
+        "open:expected-move-price - FALSE in the 2026-10-30 run's payload: names this run's close as the divisor, but the move was divided by the close before the quoted session (273 of 359 differ >1%, NOW by 37%); research/measurements/2026-11-02-expected-move-divisor.py",
     "Open-market buys, 90 days ${(ins.buy_n ? cMoney(ins.buy_value) : 'None')} ${(ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;')} Open-market sales, 90 days ${(ins.sell_n ? cMoney(ins.sell_value) : 'None')} ${(ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + (ins.sell_planned_value != null && ins.sell_value > 0 ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '') : '&nbsp;')}":
         "open:insider-card-rows - nothing reads the page's printing",
     ', ${Math.round(100 * ins.sell_planned_value / ins.sell_value)}% on pre-set plans':
