@@ -686,6 +686,90 @@ def test_the_two_printings_of_the_bar_agree_on_the_real_ledger():
     assert rule[2] == f"{X.pass_bar(summary['registered'], int(rule[3])):.2f}"
 
 
+SIZE_LINE = re.compile(r"shows the largest 2012&ndash;2019 difference, <span class=\"num\">([^<]+)</span> "
+                       r"\(t&nbsp;([^)]+)\), (short of|beyond) the pass bar")
+
+
+def _size_on_top(latest: dict, mean: float, t: float) -> dict:
+    """The real ledger with the Size screen's 2012-2019 reading replaced, put on top of the chart.
+    Its standard error is left as it is, so the median row - and with it the pass bar - stays put."""
+    lat = copy.deepcopy(latest)
+    st = lat["only-size"]["summary"]["presample"]["ic_vs_baseline"]
+    st.update({"mean": mean, "t": t})
+    return lat
+
+
+def test_the_size_sentence_is_the_top_rows_own_reading_and_its_word_turns_at_the_bar():
+    """Claim ``research.size_sentence`` (audit row `size-row-mean-t-and-bar-word`). The sentence
+    under the chart prints the top row's own 2012-2019 mean and t, and says "beyond" the pass bar
+    once |t| reaches the bar printed in the method - "short of" below it - on both signs. Probed
+    at the bar itself and a thousandth either side, the `_pbo_words` shape (rows 139-140)."""
+    reg, latest = X.load_registry(), _latest()
+    summary = X.summary_for_page(reg, latest)
+    page0 = rp.build(reg, latest, summary, X.detectable, X.load_evaluations())
+    months = int(BAR_RULE.search(page0).group(2))
+    bar = X.pass_bar(summary["registered"], months)
+    for t, word in ((bar, "beyond"), (bar - 0.001, "short of"), (bar + 0.001, "beyond"),
+                    (-bar, "beyond"), (-(bar - 0.001), "short of")):
+        page = rp.build(reg, _size_on_top(latest, 0.0912, t), summary, X.detectable,
+                        X.load_evaluations())
+        assert BAR_RULE.search(page).group(1) == f"{bar:.2f}"       # the bar did not move
+        assert SIZE_LINE.search(page).groups() == (rp.num(0.0912), rp.num(t, 2), word), t
+
+
+def _coverage_fixture():
+    """Three years of months. Each year's mean differs, at whole-percent precision, from its first
+    month, its last month and its median; a 2011 year and a June 2012 month with no IC reading sit
+    in the coverage file - so a figure from the wrong month, the wrong year or the wrong set of
+    months prints differently."""
+    cov, size, base = {}, {}, {}
+    for y, (usual, odd) in ((2011, (0.10, 0.10)), (2012, (0.50, 0.62)), (2013, (0.70, 0.70)),
+                            (2014, (0.90, 0.78))):
+        for mo in range(1, 13):
+            m = f"{y}-{mo:02d}-28"
+            cov[m] = {"coverage": odd if mo == 12 else usual}
+            if (y, mo) == (2012, 6):
+                cov[m] = {"coverage": 0.20}          # no reading this month: never counted
+            elif y > 2011:
+                size[m], base[m] = 0.01 * mo, 0.005 * ((mo * 7) % 12)
+    latest = {"only-size": {"ic_by_month": size}, "baseline": {"ic_by_month": base}}
+    return latest, {"months": cov}
+
+
+def test_the_coverage_percentages_are_the_first_and_last_years_means():
+    """Claim ``research.size_sentence`` (audit row `size-coverage-percentages`): "from X% in its
+    first year to Y% in its last" is each year's **mean** monthly coverage over the months the
+    test has a reading for. 2012: ten read months at 50% and one at 62% -> 51%; 2014: eleven at 90%
+    and one at 78% -> 89%. The first month would print 50%/90%, the last 62%/78%, the median
+    50%/90%, counting June 2012's unread 20% would print 48%, and counting 2011, which has no
+    readings at all, would start the sentence in 2011 at 10%."""
+    latest, coverage = _coverage_fixture()
+    rel = rp.size_coverage_relation(latest, coverage)
+    assert (rel["first_year"], f"{rel['first_cov'] * 100:.0f}") == ("2012", "51")
+    assert (rel["last_year"], f"{rel['last_cov'] * 100:.0f}") == ("2014", "89")
+    row = {"label": "Size", "p": {"mean": 0.02, "t": 1.0}}
+    para = rp.size_paragraph(row, rel, 3.0)
+    assert ('from <span class="num">51%</span> in 2012 to <span class="num">89%</span> in 2014'
+            in para)
+
+
+def test_the_page_prints_the_coverage_relation_of_the_committed_files():
+    """And on the real page: the two percentages are the relation computed from the committed
+    coverage file and ledger, recomputed here as yearly means of the months both carry."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    latest = _latest()
+    cov = json.loads(rp.COVERAGE.read_text(encoding="utf-8"))["months"]
+    ms = sorted(m for m in cov if m in latest["only-size"]["ic_by_month"]
+                and m in latest["baseline"]["ic_by_month"])
+    years = sorted({m[:4] for m in ms})
+    mean = lambda y: np.mean([cov[m]["coverage"] for m in ms if m.startswith(y)])  # noqa: E731
+    want = (f'from <span class="num">{mean(years[0]) * 100:.0f}%</span> in {years[0]} to '
+            f'<span class="num">{mean(years[-1]) * 100:.0f}%</span> in {years[-1]}')
+    if "shows the largest 2012&ndash;2019 difference" not in page:
+        pytest.skip("the Size screen is not the top row on the committed page, so it prints no sentence")
+    assert want in page
+
+
 BASELINE_IC = {
     # se x sqrt(n) per period, each rounding to a different two-decimal figure, so the sentence
     # names which record it is taken over: 2020-2026 is the one the claim states.

@@ -731,16 +731,13 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
     # --- the Size hypothesis ------------------------------------------------
     "{row['label']} shows the largest 2012-2019 difference, {num(p['mean'])} "
     "(t {num(p['t'], 2)}), {reach} the pass bar.":
-        "open:size-row-mean-t-and-bar-word:2026-10-29 - the Size row's own mean and t, and the word choosing 'short of' or "
-        "'beyond' the pass bar at |t| = bar. test_the_size_sentence... pins the coverage "
-        "correlations in the next sentence and not these",
+        "claim:research.size_sentence",
     "The share of each month's members the test could include rose steadily, from "
     "{rel['first_cov'] * 100}% in {rel['first_year']} to {rel['last_cov'] * 100}% in "
     "{rel['last_year']} (its correlation with the calendar is {rel['r_time']} ), and within "
     "2012-2019 the Size screen's monthly result moved with that share {moved} the current "
     "weighting's did (correlations of {num(rel['pre_r_size'])} and {num(rel['pre_r_base'])} ).":
-        "open:size-coverage-percentages:2026-10-29 - the two yearly coverage percentages are pinned by nothing; "
-        "test_the_size_sentence... recomputes r_time and both within-era correlations",
+        "claim:research.size_sentence",
 
     # --- if you had kept the best backtest ---------------------------------
     # All five rows CLOSED 2026-10-31 (13:00; audit rows 139-143) by
@@ -796,7 +793,8 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 # after 2026-10-31 06:00 (the trading rule's monthly figure and its two coverage
 # percentages), five after 2026-10-31 13:00 (the whole "best backtest" section,
 # `claim:research.overfitting_reading`), three after 2026-11-02 evening (the pass
-# bar printed twice, `claim:research.pass_bar`), by the slug in their verdict.
+# bar printed twice, `claim:research.pass_bar`) and one after it (the Size sentence,
+# `claim:research.size_sentence`), by the slug in their verdict.
 # **Literals, not a comprehension over the table** -
 # `frozenset(s for s, v in ... if v.startswith("open:"))` is the table compared
 # with itself and passes at any value (`plan/claims-mutation-audit.md` row 59).
@@ -804,7 +802,6 @@ RESEARCH_PAGE_SENTENCES: dict[str, str] = {
 # sentence a claim. A session that has to add one says why in `NIGHTLY_LOG.md`.
 KNOWN_OPEN: frozenset[str] = frozenset({
     "chart-axis-and-geometry",
-    "size-row-mean-t-and-bar-word", "size-coverage-percentages",
 })
 
 

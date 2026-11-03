@@ -986,3 +986,30 @@ Harness: `research/measurements/2026-11-02-pass-bar-mutations.py` (6 of 6 caught
 "GAP" here excludes the committed-page drift tripwire, which goes green the moment the page is
 regenerated (the 2026-10-28 lesson). **`KNOWN_OPEN` five -> three:** `chart-axis-and-geometry`,
 `size-row-mean-t-and-bar-word`, `size-coverage-percentages`; `OVERVIEW_KNOWN_OPEN` unchanged at one.
+
+## Results, 2026-11-02 (owner-run evening, continued): the Size sentence
+
+Both Size rows, together - `size-row-mean-t-and-bar-word` and `size-coverage-percentages`. Now
+`claim:research.size_sentence`. The word is probed **at** the bar printed in the method, a thousandth
+either side, on both signs, through `build` with only the Size row's 2012-2019 reading replaced (its
+standard error kept, so the median row and the bar cannot move - the test asserts they do not). The
+percentages are checked on a coverage fixture built so that each year's mean differs at whole-percent
+precision from its first month, last month and median, with a 2011 year and a June 2012 month that
+carry coverage but no reading; and on the committed page against a recomputation from the files.
+
+| # | Claim | Mutation | Before | Now |
+|---|---|---|---|---|
+| 154 | `size-row-mean-t-and-bar-word` | "short of" at `<=` the bar instead of `<` | GAP | `test_the_size_sentence_is_the_top_rows_own_reading_and_its_word_turns_at_the_bar` |
+| 155 | `size-row-mean-t-and-bar-word` | the word reads the signed t (abs dropped) | GAP | same |
+| 156 | `size-row-mean-t-and-bar-word` | the word is judged against the held-out bar | GAP | same |
+| 157 | `size-row-mean-t-and-bar-word` | the sentence reads the second row | GAP | same |
+| 158 | `size-row-mean-t-and-bar-word` | the printed t is the held-out era's | GAP | same, and the committed-files test |
+| 159 | `size-coverage-percentages` | a year's first month instead of its mean | GAP | `test_the_coverage_percentages_are_the_first_and_last_years_means` |
+| 160 | `size-coverage-percentages` | a year's median | GAP | same |
+| 161 | `size-coverage-percentages` | every month in the coverage file, read or not | GAP; **missed by the first fixture** too, until June 2012 was given coverage and no reading | same |
+| 162 | `size-coverage-percentages` | the second-last year as "its last" | GAP | same |
+
+Harness: `research/measurements/2026-11-02-size-sentence-mutations.py` (9 of 9 caught). **Row 161 is
+the method's lesson again:** a fixture only pins what it makes distinguishable - the first fixture's
+unread months were all in a year with no readings, which no year-mean ever touches. **`KNOWN_OPEN`
+three -> one:** `chart-axis-and-geometry`, the one needing geometry assertions.

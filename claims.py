@@ -855,6 +855,25 @@ CLAIMS: tuple[Claim, ...] = (
                 r"2012&ndash;2019's \d+ months"),
     ),
     Claim(
+        id="research.size_sentence",
+        surface=RESEARCH,
+        asserts=(
+            "When the Size screen is the chart's top row, the sentence under it prints that row's "
+            "own 2012-2019 mean and t, and says \"beyond\" the pass bar once |t| reaches the "
+            "2012-2019 bar the method prints and \"short of\" below it, on either sign. \"From X% "
+            "in its first year to Y% in its last\" is each of those years' mean monthly coverage "
+            "over the months the test has a reading for."
+        ),
+        made_true_by="research_page:size_paragraph",
+        checked_by=(
+            "tests/test_research_page.py::test_the_size_sentence_is_the_top_rows_own_reading_and_its_word_turns_at_the_bar",
+            "tests/test_research_page.py::test_the_coverage_percentages_are_the_first_and_last_years_means",
+            "tests/test_research_page.py::test_the_page_prints_the_coverage_relation_of_the_committed_files",
+            "tests/test_research_page.py::test_the_size_sentence_claims_no_more_than_the_coverage_data_can_show",
+        ),
+        detect=r"shows the largest 2012&ndash;2019 difference, <span class=\"num\">",
+    ),
+    Claim(
         id="research.pairing_overlap",
         surface=RESEARCH,
         asserts=(
