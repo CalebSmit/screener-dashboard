@@ -10470,7 +10470,7 @@ def _js_context() -> str:
         const S = M.series;
         if (meta) {
             const bits = [];
-            if (S.T10Y3M) bits.push('10y\u20113m curve ' + (S.T10Y3M.last >= 0 ? '+' : '\u2212') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            if (S.T10Y3M && typeof S.T10Y3M.last === 'number') bits.push('10y\u20113m curve ' + cPp(S.T10Y3M.last / 100, 2));
             if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             meta.textContent = bits.join(' · ');
@@ -10515,7 +10515,7 @@ def _js_context() -> str:
         const W = Math.round(Math.min(1300, Math.max(300, (document.getElementById('track-body') || {}).clientWidth || 900))), Hh = 240, L = 44, R = 92, Tt = 12, B = 26;
         const X = i => L + i / n * (W - L - R), Y = v => Tt + (hi + pad - v) / (hi - lo + 2 * pad) * (Hh - Tt - B);
         let g = '';
-        [lo, 100, hi].forEach(v => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="tr-grid' + (v === 100 ? ' tr-base' : '') + '"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4).toFixed(1) + '" class="tr-tick" text-anchor="end">' + (v - 100 >= 0 ? '+' : '−') + Math.abs(v - 100).toFixed(0) + '%</text>'; });
+        [lo, 100, hi].forEach(v => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="tr-grid' + (v === 100 ? ' tr-base' : '') + '"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4).toFixed(1) + '" class="tr-tick" text-anchor="end">' + cPct((v - 100) / 100, 0) + '</text>'; });
         // methodology changes along the bottom
         const dIdx = d => { let k = 0; S.d.forEach((x, i) => { if (x <= d) k = i; }); return k; };
         const marks = (T.methodology_changes || []).map(m => '<line x1="' + X(dIdx(m.date)).toFixed(1) + '" x2="' + X(dIdx(m.date)).toFixed(1) + '" y1="' + (Hh - B) + '" y2="' + (Hh - B + 5) + '" class="tr-mark"><title>' + escapeHtml(m.date + ' - ' + m.title) + '</title></line>').join('');
@@ -10716,7 +10716,10 @@ def _js_context() -> str:
         const mm = document.getElementById('meta-market');
         if (mm && M && M.series) {
             const S = M.series, bits = [];
-            if (S.T10Y3M) bits.push('10y\u20113m curve ' + (S.T10Y3M.last >= 0 ? '+' : '−') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            // cPp is the page's one rule for a signed figure near zero (2026-11-03). Both
+            // readers of this line write textContent, so the figure must be a number:
+            // cPp answers a missing one with an entity, which textContent would print.
+            if (S.T10Y3M && typeof S.T10Y3M.last === 'number') bits.push('10y\u20113m curve ' + cPp(S.T10Y3M.last / 100, 2));
             if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             mm.textContent = bits.join(' · ');
