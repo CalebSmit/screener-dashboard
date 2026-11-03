@@ -393,7 +393,8 @@ Three options for the deciding session, matching the practice above:
   category renormalisation spreads its 10 points over the other seven.
 
 (c) is the easiest to explain ("no analysts, no analyst score"), and (b) follows the most specific
-published practice. **Either one changes the S&P 500 for the ~5 names with no coverage today.** So
+published practice. **Either one changes some S&P 500 names today** (measured below: one rests on
+days to cover alone, six more are partly covered). So
 it is a methodology change with its own changelog entry, decided on its own, not a side effect of
 phase 3.
 
@@ -445,7 +446,7 @@ universe. The research engine and backtest-v2 notes stay S&P 500 by the plan's o
   publish the S&P 400 and 600 bands **on the S&P 500's weights, saying so plainly**. Any band-specific
   weight is a separate Monday.
 - **Merged or side-by-side** S&P 1500 ranking (section 3, point 5).
-- **Which coverage rule (section 4: a, b or c).** All three change ~5 S&P 500 names.
+- **Which coverage rule (section 4: a, b or c).** (b) and (c) change at most seven S&P 500 names today, (c) only one (section 4).
 - **A liquidity floor for phase 4.** Not proposed. Measure dollar volume above the $1.2B floor in
   phase 4 first; add an MSCI-style traded-value ratio only if illiquid names appear.
 - **Point-in-time history for the 400/600.** None is free, so nothing here can be backtested even

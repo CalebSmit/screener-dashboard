@@ -54,7 +54,7 @@ for July 2026-June 2027); percentiles within `(Sector, size_band)` with a band-w
 adds to phase 1 (`universe.min_market_cap: 2e9` must become per-universe, or an S&P 600 run silently
 drops its bottom) and to phase 2's measurements, and finds a present-day gap that is not phase work:
 a stock with no analyst coverage has its whole Revisions category scored on days-to-cover alone
-(about 5 S&P 500 names; section 4, options a-c - a methodology change of its own).
+(one S&P 500 stock today, Loews, and six more partly; section 4, options a-c - a methodology change of its own).
 
 One complete note in `research/`, literature and practice, ending in a `**Proposal status: OPEN**`
 line. Questions it must answer:
