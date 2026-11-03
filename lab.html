@@ -18,8 +18,8 @@
 <!-- The two files the menu waits for, asked for from the first bytes of the page rather than from
      the script tags 460 lines down (round two, 2026-10-27; plan/factor-lab.md "The first paint").
      Same URLs as the tags, version included - tests/test_lab_reading_and_access.py keeps them equal. -->
-<link rel="preload" href="lab_data.js?v=28" as="script">
-<link rel="preload" href="lab_engine.js?v=28" as="script">
+<link rel="preload" href="lab_data.js?v=29" as="script">
+<link rel="preload" href="lab_engine.js?v=29" as="script">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -517,8 +517,8 @@ h2[tabindex="-1"]:focus { outline: none; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=28"></script>
-<script src="lab_engine.js?v=28"></script>
+<script src="lab_data.js?v=29"></script>
+<script src="lab_engine.js?v=29"></script>
 <script>
 (function () {
     'use strict';
@@ -1838,7 +1838,7 @@ h2[tabindex="-1"]:focus { outline: none; }
     const tabs = document.getElementById('tabs');
     // The experiments grouped by what they test, so the menu reads as a map rather than a wall of
     // fourteen chips (investor pass, 2026-10-15). The number of each is on its own page.
-    const GROUPS = ['Momentum', 'Value', 'Quality', 'Investment', 'Risk', 'Across the factors'];
+    const GROUPS = ['Momentum', 'Value', 'Quality', 'Investment', 'Risk', 'Revisions', 'Across the factors'];
     D.experiments.forEach(x => { if (GROUPS.indexOf(x.group || 'More') < 0) GROUPS.push(x.group || 'More'); });
     // Each entry carries its number (the experiment's place in the record) and a small meter of its
     // figures matched, the proportion its card on the front page draws in full.

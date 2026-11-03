@@ -480,8 +480,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 #      builds their addresses with this same ?v=, read off its lab_data.js tag;
 # 28 = the 153 factors' size groups and each of the eight sorts in parts of their own (LAZY_INTO),
 #      loaded when shown or chosen, and lab_engine.js's compareReplication marks a figure whose series
-#      has not loaded as pending.
-ASSET_VERSION = 28
+#      has not loaded as pending;
+# 29 = experiment 18, analyst revisions on Open Source Asset Pricing's REV6 deciles (a new sort part,
+#      sorts_revisions) and the Revisions group in the menu.
+ASSET_VERSION = 29
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -2953,8 +2955,8 @@ REVISIONS_OSAP = {
     "reference": {
         "source": ("Table 5, Panel A (\"Mean returns and characteristics for portfolios classified by "
                    "revision in analyst forecasts\"), row \"Return 6 months after portfolio formation\", "
-                   "portfolios 1 (Low) and 10 (High): equally weighted buy-and-hold returns over the six "
-                   "months after each monthly formation date, January 1977 to January 1993. Read from "
+                   "portfolios 1 (Low) and 10 (High): equally weighted returns of each group held for the "
+                   "six months after each monthly formation date, January 1977 to January 1993. Read from "
                    "the NBER working paper version (No. 5375, December 1995), PDF page 35; the published "
                    "article's Table V was not obtained. The paper's figures are six-month holding-period "
                    "returns; here they are compared with the average month of the authors' deciles times "
@@ -2997,13 +2999,22 @@ REVISIONS_OSAP = {
         # Plan rule 8, checked from the record before committing: a result of no effect matches 0 of
         # these 3 - each end sits 3.85 from the null's common level (8.45), and the spread misses.
         "tolerances_written": "before",
+        # Added after the run, with no figure or tolerance changed: the paper prints all ten deciles
+        # and the page shows all ten, but the record compares the two ends and the gap between them
+        # (fixed in the commit above, before any return was read), because a null result would land
+        # within any tolerance on the middle deciles (rule 8). The layout test reads this.
+        "compares": "ends",
         "figures": [
             {"key": "mean1", "label": "Most downward revisions: six months (%)", "paper": 4.6, "tolerance": 2.9, "where": "Table 5, Panel A, portfolio 1 (Low), return 6 months after portfolio formation, 0.046 (NBER WP 5375, PDF p. 35)"},
             {"key": "mean10", "label": "Most upward revisions: six months (%)", "paper": 12.3, "tolerance": 2.9, "where": "Table 5, Panel A, portfolio 10 (High), return 6 months after portfolio formation, 0.123 (NBER WP 5375, PDF p. 35)"},
             {"key": "spread", "label": "Most upward minus most downward, six months (%)", "paper": 7.7, "tolerance": 2.9, "where": "Table 5, Panel A, derived: 0.123 - 0.046"},
         ],
     },
-    "verdict_note": "",
+    "verdict_note": ("All three figures land within the tolerances written before the run. The gap is "
+                     "8.7% over six months against the paper's 7.7% - above it, as expected of portfolios "
+                     "re-formed every month on the freshest revisions - with a t-statistic of 8.4; the most "
+                     "downward revisions earned 2.7% against 4.6%. Returns rise from each group to the next "
+                     "across all ten. Weighted by market value the gap in the paper's years is 4.2%, t 2.9."),
     "sort": {
         "data": "revisions",
         "groups": ["Most downward revisions", "Decile 2", "Decile 3", "Decile 4", "Decile 5", "Decile 6",
@@ -3123,6 +3134,10 @@ TAKEAWAYS = {
                   "beat the lowest by about 4% a year equally weighted in the paper's years - a fifth of the "
                   "paper's 23.5%, and not distinguishable from zero - and by about 13% weighted by market value. "
                   "Since 1997 neither gap can be told from zero."),
+    "revisions": ("On the authors' public portfolios, stocks whose earnings forecasts analysts had raised most beat "
+                  "those they had cut most by about 1.4% a month in the paper's years, equally weighted - every "
+                  "figure within tolerance. Since 1993 the gap has held at about 0.9% a month; weighted by market "
+                  "value it has been about half that, and not distinguishable from zero."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -3168,11 +3183,15 @@ CATEGORY_MAP = [
      "has": "Stocks sorted by how volatile they have been, and by how much they move with the market "
             "(beta): two of the category's three measures.",
      "gap": "The depth of a stock's worst fall, the third measure. No public sort exists for it."},
-    {"category": "Analyst revisions", "key": "revisions", "experiments": [],
-     "has": "Nothing, and probably never.",
-     "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
-            "surprises. They need a history of analysts' estimates as they stood at the time, which is "
-            "sold, not published."},
+    {"category": "Analyst revisions", "key": "revisions", "experiments": ["revisions"],
+     "has": "Stocks sorted by how far analysts have revised their forecasts of the current year's earnings, "
+            "relative to the share price (Chan, Jegadeesh and Lakonishok 1996) - the construction of the "
+            "category's heaviest measure - on the portfolios Chen and Zimmermann publish.",
+     "gap": "The rerun reads published portfolio returns, not analysts' forecasts, and ranks every covered "
+            "stock rather than large companies; it uses six to seven months of revisions where the screener "
+            "uses three. The rest of the category - earnings surprises, the consensus price target and short "
+            "interest - has no rerun: the studies behind it need a history of analysts' estimates as they "
+            "stood at the time, which is sold, not published."},
     {"category": "Size", "key": "size", "experiments": ["size-effect", "size-given-profitability", "five-factors", "replication-crisis"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
@@ -3212,8 +3231,10 @@ SCORECARD_OPEN = {
                  "the weight stays, as the least well-supported of the large ones."),
     "risk": ("The category lowers risk for a similar return. It is not evidence of a higher one, and "
              "the methodology now says so."),
-    "revisions": ("It rests on the cited studies alone. The screener's own record, run by run, is the "
-                  "only measurement it will get."),
+    "revisions": ("The rerun covers the category's heaviest measure (48 of its 100 points) across every "
+                  "covered stock, not among large companies, where the public files have no size cut. The "
+                  "other half of the category rests on its cited studies alone, and the screener's own "
+                  "record, run by run, is the only measurement among its companies."),
     "size": ("Researched 2026-10-20: no size premium among large companies on its own; the weight rests on "
              "the case that size pays once quality is held fixed. Holding profitability fixed passed the test "
              "written for it in advance, by a margin over the plain spread too small to tell from zero. Since "
@@ -3229,7 +3250,7 @@ def screener_weights(path: Path = ROOT / "config.yaml") -> dict:
     return dict(yaml.safe_load(path.read_text(encoding="utf-8"))["factor_weights"])
 
 
-def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> list[dict]:
+def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisions: dict) -> list[dict]:
     """One row per category of the screener: its weight, what the lab has measured that bears
     on it among large companies, and what that leaves open."""
     whole, late, recent = (split_run(split, "196307", "209912"), split_run(split, "200001", "209912"),
@@ -3246,6 +3267,8 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> lis
     nine_ten = size_run(size, size["months"][0], "209912", "ew")["nine_ten"]
     ag_paper, ag_after = (sort_run(asset_growth, a, b, "vw")["spread"] for a, b in
                           (("196807", "200306"), ("200307", "209912")))
+    rev_paper, rev_ew, rev_vw = (sort_run(revisions, a, b, w)["spread"] for a, b, w in
+                                 (("197701", "199212", "ew"), ("199301", "209912", "ew"), ("199301", "209912", "vw")))
     measured = {
         "valuation": (f"Among big companies the value factor has averaged {big(whole, 'value')['mean']:.2f}% a month "
                       f"since 1963 (t-statistic {big(whole, 'value')['t']:.2f}), about half its "
@@ -3271,8 +3294,11 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> lis
                      f"(t-statistic {big(late, 'momentum')['t']:.2f})."),
         "risk": ("Sorted by volatility or by beta, riskier stocks have not earned reliably more, while "
                  "being about twice as volatile."),
-        "revisions": ("Nothing. A history of analysts' estimates as they stood at the time is sold, not "
-                      "published."),
+        "revisions": (f"Stocks with the most upward revisions to analysts' earnings forecasts beat those with the "
+                      f"most downward by {rev_paper['mean']:.2f}% a month in the paper's years, equally weighted "
+                      f"(t-statistic {rev_paper['t']:.2f}), and by {rev_ew['mean']:.2f}% since 1993 "
+                      f"(t-statistic {rev_ew['t']:.2f}). Weighted by market value - nearer the screener's companies "
+                      f"- the gap since 1993 is {rev_vw['mean']:.2f}% (t-statistic {rev_vw['t']:.2f})."),
         "size": (f"Between the two largest size groups the smaller has earned {nine_ten['mean']:.2f}% a month more "
                  f"over the whole record (t-statistic {nine_ten['t']:.2f}), and the difference cannot be told "
                  f"from zero in any shorter period checked."),
@@ -3342,7 +3368,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
                          ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1),
-                         ("piotroski", 1)):
+                         ("piotroski", 1), ("revisions", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -3697,7 +3723,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "is added. Non-commercial use only, under the licence."),
         },
         "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp, double),
-        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
+        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"], sorts["revisions"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
