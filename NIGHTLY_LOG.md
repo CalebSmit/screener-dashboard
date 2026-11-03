@@ -18097,3 +18097,19 @@ now prints from `scripts/health_numbers.py` and the runner hands it to every ses
 - The OPEN proposals now waiting for a session that did not write them: growth exposure, universe
   phase 0, Investment-inside-Quality.
 - After 02:00: the stale flag should fire for about 21 stocks, not about 320.
+- **A FALSE sentence on the live page, measured and queued (item 1 of the claims queue):** the
+  expected-move card says the move is the at-the-money straddle divided by *this run's* close, but
+  the 20:00 option refresh (`options_cache.refresh` -> `_fetch_one` -> `context_signals.options_context`)
+  is handed the previous run's `price_latest` and picks the at-the-money strike against it. On the
+  10-30 payload 273 of 359 divisors differ from the printed price by >1%, 16 by >5%; NOW's strike is
+  150 against $109.67, so its +/-27.3% is mostly the put's intrinsic value.
+  `research/measurements/2026-11-02-expected-move-divisor.py`. The fix is in the refresh - price
+  the straddle against the underlying's price at quote time - and needs a live option pull to verify,
+  so it was not attempted two hours before a data run. Rows `expected-move-price` and
+  `expected-move-figure` stay open, marked FALSE.
+- **The dashboard claims sweep, round 2 (merged):** 37 of the 77 open rows closed (rows 189-271,
+  83 of 83 mutations caught; 82 of them invisible to every check before tonight), via the new
+  `tests/test_dashboard_printed_figures.py`, which runs the page's own JavaScript for every stock;
+  `DASHBOARD_KNOWN_OPEN` 77 -> 40; the publish gate 71 -> 73 modules. One generator fix with no
+  text change today: an unscored category's 'its N% was shared out' now prints this run's weight
+  (it would have printed 13% for a panic-state Momentum scored at 9.1%).

@@ -909,7 +909,11 @@ Completed items, newest first.
   experiment 18 second-read and confirmed. **Research:** weight question 3 (fold Investment into
   Quality?) answered - keep it standalone, proposal open. **Routine:** each session now starts with
   its health numbers in its prompt, the brief lists upcoming committed dates, and two timing tests
-  that could have discarded a night's run measure the page instead of the machine.
+  that could have discarded a night's run measure the page instead of the machine. **Credibility:**
+  37 more of the dashboard's computed sentences are now checked by running the page's own code for
+  every stock (40 left), and the sweep found one sentence that is wrong - the expected-move card
+  divides by an older price than the one it names (NOW's +/-27% is mostly not an expected move). It
+  is measured and queued first for a session that can pull live option quotes to verify the fix.
 
 - **2026-11-02 (evening) - "make as many improvements as you can before the 2 am session ... be
   creative": DONE (owner-run).** Tags `good/2026-11-02-owner-2` onward. **The routine:** the CLI
