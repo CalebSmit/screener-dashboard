@@ -291,8 +291,12 @@ def test_the_guide_dismisses_and_stays_dismissed(browser):
     try:
         assert page.is_visible("#guide")
         page.click("#guide .guide-close")
-        assert not page.is_visible("#guide")
-        page.reload(wait_until="load")
+        page.wait_for_selector("#guide", state="hidden", timeout=10000)
+        # The same allowance `_open` gives the first load (2026-11-02: under three suites at once,
+        # the reload of a 6 MB page is what ran out of time, not the dismissal it checks).
+        page.reload(wait_until="load", timeout=60000)
+        page.wait_for_function("document.querySelectorAll('#universe-tbody tr[data-t]').length > 0",
+                               timeout=30000)
         page.wait_for_timeout(500)
         assert not page.is_visible("#guide")
     finally:

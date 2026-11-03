@@ -375,14 +375,29 @@ def test_phone_drilldown_is_a_bottom_sheet(phone):
 # ---------------------------------------------------------------------------
 
 def test_row_click_to_drilldown_is_fast(desktop):
+    """Click to painted drilldown under 250 ms - the best of five clicks, not one.
+
+    The single-sample form read 308 ms on 2026-11-02 with three test suites running on the machine
+    at once, and passed alone: it was measuring the machine. Same convention as
+    `test_sort_to_paint_is_fast` (research/2026-10-27-flaky-tests.md): load only ever adds time,
+    so the fastest of several identical opens is the page's own cost, and a page that got slower
+    raises every sample, the fastest included. Each sample closes the sheet first and opens the
+    same row again - the same work the one click measured."""
     page, _ = desktop
-    ms = page.evaluate("""() => new Promise(res => {
-        const t0 = performance.now();
-        const tr = document.querySelector('#universe-tbody tr[data-t]');
-        tr.click();
-        requestAnimationFrame(() => requestAnimationFrame(() => res(performance.now() - t0)));
-    })""")
-    assert ms < 250, f"{ms:.0f} ms from click to painted drilldown (budget 100 ms on a laptop; 250 allows a loaded CI box)"
+    samples = []
+    for _ in range(5):
+        page.evaluate("() => { if (typeof closeModal === 'function') closeModal(); }")
+        page.wait_for_timeout(50)
+        samples.append(page.evaluate("""() => new Promise(res => {
+            const t0 = performance.now();
+            const tr = document.querySelector('#universe-tbody tr[data-t]');
+            tr.click();
+            requestAnimationFrame(() => requestAnimationFrame(() => res(performance.now() - t0)));
+        })"""))
+    page.evaluate("() => { if (typeof closeModal === 'function') closeModal(); }")
+    ms = min(samples)
+    assert ms < 250, (f"{ms:.0f} ms from click to painted drilldown at best of five "
+                      f"({', '.join(f'{s:.0f}' for s in samples)}; budget 100 ms on a laptop, 250 allows a loaded box)")
 
 
 def test_sort_to_paint_is_fast(desktop):
