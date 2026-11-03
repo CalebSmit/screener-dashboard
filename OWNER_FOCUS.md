@@ -720,6 +720,10 @@ Add items below. Anything under this heading is unclaimed work.
     **The lab's seventeen experiments are now all second-read.** The next experiment (18) is still
     unstarted; the next non-retrospective Friday is **2026-11-06**, and `lab_data.js` at ~2.9 MB
     still wants its first paint measured in the same session (item 7 above).
+    **Update 2026-11-02 (owner-run evening): experiment 18 SHIPPED** - analyst revisions (Chan,
+    Jegadeesh & Lakonishok 1996) on OSAP `REV6`, 3 of 3 within tolerances committed first
+    (`4e1f6a7`); `research/2026-11-02-lab-revisions.md`. **Second read: pending** - the Friday
+    2026-11-06 session (or any session that did not build it) does it under item 2's rules.
   - **2026-10-23 (06:00 nightly) - deferred, and why; nothing started, so nothing is half-done.**
     This was the lab's Friday, but a proposal was waiting for a decision (1 day open) and both the
     prompt and item 1 above put that ahead of the day's focus. It was decided - all three of its
@@ -906,7 +910,9 @@ Completed items, newest first.
   Monday could not run) - S&P 1500 first, NYSE-20th-percentile floor, size-band percentiles, OPEN for
   a later session; the filing cross-check's normal range measured and its promotion to a gate
   pre-registered for 2026-11-16. **Credibility:** the claims audit's last open rows on the research
-  and methodology pages closed (30 mutations, each caught by a new check). **Speed:** the research
+  and methodology pages closed (30 mutations, each caught by a new check). **Factor Lab:**
+  experiment 18, analyst revisions (Chan, Jegadeesh & Lakonishok 1996) - the Revisions category's
+  first rerunnable result, 3 of 3 within; second read pending. **Speed:** the research
   page builds 5.8x faster with byte-identical output; the suite fell from 4:36 to about 3:00. No
   number, rank, weight or published sentence changed. NIGHTLY_LOG.md 2026-11-02 (owner-run, evening).
 
