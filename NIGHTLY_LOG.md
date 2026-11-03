@@ -18352,7 +18352,9 @@ SESSION DID NOT RUN ()"*. That log ends `=== Run complete: shipped to main ===`,
 and tagged `good/2026-11-03`. See item 2.
 
 **Tests:** before **3,769 passed, 1 skipped** (green baseline, nothing inherited); after
-**3,803 passed, 1 skipped**. Gate 5 rehearsal PASSED.
+**3,788 passed, 1 skipped** - 19 new (15 pinning the pre-registrations, 4 on the health line).
+Gate 5 rehearsal PASSED (page tests 366 passed, check_published_claims 2,028 passed, published
+files restored byte for byte).
 **Owner queue / rotation:** carried on from the 06:00 session's **Next**, which asked a later
 session to decide one of the three OPEN proposals. Took the **universe-expansion phase 0**
 proposal, because it is the next step on the top item under `OWNER_FOCUS.md` **Open** (2026-10-28,
