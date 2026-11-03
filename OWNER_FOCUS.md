@@ -901,6 +901,16 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-11-02 (night) - "Keep finding improvements!": DONE (owner-run).** Tags
+  `good/2026-11-02-owner-9` onward. **Gate 5:** the code runner now rehearses the next publish
+  itself whenever a branch changes code - and caught a real problem within the hour. **A wrong
+  caveat fixed:** the page told readers 320 of 499 stocks had stale filings when their next 10-Q was
+  not yet due; the flag now waits for the SEC deadline (about 21 flagged, the real ones). **Lab:**
+  experiment 18 second-read and confirmed. **Research:** weight question 3 (fold Investment into
+  Quality?) answered - keep it standalone, proposal open. **Routine:** each session now starts with
+  its health numbers in its prompt, the brief lists upcoming committed dates, and two timing tests
+  that could have discarded a night's run measure the page instead of the machine.
+
 - **2026-11-02 (evening) - "make as many improvements as you can before the 2 am session ... be
   creative": DONE (owner-run).** Tags `good/2026-11-02-owner-2` onward. **The routine:** the CLI
   login that cost four sessions lasts about 30 days and its end is stored - the data loop now reads
