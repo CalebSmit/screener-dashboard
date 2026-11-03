@@ -212,6 +212,38 @@ jumps (say, above 10 stocks) would catch a mis-scaled field the morning it appea
 **note, not a gate**, until a few weeks of counts show its normal range - the precedent the health
 gate's weight-0 rule follows - and it needs no network: the cache is already refreshed weekly.
 
+## 5. The check's normal range, measured (2026-11-02, owner-run evening)
+
+Every data-run log carrying the check's line, stocks disagreeing with the filing by **over 10%**
+(read from `logs/datarun-*.log`; the ATTENTION line's pre-registered bar is 25, and 60 for market
+value):
+
+| Field | Runs | Min | Median | Max |
+|---|---|---|---|---|
+| total assets | 11 | 0 | 0 | 0 |
+| equity | 11 | 2 | 2 | 2 |
+| operating cash flow | 11 | 1 | 1 | 3 |
+| net income | 11 | 6 | 6 | 11 |
+| revenue | 11 | 7 | 8 | 9 |
+| market value / price vs filed shares | 11 | 20 | 22 | 22 |
+
+Eleven runs, 2026-10-19..11-02, spanning two refreshes of the weekly SEC cache (the 11-02 run is the
+first after the 10-30 refresh, which is where every count except total assets and equity moved).
+The ATTENTION line never fired. Counts are near-constant between refreshes because the statements
+on both sides change only when a company files.
+
+**What this settles, and the promotion rule, pre-registered here so a later session does not pick
+it after seeing a number:** total assets, equity and operating cash flow sit at 0-3 against a bar
+of 25 - an order of magnitude of headroom - and net income and revenue at 6-11. That is two weeks,
+not the "few weeks" this section asked for, and only two cache refreshes, so **nothing is promoted
+tonight**. On the first data run on or after **2026-11-16** (four cache refreshes), a session
+re-runs this table; if total assets, equity and operating cash flow have each stayed at or below
+**5** on every run, those three - and only those three - become a gate at the existing bar of 25
+(a run with more than 25 stocks over 10% on any of them is discarded, like the health check's
+other source-outage rule). Net income and revenue stay notes: their counts move with filing
+season and with real definitional differences (`DECISIONS.md` 0.14). Market value stays a note at
+60. If any of the three exceeds 5 before then, the rule is not met and the note says why.
+
 ## Sources
 
 - SEC EDGAR `companyfacts` for each company, cached 2026-10-09 (`sec_fundamentals.py`).

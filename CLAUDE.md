@@ -869,7 +869,11 @@ surfaced in the brief, when any field disagrees by over 10% for more than **25**
 (pre-registered; that day's counts were 0-13). Market value (market cap / price) against the filed
 share count has its own line of **60** (22 over 10% on 2026-10-14: splits after the filed quarter,
 partnership units, filers' tagging errors). **Promote it to a gate only after a few weeks of
-counts show its normal range**, and then only for the fields that sat near zero. Each stock's Data
+counts show its normal range**, and then only for the fields that sat near zero. **The rule is
+pre-registered** (2026-11-02, `research/2026-10-14-yahoo-vs-sec.md` section 5: 11 runs, total
+assets 0, equity 2, operating cash flow 1-3): on the first data run on or after **2026-11-16**,
+re-run that table; if those three stayed at or below 5 on every run, they - and only they - become
+a gate at the existing bar of 25. Each stock's Data
 Provenance panel shows the same check (`stock_detail[t].xchk`,
 `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`): which inputs agree
 within 2% with the filing. **Display-only** - a test fails if `xchk` or `sec_crosscheck` appears
