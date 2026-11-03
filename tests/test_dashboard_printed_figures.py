@@ -987,7 +987,10 @@ def _check_vh_row(txt: str, y: dict) -> list[str]:
     out = []
     _label, now, words, above, n, lo, hi, med = g.groups()
     past = [v / 10000 for v in y["s"] if v is not None]
-    bp = 0.5 / 10000                                          # the series is rounded to basis points
+    # the series is rounded to basis points and `now` to five decimals, so a month-end within
+    # 0.55bp of today's yield cannot be called lower or higher from the published figures (the
+    # 2026-11-02 regenerated page has a month-end at 1007bp against a yield of 0.10065)
+    bp = 0.55 / 10000 + 1e-12
     if int(n) != len(past) or int(n) != y["n"]:
         out.append(f"printed {n} month-ends; the series has {len(past)}, the record says {y['n']}")
     for name, got, want in (("now", now, y["now"]), ("low", lo, min(past)), ("high", hi, max(past)),
