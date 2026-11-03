@@ -1324,6 +1324,8 @@ weights the scores were built from); identical on every run outside the panic st
 was rebuilt with `scripts/rebuild_page.py` and the payload is byte-identical. Row 209 is that change
 as a mutation.
 
+**The rehearsal caught one of tonight's own checks before it could turn `main` red.** The first draft of the valuation-history recount allowed half a basis point between a published month-end and today's yield; `scripts/rehearse_publish.py`, which regenerates the page from the newest full run, failed it on 17 rows (CF: a month-end of 1007bp against a yield of 0.10065, which the published figures cannot place either side). The band is now 0.55bp - the series' rounding plus the yield's five decimals - and all 46 checks pass on both the committed and the regenerated payloads. Row "data->red" again: run the rehearsal before trusting a check that reads the payload.
+
 **A rounding note, not a defect worth a change:** the valuation-history share is published to one
 decimal and the page rounds that again, so a share of 53.45% prints "54%" (TGT and MRVL on the
 2026-10-30 payload). The check accepts the double rounding and says so in a comment.
