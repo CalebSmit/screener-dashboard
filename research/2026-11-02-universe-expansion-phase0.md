@@ -397,6 +397,13 @@ published practice. **Either one changes the S&P 500 for the ~5 names with no co
 it is a methodology change with its own changelog entry, decided on its own, not a side effect of
 phase 3.
 
+*Measured the same evening on the published 2026-10-30 payload (499 stocks):* **one** stock's
+Revisions category rests on `short_interest_ratio` alone - Loews (L, rank 146, Revisions 31.3, no
+analyst count) - and **six** more are missing at least one of the four analyst metrics but not all.
+So in the S&P 500 today option (c) would move one stock; options (a)-(c) only diverge materially
+below the large caps, which is why the choice belongs to phase 2's measurements rather than to a
+change made now.
+
 ---
 
 ## 5. Which research notes stop applying below the large caps
