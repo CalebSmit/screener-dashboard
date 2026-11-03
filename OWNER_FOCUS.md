@@ -896,6 +896,20 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-11-02 (evening) - "make as many improvements as you can before the 2 am session ... be
+  creative": DONE (owner-run).** Tags `good/2026-11-02-owner-2` onward. **The routine:** the CLI
+  login that cost four sessions lasts about 30 days and its end is stored - the data loop now reads
+  it and the brief warns a week ahead (next: 2026-12-02), opens with "log in" once it has lapsed, and
+  shows the days left; the external watchdog gained "did it do its job" rows (a session that ran, a
+  run that published), replayed over six weeks with no false alarm; `scripts/health_numbers.py`
+  prints rule 8's five numbers. **Research:** universe-expansion phase 0 written (the scheduled
+  Monday could not run) - S&P 1500 first, NYSE-20th-percentile floor, size-band percentiles, OPEN for
+  a later session; the filing cross-check's normal range measured and its promotion to a gate
+  pre-registered for 2026-11-16. **Credibility:** the claims audit's last open rows on the research
+  and methodology pages closed (30 mutations, each caught by a new check). **Speed:** the research
+  page builds 5.8x faster with byte-identical output; the suite fell from 4:36 to about 3:00. No
+  number, rank, weight or published sentence changed. NIGHTLY_LOG.md 2026-11-02 (owner-run, evening).
+
 - **2026-10-27 (evening, round three) - "please keep making improvements!! anything you can find":
   DONE (owner-run).** Five more passes. **A real defect found and fixed:** the lock that keeps the
   02:00 data loop and the code sessions off the repo at the same time could, under load, be held by
