@@ -1056,3 +1056,69 @@ def test_a_valuation_history_row_worked_by_hand(page, now, words):
     sentence, the count of month-ends with data, and the range and median (3.4%) of the series."""
     txt = _text(page.evaluate(_VH_JS, {"X": _vh_fixture(now)})["X"][0])
     assert f"{words} of its past 47 month-ends Five-year range 1.0% – 5.7% median 3.4% (dashed line)." in txt, txt
+
+
+# ---------------------------------------------------------------------------
+# dashboard.score_key / dashboard.trap_flag_key / overview.momentum_regime - the KPI row, the
+# score key's median line, the analytics headline and the not-in-the-run message
+# ---------------------------------------------------------------------------
+_KPI_JS = """(w) => { const keep = D.weights;
+    try { if (w) D.weights = Object.assign({}, keep, w); renderKPIs();
+          return {kpi: document.getElementById('kpi-row').innerHTML,
+                  median: (document.getElementById('sk-median') || {}).textContent || null,
+                  analytics: (document.getElementById('meta-analytics') || {}).textContent || null,
+                  absent: notInRunText('QZQZ')}; }
+    finally { D.weights = keep; renderKPIs(); if (typeof fillTrackKpi === 'function') fillTrackKpi(); } }"""
+
+
+def _card(kpi_html: str, label: str) -> str | None:
+    i = kpi_html.find(f'<div class="kpi-label">{label}</div>')
+    return None if i < 0 else _text(kpi_html[i:kpi_html.find('<div class="kpi-card"', i + 1) if
+                                    kpi_html.find('<div class="kpi-card"', i + 1) > 0 else None])
+
+
+def test_the_kpi_row_and_the_score_key_print_the_runs_own_counts(page, data):
+    """The trap card's counts and shares of the scored universe (counted here from ``table_data``'s
+    flags), the score key's median and universe (the median of the published composites), the
+    analytics headline's sector and rate (each sector's flagged share, recounted), and the size the
+    not-in-the-run message gives the ranking."""
+    import statistics
+    rows = data["table_data"]
+    n = len(rows)
+    assert n >= 400, f"only {n} ranked stocks"
+    vt = sum(1 for r in rows if r.get("Value_Trap_Flag"))
+    gt = sum(1 for r in rows if r.get("Growth_Trap_Flag"))
+    got = page.evaluate(_KPI_JS, None)
+    w = data["weights"]
+    moved = bool(w.get("factor_weights_adjusted")) and w["factor_weights"].get("momentum") != w["base_factor_weights"].get("momentum")
+    if not moved:
+        card = _card(got["kpi"], "Trap flags")
+        assert card == (f"Trap flags {vt} / {gt} value / growth · {_jsround(vt / n * 100)}% and "
+                        f"{_jsround(gt / n * 100)}% of stocks What a flag means"), card
+    med = statistics.median(r["Composite"] for r in rows)
+    g = re.fullmatch(r" The median this run is (\d+\.\d), so a composite above it is in the upper half of the (\d+) stocks\.",
+                     got["median"] or "")
+    assert g, got["median"]
+    assert abs(float(g.group(1)) - med) <= 0.05 + 0.005 and int(g.group(2)) == n, (got["median"], med, n)
+    tot, flg = {}, {}
+    for r in rows:
+        tot[r["Sector"]] = tot.get(r["Sector"], 0) + 1
+        flg[r["Sector"]] = flg.get(r["Sector"], 0) + bool(r.get("Value_Trap_Flag"))
+    rate = {s: 100 * flg[s] / tot[s] for s in tot}
+    g = re.fullmatch(r"Most value‑trap flags: (.+), (\d+\.\d)% of the sector", got["analytics"] or "")
+    assert g, got["analytics"]
+    top = max(rate.values())
+    assert g.group(1) in rate and abs(rate[g.group(1)] - top) <= 0.05 + 1e-9, (g.groups(), top)
+    assert abs(float(g.group(2)) - top) <= 0.05 + 1e-9, (g.groups(), top)
+    assert _text(got["absent"]).startswith(f"The ranking covers the {n} S&P 500 companies this run scored."), got["absent"]
+
+
+def test_the_momentum_weight_card_prints_a_hand_worked_cut(page):
+    """The KPI card the regime rule's panic state puts in place of the trap card: 13% cut to 9.1%."""
+    got = page.evaluate(_KPI_JS, {"factor_weights_adjusted": True,
+                                  "factor_weights": {"valuation": 23.95, "quality": 23.95, "growth": 13, "momentum": 9.1,
+                                                     "risk": 10, "revisions": 10, "size": 5, "investment": 5},
+                                  "base_factor_weights": {"valuation": 22, "quality": 22, "growth": 13, "momentum": 13,
+                                                          "risk": 10, "revisions": 10, "size": 5, "investment": 5}})
+    assert _card(got["kpi"], "Momentum weight") == ("Momentum weight 9.1% cut from 13% by the momentum regime rule this run"), got["kpi"]
+    assert _card(got["kpi"], "Trap flags") is None

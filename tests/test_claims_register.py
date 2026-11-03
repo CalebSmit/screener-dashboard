@@ -1214,17 +1214,17 @@ def dashboard_sentences() -> list[str]:
 # for both printings, and says which one is pinned.
 DASHBOARD_SENTENCES: dict[str, str] = {
     "${fw.momentum > bw.momentum ? 'raised' : 'cut'} from ${fmtWeight(bw.momentum)} by the momentum regime rule this run":
-        "open:regime-weight-line - the momentum weight before/after the regime rule; nothing reads the page's printing",
+        'claim:overview.momentum_regime',
     'value / growth &middot; ${pct(k.value_traps)} and ${pct(k.growth_traps || 0)} of stocks What a flag means':
-        "open:trap-share-kpi - nothing reads the page's printing",
+        'claim:dashboard.trap_flag_key',
     '${top}, ${Number(vt[top].rate).toFixed(1)}% of the sector':
-        "open:value-trap-sector-rate - the sector's value-trap share; nothing reads the page's printing",
+        'claim:dashboard.trap_flag_key',
     "The median this run is ${k.median_composite.toFixed(1)}, so a composite above it is in the upper half of the ${(k.universe_size || '')} stocks.":
-        "open:key-median-sentence - the payload's median is pinned (dashboard.score_key), its printing and the universe size are not",
+        'claim:dashboard.score_key',
     'Show the next ${next}':
         "open:show-next-count - the table's next-page count; nothing reads the page's printing",
     'The ranking covers the ${n} S&amp;P 500 companies this run scored.':
-        "open:ranking-universe-count - nothing reads the page's printing",
+        'claim:dashboard.score_key',
     "It trades ${Math.abs(sc.price_gap_pct).toFixed(1)}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
         'open:share-class-price-gap - drilldown.share_class_second_line checks the ratio identity, not the printed gap',
     ', the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).':
@@ -1397,7 +1397,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'holdings-rank-strip-axis',
     'insider-card-rows',
     'insider-plan-share',
-    'key-median-sentence',
     'lower-is-better-count',
     'macro-percentile-label',
     'metric-points-equation',
@@ -1412,8 +1411,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'rank-history-built-from',
     'rank-history-run-count',
     'rank-history-span',
-    'ranking-universe-count',
-    'regime-weight-line',
     'reporting-soon-counts',
     'roe-sd-line',
     'same-value-scored',
@@ -1427,8 +1424,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'track-changelog-entries',
     'track-period-count',
     'track-unpriced-picks',
-    'trap-share-kpi',
-    'value-trap-sector-rate',
 })
 
 

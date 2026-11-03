@@ -1762,6 +1762,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_the_median_composite_the_key_quotes_is_the_median_not_the_mean",
             "tests/test_drilldown_reading.py::test_the_page_carries_the_words_it_shows",
             "tests/test_drilldown_reading.py::test_plain_words_in_the_workings",
+            "tests/test_dashboard_printed_figures.py::test_the_kpi_row_and_the_score_key_print_the_runs_own_counts",
         ),
     ),
     Claim(
@@ -1779,6 +1780,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_the_key_reads_the_trap_thresholds_from_config",
             "tests/test_club_readiness.py::test_the_engine_flags_what_the_key_describes",
             "tests/test_club_readiness.py::test_a_flag_changes_neither_the_score_nor_the_rank",
+            "tests/test_dashboard_printed_figures.py::test_the_kpi_row_and_the_score_key_print_the_runs_own_counts",
         ),
     ),
     Claim(
@@ -1838,6 +1840,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_momentum_panic_rule.py::test_the_configured_thresholds_are_the_pre_registered_ones",
             "tests/test_dashboard_printed_figures.py::test_the_run_note_prints_the_runs_own_regime_reading",
             "tests/test_dashboard_printed_figures.py::test_the_run_note_prints_a_hand_worked_reading",
+            "tests/test_dashboard_printed_figures.py::test_the_momentum_weight_card_prints_a_hand_worked_cut",
         ),
         detect=r"Momentum regime rule [-–] currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
         caveat=(

@@ -55,6 +55,7 @@ TURN, LUCK = "context.track_turnover", "context.track_luck"
 FIT, DIST = "dashboard.holdings_fit", "drilldown.composite_distribution"
 REGIME, OVER = "overview.momentum_regime", "history.run_overview"
 RATE, VH = "context.rate_sensitivity", "context.valuation_history"
+TRAP, KEY = "dashboard.trap_flag_key", "dashboard.score_key"
 
 MUTS = [
     # --- drilldown.composite_chain: the total, the discount line, the composite -------------
@@ -217,6 +218,26 @@ MUTS = [
      "(y.now > y.hi ? 'above every one'", "(y.now >= y.hi ? 'above every one'"),
     (262, "today's yield prints the median", VH,
      "<span class=\"ctx-fv\">' + cPlain(y.now) + '</span>", "<span class=\"ctx-fv\">' + cPlain(y.med) + '</span>"),
+    # --- the KPI row, the score key, the analytics headline, the not-in-the-run message -------
+    (263, "the growth-trap share prints the value-trap share", TRAP,
+     "${{pct(k.value_traps)}} and ${{pct(k.growth_traps || 0)}} of stocks", "${{pct(k.value_traps)}} and ${{pct(k.value_traps)}} of stocks"),
+    (264, "the trap card's counts swapped", TRAP,
+     "`${{k.value_traps}} <span class=\"kpi-sep\">/</span> ${{k.growth_traps || 0}}`",
+     "`${{k.growth_traps || 0}} <span class=\"kpi-sep\">/</span> ${{k.value_traps}}`"),
+    (265, "the key's median prints the average", KEY,
+     "' The median this run is ' + k.median_composite.toFixed(1)", "' The median this run is ' + k.avg_composite.toFixed(1)"),
+    (266, "the analytics headline names the lowest rate", TRAP,
+     "sort((a, b) => vt[b].rate - vt[a].rate)[0]", "sort((a, b) => vt[a].rate - vt[b].rate)[0]"),
+    (267, "the analytics headline prints the flagged count as a rate", TRAP,
+     "Number(vt[top].rate).toFixed(1) + '% of the sector'", "Number(vt[top].flagged).toFixed(1) + '% of the sector'"),
+    (268, "the ranking's size hard-coded to the index's 503", KEY,
+     "const n = (D.kpis && D.kpis.universe_size) || rows.length;", "const n = 503;"),
+    (269, "the momentum card prints the configured weight", REGIME,
+     "cards.push(kpiCard('Momentum weight', fmtWeight(fw.momentum),", "cards.push(kpiCard('Momentum weight', fmtWeight(bw.momentum),"),
+    (270, "the momentum card's 'from' prints this run's weight", REGIME,
+     "'cut'}} from ${{fmtWeight(bw.momentum)}} by the momentum", "'cut'}} from ${{fmtWeight(fw.momentum)}} by the momentum"),
+    (271, "a cut called a raise", REGIME,
+     "fw.momentum > bw.momentum ? 'raised' : 'cut'", "fw.momentum < bw.momentum ? 'raised' : 'cut'"),
 ]
 
 rows = None
