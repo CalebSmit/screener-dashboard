@@ -606,9 +606,18 @@ try {
     $TemplatePath = Join-Path $RepoPath "prompts\$TemplateName"
     if (-not (Test-Path $TemplatePath)) { Stop-Run "Prompt template missing at $TemplatePath." }
     Write-Log "Using prompt template: $TemplateName"
+    # Rule 8's five numbers, computed once here and handed to the session (2026-11-02), so every
+    # session starts with them rather than spending its first tool calls re-deriving them by hand -
+    # the hand-made versions are the ones that went stale. Read-only and never fatal: a session
+    # told "not computed" runs the script itself. This session's own log has no end line yet, so
+    # "the last code session" is correctly the previous one.
+    $hn = Invoke-Native 'python' @('scripts/health_numbers.py')
+    $HealthText = if ($hn.ExitCode -eq 0 -and $hn.Text.Trim()) { $hn.Text.Trim() } `
+                  else { '(not computed by the runner - run `python scripts/health_numbers.py`)' }
+    Write-Log "Health: $HealthText"
     $Prompt = (Get-Content $TemplatePath -Raw).
         Replace('{{FOCUS}}', $Focus).Replace('{{DATE}}', $Date).Replace('{{BRANCH}}', $Branch).
-        Replace('{{DEADLINE}}', $DeadlineText)
+        Replace('{{DEADLINE}}', $DeadlineText).Replace('{{HEALTH}}', $HealthText)
 
     if ($DryRun) {
         # A dry run publishes nothing, the brief included: it is not a session, and the brief

@@ -1,8 +1,15 @@
 Today is **{{DATE}}**. Today's focus: **{{FOCUS}}**
 You are on branch `{{BRANCH}}`.
 
+The runner computed rule 8's health line before you started (`scripts/health_numbers.py`) - check
+it, act on anything it shows (an evidence date past its bound, a session that did not run), and
+start your `NIGHTLY_LOG.md` entry with it:
+
+{{HEALTH}}
+
 You are running unattended and nobody will review your work. You push a branch;
-`nightly-screener.ps1` re-runs all four ship gates and merges it to `main`,
+`nightly-screener.ps1` re-runs the ship gates - the four below, and the publish rehearsal (gate 5)
+whenever you changed more than prose - and merges it to `main`,
 which is served live to the public. Nothing between you and that site reads
 what you wrote - only whether the gates pass. Act accordingly: the standard is
 not "plausible", it is "I can show why this is right."

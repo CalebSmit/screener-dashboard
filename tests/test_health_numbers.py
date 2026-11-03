@@ -89,3 +89,16 @@ def test_the_script_prints_one_line_and_never_fails_its_caller():
 
 def test_the_nightly_prompt_points_at_it():
     assert "scripts/health_numbers.py" in (ROOT / "prompts" / "nightly.md").read_text(encoding="utf-8")
+
+
+def test_the_runner_hands_the_line_to_the_session():
+    """The runner computes the line before invoking the session and fills {{HEALTH}} with it, so a
+    session starts with rule 8's numbers instead of re-deriving them (2026-11-02)."""
+    ps = (ROOT / "scripts" / "nightly-screener.ps1").read_text(encoding="utf-8")
+    compute = ps.index("@('scripts/health_numbers.py')")
+    fill = ps.index(".Replace('{{HEALTH}}', $HealthText)")
+    invoke = ps.index('Write-Log "Invoking Claude Code..."')
+    assert compute < fill < invoke
+    block = ps[compute:fill]
+    assert "Stop-Run" not in block and "not computed" in block      # never fatal
+    assert "{{HEALTH}}" in (ROOT / "prompts" / "nightly.md").read_text(encoding="utf-8")
