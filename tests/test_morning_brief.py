@@ -437,3 +437,26 @@ class TestGrowthLeanRow:
     def test_a_payload_without_the_columns_drops_the_row(self):
         assert wb.growth_exposure([{"Ticker": "A"}]) == ""
         assert wb.growth_exposure([]) == ""
+
+
+class TestComingUp:
+    """Dated commitments surface in the brief as they come due (2026-11-02: two were set that day
+    in documents no later session was told to reread)."""
+
+    def test_every_entry_is_carried_by_the_file_it_names(self):
+        for day, what, source in wb.COMING_UP:
+            text = (ROOT / source).read_text(encoding="utf-8")
+            assert day in text, f"{source} no longer commits to {day}: delete or correct the entry"
+            assert what.strip() and len(day) == 10
+
+    def test_only_the_next_fortnight_and_anything_overdue_is_shown(self):
+        from datetime import datetime
+        entries = (("2026-11-09", "soon", "x"), ("2026-12-30", "later", "x"), ("2026-10-01", "late", "x"))
+        got = wb.coming_up(datetime(2026, 11, 2, 2, 0), entries)
+        assert got == ["2026-10-01 (**due 32 days ago - still listed**) - late `x`",
+                       "2026-11-09 (in 7 days) - soon `x`"]
+        assert wb.coming_up(datetime(2026, 11, 9, 2, 0), entries)[1].startswith("2026-11-09 (**today**)")
+
+    def test_the_brief_has_the_section(self):
+        src = (ROOT / "scripts" / "write_brief.py").read_text(encoding="utf-8")
+        assert '"## Coming up"' in src and "coming_up(now)" in src

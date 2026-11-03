@@ -381,7 +381,9 @@ never `git add -A`.
 Append to `NIGHTLY_LOG.md`. **`python scripts/health_numbers.py` prints the Health line below from
 the brief's own functions** (the last *finished* code session, the data loop, the evidence base at
 `1m`, priority 0, the top open item with a computed age) - read it, then paste it; it reports and
-does not decide what the numbers mean:
+does not decide what the numbers mean. **If your work sets a date** (a pre-registered re-check, a
+"not before"), add it to `COMING_UP` in `scripts/write_brief.py` with the file that commits to it;
+the brief shows it for the fortnight before it falls due and until a session deletes it:
 
 ```
 ## {{DATE}} - {{FOCUS}}

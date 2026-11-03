@@ -525,6 +525,41 @@ def login_alert(data_lines: list[str], code_lines: list[str], data_is_newer: boo
     ]
 
 
+# Dated commitments the project has written down, so the day one arrives is visible to whoever
+# reads the brief rather than to whoever happens to reread the document that set it (2026-11-02:
+# two were set that day alone). Each entry names the file that commits to the date, and
+# tests/test_morning_brief.py fails if that file stops carrying it - so an entry cannot outlive or
+# contradict its source. When one is done, delete it here in the same commit.
+COMING_UP = (
+    ("2026-11-09", "The context signals' first one-month reading arrives with this run; "
+                   "read the brief's `context_eval` line (CLAUDE.md 0.11).", "CLAUDE.md"),
+    ("2026-11-16", "Re-run the filing cross-check's range table; promote total assets, equity and "
+                   "operating cash flow to a gate at 25 only if each stayed <= 5 on every run.",
+     "research/2026-10-14-yahoo-vs-sec.md"),
+    ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
+     "CLAUDE.md"),
+)
+COMING_UP_DAYS = 14
+
+
+def coming_up(today: datetime | None = None, entries=COMING_UP) -> list[str]:
+    """Commitments due within COMING_UP_DAYS, or past due and still listed, soonest first."""
+    today = (today or datetime.now()).date()
+    out = []
+    for day, what, source in sorted(entries):
+        try:
+            due = datetime.strptime(day, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        left = (due - today).days
+        if left > COMING_UP_DAYS:
+            continue
+        when = ("**today**" if left == 0 else f"in {left} day{'' if left == 1 else 's'}" if left > 0
+                else f"**due {-left} day{'' if left == -1 else 's'} ago - still listed**")
+        out.append(f"{day} ({when}) - {what} `{source}`")
+    return out
+
+
 def login_row(data_lines: list[str]) -> str:
     """The data run's reading of the CLI login, for the glance table: how long it has left."""
     for ln in data_lines:
@@ -638,6 +673,17 @@ def main() -> int:
         a("")
         for p in proposals:
             a(f"- {p}")
+        a("")
+
+    upcoming = coming_up(now)
+    if upcoming:
+        a("## Coming up")
+        a("")
+        a("Dates the project has committed to. A past-due line stays until the session that")
+        a("does it deletes it from `COMING_UP` in `scripts/write_brief.py`.")
+        a("")
+        for u in upcoming:
+            a(f"- {u}")
         a("")
 
     payload_notes = []
