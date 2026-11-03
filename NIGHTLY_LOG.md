@@ -17958,3 +17958,92 @@ Dry run exits 0, both payloads parse. `scripts/rehearse_publish.py` against the 
 - Tonight's 02:00 run should publish (rehearsed against this morning's run). Check its log for
   the claims gate PASS and the brief's new growth row.
 - **Monday research item:** the open proposal in `research/2026-11-02-growth-exposure-drift.md`.
+
+## 2026-11-02 (owner-run, evening) - "make as many improvements as you can before the 2 am session"
+
+**Health (rule 8, all five):** last code session ran? **no** - `logs/nightly-2026-11-02_130000-midday.log`:
+SESSION DID NOT RUN (Failed to authenticate: OAuth session expired). **The owner signed in at
+18:51** (`claude.cmd auth login` - PowerShell blocks the `.ps1` shim); verified the same evening by
+the login check below and a one-turn `claude --print` from this folder (`READY`, 8.8 s). Data loop
+published? **no** - `logs/datarun-2026-11-02_020000.log` (stopped deliberately; HEALTH: PASS; the
+claims gate refused it, fixed at midday). Evidence base at `1m` = **40 rows, newest 2026-09-29 (34
+days ago, bound 40), 5 effective**. Priority 0: `allow_auto_apply` **false**. Top open roadmap item:
+**0.13, the Factor Lab** (opened 2026-10-12, **age 21 days**) - **advanced: experiment 18 shipped**.
+(That line was printed by the new `scripts/health_numbers.py`.)
+**Tests:** before **3,606 passed / 3 skipped**; after **3,647 passed / 3 skipped** (gate 1 on the
+merged tree, 3:03 - it was 4:36 at the start of the evening). Every batch: all four gates; the
+batches touching `claims.py` or the overview generator also `rehearse_publish.py` against the
+refused 11-02 run - **PASSED**. Tags `good/2026-11-02-owner-2` .. `-7`.
+**Owner queue / rotation:** the owner's request. Universe expansion phase 0 (the top `OWNER_FOCUS`
+item, due today; the scheduled Monday could not run) done here.
+
+### Did
+
+1. **The login outage, made predictable.** The CLI keeps `refreshTokenExpiresAt` in
+   `~/.claude/.credentials.json`: after tonight's sign-in it reads **2026-12-02 10:28** - about 30
+   days, not extended by the daily refreshes (the sessions ran daily up to the 11-01 lapse). New
+   `scripts/check_cli_login.py`, run by the 02:00 data loop as a note (never a gate, always exit 0),
+   reads that one field - **no token, no subprocess**: `claude auth status` may rotate tokens, and
+   the suite runs this from inside a live session. The brief opens with "log in" once it has lapsed,
+   warns a week ahead with the date, and shows the days left in its glance table. The code runner's
+   log now names the fix when a session dies on the login. `tests/test_cli_login_check.py` (14).
+2. **The watchdog sees a loop that fires but does nothing.** `scripts/check_loop_health.py` gains
+   "Session ran" (a code-session brief without "SESSION DID NOT RUN") and "Data published" (a
+   `data: screener run` commit), same commits, same two-consecutive-weekday rule, each with its own
+   advice in the GitHub issue. Replayed over 2026-09-24..11-02: warns on the three real days (10-06,
+   10-28, 11-02), never alarms. The four sessions lost this weekend left every old row green. The
+   real-history test asserts only the firing rows - a fortnight's streak ends with a heartbeat
+   written *after* the gates, so asserting the job rows would make the fix fail its own gate.
+3. **`scripts/health_numbers.py`** prints rule 8's line from the brief's own functions (the last
+   *finished* code session, computed ages); `prompts/nightly.md` section 5 points at it.
+4. **Universe expansion phase 0** - `research/2026-11-02-universe-expansion-phase0.md` (a delegated
+   writer; code claims spot-checked here: `SECTOR_MIN_PEERS = 10`, `min_market_cap: 2e9`, 27/24
+   weighted metrics, coverage minimum 16). S&P 1500 first; phase-4 floor at the NYSE 20th
+   percentile from Ken French's June file ($1,224.13M); percentiles within (sector, size band).
+   **Proposal OPEN for a session that did not write it.** Measured here: the no-analyst case scores
+   Revisions on days-to-cover alone for **one** S&P 500 stock today (Loews), six more partly.
+5. **Factor Lab experiment 18** (delegated, isolated worktree, merged): Chan, Jegadeesh & Lakonishok
+   (1996) on OSAP `REV6` - **3 of 3 within** tolerances committed first (`4e1f6a7`, reviewed here:
+   paper's Table 5 figures, tolerance from its own Table 9 standard error, direction predicted).
+   Paper years 8.65% over six months vs 7.7%; since 1993 0.90%/month equal-weighted (t 4.54), 0.50%
+   by market value (t 1.79). Lab: 18 experiments, 148 of 220 within. **Second read pending.** The
+   OSAP value-weighted parquet was copied into the main checkout's `data/lab/osap/`.
+6. **Claims audit: both open lists empty.** Research page: the pass bar printed twice
+   (`research.pass_bar`, rows 148-153), the Size sentence (`research.size_sentence`, 154-162), the
+   chart's geometry read off the page alone (`research.chart_geometry`, 163-173). Methodology page:
+   the coverage counts against the engine's own denominators (`overview.coverage_counts`, 174-177).
+   30 mutations, each GAP before and caught now; three were missed by the first version of a test
+   and fixed by sharpening it (rows 161, 172, 173). Harnesses in `research/measurements/2026-11-02-*`.
+7. **Filing cross-check range measured** (`research/2026-10-14-yahoo-vs-sec.md` s.5): 11 runs, total
+   assets 0, equity 2, operating cash flow 1-3 over 10% vs a bar of 25. Promotion pre-registered: on
+   or after 2026-11-16, if those three stayed <= 5, they become a gate at 25.
+8. **Speed:** `overfitting.cscv` ranked with `pd.Series.rank` 12,870 times per check; a direct count
+   gives the same average rank (0 mismatches in 20,000 random tie-heavy vectors; `check()` output
+   identical) and `t_critical` is cached. Research page build 3.5 s -> 0.6 s; `v2_experiments.py
+   report` regenerates `research.html` and `summary.json` byte-identical.
+9. **Brief:** each open proposal listed by its sentence, not its first wrapped line.
+
+### Evidence / research
+- Phase 0 note: Fama & French (2008), Hou, Xue & Zhang (2020), Jensen, Kelly & Pedersen (2023),
+  Hong, Lim & Stein (2000); S&P DJI, FTSE Russell, MSCI and Barra methodology documents (the note).
+- Experiment 18: Chan, Jegadeesh & Lakonishok (1996), NBER w5375 Table 5 (the note).
+
+### Methodology changed
+- None. No number, rank, weight or published sentence changed (the lab page and its methodology
+  paragraph gained experiment 18; the dashboard payload is byte-identical).
+
+### Tried and rejected
+- Calling `claude auth status` from the data loop and the suite - shipped in the first batch,
+  replaced within the evening once the stored expiry was found: a status call may rotate the tokens
+  of the very session running the suite.
+- Making ROIC's equation exact tonight: it needs the intermediate values published from where the
+  metric is computed, which only a full run can verify - not before the 02:00 run.
+- EXPE's `sustainable_growth` at its cap on 4.2% equity: already found and surfaced by
+  `research/2026-10-15-top-five-audit.md` and the brief's "worth a look" row.
+
+### Next
+- After 02:00: the run should publish (rehearsed). Its log should carry "CLI login: OK - valid until
+  2026-12-02 10:28", the brief a "Code-session login" row, and the payload a `sec_facts` stamp.
+- **Decide the phase 0 proposal** (not this session) and the growth-exposure one.
+- **Second-read experiment 18** (Friday 2026-11-06 or any session that did not build it).
+- `generate_dashboard.py`'s claims sweep - see the entry below if it merged tonight.
