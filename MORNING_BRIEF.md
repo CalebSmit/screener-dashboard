@@ -1,18 +1,7 @@
-# Morning Brief - Tuesday 03 November 2026, 09:14
+# Morning Brief - Tuesday 03 November 2026, 13:54
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
-
-## ONE THING ONLY YOU CAN DO: log the Claude CLI back in
-
-The code sessions run through the Claude Code CLI on this PC, and its login has
-lapsed, so every scheduled session fails within seconds of starting. The data
-loop does not use it and is unaffected. Open a terminal on the PC and run:
-
-    claude.cmd auth login
-
-(`.cmd`, because Windows PowerShell blocks the plain `claude` script.) Then
-`claude.cmd auth status` should say `"loggedIn": true`.
 
 ## At a glance
 
@@ -40,7 +29,6 @@ A session researched these, proposed a change and left it for review. The next
 session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 
 - **decide whether to fold the Investment category (`asset_growth`, 5%) into Quality at the weight-preserving 18.52% of a 27% Quality (section 3) or keep it standalone, as this note recommends, with the...** - open 1 day - `research/2026-11-02-investment-inside-quality.md`
-- **a later session (not the one that wrote this) decides whether to adopt the three pre-registrations in section 7: the S&P 1500 as the first wider universe, the NYSE 20th-percentile market cap as the...** - open 1 day - `research/2026-11-02-universe-expansion-phase0.md`
 
 ## Coming up
 
@@ -50,77 +38,71 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - 2026-11-09 (in 6 days) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). `CLAUDE.md`
 - 2026-11-16 (in 13 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
 
-## Things that needed attention
-
-- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
-- tests/test_every_panel_reads_clean.py::test_no_panel_prints_a_value_the_page_could_not_format
-- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
-
 ## What changed in the repo
 
+- `0043f03 NIGHTLY_LOG: correct the after-count to the measured 3,788`
+- `7aba7ef NIGHTLY_LOG: universe phase 0 decided, and rule 8's health line could not say 'fine'`
+- `3814361 Classify the four health tests by what the mutation measured, not by their names`
+- `9be2cdc Rule 8's health line could not leave the alarm state`
+- `4cc1927 Owner queue: universe phase 0 decided and closed, next is phase 1`
+- `6a81d10 Mutation-test the pre-registration guard: 5 gaps, all one defect, now 25 of 25`
+- `7b5fb07 Decide the universe phase-0 proposal: all three pre-registrations adopted, two corrected`
+- `c46387d wip: three measurements for the universe phase-0 review`
+- `af2c168 brief: code session 2026-11-03`
 - `b3ed924 Log and owner queue: the growth-exposure proposal decided, two still open`
 - `007dbcc Decide the growth-exposure proposal: option 3, and the premise does not hold`
 - `c3246c8 NIGHTLY_LOG: 11 false percentages on the live page, and the rule that is now one function`
 - `2708177 Fix what the change broke, including one real coverage regression`
 - `d1248cf The near-zero rule gets a tripwire, and four more formatters`
 - `afc7a5d wip: one near-zero rule for every percentage the page prints`
-- `567e061 brief: data run 2026-11-03`
-- `5a719b6 data: screener run 2026-11-03 - 499 scored, top: VLO EXPE MU SNDK HST`
-- `cf35873 Log the dashboard sweep's second round and queue the expected-move defect first`
-- `55ddf5c plan/claims-mutation-audit.md: the rehearsal's catch`
-- `1313f2d test_dashboard_printed_figures: the valuation-history recount allows the published rounding of both sides`
-- `8207357 OWNER_FOCUS: round 2 done`
-- `46dce22 NIGHTLY_LOG: owner-run night, round 2`
-- `5d6429d plan/claims-mutation-audit.md: results of the late pass (37 of 77 dashboard rows closed, rows 189-271, the expected-move finding, the queue)`
-- `7c688a8 Research engine: rerun all 32 rows on the new config hash (no result changed)`
 
 ## The session's own account
 
-> 2026-11-03 - PRODUCT, THROUGH THE NUMBERS. Open the live dashboard as a user would and ask whether it answers what should I look at / should I buy this / should I sell what I hold / how much. The visual design is finished (owner, 2026-10-07), so presentation is not this session's job. When the page cannot answer something the gap is almost always data or methodology: a number the run does not keep, a question no metric answers. Fix that. Check two or three drilldowns still reproduce the engine. A broken or false surface is a defect; one that merely could look different is not.
+> 2026-11-03 (13:00 midday) - QUEUE. A second session today - more of the work, not a different kind. Read today's earlier NIGHTLY_LOG.md entry first and carry on from its Next; if it finished, take the next open item in OWNER_FOCUS.md, then the top of CLAUDE.md "Current priorities", then the queues in plan/factor-lab.md, plan/context-layer.md and plan/backtest-v2.md. Finish one item end to end, to the same evidence standard as any other session. Do not repeat or reverse a decision an earlier session made today without new evidence, and write down why if you do.
 > 
-> **Health (rule 8, all five):** last code session ran? **no** - `logs/nightly-2026-11-02_130000-midday.log`: SESSION DID NOT RUN (session reported an error - Failed to authenticate: OAuth session expired and could not be refreshed). Data loop published? yes - `logs/datarun-2026-11-03_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (43 rows, but overlapping windows are not independent; 110 rows across all horizons), newest 1m run date 2026-10-02 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **22 days**); also open: 0.10 27d; 0.14 20d.
-> **Tests:** before **1 failed / 3,721 passed, 1 skipped**; after **3,766 passed, 1 skipped**. Gate 5 rehearsal PASSED.
-> **Owner queue / rotation:** took the red baseline, which turned out to be a false figure on the live page - a defect, and ahead of the focus by the prompt's own rule. **Deferred: all three OPEN proposals** (growth-exposure drift, Investment-inside-Quality, universe phase 0, each opened 2026-11-02, age 1 day). Each needs a measurement of its own and the day went on the live defect; the next session should take one. The scheduled 13:00 slot and tomorrow are both eligible readers - none of the three was written by a scheduled session.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-03_080346.log`
+> (completed). Data loop published? yes - `logs/datarun-2026-11-03_020000.log` (completed;
+> HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (43 rows, but overlapping
+> windows are not independent; 110 rows across all horizons), newest 1m run date 2026-10-02 (32 days
+> ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor
+> Lab** (age **22 days**); also open: 0.10 27d; 0.14 20d.
+> 
+> **The line above is not the one the runner handed me, and that is this session's second finding.**
+> The prompt's copy said *"last code session ran? **no** - `logs/nightly-2026-11-03_080346.log`:
+> SESSION DID NOT RUN ()"*. That log ends `=== Run complete: shipped to main ===`, merged six commits
+> and tagged `good/2026-11-03`. See item 2.
+> 
+> **Tests:** before **3,769 passed, 1 skipped** (green baseline, nothing inherited); after
+> **3,788 passed, 1 skipped** - 19 new (15 pinning the pre-registrations, 4 on the health line).
+> Gate 5 rehearsal PASSED (page tests 366 passed, check_published_claims 2,028 passed, published
+> files restored byte for byte).
+> **Owner queue / rotation:** carried on from the 06:00 session's **Next**, which asked a later
+> session to decide one of the three OPEN proposals. Took the **universe-expansion phase 0**
+> proposal, because it is the next step on the top item under `OWNER_FOCUS.md` **Open** (2026-10-28,
+> beyond the S&P 500) - it is now **decided and closed**, and `plan/universe-expansion.md`'s next
+> stage is phase 1. **Deferred: the Investment-inside-Quality proposal** (`research/2026-11-02-investment-inside-quality.md`,
+> opened 2026-11-02, age 1 day), still the only one on the brief's "Waiting for a decision" list. It
+> needs a measurement of its own - its section 4 lists four places a weight-preserving fold is not
+> neutral - and one proposal decided properly is worth more than two skimmed. Any session from the
+> 06:00 slot tomorrow on is an eligible reader; neither of today's sessions wrote it.
 > 
 > ### Did
 > 
-> **The red baseline was a false number on the live site, and fixing it properly meant fixing the family.**
+> **1. Decided the universe-expansion phase-0 proposal: all three pre-registrations ADOPTED, two of
+> them corrected by measurements the note did not make.**
 > 
-> 1. **What was red.** `tests/test_every_panel_reads_clean.py` failed on the payload the 02:00 run
->    published: NVR's analyst-target card read **"$6262.00 -0.0%"** - a mean target of \$6262.00
->    against a \$6265.10 close, so 0.05% below, printed as a signed zero. That test exists because
->    the same family of defect hit twice in two days in October, and it is deliberately **not** in
->    the data loop's publish gate, so it goes red for the next code session instead of discarding a
->    day of evidence. It did its job.
+> The note (`research/2026-11-02-universe-expansion-phase0.md`, owner-run, 2026-11-02) is the
+> best-sourced thing in the queue and the review did not find it wrong. What it found is that two of
+> its arguments rest on one month's data and one of its instructions contradicts itself. Record:
+> note **section 9**; the operative decisions are now in `plan/universe-expansion.md`, pinned by
+> `tests/test_universe_expansion_preregistration.py` (15 tests). Three measurement scripts are
+> committed so every number can be re-derived.
 > 
-> 2. **The family, not the instance.** Three of these have now reached the live public site and each
->    was fixed inside the one formatter it was found in - BXP's unsigned "0.0%" for a close 0.03%
->    *below* its 200-day average (2026-10-28, the data loop refused that run), AMD's and INTC's
->    signed "-0.0%" (2026-10-29, fixed in `cPlain` alone), and NVR this morning. So the rule is one
->    function now - `pctNearZero` / `pctPlain` in `generate_dashboard.py` - and **fourteen call
->    sites** use it: the analyst-target card, the snapshot and peer tables, the metric workings
->    (`fmtMetric`, `fmtInput`, the earnings-surprise and ROE tables), the compare table's upside
->    column, `cPct`, `cPlain`, `cPp`, the share-class price gap, the 10y-3m curve in both places it
->    is printed, and the track chart's axis ticks and end labels.
->    **The rule:** a value that is **not** zero takes one more decimal rather than printing as a
->    zero; if it is still zero there it is zero to the reader and prints **unsigned**, because a
->    sign on a zero is the glitch and an unsigned zero is true to the precision shown. Both halves
->    are the project's own precedent (the case-against trend line, 2026-10-28; `cPlain`, 10-29).
-> 
-> 3. **Measured, on today's published payload: 11 figures on the live page were wrong**, out of
->    29,247 percentage lines across all 499 drilldowns, and **no other line moved**
->    (`research/measurements/2026-11-03-percent-lines.py`, run before and after and diffed):
-> 
->    | | before | after |
->    |---|---|---|
->    | NVR, analyst target | `$6262.00 -0.0%` | `$6262.00 -0.05%` |
->    | ESS, vs 200-day average | `0.0%` ("Mixed trend 0.0% vs 200-day") | `−0.03%` |
->    | VTR | `0.0%` | `−0.01%` |
->    | ABNB / AMT / PTC, 5 days | `0.0%` | `+0.04%` / `+0.01%` / `+0.03%` |
->    | EQT / TECH, 5 days | `0.0%` | `−0.02%` / `−0.03%` |
->    | BKR, rate sensitivity | `0.00%` | `+0.003%` |
->    | MRSH, analyst target | `+0.0%` | `0.0%` |
-> 
+> - **PR2, the phase-4 floor: the headline number is exact.** Ken French's `ME_Breakpoints` was
+>   downloaded again (CRSP vintage 202609, 1,210 monthly rows) and the June 2026 row read
+>   independently: **n = 1,079 NYSE stocks, 20th percentile $1,224.13M** - both match the note to the
+>   digit, as do all four of its "recent Junes for scale".
+> - **But two of the five reasons given for it are struck.** Over 2015-2026 the line moved **+112.1%
 > ...
 
 ---
