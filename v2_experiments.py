@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import functools
 import hashlib
 import io
 import json
@@ -344,8 +345,13 @@ def t_two_sided_p(t: float, df: float | None) -> float:
     return _betai(df / 2.0, 0.5, df / (df + t * t))
 
 
+@functools.lru_cache(maxsize=4096)
 def t_critical(alpha: float, df: float | None) -> float:
-    """The two-sided critical value: the |t| at which ``t_two_sided_p`` equals ``alpha``."""
+    """The two-sided critical value: the |t| at which ``t_two_sided_p`` equals ``alpha``.
+
+    Cached: a pure function of its two arguments, called with the same handful of (alpha, df)
+    pairs dozens of times per report, and each call is 200 bisection steps of the incomplete beta
+    (2026-11-02: 26,400 continued fractions per research-page build, ~1 s)."""
     lo, hi = 0.0, 60.0
     for _ in range(200):
         mid = (lo + hi) / 2

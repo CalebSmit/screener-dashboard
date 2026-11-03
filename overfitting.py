@@ -106,8 +106,12 @@ def cscv(perf: pd.DataFrame, blocks: int = BLOCKS) -> dict:
         oos_mean = (total_sum - s_in) / (total_n - n_in)
         k = int(np.argmax(is_mean))
         wins[k] += 1
-        # the winner's out-of-sample rank among all n, 1 = worst, ties averaged; omega in (0, 1)
-        rank = pd.Series(oos_mean).rank(method="average").iloc[k]
+        # the winner's out-of-sample rank among all n, 1 = worst, ties averaged; omega in (0, 1).
+        # Counted directly rather than through pd.Series.rank(method="average"), which gives the
+        # same number (the values below it, plus the middle of its tied run) at ~140x the cost:
+        # this loop runs 12,870 times per check and was 85% of building research.html (2026-11-02).
+        v = oos_mean[k]
+        rank = float((oos_mean < v).sum() + ((oos_mean == v).sum() + 1) / 2)
         omega = rank / (n + 1)
         logits.append(np.log(omega / (1 - omega)))
         oos_pct.append(omega)
