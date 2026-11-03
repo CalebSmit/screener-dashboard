@@ -39,8 +39,38 @@ Two things still outrank this file, and neither is negotiable:
   bot are unchanged, and each universe keeps its own evidence series.** **Phase 0 written
   2026-11-02 (owner-run evening; the scheduled Monday session could not run):**
   `research/2026-11-02-universe-expansion-phase0.md` - S&P 1500 first, the phase-4 floor at the
-  NYSE 20th percentile ($1.22B today), percentiles within sector *and* size band, and why. Next: a
-  later session decides its OPEN proposal (the brief lists it), then phase 1.
+  NYSE 20th percentile ($1.22B today), percentiles within sector *and* size band, and why.
+  **Phase 0 DECIDED and CLOSED 2026-11-03 (13:00 session, which did not write the note) - all
+  three pre-registrations ADOPTED, two of them corrected by the review.** Note section 9; the
+  operative decisions are now in `plan/universe-expansion.md`, pinned by
+  `tests/test_universe_expansion_preregistration.py` so they cannot be re-fitted later.
+  **The floor's headline number is exact** - Ken French's June 2026 row re-read independently,
+  n = 1,079 NYSE stocks, $1,224.13M - **but two of the five reasons given for choosing it do not
+  survive the longer record and are struck.** Over 2015-2026 the line moved **+112.1% (2021),
+  -34.4% (2022) and +40.7% this June**, so "it moves with the market, so it never needs re-tuning"
+  is true of the rule and misleading about the line; and its agreement with S&P's own $1.2B
+  small-cap entry floor is **this June's coincidence** (June 2025: $870M; June 2020: $484M). It is
+  adopted on the one durable reason - it is the breakpoint Fama & French, Hou/Xue/Zhang and
+  Jensen/Kelly/Pedersen all draw - and the consequence the note did not draw is now in phase 4:
+  **the universe churns at its bottom edge every July, so the bot-style continuity gates must be
+  re-derived from a replay that spans a July**, never an average month.
+  **The band split's exit test is a measurement now, not an argument:** grouping percentiles by
+  `(Sector, size_band)` with a band-wide fallback leaves the S&P 500 at **0 of 23,092 percentile
+  values changed**, against **20,151 changed (up to 68.93 points)** for a genuine two-band split -
+  so the zero means something. And its cost has a number the note did not have: the ten-peer
+  fallback fires for **1 of 301 weight-bearing cells today** and **27-35 of 903 after the split**,
+  every guaranteed one in **S&P 400 Communication Services (6 members)** - the only sector-band
+  group under ten members anywhere in the S&P 1500. **The thin group is in the middle band**, so
+  phasing the 600 in last does not defer it.
+  **One self-contradiction in the note resolved by measuring:** section 7 said both "keep 2e9 for
+  the S&P 500" and "set 0 for S&P index bands", which disagree for the one band whose
+  byte-identity is the phase-1 exit test. **0 of 503 members sit below $2B** (smallest MOS at
+  $6.050B, p1 $8.796B), so one rule - `min_market_cap: 0` for every S&P index band - is
+  byte-identical today and needs no special case.
+  **Left open on purpose:** section 4's choice of coverage rule for a stock with no analysts. It
+  is a present-day methodology change (one S&P 500 stock today, Loews) and gets its own changelog
+  entry, not a side effect of phase 3. **Next: phase 1** (make the universe a parameter; no
+  published change, S&P 500 payload byte-identical).
 
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test
