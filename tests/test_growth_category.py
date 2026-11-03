@@ -138,18 +138,75 @@ def test_the_page_states_the_drift_not_a_standing_neutrality(growth_section):
     exposure drifted from -0.009 to +0.058 over fifteen runs and the 11-02 run was refused - the
     gate working. The sentence was a fact about one run stated as a property of the weight, so it
     was rewritten (the test's own alternative: "or the paragraph needs rewriting"); the old one is
-    in claims.FORBIDDEN. Each dated figure the new paragraph gives must be in the note that
-    measured it, and the paragraph must say the question is open and where."""
+    in claims.FORBIDDEN.
+
+    The 2026-11-03 review then found the replacement's *explanation* wrong too - it said the
+    balance moves "with the market", and the whole record says the one large move was this
+    screener's own 2026-10-09 metric changes (note section 6). Every dated figure the paragraph
+    now gives must be in the note that measured it."""
     assert "sits close to neutral, leaning neither way" not in growth_section
     assert "That balance is not fixed" in growth_section
     note = DRIFT_NOTE.read_text(encoding="utf-8")
-    # the review's reading, the 2026-11-02 reading and the neutral point, as the page rounds them
+    # the review's own reading, which stands as a dated fact about that run
     assert "a rank correlation of -0.01 with the Growth score" in growth_section
     assert "| exposure at 13% | -0.009 | +0.049 | +0.058 |" in note
-    assert "by 2026-11-02 the same 13% leaned slightly toward growth (+0.06), with the neutral point near 10%" in growth_section
-    assert "9.6 / 10.6" in note
+    # the measured record, and the reading of it - each figure in the note's section 6 table
+    assert "sat between 8.8% and 12.0% on all 40 runs published from 2026-08-12 to the morning of 2026-10-09" in growth_section
+    assert "| 2026-08-12 .. 2026-10-09 **morning** | 40 | **8.8 - 12.0**, mean 9.9 |" in note
+    assert "it moved to 13.6% on the very next run" in growth_section
+    assert "| 2026-10-09 **evening** | 1 | **13.6** |" in note
+    assert "come back to 8.8% by 2026-11-03" in growth_section
+    assert "| 2026-11-03 | 1 | **8.8** |" in note
+    # and the attribution the review corrected: not the market, this screener's own change
+    assert "with the market" not in growth_section
+    assert "this screener's own doing" in growth_section
     assert "research/2026-11-02-growth-exposure-drift.md" in growth_section
-    assert "**Proposal status: OPEN**" in note
+
+
+def test_the_drift_note_records_a_decision_rather_than_an_open_proposal():
+    """An open proposal is listed in the morning brief with its age until someone decides it
+    (write_brief.open_proposals). This one was decided on 2026-11-03, by a session that did not
+    write it, so the line must say so and the reasoning must be in the note."""
+    note = DRIFT_NOTE.read_text(encoding="utf-8")
+    assert "**Proposal status: OPEN**" not in note
+    assert "**Proposal status: DECIDED 2026-11-03**" in note
+    assert "## 6. The review, 2026-11-03" in note
+    # all three options answered, not just the accepted one
+    for verdict in ("**Option 1, re-fit on the review cadence - REFUSED.**",
+                    "**Option 2, constrain the exposure after the composite is built "
+                    "(MSCI's approach) - REFUSED as a\nresponse to this evidence**",
+                    "**Option 3, state the lean and leave the weight - ACCEPTED.**"):
+        assert verdict in note, verdict
+
+
+NEUTRAL_HISTORY = ROOT / "research" / "measurements" / "2026-11-03-neutral-weight-history.py"
+DECOMPOSITION = ROOT / "research" / "measurements" / "2026-11-03-growth-drift-decomposition.py"
+
+
+def test_the_pages_claim_about_the_record_is_measurable_from_the_repo(growth_section):
+    """The paragraph now makes a claim about all 40 runs before 2026-10-09 evening. The script
+    that measures it is named on the page and is in the repo, so a reader can rerun it."""
+    assert "research/measurements/2026-11-03-neutral-weight-history.py" in growth_section
+    assert NEUTRAL_HISTORY.exists() and DECOMPOSITION.exists()
+
+
+def test_the_neutral_weight_history_runs_and_reports_a_weight_per_run():
+    res = subprocess.run([sys.executable, "-X", "utf8", str(NEUTRAL_HISTORY)], cwd=ROOT,
+                         capture_output=True, text=True, encoding="utf-8", timeout=900)
+    assert res.returncode == 0, res.stderr[-800:]
+    assert "neutral weight" in res.stdout
+    # the step the review turns on: the 2026-10-09 evening run is the first above 13
+    rows = {}
+    for line in res.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 3 and parts[0].startswith("2026-"):
+            label = " ".join(parts[:-2])
+            try:
+                rows[label] = float(parts[-2])
+            except ValueError:
+                continue
+    assert rows.get("2026-10-09") is not None and rows.get("2026-10-09 (evening)") is not None, sorted(rows)
+    assert rows["2026-10-09"] < 11.0 < rows["2026-10-09 (evening)"], rows
 
 
 def test_the_note_records_the_refused_runs_reading():
