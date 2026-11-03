@@ -47,14 +47,55 @@ the S&P 500 and must become a property of *the universe being run*, not a litera
 
 ### Phase 0 - Research (a Monday): what changes below the large caps
 
-**WRITTEN 2026-11-02 (owner-run evening): `research/2026-11-02-universe-expansion-phase0.md`.**
-Its proposal is OPEN and **must be decided by a session that did not write it**: S&P 1500 first;
-the phase-4 floor at the NYSE 20th-percentile breakpoint from Ken French's June file ($1,224.13M
-for July 2026-June 2027); percentiles within `(Sector, size_band)` with a band-wide fallback. It also
-adds to phase 1 (`universe.min_market_cap: 2e9` must become per-universe, or an S&P 600 run silently
-drops its bottom) and to phase 2's measurements, and finds a present-day gap that is not phase work:
-a stock with no analyst coverage has its whole Revisions category scored on days-to-cover alone
-(one S&P 500 stock today, Loews, and six more partly; section 4, options a-c - a methodology change of its own).
+**WRITTEN 2026-11-02 (owner-run evening): `research/2026-11-02-universe-expansion-phase0.md`.
+DECIDED 2026-11-03 (13:00 scheduled session, which did not write it) - all three pre-registrations
+ADOPTED, two with a correction the review measured; note section 9.** Phase 0 is CLOSED.
+
+### The three decisions, pre-registered. Do not re-fit these to a result.
+
+They are written here, dated and committed, for the same reason the momentum panic rule's three
+numbers are (`tests/test_momentum_panic_rule.py`): a floor chosen after seeing what it admits is
+not a floor. `tests/test_universe_expansion_preregistration.py` fails if any of them changes
+without this file and the note changing with it.
+
+1. **Universe order: the S&P 1500 first** (phases 2-3), then the all-listed universe above the
+   floor (phase 4). Measured: the free lists give 503 + 400 + 603 = **1,505-1,506 names**.
+2. **Phase-4 floor: the NYSE 20th-percentile market cap** from Ken French's `ME_Breakpoints` file,
+   the most recent June row, applied from July and held twelve months. **July 2026 - June 2027:
+   $1,224.13M** (June 2026 row, n = 1,079 NYSE stocks) - verified independently from the file,
+   exact. Plus Russell's exclusions (price >= $1, US exchange, no SPACs, LPs, trusts, closed-end
+   funds or ETFs).
+   **Adopted for one reason only: it is the line Fama & French (2008), Hou/Xue/Zhang (2020) and
+   Jensen/Kelly/Pedersen (2023) all draw, so their findings apply above it.** The note's two other
+   arguments for it are struck, measured over 2015-2026: the agreement with S&P's $1.2B addition
+   floor is **this June's coincidence** (June 2025: $870M; June 2020: $484M), and the line is far
+   from stable - **+112.1% in June 2021, -34.4% in 2022, +40.7% in June 2026**.
+   **Consequence to carry into phase 4:** the universe churns at its bottom edge every July, by a
+   different amount each year, so the input gates below must be re-derived **from a July replay**,
+   never from an average month.
+3. **Percentiles within `(Sector, size_band)`**, with the sub-ten-peer fallback changed from
+   universe-wide to **band**-wide. The S&P 500 comes out byte-identical - measured, not argued:
+   **0 of 23,092 percentile values differ**, against **20,151 differing (up to 68.93 points)** for
+   a genuine two-band split, so the check has teeth.
+   **The fallback's cost, measured:** 1 of 301 weight-bearing cells falls back today
+   (`beneish_m_score` in Financials); **27 of 903 guaranteed after the split, 35 with availability
+   applied** - and every guaranteed one is in **S&P 400 Communication Services (6 members)**, the
+   only sector-band group under ten members anywhere in the S&P 1500. **The thin group is in the
+   middle band**, so phasing the 600 in last does not defer it.
+
+**Resolved for phase 1:** the note's section 7 says both "keep 2e9 for the S&P 500" *and* "set 0
+for S&P index bands", which contradict each other for the one band whose byte-identity is the exit
+test. Measured: **0 of 503 members sit below $2B; the smallest is MOS at $6.050B**, p1 $8.796B. So
+**one rule - `min_market_cap: 0` for every S&P index band, the 500 included** - is byte-identical
+today and does not need a special case. Reopen only if a member comes within 2x of the floor; the
+guard against an absurd market cap belongs in `check_run_health.py`, not in a filter that silently
+drops index members.
+
+**Left open on purpose, not deferred:** section 4's choice between coverage rules (a) MSCI-style
+renormalising, (b) Russell's shrinkage schedule and (c) a minimum share of category weight. It is
+a **present-day** methodology change - today it would move one S&P 500 stock (Loews, whose whole
+Revisions category rests on days-to-cover) and six more partly - so it gets its own changelog
+entry decided on its own merits, not as a side effect of phase 3.
 
 One complete note in `research/`, literature and practice, ending in a `**Proposal status: OPEN**`
 line. Questions it must answer:
@@ -81,8 +122,26 @@ line. Questions it must answer:
 Engineering only; the S&P 500 page must come out byte-identical (`git diff` on both payloads
 empty after a rebuild from the same run).
 
+**This is the next stage. It is engineering only; no decision above is re-opened here.**
+
 - A `universe:` block in `config.yaml` naming the source and the plausible size band; every
   constant listed above derived from it. Tests that hard-code 490 read the same value.
+- **`min_market_cap: 0` for every S&P index band** (decision 3's resolution above), so index rules
+  govern membership. One rule, no special case for the 500.
+- **A `size_band` column** set at fetch time: the S&P parent index (500 / 400 / 600) in phases
+  2-3; NYSE breakpoints in phase 4 (above the 80th percentile, 50th-80th, 20th-50th - JKP's mega /
+  large / small). `compute_sector_percentiles` groups by `(Sector, size_band)`; the sub-ten-peer
+  fallback becomes band-wide; `Composite_Pct` is computed within band. `SECTOR_MIN_PEERS` stays
+  at 10 - only its scope changes.
+- **Per-band, not universe-wide:** `check_run_health.MIN_TARGET_COVERAGE` (0.50) and
+  `run_screener.CATEGORY_AUTO_DISABLE_PCT` (30), because a universe-wide average hides a thin
+  bottom band. `universe_history.MIN/MAX_PLAUSIBLE_MEMBERS` become per index (~400 and ~600 with
+  the same tolerance). `MIN_CATEGORY_COVERAGE` (0.90) stays universe-wide: it guards a feed
+  failure, not a band.
+- **The input gates are re-derived per universe from that universe's own replay, never copied** -
+  `RANK_MIN_SPEARMAN` (0.90), `RANK_MAX_NEW_IN_TOP` (8) and the top-25/40 rules were set by
+  replaying S&P 500 pages (`research/measurements/2026-10-22-input-gates-replay.py`). For phase 4
+  the replay must include a **July**, where the annual floor reset churns the bottom edge.
 - `stock_detail` sharded out of `dashboard_data.js` and loaded per stock (the Factor Lab's
   `LAZY_KEYS` pattern), so first paint does not grow with the universe. Keep the bot's fields
   (`stock_detail[t].price`) where the contract says they are, or move them with the bot's tests.
@@ -99,6 +158,14 @@ empty after a rebuild from the same run).
 - Measure and write down: fetch time and failures, per-metric coverage (expect analyst inputs to
   fall), `sec_crosscheck` agreement, how `check_run_health.py` judges it, and how far the
   mid/small-cap ranks move day to day (the Spearman continuity the bot gates use).
+- **Added by the phase-0 decision**, per band: the analyst-count distribution; the share of stocks
+  whose Revisions score would rest on `short_interest_ratio` alone; how often
+  `forward_eps_growth` takes the `fy2_over_trailing` fallback; how many S&P 600 members sit below
+  the NYSE 20th percentile (members are not removed when they shrink); the share below $700M float
+  (the reporting-lag note's premise); per-band `sec_crosscheck` counts.
+- **The three marginal percentile cells**, which are sector-ranked today only because availability
+  is high: `accruals` in S&P 400 Utilities (15 members, needs 67% availability), S&P 400 Consumer
+  Staples (14, needs 71%) and S&P 600 Utilities (14, needs 71%). Report whether they held.
 
 **Exit test:** two weeks of shadow runs with the numbers in a research note, and the health gate
 either passing them or a written reason it should judge them differently.
@@ -119,7 +186,12 @@ either passing them or a written reason it should judge them differently.
 - Universe source: the NASDAQ Trader symbol directory (`nasdaqlisted.txt`, `otherlisted.txt`,
   free, with ETF and test-issue flags) or SEC's `company_tickers_exchange.json`; exclude ETFs,
   funds, preferreds, warrants, units, SPACs and ADRs unless phase 0 argued otherwise; apply the
-  pre-registered floor.
+  pre-registered floor (decision 2 above: **$1,224.13M** for July 2026 - June 2027, re-read from
+  the June file each year and held twelve months).
+- **Before the first July rebalance**, re-derive the input gates from a replay that spans a July.
+  The floor moved +112.1%, -34.4% and +40.7% in three of the last six years, so the annual reset
+  churns the bottom of the universe and an average-month continuity threshold will read it as a
+  broken run.
 - The fetch will need its own time budget and probably its own scheduled task; the throttling
   record (`research/2026-10-26-data-run-timing.md`) says a second full fetch within hours is what
   got throttled, so schedule it far from 02:00.

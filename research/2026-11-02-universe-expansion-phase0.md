@@ -2,10 +2,14 @@
 
 2026-11-02, owner-run evening; Phase 0 of plan/universe-expansion.md
 
-**Proposal status: OPEN** - a later session (not the one that wrote this) decides whether to adopt
-the three pre-registrations in section 7: the S&P 1500 as the first wider universe, the NYSE
-20th-percentile market cap as the phase-4 floor, and percentiles ranked within sector *and* size
-band.
+**Proposal status: DECIDED 2026-11-03 (13:00 session, which did not write this note) - all three
+pre-registrations ADOPTED, two of them with a correction the review measured.** Section 9 is the
+review. In short: the floor's headline number verifies exactly, but two of the five reasons given
+for choosing it do not survive the longer record and are struck; the band split's byte-identity is
+now a measurement rather than an argument, and the cost of its ten-peer fallback is a number
+(1 weight-bearing cell today, 27-35 of 903 after the split, all in one group); and the note's
+self-contradicting phase-1 instruction on `universe.min_market_cap` is resolved toward the
+simpler branch, because no S&P 500 member is within 3x of the floor.
 
 **Question.** The owner wants NYSE and NASDAQ stocks beyond the S&P 500, phased in
 (`plan/universe-expansion.md`). Phase 0 asks five questions before any code moves: which universe
@@ -536,6 +540,174 @@ already requires this).
   bank; `coverage_minimum(27, 60)` = 16.
 
 ---
+
+## 9. Review and decision (2026-11-03, 13:00 scheduled session)
+
+A different session, which did not write this note. Three measurement scripts are committed, so
+every number below can be re-derived:
+`research/measurements/2026-11-03-nyse-breakpoints.py`,
+`research/measurements/2026-11-03-sector-band-peer-counts.py`,
+`research/measurements/2026-11-03-band-percentiles-identity.py`.
+
+**Verdict: all three pre-registrations adopted.** Nothing published moves, so there is no
+`METHODOLOGY_CHANGELOG.md` entry: the floor and the band split govern universes that do not exist
+yet, and the band split is measured below to leave the S&P 500 byte-identical. The changelog entry
+falls due when phase 3 publishes, one change at a time, as the plan already requires.
+
+### 9.1 Pre-registration 2's headline number verifies exactly
+
+Ken French's `ME_Breakpoints_CSV.zip` was downloaded again (CRSP vintage 202609, 1,210 monthly rows,
+192512-202609) and the June 2026 row read independently: **n = 1,079 NYSE stocks, 20th percentile
+= $1,224.13M.** Both match the note to the digit, as do all four "recent Junes for scale"
+($674.13M / $759.70M / $837.23M / $870.07M for 2022-2025). The source, the column and the vintage
+are right.
+
+**But two of the five reasons given for choosing this number do not survive the longer record, and
+both are struck.** The note says the floor "lines up with S&P's own small-cap entry floor ($1.2B),
+so phase 4 admits no company smaller than S&P already admits", and that "it moves with the market,
+so it never needs re-tuning". The June series says otherwise:
+
+| June | 20th pct | change |
+|---|---|---|
+| 2015 | $654.62M | - |
+| 2016 | $596.76M | -8.8% |
+| 2017 | $718.40M | +20.4% |
+| 2018 | $848.04M | +18.0% |
+| 2019 | $699.22M | -17.5% |
+| 2020 | $484.23M | -30.7% |
+| 2021 | $1,027.20M | +112.1% |
+| 2022 | $674.13M | -34.4% |
+| 2023 | $759.70M | +12.7% |
+| 2024 | $837.23M | +10.2% |
+| 2025 | $870.07M | +3.9% |
+| 2026 | $1,224.13M | **+40.7%** |
+
+- **The alignment with S&P's $1.2B is this June's coincidence.** In June 2025 the breakpoint was
+  $870M against S&P's $1.2B addition floor, and in June 2020 it was $484M - 40% of it. A floor
+  chosen partly because the two agree would have had no such argument in any of the previous
+  eleven years, and will probably not have it next year.
+- **"Never needs re-tuning" is true of the *rule* and misleading about the *line*.** It moved
+  +112.1% in one year and -34.4% the next. The rule is still right - it is mechanical, free and
+  needs no judgement - but the consequence the note does not draw is that **phase 4's universe will
+  churn at its bottom edge every July**, by a different amount each time. That is the same
+  quantity the note elsewhere says must be re-derived per universe (the input gates'
+  `RANK_MIN_SPEARMAN`, `RANK_MAX_NEW_IN_TOP` and the top-25/40 continuity rules). Those gates must
+  be re-derived **from a July replay**, not an average month, or the first annual rebalance of
+  phase 4 will look like a broken run.
+
+**What the floor keeps, and it is the only reason it needs:** it is the line Fama & French (2008),
+Hou, Xue & Zhang (2020) and Jensen, Kelly & Pedersen (2023) all draw, so their findings apply above
+it. Adopted on that basis alone.
+
+**Five of the note's Fama & French figures were re-read from the paper, from a different copy**
+(`data/papers/ff-2008-dissecting-ivey.pdf`, the working-paper version, against the note's
+Cochrane-hosted published PDF) and all five are exact: tiny stocks are "60% of all sample stocks
+... only about 3% of the market cap"; "After 1972, tiny stocks are between 48% and 69% of firms and
+between 1.0% and 5.0% of total market cap"; big stocks "average more than 90% of total market cap";
+the momentum slopes 0.41 (t 2.51) / 0.82 (t 4.65) / 0.78 (t 3.92) for tiny / small / big; and the
+breakpoints are "the 20th and 50th percentiles of end-of-June market cap for NYSE stocks". One
+wording note, no figure affected: **FF's own term is "tiny", not "microcap"** - the paper says tiny
+stocks "correspond to what investment managers call micro-caps".
+
+**Section 6's unresolved figure is still unresolved, but it is now known not to be what the note
+guessed.** The note offers "probably a CRSP vintage difference" for FF's $2.3B end-June 2005 NYSE
+median against the file's $1.79B. A vintage change would move both percentiles, and it does not:
+the **20th** reads $604.19M against FF's published $610M (**-1.0%**) while the 50th is **-22.3%**
+off. Nor is $1.79B an artefact of one month - the file's 50th percentile runs smoothly $1,746M
+(Mar 2005) -> $1,786M (Jun) -> $1,865M (Sep) -> $1,896M (Dec) -> $2,062M (Jun 2006). The
+working-paper copy held here does not carry the sentence, and the published PDF was not
+re-obtained, so the cause is left open. **It touches no pre-registration:** only the 20th
+percentile is used, and that one agrees with FF's own published value to 1.0%, which is the
+confirmation that matters.
+
+### 9.2 Pre-registration 3's exit test, measured instead of argued
+
+The note calls the S&P 500's byte-identity "the phase-1 exit test, met for free" and justifies it
+"by construction". It is correct, and it is now run. `compute_sector_percentiles` was compared
+against a transcription grouping by `(Sector, size_band)` with the fallback changed from
+universe-wide to band-wide - exactly the two changes proposed, nothing else - on the published run
+`3b24b8eb8c2a` with one constant band: **46 percentile columns x 502 rows = 23,092 values, 0
+differ.**
+
+**With a floor test, because an identity check that cannot fail proves nothing.** The same
+comparison against a genuine two-band split (by the run's own `size_log_mcap`, at the median)
+moves **20,151 of 23,092 values, by up to 68.93 percentile points** in `interest_coverage_pct`. So
+the check has teeth and the 0 is real.
+
+**The cost of the ten-peer fallback is now a number, and the note's one example understates it in
+one way and overstates it in another.** The note names "the S&P 400 has 6 Communication Services
+members". That counts *members*; `compute_sector_percentiles` counts **valid values for one
+metric** (`valid = grp[col].dropna()`), so the unit is a (sector, band, metric) cell, not a group.
+Measured on run `3b24b8eb8c2a`, counting only cells where the metric can reach a composite (the
+four bank-only metrics - `equity_ratio`, `pb_ratio`, `roa`, `roe`, availability 9.2% - carry no
+weight outside Financials, so their fallbacks change no score):
+
+- **Today, ungrouped: 1 of 301 weight-bearing cells falls back (0.3%)** - `beneish_m_score` in
+  Financials, generic weight 1.76. So the fallback really is the edge case the note implies.
+- **After the split: 27 of 903 cells guaranteed (3.0%) from member counts alone, 35 (3.9%) once
+  the S&P 500's own availability rates are applied** - and every guaranteed one is in a single
+  group, **S&P 400 Communication Services (6 members)**, where all 27 generic metrics must fall
+  back to band-wide.
+- **Three marginal cells**, sector-ranked today only because availability is high: `accruals` in
+  S&P 400 Utilities (15 members, needs 67%), S&P 400 Consumer Staples (14, needs 71%) and S&P 600
+  Utilities (14, needs 71%). Small-cap availability is not measured here, so these are the cells to
+  watch in phase 2 rather than numbers to act on.
+
+Sector counts per band, from the free constituent lists (S&P 400: 400 members; S&P 600: 603; with
+the run's 502, the S&P 1500 is **1,505-1,506 names**, confirming the plan's "about 1,500"):
+
+| Sector | S&P 500 | S&P 400 | S&P 600 |
+|---|---|---|---|
+| Communication Services | 22 | **6** | 20 |
+| Consumer Discretionary | 47 | 57 | 90 |
+| Consumer Staples | 33 | 14 | 27 |
+| Energy | 21 | 17 | 33 |
+| Financials | 76 | 65 | **118** |
+| Health Care | 60 | 35 | 69 |
+| Industrials | 83 | 87 | 93 |
+| Information Technology | 75 | 49 | 68 |
+| Materials | 24 | 26 | 26 |
+| Real Estate | 30 | 29 | 45 |
+| Utilities | 31 | 15 | 14 |
+
+**One thing worth knowing that the note does not say: the thin group is in the *middle* band.** The
+only sector-band group under ten members anywhere in the S&P 1500 is S&P 400 Communication
+Services; the S&P 600 has 20 of them. So the problem does not arrive with the smallest companies
+and cannot be deferred by phasing the 600 in last - it arrives with phase 2.
+
+### 9.3 The note contradicts itself on `min_market_cap`, and the measurement resolves it
+
+Section 7 says `universe.min_market_cap: 2e9` "must become per-universe", then: *"Keep 2e9 for the
+S&P 500 (byte-identical) and set 0 for S&P index bands, where index rules govern."* **The S&P 500
+is an S&P index band**, so the instruction gives two different answers for exactly the band whose
+byte-identity is the phase-1 exit test. Which branch is right depends on a number neither the note
+nor the plan measures.
+
+Measured on the published run's raw fetch: **503 members, every one with a market cap, minimum
+$6.050B (MOS), p1 $8.796B, p5 $11.936B - 0 below the $2B floor**, with 3x headroom to the
+smallest. (`apply_universe_filters` coerces with `float()`, so the YAML string `'2e9'` is not a
+defect.)
+
+**So the simpler branch is right: one rule, `min_market_cap: 0` for every S&P index band including
+the 500, byte-identical today.** Two rules where one will do is the thing this project's own
+precedent argues against (the share-class margin, 2026-10-31: "two literals for one number are
+free to drift"). **What would reopen it:** an S&P 500 member inside, say, 2x of the floor. Nothing
+is close today, and the guard against an absurd market cap belongs in `check_run_health.py`, which
+judges the run's own artifacts, not in a universe filter that silently drops index members.
+
+### 9.4 What the review did not test
+
+- **Pre-registration 1 is adopted on the note's own evidence**, which is documented practice
+  (S&P's eligibility rules, read from a mirror) plus Asness et al. (2018). The review added only
+  the member counts above. The one thing neither session can check is S&P's current liquidity text,
+  since spglobal.com returns 403; the note says so and flags it unverified, which is the right
+  handling.
+- **No small-cap data was fetched.** The note's 40-name-per-index probe stands as the only
+  measurement of analyst coverage below the S&P 500; this review reused the S&P 500's availability
+  rates as an explicit upper bound and said so wherever it did. Phase 2's shadow run replaces both.
+- **The choice between coverage rules (a), (b) and (c) in section 4 is deliberately left open**,
+  as the note asks. It is a present-day methodology change affecting one stock (Loews) and belongs
+  in its own changelog entry, not in this decision.
 
 ## Sources
 
