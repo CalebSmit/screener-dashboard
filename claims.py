@@ -199,6 +199,22 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="drilldown.percentile_convention",
+        surface=DRILLDOWN,
+        asserts=(
+            "The metric table's convention note: 100 is best in its sector, not largest; it counts "
+            "the published metrics marked lower-is-better out of all published metrics, those "
+            "directions being the scorer's own (METRIC_DIR False), and its three named examples - "
+            "EV/EBITDA, Beta and PEG - are among them (2026-11-03)."
+        ),
+        made_true_by="factor_engine:METRIC_DIR",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_the_convention_note_prints_the_scorers_direction_count_and_true_examples",
+            "tests/test_percentile_direction.py::test_direction_matches_the_scorer_exactly",
+            "tests/test_percentile_direction.py::test_convention_count_is_derived_not_hardcoded",
+        ),
+    ),
+    Claim(
         id="summary.best_inputs",
         surface=SUMMARY,
         asserts=(

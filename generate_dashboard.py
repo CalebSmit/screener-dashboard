@@ -3880,7 +3880,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // means "best in sector" and never "largest number". Stating this is not
     // decoration - without it a reader sees EV/EBITDA 6.95 at the 99th
     // percentile and reasonably concludes the percentile tracks the raw value,
-    // which is backwards for 15 of the 37 published metrics.
+    // which is backwards for every metric marked lower-is-better (14 of 38 on 2026-11-03).
     // The count is read off the payload rather than written here, so it stays
     // true as metrics are added or their direction changes.
     const PCTILE_CONVENTION = (() => {{

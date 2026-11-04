@@ -1200,3 +1200,22 @@ def test_the_changelog_ticks_are_one_per_dated_heading_date(tmp_path):
     got = track_record.methodology_dates(p)
     assert [m["date"] for m in got] == ["2026-09-30", "2026-10-01"]
     assert got[1]["title"] == "first"
+
+
+# ---------------------------------------------------------------------------
+# drilldown.percentile_convention - the note that says how many metrics are "lower is better"
+# (claims audit queue item 6, 2026-11-03)
+# ---------------------------------------------------------------------------
+def test_the_convention_note_prints_the_scorers_direction_count_and_true_examples(page, data):
+    """The count is the payload's, the payload's directions are the scorer's (METRIC_DIR False is
+    lower-is-better), and the three metrics the sentence names as examples really are inverted."""
+    mm = data["metric_meta"]
+    for k, m in mm.items():
+        if k in METRIC_DIR:
+            assert (m.get("dir") == "lower") == (METRIC_DIR[k] is False), k
+    n = sum(1 for m in mm.values() if m.get("dir") == "lower")
+    txt = _text(page.evaluate("PCTILE_CONVENTION"))
+    assert (f"For the {n} of {len(mm)} metrics marked \u2193 better (EV/EBITDA, Beta and PEG among them) "
+            "a low raw value earns a high percentile.") in txt, txt
+    for key in ("ev_ebitda", "beta", "peg_ratio"):
+        assert mm[key]["dir"] == "lower" and METRIC_DIR[key] is False, key

@@ -1254,7 +1254,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'Held in equal dollar amounts, ${escapeHtml(hi.t)} moves the value of the list about ${ratio.toFixed(1)}&times; as much as ${escapeHtml(lo.t)}.':
         'claim:dashboard.holdings_concentration',
     'For the ${n} of ${total} metrics marked ↓ better (EV/EBITDA, Beta and PEG among them) a low raw value earns a high percentile.':
-        "open:lower-is-better-count - nothing reads the page's printing",
+        'claim:drilldown.percentile_convention',
     '${fmtDollar(price)} Avg Target ${fmtDollar(ptMean)} ${fmtPct(ptMean, price)} Low Target':
         "open:price-target-strip - nothing reads the page's printing",
     '${fmtPctChg(f.ni_growth_yoy)} fiscal year on year':
@@ -1393,7 +1393,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'distribution-range',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
-    'lower-is-better-count',
     'metric-points-equation',
     'metric-weight-no-data-line',
     'metric-weight-rescaled-line',
