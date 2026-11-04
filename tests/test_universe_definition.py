@@ -51,8 +51,13 @@ def test_no_module_writes_the_size_as_a_literal_again():
 # Left literal on purpose on 2026-11-03, and named here so finishing them is a visible step.
 REMAINING = (
     ("scripts/data-run.ps1", "$universe = 500"),
-    ("generate_dashboard.py", "D.table_data.length || 500"),
 )
+
+
+def test_the_page_reads_no_literal_universe_size():
+    """The rank chart's fallback was ``D.table_data.length || 500`` (closed 2026-11-03 night)."""
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    assert "|| 500" not in src
 
 
 def test_the_literals_left_for_later_are_still_where_the_plan_says():

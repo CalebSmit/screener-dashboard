@@ -9214,7 +9214,8 @@ def _js_ux() -> str:
         const dates = H.dates || [];
         const pts = r.map((v, i) => [i, v]).filter(p => p[1] !== null && p[1] !== undefined);
         if (pts.length < 2) return '';
-        const N = D.table_data.length || 500;
+        // the universe being run, as every other count on the page reads it - never a literal size
+        const N = (D.kpis || {}).universe_size || D.table_data.length || Math.max(...pts.map(p => p[1]));
         const thr = ((H.noise || {}).material_threshold) || 0;
         const last = pts[pts.length - 1];
         let lo = Math.min(...pts.map(p => p[1])), hi = Math.max(...pts.map(p => p[1]));

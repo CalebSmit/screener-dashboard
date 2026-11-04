@@ -9,9 +9,9 @@ copy being found by hand. The plan's phase 1 makes them properties of the univer
 module is that, with the S&P 500 the only universe defined and the values unchanged, so nothing
 published moves (the phase's exit test).
 
-Still literal, deliberately, and listed so they are not forgotten: ``data-run.ps1``'s
-``$universe = 500`` (the data loop's own script, not edited within hours of a run) and the page's
-``D.table_data.length || 500`` fallback. ``tests/test_universe_definition.py`` names them.
+Still literal, deliberately, and listed so it is not forgotten: ``data-run.ps1``'s
+``$universe = 500`` (the data loop's own script, not edited within hours of a run).
+``tests/test_universe_definition.py`` names it. (The page's ``|| 500`` fallback went the same night.)
 """
 
 from __future__ import annotations
