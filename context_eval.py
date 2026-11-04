@@ -92,6 +92,34 @@ def skew_is_the_papers_measure(log: pd.DataFrame) -> pd.Series:
     return log[legs].notna().all(axis=1)
 
 
+def iv_is_the_published_construction(log: pd.DataFrame) -> pd.Series:
+    """True where a reading's implied volatilities were built the way the panel now builds them.
+
+    Both IV-derived signals - the ATM implied volatility and the put skew - depend on *how* an
+    implied volatility was arrived at, and 2026-11-04's review measured the two available
+    constructions a median 2.0-3.2 volatility points apart at the money and 2.0-2.5 apart on the
+    skew (``research/2026-11-03-open-source-quant-stack.md`` sections 1b-1d). Pooling them would be
+    the 2026-10-14 splice again one level down: the same column name holding two quantities.
+
+    An **unstamped** reading is a ``source`` reading. Every log to 2026-11-04 is the quote
+    response's own ``impliedVolatility`` field, because nothing in this project has ever inverted an
+    option price itself - so those readings keep counting while ``source`` is what the panel
+    publishes, and stop counting the day it is not, instead of being spliced into a series of a
+    different quantity. (What that is worth today is **one day**, 467 readings: the 2026-11-03
+    anchoring rule already excludes every log before 2026-11-04. Measured through this function, not
+    off the files - the first estimate, taken by reading the logs, was fifteen times too large.)
+
+    One constant, ``context_signals.PUBLISHED_IV_CONSTRUCTION``, so the record cannot disagree with
+    the page about which readings are the measure the panel's sentence describes - the rule
+    :func:`skew_is_the_papers_measure` and :func:`move_has_its_divisor` already follow.
+    """
+    from context_signals import PUBLISHED_IV_CONSTRUCTION
+    if "_ctx_opt_iv_src" not in log.columns:
+        return pd.Series(PUBLISHED_IV_CONSTRUCTION == "source", index=log.index)
+    src = log["_ctx_opt_iv_src"].where(log["_ctx_opt_iv_src"].notna(), "source")
+    return src.astype(str) == PUBLISHED_IV_CONSTRUCTION
+
+
 def move_has_its_divisor(log: pd.DataFrame) -> pd.Series:
     """True where an expected move was divided by the price its own quotes were taken against.
 
@@ -138,6 +166,10 @@ def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
             v = v.where(log["_ctx_opt_status"].isin(["ok", "partial"]))
         if key == "_ctx_opt_skew":
             v = v.where(skew_is_the_papers_measure(log))
+        if key in ("_ctx_opt_iv", "_ctx_opt_skew"):
+            # both are implied volatilities, so both depend on how one was built (2026-11-04).
+            # The expected move is not: it is bid/ask mids divided by the spot, no inversion.
+            v = v.where(iv_is_the_published_construction(log))
         if key in ("_ctx_opt_move", "_ctx_opt_iv", "_ctx_opt_skew"):
             # all three are measured from the reading's own price (2026-11-03 night)
             v = v.where(move_has_its_divisor(log))

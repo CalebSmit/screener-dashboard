@@ -258,6 +258,25 @@ def chain_spot(underlying, fallback) -> tuple[float | None, str]:
     return (f, "run") if np.isfinite(f) and f > 0 else (None, "none")
 
 
+# How an implied volatility on the options panel was arrived at, recorded per reading so two
+# constructions can never be pooled into one evidence series (the skew's own 2026-10-14 precedent:
+# excluded, never spliced).
+#
+#   ``source``    the quote response's own ``impliedVolatility`` field. What every reading to
+#                 2026-11-04 is: nothing in this project has ever inverted an option price itself,
+#                 so an **unstamped** reading is a ``source`` reading, not an unknown one.
+#   ``own_mid``   this project's own inversion of its own bid/ask mid - American exercise, discrete
+#                 dividends, a Treasury curve interpolated to the expiry.
+#
+# ``PUBLISHED_IV_CONSTRUCTION`` is the one the panel shows, and the only one the record counts.
+# Flipping it is what adopting the inversion means: ``context_eval`` then excludes the ``source``
+# readings from the skew's and the ATM IV's series instead of splicing them, and the generator must
+# gain the matching guard in the same commit (the ``SPOT_SOURCES`` rule, one page/record predicate).
+# Decided 2026-11-04 (13:00) on research/2026-11-03-open-source-quant-stack.md section 1d.
+IV_CONSTRUCTIONS = ("source", "own_mid")
+PUBLISHED_IV_CONSTRUCTION = "source"
+
+
 def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry: str,
                     today: date, spans_earnings: bool) -> dict:
     """What one expiry's chain says: the move it prices, implied vol, put skew, positioning.
@@ -309,6 +328,10 @@ def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry
     if len(ivs) == 2:
         out["_ctx_opt_iv"] = float(sum(ivs) / 2)
     out.update(_xzz_skew(calls, puts, spot, out.get("_ctx_opt_days")))
+    # Which construction every implied volatility in this reading came from. Stamped where there
+    # is one to describe, so a reading with no IV at all does not claim a construction.
+    if "_ctx_opt_iv" in out or "_ctx_opt_skew" in out:
+        out["_ctx_opt_iv_src"] = "source"
     coi, poi = calls.get("openInterest"), puts.get("openInterest")
     if coi is not None and poi is not None:
         c_sum, p_sum = float(np.nansum(coi.values)), float(np.nansum(poi.values))

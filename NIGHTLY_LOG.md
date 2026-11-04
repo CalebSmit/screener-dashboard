@@ -18989,3 +18989,141 @@ passed here.
   first saved output is the evidence the 11-04 failure lacked.
 - The 06:00 entry's Next stands (the stash parent-count note; the 37 named-ticker references;
   universe phase 1).
+
+## 2026-11-04 (13:00 midday) - QUEUE. A second session today - more of the work, not a different kind. Read today's earlier NIGHTLY_LOG.md entry first and carry on from its Next; if it finished, take the next open item in OWNER_FOCUS.md, then the top of CLAUDE.md "Current priorities", then the queues in plan/factor-lab.md, plan/context-layer.md and plan/backtest-v2.md. Finish one item end to end, to the same evidence standard as any other session. Do not repeat or reverse a decision an earlier session made today without new evidence, and write down why if you do.
+
+**Health (rule 8, all five):** last code session ran? **the runner's line said "held back by its
+gates"** - `logs/nightly-2026-11-04_060000.log` - but **nothing is actually held back**:
+`health_numbers.held_back` named no branch and `git log origin/main..origin/nightly/2026-11-04` is
+empty, because the owner-run morning session merged that work after re-running all five gates (its
+entry above). So there was no refused branch to merge, and the line is reading the 06:00 run log's
+own ending rather than where the work ended up - worth knowing before the next session spends time
+looking for it. Data loop published? yes - `logs/datarun-2026-11-04_020001.log` (completed; HEALTH:
+PASS). Evidence base at `1m`: **5 of 8 effective** observations needed at the `1m` horizon (43 rows,
+but overlapping windows are not independent; 111 rows across all horizons), newest `1m` run date
+**2026-10-02 (33 days ago, bound 40)**. Priority 0: `allow_auto_apply` **false**. Top open roadmap
+item: **0.13, The Factor Lab** (age **23 days**); also open: 0.10 28d, 0.14 21d.
+**Tests:** before **3,896 passed / 1 skipped**; after **3,901 passed / 1 skipped**.
+**Owner queue / rotation:** I am today's **third** session. The 06:00 entry's Next named the three
+open proposals as the first job, and prompt section 1 says deciding one outranks the focus, so I
+took the one it named first. Nothing was deferred for a broken loop or a gate. The deferral-streak
+rule did not fire: this session carried an owner item (`OWNER_FOCUS.md` item 1, "Decide the OPEN
+proposals"). No decision made earlier today was reversed.
+
+### Did
+
+**Decided the implied-volatility proposal: ACCEPTED - the options panel should invert its own
+bid/ask mids rather than take the quote response's `impliedVolatility` field as given.**
+`research/2026-11-03-open-source-quant-stack.md` section 1, open 1 day, written by an owner-run
+session; section 1d is the review. This is the **ninth** proposal reviewed and the **second running**
+to be accepted after six refusals. I did not write the note or its measurement.
+
+1. **Pre-registered my own reading before computing anything** (section 1c, commit `fb27f1c`): a
+   disjoint sample, the candidate construction the author could not test, the dividend gap in its
+   cross-check, the literature check, and the adopt/refuse rule. The author's own pre-registration
+   checks out in `git log` too - section 1a in `57958d5`, the result in `741215b`.
+2. **Replicated on a disjoint sample, mid-session** (`recs[5::10]`, no overlap with the author's
+   `recs[::10]`): 40 of 50 stocks priced, QuantLib minus the field **median -1.78 volatility points,
+   median |difference| 2.00, max 7.51**. The 1-point bar holds on a second sample; the gap is about a
+   third narrower at 14:10 ET than the author's 3.16 at 21:00.
+3. **Closed the gap in the author's cross-check.** Its printout said 10 of 10 ATM calls reproduced an
+   independently written binomial tree but not how many carried a **dividend** - the part the note
+   itself calls hardest. Measured on two sets chosen by the same rule: **10 of 10 with no dividend
+   and 9 of 9 with one**, 19 of 19 within half a point (largest CF, 60.46% against 60.82%).
+4. **Found the deciding evidence already in this repository.** The note marks its key inference -
+   that a negative put skew is the unusual case - as uncited. It needn't be: **Xing, Zhang & Zhao's
+   Table 1 (p. 647)** puts the 5th percentile of their skew at **-0.99** points, so a negative skew
+   is about a **one-in-sixteen** event in the data the measure comes from. It was read from the paper
+   by the 2026-10-14 session and sits in
+   `research/measurements/2026-10-14-skew-distribution-vs-paper.py`.
+5. **Measured our published record against it on the whole universe, not 48 stocks.** From the
+   committed context logs: the field puts the skew negative for **42-60% of stocks (median 47%) on
+   every one of the 12 logged days** under the current construction, 476-493 stocks a day - about
+   **5,800 stock-days** - with a median skew straddling zero against the paper's +4.76 points. I also
+   dated the construction boundary from the data (the two-leg columns first appear in the **10-16**
+   log, six old-construction days before it) and confirmed `context_eval`'s existing predicate keys
+   on those legs rather than on a date, so it already puts the boundary in exactly the right place.
+6. **Shipped the piece the switch needs first**, which is also the change to the proposal:
+   `_ctx_opt_iv_src` on every reading, `IV_CONSTRUCTIONS` and one `PUBLISHED_IV_CONSTRUCTION`
+   constant, and `context_eval.iv_is_the_published_construction` masking the two IV-derived signals
+   so the record can never **pool** two constructions - the 2026-10-14 splice one level down. An
+   unstamped reading counts as `source`, because nothing here has ever inverted an option price. The
+   expected move is deliberately **not** masked: it is mids over the spot with no inversion in it,
+   and a test fails if that distinction is lost. `METHODOLOGY_CHANGELOG.md` 2026-11-04 (13:00); 5
+   tests. **No published number, score, rank or sentence changed** - every reading today is `source`,
+   so the mask passes exactly what it passed yesterday, and the stamp is not in `CTX_FIELDS`.
+
+### Evidence / research
+
+- **Xing, Zhang & Zhao (2010)**, *JFQA* 45(3) 641-662, **Table 1, p. 647**: `SKEW` mean **+6.40**
+  volatility points, **5% -0.99**, 25% +2.40, 50% +4.76, 75% +8.43, 95% +19.92; 1996-2005, ~840
+  firms a week, OptionMetrics. Conditions matter and are stated in the note: all optioned US stocks,
+  and skew is a small-company phenomenon in their own data (steepest-skew quintile $4.29bn of market
+  value against $13.8-14.7bn in the middle), so an S&P 500 screen should sit flatter - which is why
+  the 10-14 session's ~5-point level gap is reported rather than treated as an error. Read from the
+  paper by that session, not by me; I used its recorded figures.
+- **Cboe**, *American and European-Style Theoretical Options Calculation Methodology*, and
+  **OptionMetrics IvyDB** product literature (both cited in the note): a binomial tree with discrete
+  dividends, inverted against the **mid of the best bid and offer**, off the Treasury
+  constant-maturity curve. XZZ's volatilities are IvyDB's. Our proposed construction is theirs with a
+  linear rather than cubic-spline interpolation of the same free curve; the field we publish today is
+  documented nowhere.
+- **A documented failure, measured:** the field reproduces **none of eight candidate constructions**
+  across two sessions. Mine were the four the author could not reach after the close, including the
+  obvious remaining one - the last trade inverted against the underlying's price **at the minute of
+  that trade**, from the day's 1-minute bars (American 2.15 points, European 2.13, against ours at
+  2.30; 11-12% of contracts within half a point in all three). So the argument for adoption is not
+  "our sign is more plausible" but this project's own rule: **a number nobody can rebuild cannot be
+  checked from the page** (row 0.8).
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-11-04 (13:00) - "Proposal ACCEPTED: the options panel will
+  invert its own mids, and a reading now records which construction it used"**. Display-only area
+  (settled row "ctx"), plus the evidence record. **No weight, metric, threshold or published figure
+  moved.** The inversion itself is the next session's build; its order is section 1d's last
+  subsection.
+
+### Tried and rejected
+
+- **Building the inversion in the same session.** I checked whether it was tractable rather than
+  assuming either way, and the answer is no, for one measured reason: the dividend *schedule* needs
+  an ex-date, and the newest `00_raw_fetch.parquet` carries `dividendRate` (403 of 503) and
+  `trailingAnnualDividendRate` (503 of 503) but **no `exDividendDate`, `lastDividendDate` or
+  `lastDividendValue`**. The 11-03 measurement got dates from `yf.Ticker.dividends`, a request per
+  stock inside the pass that tripped the rate limiter when it ran inside the core fetch. So the build
+  starts with a **fetch-schema change** (`exDividendDate` onto the already-pulled `.info`), which
+  cannot be verified without a throwaway full run. Written into the build order as its first step.
+- **The note's own account of why the field disagrees** - "computed at some earlier moment of the day
+  against a different underlying price". Not confirmed; see above. Left in the note as the author's
+  hypothesis with my refutation beside it.
+- **My own first sizing of what the switch costs.** The draft said "18 logged days of
+  `options_atm_iv` and 12 of the skew", read off the log files. Run through
+  `context_eval.signals_frame` itself: **one day, 467 and 466 readings** - all seventeen earlier days
+  are already excluded by the 2026-11-03 (night) anchoring rule. **Fifteen times too large**, and it
+  inverts the conclusion about timing: there is no month of evidence to protect, so delay is the
+  expensive option. Corrected in the note, the changelog, the `context_eval` docstring and the test
+  that repeated it. The general lesson: the cost of a change to an evidence series is a number to get
+  from the code that builds the series, not from the files underneath it.
+- **A full-universe measurement of *our* construction.** It would need ~500 option chains re-pulled
+  mid-session, and the one documented cause of a rate-limited run is a second full pass within hours
+  of another. Both our figures (48 stocks after the close, 26 mid-session) are small samples and the
+  note now says so; the field's side is the one measured on 5,800 stock-days.
+
+### Next
+
+- **Build the inversion**, order in `research/2026-11-03-open-source-quant-stack.md` section 1d:
+  `exDividendDate` onto the `.info` fetch first (verified with a throwaway full run), then one
+  inversion feeding all three contracts, the cached FRED curve with a fallback, a `source` fallback
+  and stamp wherever QuantLib or a mid is missing, then flip `PUBLISHED_IV_CONSTRUCTION` **with the
+  generator's matching guard in the same commit**, pin QuantLib 1.44 in `requirements.txt`, say the
+  construction on the panel with a registered claim, and measure coverage before and after. The one
+  unsized cost is coverage: **160 of 196 contracts (82%)** carrying a source IV had a usable mid.
+  Do not loosen `MAX_REL_SPREAD` or the IV bounds to win it back.
+- **Two proposals still waiting**, both opened 2026-11-03: the 13F-filer log line
+  (`research/2026-11-03-following-the-smart-money.md`) and registering the `short_interest_ratio`
+  research-engine experiment (`research/2026-11-03-short-interest-days-to-cover.md` - registering one
+  forces a ~20-minute rerun of all 32 ledger rows, so budget it).
+- The 06:00 entry's Next still stands: the refused-run context-log question (and the
+  `auto-rescue` stash with it), the 37 named-ticker references in 6 payload-reading test modules, and
+  universe phase 1's next slice.
