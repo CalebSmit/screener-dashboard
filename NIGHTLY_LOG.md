@@ -18947,3 +18947,45 @@ between this screener's categories, and +0.166 on one run is weak. It is a Monda
 - Still waiting from 2026-11-03: the **37 named-ticker references in 6 payload-reading test
   modules** (daytime work, rewrites JavaScript in UI modules), and **universe phase 1**'s next
   slice (`data-run.ps1`'s `$universe = 500`, then `size_band` and the per-band gates).
+
+## 2026-11-04 (owner-run, morning) - the 06:00 work landed, and a refused branch is no longer invisible
+
+**Health (rule 8, all five):** last code session ran? yes, but **held back by its gates** -
+`logs/nightly-2026-11-04_060000.log` (gate 5 failed once: "FAIL  check_published_claims").
+Data loop published? yes - `logs/datarun-2026-11-04_020001.log` (completed; HEALTH: PASS;
+published claims 2,141 passed, the first payload built under the 11-03 anchoring and turnover
+rules). Evidence base at `1m`: 5 of 8 needed (43 rows), newest 1m run date 2026-10-02 (33 days,
+bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor
+Lab** (age **23 days**). **Tests:** 3,896 passed / 1 skipped on the merged tree; all five gates
+passed here.
+
+### Did
+
+1. **The 06:00 session's work is on `main`.** Its decision (Investment stays standalone, the fold
+   refused, four paragraphs on the methodology page) passed gates 1-4 and failed gate 5 once at
+   06:51-06:56. The same gate on the same commit then passed **three** times: in a scratch worktree,
+   in the main folder with the runner's exact command at ~08:30, and on the merged tree here. The
+   session's own rehearsal had also passed. Merged unchanged, all five gates re-run, pushed while
+   no session ran.
+2. **Why nobody could say what failed, fixed.** The runner logged only lines starting FAIL/FAILED;
+   `check_published_claims.py` prints its verdict as "PUBLISHED CLAIMS: FAIL (pytest exit N)" and
+   a collection or teardown failure as `ERROR ...` lines, and the full output was kept nowhere. Now
+   a failed gate 1 or 5 writes its whole output to `logs/nightly-<stamp>.gate1.txt` / `.gate5.txt`
+   (never fatal), and gate 5 logs every ERROR and PUBLISHED CLAIMS line. The likeliest cause - a
+   synced-folder lock during the rehearsal's install, seen before on 2026-10-15, or a parallel
+   browser-test timeout - is a guess until the next failure leaves its output.
+3. **A refused branch is named to the next session.** `health_numbers.held_back` lists every
+   `origin/nightly/*` branch holding commits `origin/main` lacks, in the health line the runner puts
+   in every prompt; `prompts/nightly.md` "Work the gates held back" says to read the saved output,
+   merge the branch into the session's own, and let the runner's gates judge it again. Before this,
+   the 13:00 session would have started from a `main` without the morning's work or its log entry.
+4. **The brief says what happened.** A failed ship gate read "stopped deliberately", which sounds
+   like the session chose to stop; it now reads "held back by its gates (work kept on its branch,
+   not on main)". "Stopped deliberately" stays for a discarded data run.
+
+### Next
+
+- When a gate next fails, read its `.gate5.txt` / `.gate1.txt` before re-running anything - the
+  first saved output is the evidence the 11-04 failure lacked.
+- The 06:00 entry's Next stands (the stash parent-count note; the 37 named-ticker references;
+  universe phase 1).
