@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (15 `open:` rows since 2026-11-03 night):**
+**What remains, as a queue (10 `open:` rows since 2026-11-03 night):**
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself
@@ -1383,8 +1383,13 @@ unscored checks do not depend on it, because a hand-made unscored category runs 
    `macro-percentile-label` reads the Market tile's label and scale against the published
    `pct_10y`, with hand-worked ordinals at the edges (11th, 13th, 22nd, 100th). 14 of 14 mutations
    caught (`research/measurements/2026-11-03-context-card-mutations.py`).
-5. **History and counts:** `rank-history-span`, `rank-history-run-count`, `rank-history-built-from`,
-   `noise-band-pairs`, `reporting-soon-counts`, ~~`distribution-range`, `distribution-dot-count`~~
+5. **History and counts:** ~~`rank-history-span`, `rank-history-run-count`, `rank-history-built-from`,
+   `noise-band-pairs`, `reporting-soon-counts`~~ (CLOSED 2026-11-03 night: new claims
+   `history.rank_counts` and `dashboard.reporting_soon_counts` - every stock's rank-history line
+   against its own series and today's rank, the noise band's pair count recounted from the dates,
+   the 7- and 14-day counts from the earnings dates, and hand-worked edges for the two cases
+   today's data could not exercise; 8 of 8 mutations,
+   `research/measurements/2026-11-03-history-count-mutations.py`), ~~`distribution-range`, `distribution-dot-count`~~
    (CLOSED 2026-11-03: the rankings strip's count, range and median against the table, the median
    checked to be the ranking's own, and an unscored row built by hand; 4 of 4 mutations caught),
    `holdings-rank-strip`, `holdings-rank-strip-axis` (drawn by `renderTileViz`; tonight's `_TILE_JS`

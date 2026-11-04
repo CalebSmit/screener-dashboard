@@ -1384,6 +1384,37 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="history.rank_counts",
+        surface=DRILLDOWN,
+        asserts=(
+            "What Changed says how many comparable runs the history is built from and over which "
+            "dates; its material-move threshold is the 95th percentile of rank changes between "
+            "consecutive comparable runs at most a week apart, and it names how many such pairs and "
+            "observations that is. Each stock's rank-history line gives its first and last ranked "
+            "runs, the ranks on them and how many runs ranked it; the last is today's published "
+            "rank when it was ranked today (2026-11-03)."
+        ),
+        made_true_by="history:rank_change_noise",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_rank_history_line_is_the_stocks_own_series",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_caption_and_footnote_count_their_own_runs",
+            "tests/test_dashboard_printed_figures.py::test_a_hand_worked_rank_history_that_stopped_before_today",
+        ),
+    ),
+    Claim(
+        id="dashboard.reporting_soon_counts",
+        surface=DRILLDOWN,
+        asserts=(
+            "Reporting soon's header counts the ranked companies whose published earnings date is 0-7 "
+            "and 0-14 days after the run's own date (2026-11-03)."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_the_reporting_soon_counts_are_the_earnings_dates_within_7_and_14_days",
+            "tests/test_dashboard_printed_figures.py::test_the_reporting_soon_window_edges_by_hand",
+        ),
+    ),
+    Claim(
         id="history.run_overview",
         surface=DRILLDOWN,
         asserts=(

@@ -1461,3 +1461,135 @@ def test_every_sum_of_parts_line_redoes_its_own_arithmetic(page, data):
                 problems.append(f"{t}/{m}: 'the same {_text(g['ok'])} that was scored' against {_text(g['raw'])}")
     assert all(n >= 100 for n in checked.values()), checked
     assert not problems, f"{len(problems)}: {problems[:5]}"
+
+
+# ---------------------------------------------------------------------------
+# history.run_overview / the rank history - the history and count lines (claims audit queue item 5,
+# 2026-11-03 night): each count recomputed here from the published history and earnings dates
+# ---------------------------------------------------------------------------
+_HIST_JS = """() => { const out = {};
+    for (const t of Object.keys(H.series || {})) { renderStockHistory(t);
+        const head = document.querySelector('#modal-history .rank-chart-head span');
+        const note = document.querySelector('#modal-history .modal-note');
+        out[t] = head && document.getElementById('section-history').style.display !== 'none'
+            ? [head.textContent, note ? note.textContent : null] : null; }
+    return out; }"""
+_HIST_HEAD = re.compile(r"^Rank (\d+) on (.+?) → (\d+) on (.+?), across (\d+) comparable runs$")
+
+
+def test_every_rank_history_line_is_the_stocks_own_series(page, data):
+    """For every stock with two or more ranked runs: the first and last ranks and dates are its own
+    series', the run count is the number of runs that ranked it, the closing rank is today's
+    published rank when it was ranked today, and 'Based on N comparable runs' counts the dates."""
+    H = data.get("history") or {}
+    if not (H.get("available") and H.get("series")):
+        pytest.skip("MISSING DATA: the payload carries no comparable history")
+    rank_now = {r["Ticker"]: r.get("Rank") for r in data["table_data"]}
+    got = page.evaluate(_HIST_JS)
+    pretty = dict(zip(H["dates"], page.evaluate("ds => ds.map(prettyDate)", H["dates"])))
+    problems, shown = [], 0
+    for t, ser in H["series"].items():
+        pts = [(i, r) for i, r in enumerate(ser["r"]) if r is not None]
+        if len(pts) < 2:
+            if got.get(t) is not None:
+                problems.append(f"{t}: a history line with fewer than two ranked runs")
+            continue
+        shown += 1
+        if got.get(t) is None:
+            problems.append(f"{t}: no history line")
+            continue
+        m = _HIST_HEAD.match(re.sub(r"\s+", " ", got[t][0]).strip())
+        (i0, r0), (i1, r1) = pts[0], pts[-1]
+        want = (str(r0), pretty[H["dates"][i0]], str(r1), pretty[H["dates"][i1]], str(len(pts)))
+        if not m or m.groups() != want:
+            problems.append(f"{t}: printed {got[t][0]!r}, its series says {want}")
+        if i1 == len(H["dates"]) - 1 and rank_now.get(t) is not None and r1 != rank_now[t]:
+            problems.append(f"{t}: history ends at rank {r1}, today's table says {rank_now[t]}")
+        if got[t][1] != f"Based on {len(H['dates'])} comparable runs.":
+            problems.append(f"{t}: {got[t][1]!r}")
+    assert shown > 400, shown
+    assert not problems, f"{len(problems)}: {problems[:5]}"
+
+
+def test_the_whats_changed_caption_and_footnote_count_their_own_runs(page, data):
+    """'Built from N comparable runs, first to last' counts the published dates; the noise band's
+    'N paired runs' is the number of consecutive dates no more than history.MAX_NOISE_PAIR_GAP_DAYS
+    apart, recounted here; its observation count is printed as published and is at least what the
+    published series alone can supply (departed stocks add more)."""
+    import history
+    H = data.get("history") or {}
+    if not H.get("available"):
+        pytest.skip("MISSING DATA: the payload carries no comparable history")
+    got = page.evaluate("() => { renderChanged(); return [document.getElementById('changed-caption').textContent, "
+                        "document.getElementById('changed-footnote').textContent]; }")
+    d = H["dates"]
+    first, last = page.evaluate("ds => ds.map(prettyDate)", [d[0], d[-1]])
+    assert f"Built from {len(d)} comparable runs, {first} to {last}." in got[1]
+    n = H["noise"]
+    if n.get("source") != "measured":
+        assert "a default used until there are enough paired runs" in got[0]
+        return
+    from datetime import date as _date
+    gaps = [(_date.fromisoformat(b) - _date.fromisoformat(a)).days for a, b in zip(d, d[1:])]
+    pairs = sum(g <= history.MAX_NOISE_PAIR_GAP_DAYS for g in gaps)
+    assert n["n_pairs"] == pairs, (n["n_pairs"], pairs)
+    lower = 0
+    for i, g in enumerate(gaps):
+        if g <= history.MAX_NOISE_PAIR_GAP_DAYS:
+            lower += sum(1 for s in H["series"].values() if s["r"][i] is not None and s["r"][i + 1] is not None)
+    assert n["n_observations"] >= lower, (n["n_observations"], lower)
+    obs = f"{n['n_observations']:,}"
+    assert (f"past ±{n['material_threshold']} ranks, the 95th percentile of ordinary run-to-run variation "
+            f"measured across {pairs} paired runs ({obs} observations).") in got[0], got[0]
+
+
+def test_the_reporting_soon_counts_are_the_earnings_dates_within_7_and_14_days(page, data):
+    """Counted here from each ranked stock's published earnings date against the run's own date."""
+    from datetime import date as _date
+    run = _date.fromisoformat(data["kpis"]["run_timestamp"][:10])
+    days = []
+    for r in data["table_data"]:
+        e = (data["stock_detail"].get(r["Ticker"]) or {}).get("earn") or {}
+        if e.get("d"):
+            days.append((_date.fromisoformat(e["d"]) - run).days)
+    a, b = sum(0 <= x <= 7 for x in days), sum(0 <= x <= 14 for x in days)
+    got = page.evaluate("() => { reportingMeta(); return document.getElementById('meta-reporting').textContent; }")
+    assert got == f"{a} report within 7 days of this run · {b} within 14"
+
+
+def test_a_hand_worked_rank_history_that_stopped_before_today(page, data):
+    """A stock last ranked two runs ago: the closing rank and date are that run's, not today's."""
+    H = data.get("history") or {}
+    if not (H.get("available") and len(H.get("dates") or []) >= 4):
+        pytest.skip("MISSING DATA: fewer than four comparable runs")
+    n = len(H["dates"])
+    r = [None] * n
+    r[0], r[1], r[n - 3] = 40, 35, 12
+    got = page.evaluate("""(r) => { H.series.ZZZ = { r: r, c: r.map(() => null) };
+        try { renderStockHistory('ZZZ'); return document.querySelector('#modal-history .rank-chart-head span').textContent; }
+        finally { delete H.series.ZZZ; } }""", r)
+    d0, dl = page.evaluate("ds => ds.map(prettyDate)", [H["dates"][0], H["dates"][n - 3]])
+    assert re.sub(r"\s+", " ", got).strip() == f"Rank 40 on {d0} \u2192 12 on {dl}, across 3 comparable runs"
+
+
+def test_the_reporting_soon_window_edges_by_hand(page, data):
+    """Reports on day 7 count in both windows, day 8 only in the 14-day one, day 15 in neither, and
+    yesterday's in neither - set on three stocks by hand and counted against the unchanged rest."""
+    from datetime import date as _date, timedelta
+    run = _date.fromisoformat(data["kpis"]["run_timestamp"][:10])
+    picks = [r["Ticker"] for r in data["table_data"][:4]]
+    when = {picks[0]: run + timedelta(days=7), picks[1]: run + timedelta(days=8),
+            picks[2]: run + timedelta(days=15), picks[3]: run - timedelta(days=1)}
+    days = []
+    for r in data["table_data"]:
+        e = (data["stock_detail"].get(r["Ticker"]) or {}).get("earn") or {}
+        d = when.get(r["Ticker"]) or (_date.fromisoformat(e["d"]) if e.get("d") else None)
+        if d:
+            days.append((d - run).days)
+    a, b = sum(0 <= x <= 7 for x in days), sum(0 <= x <= 14 for x in days)
+    got = page.evaluate("""(w) => { const keep = {};
+        for (const [t, d] of Object.entries(w)) { const s = D.stock_detail[t]; keep[t] = s.earn; s.earn = Object.assign({}, s.earn || {}, { d: d }); }
+        try { reportingMeta(); return document.getElementById('meta-reporting').textContent; }
+        finally { for (const t of Object.keys(keep)) D.stock_detail[t].earn = keep[t]; reportingMeta(); } }""",
+                        {t: d.isoformat() for t, d in when.items()})
+    assert got == f"{a} report within 7 days of this run \u00b7 {b} within 14"

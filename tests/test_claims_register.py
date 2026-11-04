@@ -1228,13 +1228,13 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "It trades ${pctNearZero(sc.price_gap_pct, 1).mag}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
         'open:share-class-price-gap - drilldown.share_class_second_line checks the ratio identity, not the printed gap',
     ', the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).':
-        "open:noise-band-pairs - the paired-run and observation counts; nothing reads the page's printing",
+        'claim:history.rank_counts',
     '${mv.n_up} stocks moved up materially and ${mv.n_down} moved down; showing the largest ${shownUp} and ${shownDown}.':
         'claim:history.run_overview',
     '${mv.n_round_trip} of ${mv.n_up + mv.n_down} are flagged round-trip:':
         'claim:history.run_overview',
     'Built from ${H.dates.length} comparable runs, ${escapeHtml(prettyDate(H.dates[0]))} to ${escapeHtml(prettyDate(H.dates[H.dates.length - 1]))}.':
-        "open:rank-history-built-from - the run count; nothing reads the page's printing",
+        'claim:history.rank_counts',
     'Remove all ${holdings.length} names from this list?':
         'claim:dashboard.holdings_fit',
     'on this screener’s own history, acting on the top ${(c.num_stocks || 25)} at every run implies ${c.turnover_every_run.toFixed(0)}% monthly one-sided turnover against ${c.turnover_monthly.toFixed(0)}% reviewing the same rule monthly.':
@@ -1340,7 +1340,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '; a cost of ${cPlain(TO.break_even_cost, 2)} on every dollar traded would have erased its lead over RSP':
         'claim:context.track_turnover',
     '${a} report within 7 days of this run · ${b} within 14':
-        "open:reporting-soon-counts - nothing reads the page's printing",
+        'claim:dashboard.reporting_soon_counts',
     '${Math.abs(X.t).toFixed(1)} standard errors, where two is the usual bar':
         'claim:context.track_luck',
     '${n} companies, one dot each':
@@ -1374,9 +1374,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'The panic state needs a negative return and volatility above ${pc(m.vol_threshold)}, so Momentum&rsquo;s weight is unchanged.':
         'claim:overview.momentum_regime',
     'Rank ${first[1]} on ${escapeHtml(prettyDate(H.dates[first[0]]))} &rarr; ${last[1]} on ${escapeHtml(prettyDate(H.dates[last[0]]))}, across ${pts.length} comparable runs':
-        "open:rank-history-span - nothing reads the page's printing",
+        'claim:history.rank_counts',
     "${rankChartSvg(ser.r)} ${catTable(d.prev, 'Since last run', (H.compare.prev || {}).date || '')} ${catTable(d.m1, 'Since ~1 month', (H.compare.m1 || {}).date || '')} Based on ${H.dates.length} comparable runs.":
-        "open:rank-history-run-count - nothing reads the page's printing",
+        'claim:history.rank_counts',
     'Its figure was ${fmtBig(evApi)} against the ${fmtBig(evUsed)} used here.':
         'claim:drilldown.ev_substituted',
     'Only ${fl.beta_overlap_pct.toFixed(0)}% of this company&rsquo;s trading days in the last year line up with the S&amp;P 500&rsquo;s, under the 80% the screener requires, so beta is left unscored and the Risk category&rsquo;s weight is shared across the measures that do have data.':
@@ -1390,12 +1390,7 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
     'ni-growth-yoy',
-    'noise-band-pairs',
     'price-target-strip',
-    'rank-history-built-from',
-    'rank-history-run-count',
-    'rank-history-span',
-    'reporting-soon-counts',
     'share-class-price-gap',
     'short-ratio',
     'show-next-count',
