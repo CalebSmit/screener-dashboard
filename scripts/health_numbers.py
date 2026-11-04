@@ -25,10 +25,13 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import write_brief as wb  # noqa: E402
 
-# A code-session log is finished once the runner has written its brief (it does so from
+# A code-session log is finished once the runner has started its brief (it does so from
 # `finally`, whatever happened). The session reading this is usually inside the newest log, which
-# has no such line yet - so "the last code session" is the newest *finished* one.
-FINISHED = ("Morning brief published", "Morning brief written", "=== Run ")
+# has no such line yet - so "the last code session" is the newest *finished* one. That is
+# "Writing morning brief", not "Morning brief published" (2026-11-03): a run that could not reach
+# GitHub never publishes one, so the 06:00 session skipped that morning for a DNS failure was
+# passed over as unfinished, and the line reported the day before's login failure in its place.
+FINISHED = wb.FINISHED
 OPEN_ITEM = re.compile(r"^\*\*(\d+(?:\.\d+)?)\. ([^*(]+?)\s*\(opened (\d{4}-\d{2}-\d{2})", re.M)
 
 # The runner's own marker for a session that never started, and nothing else.
@@ -52,21 +55,26 @@ OPEN_ITEM = re.compile(r"^\*\*(\d+(?:\.\d+)?)\. ([^*(]+?)\s*\(opened (\d{4}-\d{2
 # argument. So: match the runner's line shape (`[ERROR] SESSION DID NOT RUN: <reason>`), never the
 # phrase wherever it appears.
 DID_NOT_RUN = re.compile(r"\[ERROR\]\s*SESSION DID NOT RUN:\s*(.*)")
+# An error the runner wrote itself - unindented; echoed native output under [ERROR] is indented.
+RUNNER_ERROR = re.compile(r"^﻿?\[\d{2}:\d{2}:\d{2}\] \[ERROR\] (\S.*?)\s*$")
 
 
 def last_code_session() -> str:
     for path in sorted(wb.LOGS.glob("nightly-*.log"), key=lambda p: p.stat().st_mtime, reverse=True):
         lines = wb.tail(path, 400)
-        text = "\n".join(lines)
-        if any(m in text for m in wb.NOT_A_SESSION) or not any(m in text for m in FINISHED):
+        if wb.said(lines, *wb.NOT_A_SESSION) or not wb.said(lines, *FINISHED):
             continue
         marker = next((m for m in (DID_NOT_RUN.search(ln) for ln in lines) if m), None)
         if marker:
             why = marker.group(1).strip()
             return f"**no** - `logs/{path.name}`: SESSION DID NOT RUN ({why[:140]})"
         state, _ = wb.outcome(lines)
-        verdict = "yes" if state.startswith("completed") else f"**{state}**"
-        return f"{verdict} - `logs/{path.name}` ({state})"
+        if state.startswith("completed"):
+            return f"yes - `logs/{path.name}` ({state})"
+        # Say why it stopped: "failed" alone sent a reader to the log for the one fact that matters.
+        errors = [m.group(1) for m in map(RUNNER_ERROR.search, lines) if m]
+        why = f": {errors[-1][:140]}" if errors else ""
+        return f"**{state}** - `logs/{path.name}` ({state}{why})"
     return "unknown - no finished code-session log in logs/"
 
 
@@ -75,10 +83,11 @@ def data_loop() -> str:
     if not path:
         return "unknown - no data-run log in logs/"
     lines = wb.tail(path, 2000)
-    text = "\n".join(lines)
     state, _ = wb.outcome(lines)
-    health = "HEALTH: PASS" if "HEALTH: PASS" in text else "no HEALTH: PASS line"
-    published = "Data loop complete" in text
+    # check_run_health's verdict is native output, so it is the one marker read indented.
+    passed = any(m.lstrip().startswith("HEALTH: PASS") for m in wb.messages(lines))
+    health = "HEALTH: PASS" if passed else "no HEALTH: PASS line"
+    published = wb.said(lines, "=== Data loop complete ===")
     verdict = "yes" if published else "**no**"
     return f"{verdict} - `logs/{path.name}` ({state}; {health})"
 

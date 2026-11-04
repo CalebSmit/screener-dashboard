@@ -54,8 +54,10 @@ def _log(folder: Path, name: str, body: str, mtime: float):
 
 def test_the_last_session_is_the_newest_finished_one(tmp_path, monkeypatch):
     monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
-    _log(tmp_path, "nightly-a.log", "[06:00:00] [INFO] shipped to main\n[06:40:00] [INFO] Morning brief published.\n", 1000)
-    _log(tmp_path, "nightly-b.log", "[13:00:00] [INFO] === Dry run complete ===\n[13:00:01] [INFO] Morning brief published.\n", 2000)
+    _log(tmp_path, "nightly-a.log", "[06:00:00] [INFO] === Run complete: shipped to main ===\n"
+         "[06:40:00] [INFO] Writing morning brief...\n[06:40:00] [INFO] Morning brief published.\n", 1000)
+    _log(tmp_path, "nightly-b.log", "[13:00:00] [INFO] === Dry run complete ===\n"
+         "[13:00:01] [INFO] Writing morning brief...\n[13:00:01] [INFO] Morning brief published.\n", 2000)
     _log(tmp_path, "nightly-c.log", "[13:00:00] [INFO] Invoking Claude Code...\n", 3000)   # running now
     got = hn.last_code_session()
     assert got.startswith("yes - `logs/nightly-a.log`")
@@ -65,7 +67,7 @@ def test_a_session_that_did_not_run_says_so_and_why(tmp_path, monkeypatch):
     monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
     _log(tmp_path, "nightly-a.log",
          "[06:00:04] [ERROR] SESSION DID NOT RUN: session reported an error - Failed to authenticate\n"
-         "[06:08:00] [INFO] Morning brief published.\n", 1000)
+         "[06:08:00] [INFO] Writing morning brief...\n[06:08:00] [INFO] Morning brief published.\n", 1000)
     got = hn.last_code_session()
     assert got.startswith("**no**") and "Failed to authenticate" in got
 
@@ -100,7 +102,7 @@ def test_a_healthy_session_is_not_called_dead_by_the_previous_verdict_in_its_own
          "[08:03:46] [INFO] === Code loop 2026-11-03 ===\n"
          + ECHOED_HEALTH_LINE +
          "[09:14:34] [INFO] === Run complete: shipped to main ===\n"
-         "[09:14:41] [INFO] Morning brief published.\n", 1000)
+         "[09:14:41] [INFO] Writing morning brief...\n[09:14:41] [INFO] Morning brief published.\n", 1000)
     got = hn.last_code_session()
     assert got.startswith("yes - `logs/nightly-a.log`"), (
         f"a session that shipped to main must read as healthy whatever the previous "
@@ -123,7 +125,7 @@ def test_a_real_marker_still_fires_when_the_echo_sits_in_the_same_log(tmp_path, 
     _log(tmp_path, "nightly-a.log",
          ECHOED_HEALTH_LINE +
          "[13:04:04] [ERROR] SESSION DID NOT RUN: usage limit reached\n"
-         "[13:08:00] [INFO] Morning brief published.\n", 1000)
+         "[13:08:00] [INFO] Writing morning brief...\n[13:08:00] [INFO] Morning brief published.\n", 1000)
     got = hn.last_code_session()
     assert got.startswith("**no**"), f"a genuine marker must still fire; got {got!r}"
     assert "usage limit reached" in got, (
@@ -143,7 +145,7 @@ def test_the_reason_is_never_empty_when_the_verdict_is_no(tmp_path, monkeypatch)
     monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
     _log(tmp_path, "nightly-a.log",
          "[13:04:04] [ERROR] SESSION DID NOT RUN: tree was dirty\n"
-         "[13:08:00] [INFO] Morning brief published.\n", 1000)
+         "[13:08:00] [INFO] Writing morning brief...\n[13:08:00] [INFO] Morning brief published.\n", 1000)
     got = hn.last_code_session()
     assert "SESSION DID NOT RUN ()" not in got, (
         "a verdict of no with no reason tells the next session nothing; it meant the phrase "

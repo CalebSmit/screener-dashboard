@@ -140,10 +140,10 @@ class TestStallBanner:
         assert days is None
 
     def test_a_failed_session_is_classified_distinctly_from_a_success(self):
-        assert wb.outcome(["[06:00:01] [INFO] shipped to main"])[0] == "completed"
+        assert wb.outcome(["[06:00:01] [INFO] === Run complete: shipped to main ==="])[0] == "completed"
         assert wb.outcome([])[0] == "did not run"
         assert wb.outcome(
-            ["[06:00:01] [ERROR] SHIP GATES FAILED"]
+            ["[06:00:01] [ERROR] SHIP GATES FAILED: tests. Not merging."]
         )[0] == "stopped deliberately"
 
 
@@ -261,7 +261,7 @@ class TestTheNewestSession:
 
     def test_with_only_non_sessions_there_is_no_session(self, tmp_path, monkeypatch):
         monkeypatch.setattr(wb, "LOGS", tmp_path)
-        self.log(tmp_path, "nightly-2026-10-14_081453-midday.log", "=== Dry run complete ===\n", 60)
+        self.log(tmp_path, "nightly-2026-10-14_081453-midday.log", "[08:14:56] [INFO] === Dry run complete ===\n", 60)
         assert wb.newest_session() is None
 
     def test_the_brief_reads_the_code_session_through_it_and_a_dry_run_publishes_nothing(self):

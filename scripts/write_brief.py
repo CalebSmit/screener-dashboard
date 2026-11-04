@@ -41,18 +41,44 @@ def newest(pattern: str) -> Path | None:
     return files[-1] if files else None
 
 
+# A runner's log line: "[HH:MM:SS] [LEVEL] message". Everything a runner echoes - git and pytest
+# output, the merge stat, the commit subjects it is about to merge - is logged as a message too,
+# indented where it is native output, and the health line it hands the session is a message of its
+# own. So an outcome marker counts only as the start of a message the runner wrote itself, never
+# as a phrase found anywhere in the text (2026-11-03). The phrase test is how the health line's
+# "SESSION DID NOT RUN" alarm became self-perpetuating (health_numbers.DID_NOT_RUN), and every
+# check below had the same shape: a commit subject reading "... shipped to main" or "Standing down
+# ...", echoed before the merge, would have re-classified the run that merged it.
+LOG_LINE = re.compile(r"^﻿?\[\d{2}:\d{2}:\d{2}\] \[(?:INFO|WARN|ERROR)\] (.*?)\s*$")
+
+
+def messages(lines: list[str]) -> list[str]:
+    """The runner's messages, in order, with any indentation kept (echoed output is indented)."""
+    return [m.group(1) for m in map(LOG_LINE.match, lines) if m]
+
+
+def said(lines: list[str], *starts: str) -> bool:
+    """Whether the runner itself wrote a message beginning with one of ``starts``."""
+    return any(msg.startswith(starts) for msg in messages(lines))
+
+
 # A code-session log that records no session: a dry run, or an extra slot standing down because
 # the owner was working (scripts/nightly-screener.ps1 -Slot). Since 2026-10-14 there can be several
 # of these a day, and the newest log is no longer necessarily the newest *session* - a 08:15 dry
 # run published a brief calling the day's code session "failed".
 NOT_A_SESSION = ("=== Dry run complete ===", "Standing down")
+# The runners' own outcome lines, verbatim (data-run.ps1, nightly-screener.ps1, Stop-Run).
+COMPLETED = ("=== Data loop complete ===", "=== Run complete: shipped to main ===")
+NO_CHANGES = ("=== Run complete (no changes) ===",)
+STOPPED = ("Run discarded", "SHIP GATES FAILED:")
+# Written from the runner's `finally`, after everything else: a log without it is still running.
+FINISHED = ("Writing morning brief",)
 
 
 def newest_session(pattern: str = "nightly-*.log") -> Path | None:
     """The newest log that records a session that actually ran."""
     for path in sorted(LOGS.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True):
-        text = "\n".join(tail(path, 60))
-        if not any(marker in text for marker in NOT_A_SESSION):
+        if not said(tail(path, 60), *NOT_A_SESSION):
             return path
     return None
 
@@ -90,17 +116,16 @@ def outcome(lines: list[str]) -> tuple[str, list[str]]:
     """Classify a run log and pull out the lines worth showing."""
     if not lines:
         return "did not run", []
-    text = "\n".join(lines)
     notable = [
         ln.split("] ", 2)[-1].strip()
         for ln in lines
         if "[ERROR]" in ln or "[WARN]" in ln or "ATTENTION - " in ln
     ]
-    if "Data loop complete" in text or "shipped to main" in text:
+    if said(lines, *COMPLETED):
         return "completed", notable
-    if "Run complete (no changes)" in text:
+    if said(lines, *NO_CHANGES):
         return "completed, nothing to change", notable
-    if "discarded" in text.lower() or "SHIP GATES FAILED" in text:
+    if said(lines, *STOPPED):
         return "stopped deliberately", notable
     return "failed", notable
 
