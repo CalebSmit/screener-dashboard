@@ -284,14 +284,46 @@ Two things still outrank this file, and neither is negotiable:
      had no large-company reading where Size and Momentum both carry thorough ones. Claim
      `overview.investment_standalone`, `tests/test_investment_standalone.py` (6 tests, in the publish
      gate by derivation); `METHODOLOGY_CHANGELOG.md` 2026-11-04; note section 6.
-     **Three proposals are still waiting for a decision**, read from
-     `write_brief.open_proposals()` after this one closed, not from the line it replaced - which
-     still named universe phase 0, decided and closed on 2026-11-03, a day before anyone read it.
-     All three opened **2026-11-03**: the 13F-filer log line
-     (`research/2026-11-03-following-the-smart-money.md`), the QuantLib implied-volatility
-     construction (`research/2026-11-03-open-source-quant-stack.md`), and registering the
-     `short_interest_ratio` research-engine experiment
-     (`research/2026-11-03-short-interest-days-to-cover.md`).
+     **A ninth was DECIDED 2026-11-04 (13:00) - ACCEPTED, the second in a row, and the cost of
+     acting on it turned out to be fifteen times smaller than it first looked.**
+     `research/2026-11-03-open-source-quant-stack.md` section 1 asked whether the options panel's
+     implied volatility and put skew should be **our own inversion of our own bid/ask mids**
+     (QuantLib, American, discrete dividends, a Treasury curve) instead of the quote response's
+     undocumented `impliedVolatility` field. **Accepted.** Its pre-registered bar holds on a sample
+     disjoint from its own (median absolute difference at the money **2.00** volatility points), and
+     the gap its own cross-check left open is closed: an independently written binomial tree
+     reproduces QuantLib on **19 of 19** contracts within half a point - **10 of 10 without a
+     dividend and 9 of 9 with one**, the dividend schedule being the part the note calls hardest.
+     **What decides it is the paper the panel cites, and the evidence was already in this
+     repository.** Xing, Zhang & Zhao's Table 1 (p. 647, read from the paper by the 2026-10-14
+     session) puts the 5th percentile of their skew at **-0.99** points - a negative skew is about a
+     **one-in-sixteen** event in the data the measure comes from. The field we publish puts it
+     negative for **42-60% of the universe, median 47%, on every one of the 12 logged days** (~5,800
+     stock-days, read from the committed context logs). Ours: 10% after the close, 35% mid-session.
+     **Three corrections to the note.** Its headline contrast (5 of 48 against 28 of 48) does not
+     replicate in magnitude - ours is 9 of 26 (35%) mid-session, while the field's 58% replicates
+     exactly - so the honest version is 35% against 58%. Its proposed explanation is **not
+     confirmed**: the candidate it could not test after the close was tested mid-session (the last
+     trade inverted against the underlying's price at the minute of that trade, from 1-minute bars)
+     and reproduces the field no better than ours does, so **eight constructions across two sessions
+     match it none**. Which makes the case *stronger* than the note's own: it needs no inference
+     about which sign is plausible, only this project's standing rule that every number on the page
+     must be checkable from the page.
+     **And the sizing, which is the part worth your attention.** A switch retires the readings built
+     the old way, and a first draft of the review sized that at "18 logged days of implied volatility
+     and 12 of the skew" by reading the log files. Run through `context_eval` itself: **one day, 467
+     readings.** The 2026-11-03 anchoring rule already excludes every earlier log. So the switch
+     costs one day and about one day of calendar time, delay is the expensive option, and the
+     mechanism shipped today (`_ctx_opt_iv_src`, one constant, 5 tests) makes it cost nothing at all
+     while giving a **paired** record - the only way this project could ever measure which
+     construction predicts better. The inversion itself is the next session's build, order written
+     in the note's section 1d. `METHODOLOGY_CHANGELOG.md` 2026-11-04 (13:00); no published number,
+     score or sentence moved.
+     **Two proposals are still waiting for a decision**, read from `write_brief.open_proposals()`
+     rather than from this line: the 13F-filer log line
+     (`research/2026-11-03-following-the-smart-money.md`) and registering the `short_interest_ratio`
+     research-engine experiment (`research/2026-11-03-short-interest-days-to-cover.md`, which forces
+     a ~20-minute rerun of all 32 ledger rows - budget it). Both opened **2026-11-03**.
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error

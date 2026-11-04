@@ -333,10 +333,17 @@ switch - and `MAX_REL_SPREAD` and the IV bounds are **not** to be loosened to wi
 
 1. **One inversion, feeding all three contracts** (ATM call, ATM put, XZZ put leg), so the panel's
    subtraction is arithmetic on published numbers and not a second computation (row 0.8).
-2. **No new per-ticker network call.** The Treasury curve is four FRED series cached daily with a
-   last-known fallback; the dividend schedule should come from the run's own `dividendRate` and an
-   ex-date the fetch already carries - **check that it does** before assuming it, because the 11-03
-   measurement used `yf.Ticker.dividends`, which is a request per stock inside a time-budgeted pass.
+2. **No new per-ticker network call - and this is the one real obstacle, now measured.** The
+   Treasury curve is four FRED series, cached daily with a last-known fallback: easy. The dividend
+   *schedule* is not. Checked on the newest run's `00_raw_fetch.parquet` rather than assumed:
+   `dividendRate` is there (403 of 503) and `trailingAnnualDividendRate` (503 of 503), but
+   **`exDividendDate`, `lastDividendDate` and `lastDividendValue` are all absent**, so nothing in
+   the run says *when* the next dividend falls. The 11-03 measurement got the dates from
+   `yf.Ticker.dividends` - a request per stock, inside the pass that tripped the rate limiter when
+   it ran inside the core fetch (settled row "ctx"). So the build's first step is to add
+   **`exDividendDate` to the core `.info` fetch**, which costs no extra request because `.info` is
+   already pulled, and then to verify it with a throwaway full run - a fetch-schema change is not
+   checkable from unit tests. That is why this is a session of its own and not the tail of this one.
 3. **Fall back to the source field and stamp it `source`** where QuantLib, the curve or a mid is
    unavailable. A gate that can only fail closed jams an unattended loop; the same applies to a
    signal.
