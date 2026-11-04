@@ -407,12 +407,26 @@ try {
     # This loop merges with plain git and pushes via the 'manager' credential
     # helper, so gh is not needed at all. What matters is whether the remote
     # is reachable, which is what this checks.
-    $ls = Invoke-Native 'git' @('ls-remote', '--heads', 'origin', 'main')
+    #
+    # It waits for the network first, as data-run.ps1 always has. The task may
+    # have just woken the machine, and the network stack is often not up yet:
+    # on 2026-11-03 the 06:00 session got "Could not resolve host: github.com"
+    # one second after it started and skipped the day, while the identical
+    # wait in the data loop would have ridden it out. Same budget: 10 tries,
+    # 30 s apart. A credentials failure costs those five minutes, then stops
+    # exactly as before.
+    $RemoteTries = 10
+    for ($try = 1; $try -le $RemoteTries; $try++) {
+        $ls = Invoke-Native 'git' @('ls-remote', '--heads', 'origin', 'main')
+        if ($ls.ExitCode -eq 0 -or $try -eq $RemoteTries) { break }
+        Write-Log "Remote not reachable yet (attempt $try/$RemoteTries). Waiting 30s..." 'WARN'
+        Start-Sleep -Seconds 30
+    }
     if ($ls.ExitCode -ne 0) {
         Write-NativeOutput $ls 'ERROR'
-        Stop-Run "Cannot reach the git remote (offline, or credentials unavailable). Skipping today's run."
+        Stop-Run "Cannot reach the git remote after $RemoteTries attempts over about 5 minutes (offline, or credentials unavailable). Skipping today's run."
     }
-    Write-Log "Remote reachable."
+    Write-Log "Remote reachable$(if ($try -gt 1) { " on attempt $try" })."
 
     # --- Preflight: is this folder trusted by the CLI? ----------------------
     # Claude Code keys folder trust by path in %USERPROFILE%\.claude.json. The

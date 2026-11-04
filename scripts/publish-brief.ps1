@@ -66,8 +66,56 @@ origin/main.
 Returns $true if a brief reached origin/main (or was already identical there),
 $false otherwise. Never throws, never fatal: a missing heartbeat is a watchdog
 alarm, but a crashed `finally` would also lose the repo lock release.
+
+A brief that could not be published is set aside, not left in the working tree
+(Set-BriefAside, 2026-11-03). On 2026-11-03 the 06:00 session could not resolve
+github.com, skipped the day, and left MORNING_BRIEF.md modified; the 13:00 slot
+stands down on any dirty tree ("work in progress, not leftovers"), so one DNS
+failure at 06:00:01 would have cost both of the day's sessions.
 #>
 function Publish-BriefToMain {
+    param(
+        [Parameter(Mandatory)][string]$RepoPath,
+        [Parameter(Mandatory)][string]$Label,
+        [int]$Attempts = 3,
+        [scriptblock]$Logger
+    )
+    $ok = Publish-BriefCommit -RepoPath $RepoPath -Label $Label -Attempts $Attempts -Logger $Logger
+    if (-not $ok) { Set-BriefAside $RepoPath $Logger }
+    return $ok
+}
+
+<#
+Put an unpublished brief back the way the tree had it, keeping a copy.
+
+Copies MORNING_BRIEF.md to logs/MORNING_BRIEF.unpublished.md - only if git
+ignores that path, so the copy can never make the tree dirty itself - and then
+restores the tracked file. The next run writes a fresh brief from the logs, so
+nothing is lost but the copy's convenience. Only this one path is touched.
+#>
+function Set-BriefAside {
+    param([string]$RepoPath, [scriptblock]$Logger)
+    try {
+        $changed = (Invoke-BriefGit $RepoPath @('status', '--porcelain', '--', $BriefFile)).Text
+        if (-not $changed) { return }
+        $aside = 'logs/MORNING_BRIEF.unpublished.md'
+        if ((Invoke-BriefGit $RepoPath @('check-ignore', '-q', $aside)).ExitCode -eq 0) {
+            $dir = Join-Path $RepoPath 'logs'
+            if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
+            Copy-Item -LiteralPath (Join-Path $RepoPath $BriefFile) -Destination (Join-Path $RepoPath $aside) -Force
+        }
+        $restore = Invoke-BriefGit $RepoPath @('checkout', '--', $BriefFile)
+        if ($restore.ExitCode -eq 0) {
+            Write-BriefLog "Brief not published; set aside in $aside and $BriefFile restored, so the tree stays clean for the next session." 'WARN' $Logger
+        } else {
+            Write-BriefLog "Brief not published, and $BriefFile could not be restored: $($restore.Text)" 'WARN' $Logger
+        }
+    } catch {
+        Write-BriefLog "Could not set the unpublished brief aside: $($_.Exception.Message)" 'WARN' $Logger
+    }
+}
+
+function Publish-BriefCommit {
     param(
         [Parameter(Mandatory)][string]$RepoPath,
         [Parameter(Mandatory)][string]$Label,

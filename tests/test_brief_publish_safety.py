@@ -244,6 +244,29 @@ def test_publishing_from_a_branch_leaves_the_tree_clean(sandbox):
 
 
 @requires_shell
+@pytest.mark.parametrize("logs_ignored", [True, False])
+def test_an_unpublished_brief_is_set_aside_and_the_tree_left_clean(sandbox, tmp_path, logs_ignored):
+    """2026-11-03: the 06:00 session could not resolve github.com, skipped the day and left
+    MORNING_BRIEF.md modified - and the 13:00 slot stands down on any dirty tree, so one DNS
+    failure would have cost both sessions. A brief that cannot be published is copied aside (only
+    where git ignores the copy, so the copy cannot dirty the tree itself) and the file restored."""
+    origin, work, base = sandbox
+    if logs_ignored:
+        (work / ".git" / "info" / "exclude").write_text("logs/\n", encoding="utf-8")
+    git(work, "remote", "set-url", "origin", (tmp_path / "unreachable.git").as_posix())
+    (work / "MORNING_BRIEF.md").write_text("day two - never published\n", encoding="utf-8")
+
+    r = publish(work)
+    assert r.returncode == 3, f"an unreachable origin must report not published: {r.stdout}{r.stderr}"
+    assert git(work, "status", "--porcelain") == "", "the unpublished brief left the tree dirty"
+    assert (work / "MORNING_BRIEF.md").read_text(encoding="utf-8") == "day one\n"
+    aside = work / "logs" / "MORNING_BRIEF.unpublished.md"
+    assert aside.exists() is logs_ignored
+    if logs_ignored:
+        assert aside.read_text(encoding="utf-8") == "day two - never published\n"
+
+
+@requires_shell
 def test_an_unchanged_brief_adds_no_commit(sandbox):
     origin, work, base = sandbox
     failing_branch(work)
