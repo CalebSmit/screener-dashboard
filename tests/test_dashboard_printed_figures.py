@@ -1593,3 +1593,99 @@ def test_the_reporting_soon_window_edges_by_hand(page, data):
         finally { for (const t of Object.keys(keep)) D.stock_detail[t].earn = keep[t]; reportingMeta(); } }""",
                         {t: d.isoformat() for t, d in when.items()})
     assert got == f"{a} report within 7 days of this run \u00b7 {b} within 14"
+
+
+# ---------------------------------------------------------------------------
+# Single-stock figures (claims audit queue item 6, 2026-11-03 night): the price-target strip, the
+# share-class price gap and the compare sentence, each recomputed from the payload
+# ---------------------------------------------------------------------------
+_PT_JS = """() => { const out = {};
+    for (const t of Object.keys(D.stock_detail)) { const s = D.stock_detail[t];
+        if (!s.pt_mean && !s.pt_high && !s.pt_low) continue;
+        renderPriceTargets(s);
+        out[t] = [...document.querySelectorAll('#modal-price-targets .pt-card')].map(c =>
+            [c.querySelector('.pt-card-label').textContent, c.querySelector('.pt-card-value').textContent]); }
+    return out; }"""
+_PT_VAL = re.compile(r"^\$(\d+\.\d{2})(?: ([+-]?)(\d+(?:\.\d+)?)%)?$")
+
+
+def test_every_price_target_strip_prints_its_targets_and_their_distance_from_the_price(page, data):
+    """Each card's dollars are the payload's to the cent; each percentage is (target - price) /
+    price to its printed precision with the right sign; and the average target's distance is the
+    price-target upside the engine scored, where it scored one - one figure on two surfaces."""
+    sd = data["stock_detail"]
+    got = page.evaluate(_PT_JS)
+    assert len(got) > 400, len(got)
+    problems = []
+    for t, cards in got.items():
+        s = sd[t]
+        p = s["price"]
+        by = dict(cards)
+        if by.get("Current Price") != f"${_fixed_n(p, 2)}":
+            problems.append(f"{t}: price {by.get('Current Price')!r} for {p}")
+        for label, key in (("Avg Target", "pt_mean"), ("Low Target", "pt_low"), ("High Target", "pt_high")):
+            v = s.get(key)
+            if not v:
+                continue
+            m = _PT_VAL.match(re.sub(r"\s+", " ", by.get(label, "")).strip())
+            if not m or m.group(1) != _fixed_n(v, 2) or m.group(3) is None:
+                problems.append(f"{t}/{label}: {by.get(label)!r} for {v}")
+                continue
+            printed = float(m.group(3)) * (-1 if m.group(2) == "-" else 1)
+            step = 0.5 * 10 ** -(len(m.group(3).split(".")[1]) if "." in m.group(3) else 0)
+            true = (v - p) / p * 100
+            if abs(printed - true) > step + 1e-9 or (m.group(2) == "" and printed != 0):
+                problems.append(f"{t}/{label}: {printed}% printed, {true:.4f}% true")
+            if key == "pt_mean":
+                u = (s.get("raw") or {}).get("price_target_upside")
+                if u is not None and abs(100 * u - true) > 0.05:
+                    problems.append(f"{t}: the card's upside {true:.3f}% is not the scored {100 * u:.3f}%")
+    assert not problems, f"{len(problems)}: {problems[:6]}"
+
+
+def test_every_share_class_line_states_the_price_gap_and_rank_of_the_line_scored(page, data):
+    """The second line's gap is its published price against the scored line's, and the rank is the
+    scored line's rank in today's table."""
+    sc = data.get("share_classes") or {}
+    if not sc:
+        pytest.skip("MISSING DATA: the payload names no second share class")
+    sd = data["stock_detail"]
+    rank = {r["Ticker"]: r.get("Rank") for r in data["table_data"]}
+    for t, e in sc.items():
+        base = sd[e["scored_as"]]["price"]
+        assert e["price_gap_pct"] == pytest.approx(100 * (e["price"] / base - 1), abs=0.006), t
+        assert e["rank"] == rank[e["scored_as"]], t
+        txt = _text(page.evaluate("([t, sc]) => shareClassText(t, sc)", [t, e]))
+        mag = page.evaluate("v => pctNearZero(v, 1).mag", e["price_gap_pct"])
+        side = "below" if e["price_gap_pct"] < 0 else "above"
+        assert f"It trades {mag}% {side} {e['scored_as']} for the same claim on the same earnings." in txt, txt
+        assert f"ranked #{e['rank']} here" in txt, txt
+
+
+_GAP = re.compile(r"^(\S+) scores (\d+\.\d) composite points (above|below) (\S+)(?:\. The largest differences: (.+))?\.$")
+
+
+def test_the_compare_sentence_is_the_composite_gap_and_its_two_largest_category_differences(page, data):
+    """For pairs across the ranking: the gap is the difference of the published composites, and the
+    two categories named are the two largest differences in published category points (at least
+    0.05), each with its own signed difference."""
+    labels = page.evaluate("() => CAT_LABELS")
+    cats = page.evaluate("() => UX_CATS")
+    rows = sorted((r for r in data["table_data"] if r.get("Rank")), key=lambda r: r["Rank"])
+    tick = [r["Ticker"] for r in rows]
+    pairs = [(tick[i], tick[i + 1]) for i in range(0, 60)] + [(tick[i], tick[-1 - i]) for i in range(0, 40)]
+    got = page.evaluate("ps => ps.map(([a, b]) => gapSentence(a, b))", pairs)
+    sd = data["stock_detail"]
+    problems = []
+    for (a, b), h in zip(pairs, got):
+        # inline tags only here (<strong>), so they are dropped without adding a space
+        lede = htmllib.unescape(re.sub(r"<[^>]+>", "", re.search(r'<p class="gap-lede">(.*?)</p>', h).group(1))).strip()
+        m = _GAP.match(lede)
+        gap = sd[a]["composite"] - sd[b]["composite"]
+        parts = sorted(((c, (sd[a]["contrib"].get(c) or 0) - (sd[b]["contrib"].get(c) or 0)) for c in cats),
+                       key=lambda x: -abs(x[1]))
+        lead = [f"{labels[c]} ({'+' if v >= 0 else chr(0x2212)}{_fixed_n(abs(v), 1)})" for c, v in parts if abs(v) >= 0.05][:2]
+        want = (a, _fixed_n(abs(gap), 1), "above" if gap >= 0 else "below", b, " and ".join(lead) if lead else None)
+        if not m or m.groups() != want:
+            problems.append(f"{a} vs {b}: printed {lede!r}, worked out {want}")
+    assert not problems, f"{len(problems)} of {len(pairs)}: {problems[:4]}"

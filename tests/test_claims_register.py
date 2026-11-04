@@ -1226,7 +1226,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'The ranking covers the ${n} S&amp;P 500 companies this run scored.':
         'claim:dashboard.score_key',
     "It trades ${pctNearZero(sc.price_gap_pct, 1).mag}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
-        'open:share-class-price-gap - drilldown.share_class_second_line checks the ratio identity, not the printed gap',
+        'claim:drilldown.share_class_second_line',
     ', the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).':
         'claim:history.rank_counts',
     '${mv.n_up} stocks moved up materially and ${mv.n_down} moved down; showing the largest ${shownUp} and ${shownDown}.':
@@ -1256,7 +1256,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'For the ${n} of ${total} metrics marked ↓ better (EV/EBITDA, Beta and PEG among them) a low raw value earns a high percentile.':
         'claim:drilldown.percentile_convention',
     '${fmtDollar(price)} Avg Target ${fmtDollar(ptMean)} ${fmtPct(ptMean, price)} Low Target':
-        "open:price-target-strip - nothing reads the page's printing",
+        'claim:drilldown.price_targets',
     '${fmtPctChg(f.ni_growth_yoy)} fiscal year on year':
         "open:ni-growth-yoy - nothing reads the page's printing",
     '${f.short_ratio.toFixed(1)} days to cover':
@@ -1300,7 +1300,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${sig.filter(c => c === '1').length} of ${sig.filter(c => c !== '-').length} testable signals passed = ${res}":
         'claim:drilldown.piotroski_beneish_parts',
     "${escapeHtml(a)} scores ${Math.abs(gap).toFixed(1)} composite points ${(gap >= 0 ? 'above' : 'below')} ${escapeHtml(b)} ${(lead.length ? '. The largest differences: ' + lead.join(' and ') + '.' : '.')}":
-        "open:compare-gap-sentence - compare.composite_gap's page check reads the gap rows, not this sentence",
+        'claim:compare.composite_gap',
     '${vhChartSvg(y, m0, label)} ${label} ${cPlain(y.now)} of its past ${y.n} month-ends':
         'claim:context.valuation_history',
     'higher than at ${above}%':
@@ -1386,12 +1386,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
 DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'cadence-turnover',
     'cadence-turnover-ceiling',
-    'compare-gap-sentence',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
     'ni-growth-yoy',
-    'price-target-strip',
-    'share-class-price-gap',
     'short-ratio',
     'show-next-count',
 })

@@ -1384,6 +1384,19 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="drilldown.price_targets",
+        surface=DRILLDOWN,
+        asserts=(
+            "The analyst price-target cards print the run's price and the published mean, low and "
+            "high targets, each target's distance from the price as (target - price) / price, and the "
+            "mean target's distance is the price-target upside the engine scored (2026-11-03)."
+        ),
+        made_true_by="generate_dashboard:prepare_dashboard_data",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_price_target_strip_prints_its_targets_and_their_distance_from_the_price",
+        ),
+    ),
+    Claim(
         id="history.rank_counts",
         surface=DRILLDOWN,
         asserts=(
@@ -1814,6 +1827,7 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="factor_engine:compute_composite",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_the_compare_sentence_is_the_composite_gap_and_its_two_largest_category_differences",
             "tests/test_calculation_reproducibility.py::test_points_add_up_to_the_composite_for_every_undiscounted_stock",
             "tests/test_calculation_reproducibility.py::test_a_discounted_stocks_residual_is_its_coverage_discount",
             "tests/test_calculation_reproducibility.py::test_the_gap_lines_reconcile_for_every_pair_with_the_top_stock",
@@ -2153,6 +2167,7 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="generate_dashboard:_share_classes_block",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_share_class_line_states_the_price_gap_and_rank_of_the_line_scored",
             "tests/test_share_classes_page.py::test_the_payload_carries_the_second_lines",
             "tests/test_share_classes_page.py::test_a_second_class_is_not_called_a_departed_stock",
             "tests/test_share_classes_page.py::test_the_price_gap_is_the_only_valuation_difference",
