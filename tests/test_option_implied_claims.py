@@ -127,8 +127,10 @@ def test_the_context_log_still_records_it_so_the_evidence_keeps_accruing():
 # --------------------------------------------------------------------------- publish as a unit
 def _ctx(extra: dict) -> dict:
     """One stock's published context, from a raw row."""
+    # a reading since 2026-11-03 carries the price its strikes were chosen against (chain_spot)
     row = dict({"_ctx_last_close": 100.0, "_ctx_opt_status": "ok",
-                "_ctx_opt_expiry": "2026-11-13", "_ctx_opt_days": 30}, **extra)
+                "_ctx_opt_expiry": "2026-11-13", "_ctx_opt_days": 30,
+                "_ctx_opt_spot": 100.0, "_ctx_opt_spot_src": "chain"}, **extra)
     return gd._stock_context(row, "TEST", "2026-10-14") or {}
 
 

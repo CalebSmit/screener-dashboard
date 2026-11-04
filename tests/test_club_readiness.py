@@ -604,10 +604,20 @@ def test_the_glosses_render_on_a_phone(browser):
     ctx, page, errors = _open(browser)
     try:
         page.wait_for_function("!!window.SCREENER_CONTEXT", timeout=30000)
-        # a stock whose options and insider panels carry the terms
-        t = page.evaluate("Object.keys(D.stock_detail).find(k => { const c = (window.SCREENER_CONTEXT.ctx || {})[k] || {}; return (c.os === 'ok') && c.oi !== undefined && c.osk !== undefined && c.ins && c.ins.src === 'sec' && (c.ins.recent || []).some(r => r.plan); })")
+        # a stock whose options and insider panels carry the terms (an options reading shows its
+        # volatility and skew only with the price they were measured from - 2026-11-03 night)
+        t = page.evaluate("Object.keys(D.stock_detail).find(k => { const c = (window.SCREENER_CONTEXT.ctx || {})[k] || {}; return (c.os === 'ok') && c.osp !== undefined && c.oi !== undefined && c.osk !== undefined && c.ins && c.ins.src === 'sec' && (c.ins.recent || []).some(r => r.plan); })")
         if not t:
-            pytest.skip("no stock this run carries every glossed term")
+            # None today (a payload built before the anchoring rule, or a quiet day): give a stock
+            # with a planned insider sale an anchored reading by hand, so the glosses still render.
+            t = page.evaluate("""() => { const t = Object.keys(D.stock_detail).find(k => { const c = D.stock_detail[k].ctx || {};
+                    return c.ins && c.ins.src === 'sec' && (c.ins.recent || []).some(r => r.plan); });
+                if (!t) return null;
+                Object.assign(D.stock_detail[t].ctx, { os: 'ok', osp: 100, oi: 0.3, osk: 0.04, oskp: 0.33, oskc: 0.29,
+                                                       oskps: 95, oskcs: 100, ox: '2026-12-18', od: 30 });
+                return t; }""")
+        if not t:
+            pytest.skip("no stock this run carries a planned insider sale")
         page.evaluate(f"openStockDetail('{t}')")
         page.wait_for_selector("#stock-modal .ctx-gloss", state="attached", timeout=15000)
         text = " ".join(page.locator("#stock-modal .ctx-gloss").all_inner_texts())
