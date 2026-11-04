@@ -5023,6 +5023,13 @@ card, the summary chip and the Reporting Soon column), so the rebuilt page canno
 payload's moves against "-" in the hours before the next data run. Nine reverts of the fix, each
 caught (`research/measurements/2026-11-03-expected-move-divisor-mutations.py`, 9 of 9). Closes the two
 FALSE rows of the claims audit (`expected-move-price`, `expected-move-figure`).
+**Measured on the first refresh under the rule (2026-11-03 20:00, 178 s, 467 of 503 kept;
+`research/measurements/2026-11-03-expected-move-divisor-after.py`):** all 467 readings took their
+divisor from the quote response (`chain`); 0 at-the-money strikes more than 5% from their divisor;
+0 moves different from straddle / divisor. Against those same quotes the old rule's divisor (the
+newest run's close) would have been off by more than 1% for 278 of 467 (median 1.27%) and by more
+than 5% for 28 - IT 13.2%, FISV 12.5%, SYY 9.3%, mostly stocks that moved on a report that day. The
+30 cached readings from earlier sessions carry no divisor and are withheld until refreshed.
 **Applied by:** owner-run session, 2026-11-03 evening (owner: "Keep finding improvements ... an elite
 level of detail and precision").
 **Rollback:** revert the commit; the tag before it is `good/2026-11-03-1354`.

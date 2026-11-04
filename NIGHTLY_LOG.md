@@ -18534,3 +18534,109 @@ body delivered - 2026-10-25's lesson, that a test's name is read far more often 
   substring match can be satisfied by an echo - `data_loop()`'s `"HEALTH: PASS"` was checked today
   and is safe only because it reads `datarun-*.log` while the echo lands in `nightly-*.log`, which
   is luck rather than design.
+
+
+## 2026-11-03 (owner-run, evening) - "Keep finding improvements ... an elite level of detail and precision"
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-03_130000-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-03_020000.log` (completed; HEALTH:
+PASS). Evidence base at `1m`: 5 of 8 needed (43 rows; overlapping windows are not independent),
+newest 1m run date 2026-10-02 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**.
+Top open roadmap item: **0.13, The Factor Lab** (age **22 days**); also open: 0.10 27d; 0.14 20d.
+**The day's sessions:** the 06:00 run was lost to "Could not resolve host: github.com" at 06:00:01
+and its unpublished brief left the tree dirty, which would have stood the 13:00 slot down; restored
+by hand at 08:00, the 06:00 task re-run by hand at 08:03 (shipped, `good/2026-11-03`), and the 13:00
+ran normally (`good/2026-11-03-1354`). Both entries are above.
+**Tests:** 3,850 passed / 2 skipped at the last gate run (from 3,788). Tags `good/2026-11-03-owner`,
+`-2`, `-3`; worked in a worktree outside OneDrive and pushed only while no session was running.
+
+### Did
+
+1. **The expected-move card's FALSE divisor - fixed at the source** (queued first by last night's
+   sweep; changelog 2026-11-03 evening). The 20:00 refresh divided the straddle by the newest run's
+   close, a session *before* its quotes, and chose the at-the-money strike against it, while the
+   card named this run's close (273 of 359 divisors off by >1%; NOW's strike 37% away). Both option
+   paths now take the stock's price from **the quote response itself** (`context_signals.chain_spot`
+   - Yahoo's chain carries `underlying.regularMarketPrice`, the 16:00 ET close at 20:00, no extra
+   request). The divisor is recorded (`_ctx_opt_spot`), published (`ctx.osp`) and printed; a move
+   without one is withheld with its reason by the generator **and** refused by the page
+   (`moveShown`, one predicate for the card, the summary chip and Reporting Soon - so the rebuilt
+   page could not print the old payload's moves against "-" before tonight's run); `context_eval`
+   counts the same readings the page shows, so the expected-move signal's first `1m` reading moves
+   to about 2026-12-04 (readings before the fix are a different construction - excluded, not
+   spliced). Checked live after the close on AAPL, JPM, NOW, VLO (NOW: strike 110 at $109.16,
+   +/-11.5%, where the old rule priced the 150 strike). Eight behaviour checks on
+   `context.expected_move`; **9 of 9** mutations caught. Pushed before 20:00 so tonight's refresh
+   runs it - see item 7.
+2. **The code loop waits for the network** (10 tries, 30 s apart - the data loop's own budget) before
+   skipping the day, and **a brief that cannot be published is set aside**
+   (`logs/MORNING_BRIEF.unpublished.md`, only where git ignores it) and the file restored, so a
+   failed publish never leaves the tree dirty for the 13:00 slot. Behaviour tests run the runner's
+   own block in PowerShell with git stubbed and the publisher in its origin+clone sandbox; **6 of 6**
+   mutations caught. Settled row -1 says so.
+3. **The midday's queued echo sweep: every log reader now matches the runner's own lines.**
+   `write_brief.outcome()`, `newest_session()` and `health_numbers.data_loop()` asked whether a
+   phrase appeared *anywhere* in a log that also carries echoed commit subjects, merge stats and the
+   health line. On four echo cases built from real lines, a failed run read "completed" twice and
+   "stopped deliberately" once, and an echoed "Standing down" subject hid a real session. Now a
+   marker counts only as the start of a message the runner wrote (`write_brief.messages`/`said`), and
+   a test ties each constant to the runners' own `Write-Log`/`Stop-Run` lines. **39 real logs, 0
+   classified differently** (`research/measurements/2026-11-03-log-marker-echoes.py`). The same sweep
+   found the health line's "finished" test keyed to "Morning brief published", which a run that cannot
+   reach GitHub never writes - so this morning's skipped 06:00 run was passed over and the line
+   reported the day before's login failure instead; it now keys on the runner's `finally` line and
+   gives a failed run's reason.
+4. **Claims audit: queue items 3 and 4 closed, plus rows of items 5 and 6 - 12 rows (38 -> 26 open).** The Insider trades
+   card, the case against's insider sentence and the Trend card's 52-week line are rendered by the
+   generator's own page for every stock and compared slot by slot with the payload, with the plan
+   share and the net-sale rule worked out independently and hand-worked fixtures for branches a day
+   may not take; the Market tile's percentile label against the published `pct_10y`, with
+   hand-worked ordinals at the edges. **14 of 14** mutations caught. And the track record's period,
+   changelog-tick and left-out-picks counts, with `methodology_dates` pinned on a hand-written
+   changelog (**6 of 6**). And the percentile-convention note's "N of M metrics marked lower is better
+   (EV/EBITDA, Beta and PEG among them)" - a new claim, `drilldown.percentile_convention`, on the
+   scorer's own directions (a stale code comment there said 15 of 37; it is 14 of 38). And the
+   rankings strip's count, range and median, the median checked to be the ranking's own (one
+   mutation survived on today's fully scored data until an unscored row was built by hand).
+5. **A data->red test fixed** (flagged by last night's session): `test_sheet_round_three` asserted
+   `unscored >= 1`, which a fully-scored day would have turned red with no code change, and named JPM.
+   The browser test now uses a real unscored category when the day has one and builds one otherwise
+   (both branches run green).
+6. **Research, at the owner's request, from primary sources:**
+   - `research/2026-11-03-kronos-candlestick-foundation-model.md` - Kronos (Tsinghua, AAAI 2026) and
+     "Day Trader". **No change; not a context candidate.** Never tested at a one-month horizon; its
+     return IC is pooled, not cross-sectional; on US stocks the released sizes are level with a
+     linear baseline (XNAS RankIC 0.0513-0.0601 vs 0.0518, re-read from the PDF); the only trading
+     test is one year of A-shares. The post's "1,000 futures" are one model's samples, not outcomes.
+   - `research/2026-11-03-open-source-quant-stack.md` - ten repos (OpenBB, TradingAgents, qlib,
+     RD-Agent, gs-quant, nautilus_trader, Chronos, QuantLib, skfolio, vectorbt). **One fit:**
+     QuantLib could invert our own option mids the way Cboe and OptionMetrics do, instead of
+     Yahoo's undocumented `impliedVolatility`, which the ATM IV and the put skew take as given -
+     **opened as a pre-registered paired measurement (Proposal status: OPEN)**. qlib's point-in-time
+     store imputes lags where `pit_record.py` uses SEC's real `filed` dates; RD-Agent and "backtest
+     10,000 versions, keep the survivors" are the selection practice the research engine exists to
+     prevent; skfolio's weights beside named stocks would recreate the removed Model Portfolio.
+   - Corrected an unsupported sentence in `research/2026-10-27-tradingagents-ideas.md` (the paper
+     states no training cut-offs).
+
+7. **The divisor rule, verified on tonight's 20:00 refresh** (ran tonight's code: the main folder was
+   fast-forwarded before 20:00). 178 s, 467 of 503 kept, **all 467 with their divisor from the quote
+   response, 0 strikes more than 5% from it, 0 moves different from straddle / divisor**. Against the
+   same quotes the old divisor would have been off by >1% for 278 (median 1.27%) and >5% for 28 (IT
+   13.2%, FISV 12.5%, SYY 9.3% - report-day moves). 30 older cached readings carry no divisor and are
+   withheld until refreshed. Tomorrow's 02:00 page is the first built under the rule; the payload
+   check `test_every_published_move_reproduces_from_its_published_divisor` stops skipping then.
+
+### Not done, and why
+
+- **The Investment-inside-Quality proposal** - this conversation wrote it on 2026-11-02, so it may
+  not decide it; it waits for a scheduled session (any from 06:00 tomorrow).
+- **The other 26 open rows** - queued in `plan/claims-mutation-audit.md` (equation lines next).
+
+### Next
+
+- **Run the QuantLib paired measurement** (`research/2026-11-03-open-source-quant-stack.md` section 1)
+  - pre-register the bar, then measure one evening's quotes against Yahoo's field.
+- **Decide Investment-inside-Quality** (still the oldest open proposal).
+- Read tomorrow's brief for the first payload built under the divisor rule:
+  `test_every_published_move_reproduces_from_its_published_divisor` stops skipping and checks it.
