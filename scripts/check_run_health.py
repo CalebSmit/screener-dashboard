@@ -570,7 +570,11 @@ RANK_MAX_NEW_IN_TOP = 8       # ordinary days measured <= 4 new names; 07-28 had
 RANK_FALL_LINE = 40
 RANK_MAX_FALLEN = 3           # top-25 names now ranked below #40 (or no longer ranked at all)
 
-MIN_SCORED = 490              # 498-503 on every published run; 500 companies after share classes
+# The fewest a healthy run ranks, from the universe being run (universe.py, 2026-11-03): 490 for
+# the S&P 500 - 498-503 on every published run, 500 companies after share classes.
+from universe import CURRENT as _UNIVERSE  # noqa: E402
+
+MIN_SCORED = _UNIVERSE.min_ranked
 MAX_EXCLUDED_SHARE = 0.02     # of the universe, unscored for missing data (11+ of 503 fails)
 
 MIN_PRICE_ON_SESSION = 0.95   # of stocks whose price is dated on the expected NYSE session

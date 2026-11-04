@@ -71,8 +71,12 @@ SCHEMA_VERSION = 1
 # table carried 269 rows in 2021-era revisions), a truncated fetch, or a
 # vandalised page. A silently short universe is the failure this guards —
 # it would look exactly like a real index contraction.
-MIN_PLAUSIBLE_MEMBERS = 495
-MAX_PLAUSIBLE_MEMBERS = 515
+# The values live in ``universe.py`` (2026-11-03, phase 1 of plan/universe-expansion.md), so a
+# second universe brings its own band instead of a second copy of these literals.
+from universe import CURRENT as _UNIVERSE  # noqa: E402
+
+MIN_PLAUSIBLE_MEMBERS = _UNIVERSE.min_members
+MAX_PLAUSIBLE_MEMBERS = _UNIVERSE.max_members
 
 # How stale a revision may be before it is flagged. Measured max over the
 # window is 7 days; 30 tolerates a quiet stretch without silently accepting a

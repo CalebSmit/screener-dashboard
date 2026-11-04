@@ -86,7 +86,7 @@ def sweep(tmp_path_factory):
 
 
 def test_every_published_stock_was_opened(sweep):
-    assert sweep["n"] >= 490, sweep["n"]
+    assert sweep["n"] >= __import__("universe").CURRENT.min_ranked, sweep["n"]
     assert not sweep["failed"], sweep["failed"][:5]
     assert not sweep["page_errors"], sweep["page_errors"][:5]
 

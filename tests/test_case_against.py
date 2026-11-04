@@ -148,7 +148,7 @@ def _days(data, s) -> int | None:
 # --------------------------------------------------------------------------- every line, every stock
 def test_every_line_is_the_payloads_own_fact_for_every_stock(data, ctx, cases):
     sd, fw = data["stock_detail"], data["weights"]["factor_weights"]
-    assert len(cases) == len(sd) >= 490
+    assert len(cases) == len(sd) >= __import__("universe").CURRENT.min_ranked
     labels = stock_summary.CAT_LABELS
     seen = set()
     for t, s in sd.items():

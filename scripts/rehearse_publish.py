@@ -40,7 +40,12 @@ PAGE_TESTS = ("tests/test_dashboard_browser.py", "tests/test_dashboard_navigatio
               "tests/test_bot_payload_contract.py", "tests/test_calculation_reproducibility.py",
               "tests/test_metric_lineage.py", "tests/test_holdings_panel.py",
               "tests/test_dashboard_interaction.py", "tests/test_club_readiness.py")
-MIN_UNIVERSE = 495
+# A full run is one that scored at least the universe's plausible membership floor
+# (universe.py, 2026-11-03): 495 for the S&P 500.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from universe import CURRENT as _UNIVERSE  # noqa: E402
+
+MIN_UNIVERSE = _UNIVERSE.min_members
 # Exit status when there is no full run to regenerate from: not a verdict on the code. The code
 # runner (gate 5) warns and goes on, the `node` fallback's precedent - a gate that can only fail
 # closed jams an unattended loop.

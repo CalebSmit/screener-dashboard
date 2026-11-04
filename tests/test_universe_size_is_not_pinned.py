@@ -95,13 +95,13 @@ def test_the_band_matches_the_membership_validator():
     """Same band the universe validator already enforces, so there is one definition of
     'a plausible S&P 500', not two that can drift apart."""
     import universe_history
+    from universe import CURRENT
 
-    src = Path(universe_history.__file__).read_text(encoding="utf-8")
-    assert "495" in src and "515" in src, (
-        "universe_history no longer names the 495-515 band this module was widened from; "
-        "re-derive BAND from whatever replaced it."
-    )
-    assert BAND.start <= 495 and BAND.stop - 1 >= 515
+    # the validator reads the universe definition (universe.py, 2026-11-03); the band here must
+    # still contain it, and the ranked floor, with room either side
+    assert (universe_history.MIN_PLAUSIBLE_MEMBERS, universe_history.MAX_PLAUSIBLE_MEMBERS) == (
+        CURRENT.min_members, CURRENT.max_members)
+    assert BAND.start <= min(CURRENT.min_ranked, CURRENT.min_members) and BAND.stop - 1 >= CURRENT.max_members
 
 
 def test_the_browser_module_is_covered_by_this_scan():
