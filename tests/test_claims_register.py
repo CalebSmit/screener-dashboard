@@ -1258,9 +1258,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '${fmtDollar(price)} Avg Target ${fmtDollar(ptMean)} ${fmtPct(ptMean, price)} Low Target':
         'claim:drilldown.price_targets',
     '${fmtPctChg(f.ni_growth_yoy)} fiscal year on year':
-        "open:ni-growth-yoy - nothing reads the page's printing",
+        'checked:tests/test_dashboard_printed_figures.py::test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_own_fetch',
     '${f.short_ratio.toFixed(1)} days to cover':
-        "open:short-ratio - nothing reads the page's printing",
+        'reported:tests/test_dashboard_printed_figures.py::test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_own_fetch',
     '${CAT_LABELS[c]} no data Not scored for this stock - its ${fmtWeight(base[c] || 0)} was shared out across the categories below.':
         'claim:drilldown.unscored_category',
     'Category points add up to ${runningTotal.toFixed(1)}':
@@ -1384,8 +1384,6 @@ DASHBOARD_SENTENCES: dict[str, str] = {
 }
 
 DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
-    'ni-growth-yoy',
-    'short-ratio',
 })
 
 

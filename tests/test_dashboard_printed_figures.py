@@ -1745,3 +1745,51 @@ def test_the_phone_table_states_each_next_page_and_reaches_every_row(browser, da
         assert pg.evaluate("shownRows()") == n and seen == -(-(n - step) // step)
     finally:
         pg.close()
+
+
+# ---------------------------------------------------------------------------
+# The Company Snapshot's net-income growth and days to cover (claims audit queue item 6, 2026-11-03
+# night), against the run's own fetch: the payload names its run (kpis.run_id), and that run's
+# 00_raw_fetch.parquet holds the two fiscal years' net income and Yahoo's short ratio
+# ---------------------------------------------------------------------------
+_SNAP_JS = """() => { const out = {};
+    for (const t of Object.keys(D.stock_detail)) { const s = D.stock_detail[t]; renderCompanySnapshot(s);
+        const items = {};
+        document.querySelectorAll('#modal-snapshot .snapshot-item').forEach(it => {
+            items[it.querySelector('.snapshot-label').textContent] = [it.querySelector('.snapshot-value').textContent,
+                (it.querySelector('.snapshot-sub') || {}).textContent || ''];
+        });
+        out[t] = [items['Net Income'] || null, items['Short Interest'] || null]; }
+    return out; }"""
+_GROWTH = re.compile(r"^([+-]?)(\d+(?:\.\d+)?)% fiscal year on year$")
+
+
+def test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_own_fetch(page, data):
+    import pandas as pd
+    run = ROOT / "runs" / str(data["kpis"].get("run_id")) / "00_raw_fetch.parquet"
+    if not run.exists():
+        pytest.skip(f"MISSING DATA: the run this payload names ({run.parent.name}) is not in runs/")
+    raw = pd.read_parquet(run, columns=["Ticker", "_ni_a0", "_ni_a1", "shortRatio"]).set_index("Ticker")
+    got = page.evaluate(_SNAP_JS)
+    problems, n_g, n_s = [], 0, 0
+    for t, (ni, sr) in got.items():
+        a0, a1 = raw["_ni_a0"].get(t), raw["_ni_a1"].get(t)
+        if pd.notna(a0) and pd.notna(a1) and abs(a1) > 0:
+            n_g += 1
+            m = _GROWTH.match((ni or ["", ""])[1].strip())
+            true = 100 * (a0 - a1) / abs(a1)
+            if not m:
+                problems.append(f"{t}: net income growth printed {(ni or ['', ''])[1]!r}")
+            else:
+                v = float(m.group(2)) * (-1 if m.group(1) == "-" else 1)
+                step = 0.5 * 10 ** -(len(m.group(2).split(".")[1]) if "." in m.group(2) else 0)
+                # the payload rounds the ratio to 4 dp (0.01 points) before the page rounds again
+                if abs(v - true) > step + 0.005 + 1e-9 or (m.group(1) == "" and v != 0):
+                    problems.append(f"{t}: {v}% printed, {true:.4f}% from the fiscal years")
+        q = raw["shortRatio"].get(t)
+        if pd.notna(q):
+            n_s += 1
+            if (sr or [None])[0] != f"{_fixed_n(q, 1)} days to cover":
+                problems.append(f"{t}: short interest printed {sr!r}, Yahoo's ratio {q}")
+    assert n_g > 400 and n_s > 400, (n_g, n_s)
+    assert not problems, f"{len(problems)}: {problems[:5]}"
