@@ -710,9 +710,12 @@ CLAIMS: tuple[Claim, ...] = (
             "100 (rank at or above the boundary) of the run's universe, and how many carry a trap flag; "
             "the Concentration block sets the count against the three published diversification counts "
             "(30, 50, 63), each met at its own count; the remove-all dialog states the list's length."
+            " The section's rank strip prints the saved names' ranks lowest first 'of N', N being the "
+            "number ranked, with each dot on the 1-to-N scale (2026-11-03)."
         ),
         made_true_by="generate_dashboard:generate_html",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_the_holdings_strip_prints_the_saved_names_ranks_of_the_number_ranked",
             "tests/test_holdings_panel.py::test_the_fit_line_prints_its_own_counts",
             "tests/test_holdings_panel.py::test_fit_line_reports_concentration_not_position_sizes",
             "tests/test_holdings_panel.py::test_the_remove_all_dialog_counts_the_list_and_a_refusal_keeps_it",
@@ -1416,6 +1419,20 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_review_cadence.py::test_the_published_turnover_is_the_snapshots_own",
             "tests/test_review_cadence.py::test_long_form_quotes_all_three_numbers",
             "tests/test_review_cadence.py::test_turnover_numbers_bracket_the_nmv_ceiling",
+        ),
+    ),
+    Claim(
+        id="dashboard.phone_table_pages",
+        surface=DRILLDOWN,
+        asserts=(
+            "On a phone the rankings table shows its rows a page at a time: the bar says how many of "
+            "how many are shown, 'Show the next N' adds exactly N (a full page, or what is left), "
+            "'Show all' disappears when the next page is the last, and stepping through reaches every "
+            "row (2026-11-03)."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_the_phone_table_states_each_next_page_and_reaches_every_row",
         ),
     ),
     Claim(

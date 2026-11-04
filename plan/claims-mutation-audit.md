@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (5 `open:` rows since 2026-11-03 night):**
+**What remains, as a queue (2 `open:` rows since 2026-11-03 night):** `ni-growth-yoy` and `short-ratio` - the page prints fields the payload cannot recompute; publish their inputs first. (`show-next-count` CLOSED the same night on new claim `dashboard.phone_table_pages`: a 375px page stepped through the whole table, 3 of 3 mutations.) The holdings rank strip (`holdings-rank-strip`, `-axis`) CLOSED 2026-11-03 night on `dashboard.holdings_fit`, with the invariant that "of N" counts the ranked (4 of 4 mutations).
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself

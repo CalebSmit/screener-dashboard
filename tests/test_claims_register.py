@@ -1222,7 +1222,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "The median this run is ${k.median_composite.toFixed(1)}, so a composite above it is in the upper half of the ${(k.universe_size || '')} stocks.":
         'claim:dashboard.score_key',
     'Show the next ${next}':
-        "open:show-next-count - the table's next-page count; nothing reads the page's printing",
+        'claim:dashboard.phone_table_pages',
     'The ranking covers the ${n} S&amp;P 500 companies this run scored.':
         'claim:dashboard.score_key',
     "It trades ${pctNearZero(sc.price_gap_pct, 1).mag}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
@@ -1354,9 +1354,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '${p[1]} at the ${ord(S[p[0]].pct_10y)} percentile of ten years':
         'claim:context.macro_series',
     '#1 Where they rank #${N}':
-        "open:holdings-rank-strip-axis - nothing reads the page's printing",
+        'claim:dashboard.holdings_fit',
     "Your saved names rank ${ranks.sort((a, b) => a - b).map(v => '#' + v).join(', ')} of ${N}":
-        "open:holdings-rank-strip - nothing reads the page's printing",
+        'claim:dashboard.holdings_fit',
     "Composite ${fmt(score, 'score')} among the ${d.n} published composites${(hasMed ? '; the median is ' + fmt(med, 'score') : '')}":
         'claim:drilldown.composite_distribution',
     "; the median is ${fmt(med, 'score')}":
@@ -1384,11 +1384,8 @@ DASHBOARD_SENTENCES: dict[str, str] = {
 }
 
 DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
-    'holdings-rank-strip',
-    'holdings-rank-strip-axis',
     'ni-growth-yoy',
     'short-ratio',
-    'show-next-count',
 })
 
 

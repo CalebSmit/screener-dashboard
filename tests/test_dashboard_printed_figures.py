@@ -1689,3 +1689,59 @@ def test_the_compare_sentence_is_the_composite_gap_and_its_two_largest_category_
         if not m or m.groups() != want:
             problems.append(f"{a} vs {b}: printed {lede!r}, worked out {want}")
     assert not problems, f"{len(problems)} of {len(pairs)}: {problems[:4]}"
+
+
+# ---------------------------------------------------------------------------
+# My Holdings' rank strip (claims audit queue item 5, 2026-11-03 night): the saved names' ranks,
+# lowest first, "of N" with N the number ranked, and the axis's two ends
+# ---------------------------------------------------------------------------
+def test_the_holdings_strip_prints_the_saved_names_ranks_of_the_number_ranked(page, data):
+    rows = sorted((r for r in data["table_data"] if r.get("Rank")), key=lambda r: r["Rank"])
+    n = data["kpis"]["universe_size"]
+    # the premise "of N" rests on: N is the number ranked, and the ranks run 1 to N
+    assert n == len(rows) == rows[-1]["Rank"] and rows[0]["Rank"] == 1, (n, len(rows), rows[-1]["Rank"])
+    saved = [rows[299]["Ticker"], rows[9]["Ticker"], "ZZZZ-NOT-RANKED", rows[0]["Ticker"]]
+    got = page.evaluate("""(saved) => { const keep = holdings.slice();
+        try { holdings = saved; renderTileViz();
+              const v = document.querySelector('#sec-holdings .tile-viz');
+              return [v.getAttribute('aria-label'), v.querySelector('.tv-cap').textContent,
+                      [...v.querySelectorAll('.tv-strip i')].map(i => i.style.left)]; }
+        finally { holdings = keep; renderTileViz(); } }""", saved)
+    assert got[0] == f"Your saved names rank #1, #10, #300 of {n}"
+    assert got[1] == f"#1Where they rank#{n}"
+    # positions on the 1-to-N scale (the browser normalises "60.0%" to "60%", so compare numbers)
+    want_left = sorted(float(_fixed_n((r - 1) / (n - 1) * 100, 1)) for r in (300, 10, 1))
+    assert sorted(float(x.rstrip("%")) for x in got[2]) == want_left, got[2]
+
+
+# ---------------------------------------------------------------------------
+# The phone table's "Show the next N" (claims audit queue item 5, 2026-11-03 night): stepping
+# through the whole ranking, each button states how many rows it will add and the count it reaches
+# ---------------------------------------------------------------------------
+def test_the_phone_table_states_each_next_page_and_reaches_every_row(browser, data, tmp_path):
+    for f in ("dashboard_data.js", "dashboard_context.js"):
+        shutil.copy(ROOT / f, tmp_path / f)
+    (tmp_path / "index.html").write_text(gd.generate_html(methodology_html="<p>m</p>", data_timestamp="t",
+                                                          data_version="v"), encoding="utf-8")
+    pg = browser.new_page(viewport={"width": 375, "height": 812})
+    try:
+        pg.goto((tmp_path / "index.html").as_uri(), wait_until="load", timeout=60000)
+        pg.wait_for_function("typeof updateTableMore === 'function' && typeof D !== 'undefined' && "
+                             "!document.getElementById('table-more').hidden", timeout=60000)
+        n = len([r for r in data["table_data"]])
+        step = pg.evaluate("PHONE_STEP")
+        k, seen = step, 0
+        while k < n:
+            got = pg.evaluate("""() => { const b = document.getElementById('table-more');
+                return [b.querySelector('.tm-count').textContent, b.querySelector('.tm-next').textContent,
+                        b.querySelector('.tm-all').hidden]; }""")
+            nxt = min(step, n - k)
+            assert got[0] == f"Showing {k} of {n}" and got[1] == f"Show the next {nxt}", (k, got)
+            assert got[2] is (nxt >= n - k), (k, got)
+            pg.evaluate("showMoreRows(false)")
+            k += nxt
+            seen += 1
+        assert pg.evaluate("document.getElementById('table-more').hidden") is True
+        assert pg.evaluate("shownRows()") == n and seen == -(-(n - step) // step)
+    finally:
+        pg.close()
