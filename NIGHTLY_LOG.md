@@ -18698,6 +18698,23 @@ and this entry's. Worked in a worktree outside OneDrive; pushed only while no se
 6. **Smaller:** the brief's "Coming up" gains 2026-12-04 (the option signals' first one-month reading);
    two tests updated to the anchoring premise, one of them building an anchored reading rather than
    skipping.
+7. **Universe phase 1, first slice** (`plan/universe-expansion.md`, the top item under `OWNER_FOCUS.md`
+   Open). `universe.py` defines the S&P 500 (members 495-515, ranked >= 490) and the health gate's
+   floor, the rehearsal's full-run floor, `universe_history`'s plausible band and two tests' floors
+   read it instead of four literal copies. Values unchanged: `check_run_health`'s output on the latest
+   run is byte-identical before and after. The research engine's 32 rows were rerun because
+   `universe_history.py` is hashed. Left literal on purpose and named in
+   `tests/test_universe_definition.py`: `data-run.ps1`'s `$universe = 500` (not edited hours before a
+   run) and the page's `|| 500` fallback.
+8. **The publish gate audited for checks a good run could fail.** Tonight's new page checks run in
+   the 02:00 loop's publish gate, where a failure discards the night. Three assumptions only today's
+   data satisfied were found and removed before they could: the published-turnover check now mirrors
+   `build_history` exactly (the run being published defines its own date's point - recomputing from
+   the snapshot files alone would have failed on any night an earlier same-day run was on disk); the
+   price-target check skips a clamped scored upside and handles a missing price; and count floors
+   ("> 400 stocks", ">= 100 per metric") are gone - coverage is `check_run_health`'s to judge, and a
+   floor in a claims check would discard a run over a source dip with nothing misprinted. **Lesson for
+   whoever adds a check to that gate: it must hold on every good run, not on today's.**
 
 ### Not done, and why
 
