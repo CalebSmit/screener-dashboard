@@ -248,8 +248,50 @@ Two things still outrank this file, and neither is negotiable:
      **not** the bank entries: excluding Financials the rise is *larger* (+0.0949 against +0.0814)
      and it continues through five runs sharing one `methodology_version`. Note section 6; no
      weight, metric or threshold moved.
-     **Two proposals are still waiting for a decision** (`write_brief.open_proposals()`):
-     Investment-inside-Quality and universe phase 0, both opened 2026-11-02.
+     **An eighth was DECIDED 2026-11-04 (06:00) - the first whose recommendation was ACCEPTED as
+     written, and the page gained what it had been missing since 2026-10-19.**
+     `research/2026-11-02-investment-inside-quality.md` asked whether the Investment category
+     (`asset_growth`, 5 points) should be folded into Quality, as nine of eleven provider families
+     do, and recommended keeping it standalone. **The fold is refused and the recommendation
+     accepted**; no weight, metric, threshold or scoring line moved. The six proposals before it
+     were refused as written, and the reason this one is not is structural: it recommends *no
+     change to any number*, and it measured the costs of the change it declines before declining
+     it. Section 4 was rebuilt from `factor_engine` rather than read -
+     `research/measurements/2026-11-04-investment-fold-review.py`, committed, where the note's own
+     script was not - and run over **eight published runs instead of one**, which closes the note's
+     own "this is one cross-section" caveat: **455 of about 500 composites unchanged and the top 25
+     untouched on every one of the eight**, Quality's dispersion down **15.0-15.4%** against
+     `check_run_health`'s 20% refusal bar. So the fold buys no ranking change and would spend
+     three-quarters of a safety margin on methodology rather than data.
+     **One of the note's listed costs is struck:** §3.2 says the positional read of
+     `dispersion_history.csv` means dropping a column shifts every later one. `investment_disp` is
+     the file's **last** column and `check_run_health.CATEGORIES` holds **five** categories, so the
+     gate never reads it at any position - the fold is marginally *cheaper* than argued, which does
+     not change the verdict.
+     **What the review added:** every load-bearing figure re-read from the PDF bytes - Fama &
+     French's Tables 4 and 6 (fourteen figures, all exact), MSCI FaCS's 25% and its worked Microsoft
+     example, Scientific Beta's Exhibit 14, Hsu/Kalesnik/Kose p. 57 and Asness p. 5, **all exact**,
+     with two one-page citation slips and no wrong number. Plus two things the note did not have:
+     Scientific Beta's Exhibit 15, where the low-investment and high-profitability indices share
+     only ~50% of their stocks; and the coherence point that **among large companies the investment
+     factor's strongest documented correlation is +0.68 with low volatility, not with profitability
+     (-0.18)** - so Quality is the category it is *least* related to, and if these 5 points overlap
+     anything here it is Risk and Valuation. That is a Monday, not a weight change.
+     **And the sound part shipped:** four paragraphs in the methodology page's Investment section -
+     which measure, the large-company caveat, the joint position with Growth, and why it is
+     standalone - closing items 1-3 of the page work
+     `research/2026-10-19-revenue-growth-vs-asset-growth.md` §11.2 queued on 2026-10-19. The section
+     had no large-company reading where Size and Momentum both carry thorough ones. Claim
+     `overview.investment_standalone`, `tests/test_investment_standalone.py` (6 tests, in the publish
+     gate by derivation); `METHODOLOGY_CHANGELOG.md` 2026-11-04; note section 6.
+     **Three proposals are still waiting for a decision**, read from
+     `write_brief.open_proposals()` after this one closed, not from the line it replaced - which
+     still named universe phase 0, decided and closed on 2026-11-03, a day before anyone read it.
+     All three opened **2026-11-03**: the 13F-filer log line
+     (`research/2026-11-03-following-the-smart-money.md`), the QuantLib implied-volatility
+     construction (`research/2026-11-03-open-source-quant-stack.md`), and registering the
+     `short_interest_ratio` research-engine experiment
+     (`research/2026-11-03-short-interest-days-to-cover.md`).
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error
