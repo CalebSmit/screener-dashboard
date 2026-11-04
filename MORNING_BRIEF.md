@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 04 November 2026, 06:56
+# Morning Brief - Wednesday 04 November 2026, 13:43
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (latest) | **stopped deliberately** - last ran today |
+| Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-11-04 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
@@ -28,9 +28,7 @@ history is in `NIGHTLY_LOG.md`.
 A session researched these, proposed a change and left it for review. The next
 session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 
-- **decide whether to fold the Investment category (`asset_growth`, 5%) into Quality at the weight-preserving 18.52% of a 27% Quality (section 3) or keep it standalone, as this note recommends, with the...** - open 2 days - `research/2026-11-02-investment-inside-quality.md`
 - **decide whether to log (not show, not score) one line per stock - the number of 13F filers holding it and the change on the prior quarter, dated by quarter end and filing date - as a context-log...** - open 1 day - `research/2026-11-03-following-the-smart-money.md`
-- **decide whether the options panel's ATM implied volatility and put skew should be computed from our own closing mids with QuantLib instead of Yahoo's `impliedVolatility` (measured 2026-11-03, section...** - open 1 day - `research/2026-11-03-open-source-quant-stack.md`
 - **register in `research/experiments/registry.yaml`, before running it, a research-engine experiment that drops `short_interest_ratio` from Revisions (and a second that scores FINRA days to cover from...** - open 1 day - `research/2026-11-03-short-interest-days-to-cover.md`
 
 ## Coming up
@@ -41,84 +39,76 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - 2026-11-09 (in 5 days) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
 - 2026-11-16 (in 12 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
 
-## Things that needed attention
-
-- GATE 5 publish rehearsal: FAIL (REHEARSAL FAILED: fix it before the data loop publishes it.)
-- FAIL  check_published_claims
-- SHIP GATES FAILED: publish-rehearsal. Not merging.
-- Work pushed to nightly/2026-11-04 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
-- Run finished with failing gates - see above.
-
 ## What changed in the repo
 
+- `60e7d49 Log: the implied-volatility proposal is accepted, and the fetch has no ex-date`
+- `ef9bc75 Decide the implied-volatility proposal: ACCEPTED, and the switch costs one day not a month`
+- `3074106 Record which construction an implied volatility came from, so adopting the inversion splices nothing`
+- `fb27f1c Pre-register the QuantLib review's replication before computing anything`
+- `9f3c66a Log: the 06:00 work landed; a refused branch is named to the next session`
+- `ca674ac Runner: a refused branch is named to the next session, and a failed gate keeps its output`
+- `3d76cfd brief: code session 2026-11-04`
+- `39c7080 Log: the auto-rescue stash is not empty - git stash show -p cannot see an -u stash`
+- `05030b7 Log and owner queue: the Investment fold decided, and the page rebuilt to carry it`
+- `320a2a2 shot_methodology.py: the section and the paragraph are arguments, not literals`
+- `7668fda Investment stays standalone: the fold refused, and the page now says why`
+- `4726ae8 Review measurement: the Investment-into-Quality fold, rebuilt independently and run over eight payloads`
 - `b876aa4 brief: data run 2026-11-04`
 - `bd1702c data: screener run 2026-11-04 - 499 scored, top: EXPE VLO MU SNDK APA`
 - `9a289d9 OWNER_FOCUS: the night's later items`
-- `12fc0a6 Research: days to cover (short_interest_ratio), Revisions' last unresearched leg - weight kept, experiment proposed`
-- `3a7487a CLAUDE.md priority 6 and NIGHTLY_LOG: the M4 answer and the night's later items`
-- `cddf0f0 Investor profiles M4: a client-side reweight can reproduce the engine - measured, with two conditions`
-- `cf3d3c5 Queue: 37 named-ticker references in payload-reading tests, measured with a recipe for a daytime fix`
-- `3e7e437 Rank chart: no literal universe size - the page's last '|| 500' reads the universe being run`
-- `69a6a5a CLAUDE.md: experiment 18's second reading is done (2026-11-02), not pending`
-- `4ba0eea Research engine: rerun all 32 rows on the new code hash (no result changed); log and CLAUDE.md`
-- `24cc2f2 Publish-gate checks: no assumption a good run can break`
-- `f02cf1b Universe phase 1, first slice: every size constant reads universe.py`
-- `e3d1175 NIGHTLY_LOG and OWNER_FOCUS: the owner-run night; Coming up gains 2026-12-04`
-- `27aafe2 Claims audit: the dashboard sweep is closed - 0 open rows`
-- `8bfcd65 Claims audit: the holdings rank strip and the phone table's pages (2 open)`
 
 ## The session's own account
 
-> 2026-11-03 (owner-run, night) - "keep finding improvements!! be creative. work until the 2 am session"
+> 2026-11-04 (13:00 midday) - QUEUE. A second session today - more of the work, not a different kind. Read today's earlier NIGHTLY_LOG.md entry first and carry on from its Next; if it finished, take the next open item in OWNER_FOCUS.md, then the top of CLAUDE.md "Current priorities", then the queues in plan/factor-lab.md, plan/context-layer.md and plan/backtest-v2.md. Finish one item end to end, to the same evidence standard as any other session. Do not repeat or reverse a decision an earlier session made today without new evidence, and write down why if you do.
 > 
-> **Health (rule 8, all five):** as the evening entry above - no scheduled session or data run since.
-> Last code session ran? yes - `logs/nightly-2026-11-03_130000-midday.log` (completed). Data loop
-> published? yes - `logs/datarun-2026-11-03_020000.log` (HEALTH: PASS). Evidence base at `1m`: 5 of 8
-> needed (43 rows), newest 1m run date 2026-10-02 (32 days, bound 40). Priority 0: `allow_auto_apply`
-> **false**. Top open roadmap item: **0.13, The Factor Lab** (age **22 days**).
-> **Tests:** 3,879 passed / 3 skipped at the last gate run. Tags `good/2026-11-03-owner-6` to `-12`
-> and this entry's. Worked in a worktree outside OneDrive; pushed only while no session ran; the
-> 20:00 option refresh ran tonight's code and was measured (evening entry, item 7).
+> **Health (rule 8, all five):** last code session ran? **the runner's line said "held back by its
+> gates"** - `logs/nightly-2026-11-04_060000.log` - but **nothing is actually held back**:
+> `health_numbers.held_back` named no branch and `git log origin/main..origin/nightly/2026-11-04` is
+> empty, because the owner-run morning session merged that work after re-running all five gates (its
+> entry above). So there was no refused branch to merge, and the line is reading the 06:00 run log's
+> own ending rather than where the work ended up - worth knowing before the next session spends time
+> looking for it. Data loop published? yes - `logs/datarun-2026-11-04_020001.log` (completed; HEALTH:
+> PASS). Evidence base at `1m`: **5 of 8 effective** observations needed at the `1m` horizon (43 rows,
+> but overlapping windows are not independent; 111 rows across all horizons), newest `1m` run date
+> **2026-10-02 (33 days ago, bound 40)**. Priority 0: `allow_auto_apply` **false**. Top open roadmap
+> item: **0.13, The Factor Lab** (age **23 days**); also open: 0.10 28d, 0.14 21d.
+> **Tests:** before **3,896 passed / 1 skipped**; after **3,901 passed / 1 skipped**.
+> **Owner queue / rotation:** I am today's **third** session. The 06:00 entry's Next named the three
+> open proposals as the first job, and prompt section 1 says deciding one outranks the focus, so I
+> took the one it named first. Nothing was deferred for a broken loop or a gate. The deferral-streak
+> rule did not fire: this session carried an owner item (`OWNER_FOCUS.md` item 1, "Decide the OPEN
+> proposals"). No decision made earlier today was reversed.
 > 
 > ### Did
 > 
-> 1. **QuantLib against Yahoo's implied volatility: pre-registered, measured, bar MET, decision OPEN**
->    (`research/2026-11-03-open-source-quant-stack.md` sections 1a-1b; pre-registration committed as
->    `57958d5` before any number). On 51 stocks: our American IVs from closing mids sit a median
->    **3.16 points below** Yahoo's at the money (90th pct 6.09); an independent CRR tree reproduces
->    QuantLib on **10 of 10** contracts; the put skew's **sign differs for 17 of 30**. Diagnostic: no
->    simple construction reproduces Yahoo's field (last trades a median 9.8 h old), and Yahoo's skew is
->    negative for **28 of 48** stocks against **5 of 48** from the closing quotes. ~14 s a refresh if
->    adopted. This session wrote the proposal, so a scheduled session decides; the brief lists it.
-> 2. **The options panel's anchoring, completed and seen on the live page.** After the evening fix the
->    card withheld a pre-fix move but still printed its "at the money" volatility and skew - NOW's
->    from the 150 strike with the stock near $109. The move, the ATM IV and the skew legs share one
->    anchor, so a reading without its recorded price withholds all three, in the generator, on the page
->    (`optAnchored`) and in `context_eval`; the skew's explanation and effect sizes now appear only
->    beside a skew. Looked at the live card at 375px after each change. Simulated tomorrow's 02:00 read
->    of tonight's cache: **467** stocks will show option figures with their divisor, 12 older readings
->    withheld; NOW will read +/-11.5% divided by $109.16 at the 110 strike. 12 of 12 mutations.
-> 3. **The claims audit's dashboard sweep is closed: 38 -> 0 open rows.** Every computed sentence on the
->    page now carries a verdict a test enforces - the workings' weight lines and points equation for
->    every row of every stock (the first draft rebuilt the line from its own copy of the template and a
->    mutation survived it), the Piotroski / surprise / ROE lines redoing their arithmetic from the
->    inputs published beside them, the history and Reporting Soon counts, the price-target strip (its
->    mean-target upside equals the scored one for 496 of 496), the share-class gap, the compare
->    sentence, the holdings strip, the phone table's pages, and the snapshot's net-income growth and
->    days to cover against the run's own fetch. New claims: `drilldown.percentile_convention`,
->    `drilldown.price_targets`, `history.rank_counts`, `dashboard.reporting_soon_counts`,
->    `dashboard.review_cadence_turnover`, `dashboard.phone_table_pages`. Four mutations survived first
->    drafts on today's data (every stock ranked today, no report exactly 8 days out, every company
->    scored, a template copied into the test) and were caught by hand-built cases.
-> 4. **A stale figure found and fixed: the review-cadence turnover.** The note printed September's
->    "122% at every run against 24% monthly" as "this screener's own history"; re-measured the same way
->    on the longer record it is **149%** and **28%**. `history.review_turnover` now measures both at
->    every build over every stock each run ranked, and the note names its basis (changelog 2026-11-03
+> **Decided the implied-volatility proposal: ACCEPTED - the options panel should invert its own
+> bid/ask mids rather than take the quote response's `impliedVolatility` field as given.**
+> `research/2026-11-03-open-source-quant-stack.md` section 1, open 1 day, written by an owner-run
+> session; section 1d is the review. This is the **ninth** proposal reviewed and the **second running**
+> to be accepted after six refusals. I did not write the note or its measurement.
+> 
+> 1. **Pre-registered my own reading before computing anything** (section 1c, commit `fb27f1c`): a
+>    disjoint sample, the candidate construction the author could not test, the dividend gap in its
+>    cross-check, the literature check, and the adopt/refuse rule. The author's own pre-registration
+>    checks out in `git log` too - section 1a in `57958d5`, the result in `741215b`.
+> 2. **Replicated on a disjoint sample, mid-session** (`recs[5::10]`, no overlap with the author's
+>    `recs[::10]`): 40 of 50 stocks priced, QuantLib minus the field **median -1.78 volatility points,
+>    median |difference| 2.00, max 7.51**. The 1-point bar holds on a second sample; the gap is about a
+>    third narrower at 14:10 ET than the author's 3.16 at 21:00.
+> 3. **Closed the gap in the author's cross-check.** Its printout said 10 of 10 ATM calls reproduced an
+>    independently written binomial tree but not how many carried a **dividend** - the part the note
+>    itself calls hardest. Measured on two sets chosen by the same rule: **10 of 10 with no dividend
+>    and 9 of 9 with one**, 19 of 19 within half a point (largest CF, 60.46% against 60.82%).
+> 4. **Found the deciding evidence already in this repository.** The note marks its key inference -
+>    that a negative put skew is the unusual case - as uncited. It needn't be: **Xing, Zhang & Zhao's
+>    Table 1 (p. 647)** puts the 5th percentile of their skew at **-0.99** points, so a negative skew
+>    is about a **one-in-sixteen** event in the data the measure comes from. It was read from the paper
+>    by the 2026-10-14 session and sits in
 > ...
 
 ---
 
-If a run says **stopped deliberately**, that is the safety gates working:
-the live dashboard was left untouched rather than published with bad data.
+If a run says **stopped deliberately** or **held back by its gates**, that is the safety
+gates working: the live dashboard was left untouched rather than published with bad data.
 `logs/` has the detail, and `ROLLBACK.md` covers undoing anything.
 
