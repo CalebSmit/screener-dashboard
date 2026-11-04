@@ -60,7 +60,8 @@ def test_an_echoed_stand_down_does_not_hide_a_real_session(tmp_path, monkeypatch
     ("[13:54:25] [INFO] === Run complete: shipped to main ===", "completed"),
     ("[06:40:00] [INFO] === Run complete (no changes) ===", "completed, nothing to change"),
     ("[02:20:00] [ERROR] Run discarded by health check - the live dashboard is unchanged.", "stopped deliberately"),
-    ("[06:30:00] [ERROR] SHIP GATES FAILED: tests. Not merging.", "stopped deliberately"),
+    ("[06:30:00] [ERROR] SHIP GATES FAILED: tests. Not merging.",
+     "held back by its gates (work kept on its branch, not on main)"),
     ("﻿[02:23:19] [INFO] === Data loop complete ===", "completed"),     # first line carries the BOM
 ])
 def test_the_runners_own_lines_still_classify(line, state):

@@ -144,6 +144,9 @@ class TestStallBanner:
         assert wb.outcome([])[0] == "did not run"
         assert wb.outcome(
             ["[06:00:01] [ERROR] SHIP GATES FAILED: tests. Not merging."]
+        )[0].startswith("held back by its gates")
+        assert wb.outcome(
+            ["[02:20:00] [ERROR] Run discarded by health check - the live dashboard is unchanged."]
         )[0] == "stopped deliberately"
 
 

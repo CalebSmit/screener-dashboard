@@ -132,6 +132,20 @@ function Write-NativeOutput {
     }
 }
 
+# A failed gate's whole output, beside the log it belongs to (logs/ is gitignored), so the next
+# reader can see which test failed and why without re-running anything (2026-11-04). Never fatal:
+# a gate's verdict must not depend on whether its transcript could be written.
+function Save-GateOutput {
+    param([object]$Result, [string]$Name)
+    $path = $LogFile -replace '\.log$', ".$Name.txt"
+    try {
+        Set-Content -Path $path -Value $Result.Text -Encoding utf8 -ErrorAction Stop
+        Write-Log "    full output: $path" 'ERROR'
+    } catch {
+        Write-Log "    could not save the full output to $path ($($_.Exception.Message))" 'WARN'
+    }
+}
+
 function Stop-Run {
     param([string]$Message, [int]$Code = 1)
     Write-Log $Message 'ERROR'
@@ -749,6 +763,7 @@ try {
     if ($t.ExitCode -eq 0) { Write-Log "GATE 1 tests: PASS ($passLine)" }
     else {
         Write-Log "GATE 1 tests: FAIL ($tail)" 'ERROR'
+        Save-GateOutput $t 'gate1'
         $gateFailures += 'tests'
         # Say which of these the session inherited. The gate's verdict does not change - nothing
         # merges onto a red main - but "the session broke 1 test" and "the session fixed none of
@@ -855,9 +870,16 @@ try {
     elseif ($r5.ExitCode -eq 3) { Write-Log "GATE 5 publish rehearsal: SKIPPED ($r5tail)" 'WARN' }
     else {
         Write-Log "GATE 5 publish rehearsal: FAIL ($r5tail)" 'ERROR'
-        foreach ($ln in ($r5.Output | Where-Object { "$_" -match '^\s*(FAIL|FAILED)\b' } | Select-Object -First 15)) {
+        # Which test, and why. On 2026-11-04 this logged only "FAIL  check_published_claims": the
+        # filter kept FAIL/FAILED lines and dropped the claims gate's own verdict line and the
+        # ERROR lines a collection or teardown failure prints, the full output went nowhere, and
+        # the failure did not reproduce on two reruns - so nobody could say what had failed. Keep
+        # every line that names a failure, and the whole output beside the log. Logging only: the
+        # verdict is the exit code above.
+        foreach ($ln in ($r5.Output | Where-Object { "$_" -match '^\s*(FAIL|FAILED|ERROR|PUBLISHED CLAIMS:)' } | Select-Object -First 25)) {
             Write-Log "    $("$ln".Trim())" 'ERROR'
         }
+        Save-GateOutput $r5 'gate5'
         $gateFailures += 'publish-rehearsal'
     }
 

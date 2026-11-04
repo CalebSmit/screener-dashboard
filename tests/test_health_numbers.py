@@ -203,3 +203,50 @@ def test_the_runner_hands_the_line_to_the_session():
     block = ps[compute:fill]
     assert "Stop-Run" not in block and "not computed" in block      # never fatal
     assert "{{HEALTH}}" in (ROOT / "prompts" / "nightly.md").read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Work the gates held back (2026-11-04): a refused branch on origin is named in the line every
+# session's prompt carries, and only while it holds commits origin/main lacks.
+# ---------------------------------------------------------------------------
+def _git(tmp: Path, *args: str) -> str:
+    return subprocess.run(["git", *args], cwd=tmp, check=True, capture_output=True, text=True).stdout
+
+
+def test_a_refused_branch_on_origin_is_named_and_a_merged_one_is_not(tmp_path):
+    origin, clone = tmp_path / "origin.git", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, capture_output=True)
+    for k, v in (("user.email", "t@example.invalid"), ("user.name", "t")):
+        _git(clone, "config", k, v)
+    _git(clone, "commit", "-q", "--allow-empty", "-m", "base")
+    _git(clone, "push", "-q", "origin", "main")
+    _git(clone, "checkout", "-q", "-b", "nightly/2026-11-03")       # merged: nothing main lacks
+    _git(clone, "push", "-q", "origin", "nightly/2026-11-03")
+    _git(clone, "checkout", "-q", "-b", "nightly/2026-11-04")       # refused: two commits ahead
+    _git(clone, "commit", "-q", "--allow-empty", "-m", "first")
+    _git(clone, "commit", "-q", "--allow-empty", "-m", "Investment stays standalone")
+    _git(clone, "push", "-q", "origin", "nightly/2026-11-04")
+    _git(clone, "fetch", "-q", "origin")
+
+    def run(args):
+        return subprocess.run(["git", *args], cwd=clone, capture_output=True, text=True)
+
+    got = hn.held_back(run)
+    assert got == [("origin/nightly/2026-11-04", 2, "Investment stays standalone")]
+    text = hn.held_back_text(got)
+    assert "`origin/nightly/2026-11-04` (2 commits, newest: Investment stays standalone)" in text
+    assert "Work the gates held back" in text
+    assert "Work the gates held back" in (ROOT / "prompts" / "nightly.md").read_text(encoding="utf-8")
+
+
+def test_no_held_back_work_adds_nothing_and_an_unreadable_repo_is_none():
+    assert hn.held_back_text([]) == ""
+
+    class Failed:
+        returncode, stdout = 128, ""
+    assert hn.held_back(lambda args: Failed()) == []
+
+    def boom(args):
+        raise OSError("git missing")
+    assert hn.held_back(boom) == []

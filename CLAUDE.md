@@ -317,6 +317,13 @@ before any worker starts, every worker checks against it, the controller restore
 On success the runner tags the commit `good/YYYY-MM-DD`. That tag is the
 rollback point - see `ROLLBACK.md`.
 
+**On failure the work is not lost and not forgotten** (2026-11-04): a failed gate 1 or 5 saves its
+whole output beside the run log (`logs/nightly-<stamp>.gate1.txt` / `.gate5.txt`), and every later
+session's health line names any `origin/nightly/*` branch holding commits `main` lacks
+(`health_numbers.held_back`), which the prompt makes that session's first job. That morning a
+gate-5 failure that never reproduced kept a finished decision off `main`, and the log said only
+"FAIL  check_published_claims".
+
 **The four gates cannot see a generator change - run `python scripts/rehearse_publish.py` when
 your diff touches one** (added 2026-10-12). Gates 1 and 3 read the *committed* `index.html` and
 payload, which only a full run rewrites; a change to `generate_dashboard.py` or the methodology

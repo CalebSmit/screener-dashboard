@@ -136,12 +136,52 @@ def top_roadmap(today: datetime | None = None) -> str:
     return f"**{num}, {title}** (age **{age} days**)" + (f"; also open: {rest}" if rest else "")
 
 
+# Work a ship gate refused, still waiting on origin (2026-11-04). When the runner's gates fail it
+# pushes the session's branch "for inspection" and stops - and until this line nothing told the
+# next session the work existed. On 2026-11-04 the 06:00 session decided an owner-queue proposal,
+# a one-off rehearsal failure kept it off main, and the 13:00 session would have started from a
+# main without it - and without the morning's NIGHTLY_LOG entry, which was on the same branch.
+def held_back(run=None) -> list[tuple[str, int, str]]:
+    """(branch, commits not on origin/main, newest subject) for each origin/nightly/* branch
+    carrying commits origin/main lacks, newest first. Reads the refs as they stand: the runner
+    fetches with --prune before computing this line. Never raises; unreadable means none."""
+    import subprocess
+    run = run or (lambda args: subprocess.run(["git", *args], cwd=ROOT, capture_output=True,
+                                              text=True, encoding="utf-8", errors="replace"))
+    try:
+        refs = run(["for-each-ref", "--sort=-committerdate", "--format=%(refname:short)",
+                    "refs/remotes/origin/nightly/"])
+        if refs.returncode != 0:
+            return []
+        out = []
+        for ref in (r.strip() for r in refs.stdout.splitlines()):
+            if not ref:
+                continue
+            n = run(["rev-list", "--count", f"origin/main..{ref}"])
+            if n.returncode != 0 or not n.stdout.strip().isdigit() or int(n.stdout) == 0:
+                continue
+            subj = run(["log", "-1", "--format=%s", ref]).stdout.strip()
+            out.append((ref, int(n.stdout), subj))
+        return out
+    except (OSError, ValueError):
+        return []
+
+
+def held_back_text(items: list[tuple[str, int, str]]) -> str:
+    if not items:
+        return ""
+    parts = [f"`{ref}` ({n} commit{'s' if n != 1 else ''}, newest: {subj[:90]})" for ref, n, subj in items]
+    return (" **Held back by the gates, not on main:** " + "; ".join(parts)
+            + " - see prompts/nightly.md, \"Work the gates held back\".")
+
+
 def line(today: datetime | None = None) -> str:
     return ("**Health (rule 8, all five):** last code session ran? " + last_code_session()
             + ". Data loop published? " + data_loop()
             + ". Evidence base at `1m`: " + evidence_base(today)
             + ". Priority 0: " + priority_0()
-            + ". Top open roadmap item: " + top_roadmap(today) + ".")
+            + ". Top open roadmap item: " + top_roadmap(today) + "."
+            + held_back_text(held_back()))
 
 
 def main() -> int:

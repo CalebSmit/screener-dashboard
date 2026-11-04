@@ -281,3 +281,27 @@ def test_the_publish_rehearsal_is_a_gate_before_the_clean_tree_check():
     assert "$gateFailures += 'publish-rehearsal'" in block
     assert "-eq 3" in block and "SKIPPED" in block
     assert "Stop-Run" not in block and "merge" not in block.lower()
+
+
+def test_a_failed_gate_leaves_its_whole_output_and_names_its_failures():
+    """2026-11-04: gate 5 logged only "FAIL  check_published_claims" - its filter dropped the claims
+    gate's verdict line and the ERROR lines a collection or teardown failure prints, and the full
+    output went nowhere - and the failure did not reproduce, so nobody could say what had failed.
+    A failed gate 1 or gate 5 now saves its whole output beside the log, and gate 5 logs every line
+    naming a failure. Saving is logging only: it cannot change a verdict or stop the run."""
+    g5 = CODE.index("scripts/rehearse_publish.py', '--changed-since', $BaseSha")
+    g4 = CODE.index("GATE 4 clean tree")
+    block = CODE[g5:g4]
+    assert "Save-GateOutput $r5 'gate5'" in block
+    for marker in ("FAILED", "ERROR", "PUBLISHED CLAIMS:"):
+        assert marker in block, marker
+    g1 = CODE.index("GATE 1 tests: FAIL")
+    assert "Save-GateOutput $t 'gate1'" in CODE[g1:g1 + 200]
+    fn = CODE[CODE.index("function Save-GateOutput"):CODE.index("function Stop-Run")]
+    assert "try" in fn and "catch" in fn and "-ErrorAction Stop" in fn
+    assert "Stop-Run" not in fn and "gateFailures" not in fn and "exit" not in fn.lower()
+    # Beside the log, under logs/ - which git ignores, so gate 4 cannot see it as a stray file.
+    assert r"$LogFile -replace '\.log$'" in fn
+    ignored = subprocess.run(["git", "check-ignore", "-q", "logs/nightly-2026-01-01_060000.gate5.txt"],
+                             cwd=ROOT)
+    assert ignored.returncode == 0

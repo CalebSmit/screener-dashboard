@@ -70,7 +70,11 @@ NOT_A_SESSION = ("=== Dry run complete ===", "Standing down")
 # The runners' own outcome lines, verbatim (data-run.ps1, nightly-screener.ps1, Stop-Run).
 COMPLETED = ("=== Data loop complete ===", "=== Run complete: shipped to main ===")
 NO_CHANGES = ("=== Run complete (no changes) ===",)
-STOPPED = ("Run discarded", "SHIP GATES FAILED:")
+STOPPED = ("Run discarded",)
+# A code session whose work a ship gate refused: it ran and did work, which sits on its branch.
+# Called "stopped deliberately" until 2026-11-04, which read as the session choosing to stop and
+# did not say where the work was.
+GATES_FAILED = ("SHIP GATES FAILED:",)
 # Written from the runner's `finally`, after everything else: a log without it is still running.
 FINISHED = ("Writing morning brief",)
 
@@ -125,6 +129,8 @@ def outcome(lines: list[str]) -> tuple[str, list[str]]:
         return "completed", notable
     if said(lines, *NO_CHANGES):
         return "completed, nothing to change", notable
+    if said(lines, *GATES_FAILED):
+        return "held back by its gates (work kept on its branch, not on main)", notable
     if said(lines, *STOPPED):
         return "stopped deliberately", notable
     return "failed", notable
@@ -750,8 +756,8 @@ def main() -> int:
 
     a("---")
     a("")
-    a("If a run says **stopped deliberately**, that is the safety gates working:")
-    a("the live dashboard was left untouched rather than published with bad data.")
+    a("If a run says **stopped deliberately** or **held back by its gates**, that is the safety")
+    a("gates working: the live dashboard was left untouched rather than published with bad data.")
     a("`logs/` has the detail, and `ROLLBACK.md` covers undoing anything.")
     a("")
 

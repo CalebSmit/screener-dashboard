@@ -7,6 +7,15 @@ start your `NIGHTLY_LOG.md` entry with it:
 
 {{HEALTH}}
 
+**Work the gates held back.** If that line names a branch "held back by the gates", an earlier
+session's work is on origin and not on `main`, and dealing with it comes before your focus (it is
+usually the work your focus would have picked up). Read why it was refused - its run log's
+`GATE` lines and, since 2026-11-04, the failed gate's whole output beside that log
+(`logs/nightly-<stamp>.gate1.txt` / `.gate5.txt`). Then `git merge origin/<that branch>` into your
+own branch, so the runner's gates judge it again with your work. A failure that reproduces is
+yours to fix on your branch; one that does not is recorded in your log entry with what you ran.
+Never push it to `main` yourself, and do not redo work that is already on it.
+
 You are running unattended and nobody will review your work. You push a branch;
 `nightly-screener.ps1` re-runs the ship gates - the four below, and the publish rehearsal (gate 5)
 whenever you changed more than prose - and merges it to `main`,
