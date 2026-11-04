@@ -508,8 +508,15 @@ def test_the_published_turnover_is_the_snapshots_own():
     c = D.get("cadence") or {}
     if not (c.get("turnover_basis") or {}).get("reviews"):
         pytest.skip("MISSING DATA: the published payload predates the measured turnover (2026-11-03)")
-    kept, _ = history.select_comparable_runs(ROOT / "improvement" / "snapshots",
-                                             up_to_date=D["history"]["current_date"])
+    day = D["history"]["current_date"]
+    kept, _ = history.select_comparable_runs(ROOT / "improvement" / "snapshots", up_to_date=day)
+    # Exactly as build_history does: the run being published defines its own date's point, whatever
+    # is on disk for that date (an earlier run the same day, or none yet). Its ranks are the
+    # published table's. Without this the check could fail inside the data loop's publish gate on
+    # a perfectly good run - and a failure there discards the night's evidence.
+    live = history.RunSnapshot(date=day, ranks={r["Ticker"]: r["Rank"] for r in D["table_data"] if r.get("Rank")},
+                               composites={}, cat_scores={})
+    kept = [k for k in kept if k.date != day] + [live]
     t = history.review_turnover(kept)
     assert t is not None and t["to"] == c["turnover_basis"]["to"]
     assert c["turnover_every_run"] == pytest.approx(t["every_run"], abs=0.11)

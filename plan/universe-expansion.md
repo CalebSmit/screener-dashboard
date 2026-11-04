@@ -124,6 +124,16 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-03 night (owner-run): the first slice of the first bullet.** `universe.py` defines
+the S&P 500 (`members 495-515`, `ranked >= 490`) and `check_run_health.MIN_SCORED`,
+`rehearse_publish.MIN_UNIVERSE`, `universe_history.MIN/MAX_PLAUSIBLE_MEMBERS` and two tests' floors
+read it; `check_run_health`'s output on the latest run is byte-identical before and after, and the
+research engine's 32 rows were rerun because `universe_history.py` is hashed. **Left literal on
+purpose** and named in `tests/test_universe_definition.py`: `data-run.ps1`'s `$universe = 500` (the
+data loop's own script, not edited hours before a run) and the page's `|| 500` fallback. Not started:
+the `config.yaml` block (the definition lives in Python until a second universe needs a switch),
+`size_band`, the per-band gates and the `stock_detail` shard.
+
 - A `universe:` block in `config.yaml` naming the source and the plausible size band; every
   constant listed above derived from it. Tests that hard-code 490 read the same value.
 - **`min_market_cap: 0` for every S&P index band** (decision 3's resolution above), so index rules

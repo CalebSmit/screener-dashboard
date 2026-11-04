@@ -1459,7 +1459,12 @@ def test_every_sum_of_parts_line_redoes_its_own_arithmetic(page, data):
                 checked[m] += 1
             if g["ok"] is not None and _text(g["ok"]) != _text(g["raw"]):
                 problems.append(f"{t}/{m}: 'the same {_text(g['ok'])} that was scored' against {_text(g['raw'])}")
-    assert all(n >= 100 for n in checked.values()), checked
+    # A metric scored for some stock must have had its line checked somewhere - a value printed
+    # with no inputs beside it is the defect. No count floor: a source outage that empties a metric
+    # is check_run_health's to judge, and a floor here would discard a run with nothing misprinted.
+    for m in _SUM_METRICS:
+        scored = sum(1 for v in sd.values() if (v.get("raw") or {}).get(m) is not None)
+        assert scored == 0 or checked[m] > 0, (m, scored, checked[m])
     assert not problems, f"{len(problems)}: {problems[:5]}"
 
 
@@ -1615,12 +1620,23 @@ def test_every_price_target_strip_prints_its_targets_and_their_distance_from_the
     price-target upside the engine scored, where it scored one - one figure on two surfaces."""
     sd = data["stock_detail"]
     got = page.evaluate(_PT_JS)
-    assert len(got) > 400, len(got)
+    # No coverage floor here: check_run_health owns target coverage (it fails a run under 50%), and
+    # a floor in a publish-gate check would discard a run over a source dip with nothing misprinted.
+    if not got:
+        pytest.skip("MISSING DATA: no stock in the payload has an analyst target")
+    import yaml
+    with open(ROOT / "config.yaml", encoding="utf-8") as f:
+        lo, hi = (yaml.safe_load(f).get("metric_clamps") or {}).get("price_target_upside", [-0.50, 1.0])
     problems = []
     for t, cards in got.items():
         s = sd[t]
-        p = s["price"]
+        p = s.get("price")
         by = dict(cards)
+        if not p:
+            # no price: the card says so and prints no distance (a branch a day may take)
+            if by.get("Current Price") != "—" or any("%" in v for k, v in by.items() if k != "Analysts"):
+                problems.append(f"{t}: no price, yet the cards read {by}")
+            continue
         if by.get("Current Price") != f"${_fixed_n(p, 2)}":
             problems.append(f"{t}: price {by.get('Current Price')!r} for {p}")
         for label, key in (("Avg Target", "pt_mean"), ("Low Target", "pt_low"), ("High Target", "pt_high")):
@@ -1638,7 +1654,10 @@ def test_every_price_target_strip_prints_its_targets_and_their_distance_from_the
                 problems.append(f"{t}/{label}: {printed}% printed, {true:.4f}% true")
             if key == "pt_mean":
                 u = (s.get("raw") or {}).get("price_target_upside")
-                if u is not None and abs(100 * u - true) > 0.05:
+                # the engine clamps the scored upside to its configured bounds; at a bound the card's
+                # true distance legitimately differs, so only an unclamped value must agree
+                clamped = u is not None and (abs(u - lo) < 1e-9 or abs(u - hi) < 1e-9)
+                if u is not None and not clamped and abs(100 * u - true) > 0.05:
                     problems.append(f"{t}: the card's upside {true:.3f}% is not the scored {100 * u:.3f}%")
     assert not problems, f"{len(problems)}: {problems[:6]}"
 
@@ -1769,7 +1788,10 @@ def test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_o
     run = ROOT / "runs" / str(data["kpis"].get("run_id")) / "00_raw_fetch.parquet"
     if not run.exists():
         pytest.skip(f"MISSING DATA: the run this payload names ({run.parent.name}) is not in runs/")
-    raw = pd.read_parquet(run, columns=["Ticker", "_ni_a0", "_ni_a1", "shortRatio"]).set_index("Ticker")
+    raw = pd.read_parquet(run).set_index("Ticker")
+    for col in ("_ni_a0", "_ni_a1", "shortRatio"):
+        if col not in raw.columns:      # a source change: the page then prints no such figure
+            raw[col] = float("nan")
     got = page.evaluate(_SNAP_JS)
     problems, n_g, n_s = [], 0, 0
     for t, (ni, sr) in got.items():
@@ -1791,5 +1813,18 @@ def test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_o
             n_s += 1
             if (sr or [None])[0] != f"{_fixed_n(q, 1)} days to cover":
                 problems.append(f"{t}: short interest printed {sr!r}, Yahoo's ratio {q}")
-    assert n_g > 400 and n_s > 400, (n_g, n_s)
+    # no count floor (see the price-target check); every figure the fetch supports is checked
     assert not problems, f"{len(problems)}: {problems[:5]}"
+
+
+def test_a_price_target_strip_with_no_price_prints_no_distance(page, data):
+    """A branch today's data may not take: targets published, the price missing."""
+    t = next(k for k, v in data["stock_detail"].items() if v.get("pt_mean"))
+    got = page.evaluate("""(t) => { const s = JSON.parse(JSON.stringify(D.stock_detail[t])); s.price = null;
+        renderPriceTargets(s);
+        return [...document.querySelectorAll('#modal-price-targets .pt-card')].map(c =>
+            [c.querySelector('.pt-card-label').textContent, c.querySelector('.pt-card-value').textContent]); }""", t)
+    by = dict(got)
+    assert by["Current Price"] == "\u2014"
+    assert not any("%" in v for k, v in by.items() if k != "Analysts"), by
+    assert by["Avg Target"].strip() == f"${_fixed_n(data['stock_detail'][t]['pt_mean'], 2)}"
