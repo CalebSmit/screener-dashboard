@@ -18840,6 +18840,28 @@ declining it. A reviewer's job is easier when the author has already tried to re
    `dashboard_context.js` were unchanged in the rehearsal. The shot script was hardcoded to the
    Growth section, so `--section` and `--marker` are arguments now, defaulting to the old values.
 
+6. **The `auto-rescue` stash is not empty, and every session since 2026-10-28 has been told it
+   is.** Orient says to inspect it; `git stash show -p stash@{0}` prints **nothing**, which reads
+   as "no work to recover" and is how it has survived seven days. It has **three parents** - it was
+   made with `-u`, and `git stash show` does not show the untracked-files parent. That parent
+   (`f2a4a40`) holds three files: two `improvement/price_cache/` parquets, both since regenerated
+   and present, and **`data/context_log/2026-10-28.parquet`** - 503 rows, 46 columns, schema
+   identical to its neighbours, and **the only weekday absent from `data/context_log/`**, whose
+   other 18 days are *tracked in git*, not ignored.
+   **It is deliberately not committed**, which is the judgement call here rather than the find.
+   `logs/datarun-2026-10-28_020001.log` ends `Run discarded: published-claims check failed`
+   (HEALTH: PASS, then `tests/test_case_against.py` failed in the publish gate) - so 2026-10-28
+   published nothing, and there is no payload commit for that date. Committing its context log
+   would splice an **unpublished run's** signals into the series `context_eval` reads, and this
+   project's standing rule runs the other way ("the skew before 2026-10-16's log is excluded from
+   `context_eval`, never spliced"; CLAUDE.md 0.11). Whether a refused run's readings belong in that
+   series is a real question with an evidence consequence, and it is not a loose end to settle in
+   the last ten minutes of a session that was deciding something else. **Nothing is lost**: the
+   stash is untouched and the blob is
+   `git cat-file blob f2a4a402a27756717bb9aaf3ed9b9481bdf0d9d1:data/context_log/2026-10-28.parquet`.
+   Restored it, validated it, then removed it again so the tree is clean. **Do not drop the stash
+   until that question is answered.**
+
 ### Evidence / research
 
 The decision rests on published research and documented practice (rules 4 and 5; no return, IC or
@@ -18916,6 +18938,12 @@ between this screener's categories, and +0.166 on one run is weak. It is a Monda
   correlation of the investment factor with low volatility is +0.68, and this screener carries
   Investment 5 beside Risk 10 whose heaviest metric is volatility at 42.86%. The question is
   overlap, not the heading. Pre-registration before any measurement, per the lab-to-weights route.
+- **Decide whether a refused run's context log belongs in `data/context_log/`** (item 6 above),
+  then either commit `2026-10-28.parquet` from the stash or drop the stash saying why. While it is
+  undecided, **two things should change regardless**: Orient's instruction to read a stash with
+  `git stash show -p` is wrong for any `-u` stash and should say to check the parent count, and a
+  data run that is discarded currently leaves its context log on disk, uncommitted and invisible -
+  if those readings are not wanted, the run should not write them.
 - Still waiting from 2026-11-03: the **37 named-ticker references in 6 payload-reading test
   modules** (daytime work, rewrites JavaScript in UI modules), and **universe phase 1**'s next
   slice (`data-run.ps1`'s `$universe = 500`, then `size_band` and the per-band gates).
