@@ -73,6 +73,34 @@ exceeds 1 volatility point **and** a hand-checked sample of 10 contracts reprodu
 calculator. The precedent is `research/measurements/2026-10-14-skew-construction-paired.py`. Display
 only either way (settled row "ctx").
 
+### 1a. Pre-registration (written and committed 2026-11-03, before any implied volatility was computed)
+
+The owner asked for the work to continue the same night, so the measurement is run by this session
+and **the decision stays OPEN for a session that did not write the proposal** - running a
+measurement is not deciding on it. Fixed before any number is seen:
+
+- **Sample:** every 10th stock of the newest full run's universe in ticker order (about 50), quotes
+  pulled once, after the close, through the pipeline's own expiry choice (`choose_expiry`), at-the-money
+  strike and XZZ legs (`_xzz_leg`). No stock is added or dropped after seeing a result; one with no
+  usable leg is reported as such.
+- **Inputs:** spot = the quote response's price (`chain_spot`); price = bid/ask mid; risk-free rate =
+  FRED constant-maturity Treasury yields (1, 3, 6, 12 months), linearly interpolated in time to the
+  expiry (Cboe interpolates the same curve with a cubic spline; over 1-12 months the difference is
+  far below a volatility point); dividends = the run's `dividendRate`, paid in equal instalments on
+  dates projected forward from the stock's last ex-dividend date at its median past interval, within
+  the option's life.
+- **Model:** QuantLib American exercise, finite-difference engine with the discrete dividend schedule.
+  **Independent check:** a Cox-Ross-Rubinstein tree written in this repository from the textbook
+  recursion (Hull, *Options, Futures and Other Derivatives*, ch. 13 and 21), with discrete dividends
+  by the escrowed-dividend approximation, on 10 contracts chosen by rule (the first 10 ATM calls in
+  sample order). "Reproduces" means within 0.5 volatility points on all 10.
+- **Reported:** the distribution of QuantLib minus Yahoo at the money (call and put averaged, as the
+  panel does) in volatility points; the same for each skew leg; how many stocks' skew changes sign;
+  how many would cross the panel's IV bounds.
+- **Bar, unchanged from above:** a change is warranted only if the median absolute ATM difference
+  exceeds 1 volatility point **and** the independent check reproduces QuantLib. Otherwise Yahoo's
+  field stays, and this note says it was measured and found adequate.
+
 ## 2. skfolio and "how much"
 
 The north star's unanswered question is position size. skfolio can compute risk-parity,
