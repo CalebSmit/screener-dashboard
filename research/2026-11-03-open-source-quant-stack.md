@@ -141,6 +141,52 @@ Yahoo-field skew from the record rather than splicing it (the 2026-10-14 precede
 adopting would leave:** a put-skew sign on the page that disagrees with the quotes it sits beside for
 more than half the sample.
 
+### 1c. The review's pre-registration (written and committed 2026-11-04 13:20, before anything was computed)
+
+The 2026-11-04 13:00 session is the independent reader (prompt section 1; it did not write the
+proposal). The author's bar is met, so what is being decided is **adoption**, which is a different
+question: *is our construction better than Yahoo's field, or only different from it?* The author
+flags its own key inference - that a negative put skew for most of the index is the likelier error -
+as uncited, so the review's job is to supply evidence for or against it. Fixed before any number is
+seen:
+
+- **A disjoint replication.** The same measurement on `recs[5::10]` - every 10th stock of the same
+  universe in ticker order, **offset by five**, so no stock overlaps the author's sample. Same
+  expiry choice, legs, rate curve and dividend rule. It runs **mid-session** (about 14:30 ET), not
+  after the close, which is deliberate: see the next item.
+- **A discriminating test of the staleness explanation.** The author's diagnostic found that none of
+  four candidate constructions reproduces Yahoo's field, and that the last trades behind it were a
+  median 9.8 hours old. The obvious remaining candidate is the one it could not test after the
+  close: **Yahoo's field is an inversion of the last trade against the underlying price at the
+  moment of that trade.** Mid-session, each contract's `lastTradeDate` and the day's 1-minute bars
+  make that testable. Four candidates, median |difference| from Yahoo's field in volatility points:
+  (1) American on the mid at the current spot - ours; (2) American on the last trade at the current
+  spot; (3) American on the last trade at **the spot at that trade's minute**; (4) European on the
+  last trade at the spot at that trade's minute.
+- **Whether Yahoo's skew is internally consistent**, which is the point that decides it either way:
+  for each stock's two XZZ legs, the gap between the two legs' last trades and the underlying's move
+  over that gap. A skew built from two inversions taken at different spots is not a measure of the
+  smirk at one moment, whatever its sign.
+- **The dividend gap in the author's independent check.** The CRR cross-check is reported as 10 of
+  10 within 0.5 points, but the printout does not say how many of those ten carried a projected
+  dividend - and the dividend schedule is the part the author calls hardest. The replication reports
+  that count, and **the first ten ATM calls that carry at least one dividend** are checked as well.
+- **The literature, read from the paper rather than from memory.** Xing, Zhang & Zhao (2010), the
+  source of this panel's measure, reports the distribution of its own SKEW across stocks. Whether a
+  negative SKEW is the ordinary case or the unusual one for large US stocks is a citable fact, and
+  it is the author's uncited inference restated as something checkable.
+
+**The review's decision rule, fixed now.** **Adopt** only if all three hold: (a) the disjoint sample
+also puts the median absolute ATM difference above 1 volatility point; (b) the independent CRR tree
+still reproduces QuantLib within 0.5 points, **including on contracts that carry a dividend**; and
+(c) at least one of the two independent lines - the paper's own distribution of SKEW, or Yahoo's
+field being reproduced by a stale or internally inconsistent snapshot - shows Yahoo's construction
+to be the less defensible one. **Refuse** if the replication fails (a), or if (b) fails where
+dividends are present, or if the paper says a negative SKEW for most large stocks is ordinary - in
+which case the author's inference is wrong and the sign disagreement is not evidence for us.
+Display-only either way (settled row "ctx"); adoption would also have to say what happens to the
+skew already recorded in `data/context_log/`, which is a cost the proposal names and does not size.
+
 ## 2. skfolio and "how much"
 
 The north star's unanswered question is position size. skfolio can compute risk-parity,
