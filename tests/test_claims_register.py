@@ -1354,7 +1354,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '${mv.n_up} of ${N} stocks moved up materially and ${mv.n_down} moved down':
         'claim:history.run_overview',
     '${p[1]} at the ${ord(S[p[0]].pct_10y)} percentile of ten years':
-        'open:macro-percentile-label - context.macro_series checks the percentile, not its printing',
+        'claim:context.macro_series',
     '#1 Where they rank #${N}':
         "open:holdings-rank-strip-axis - nothing reads the page's printing",
     "Your saved names rank ${ranks.sort((a, b) => a - b).map(v => '#' + v).join(', ')} of ${N}":
@@ -1394,7 +1394,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
     'lower-is-better-count',
-    'macro-percentile-label',
     'metric-points-equation',
     'metric-weight-no-data-line',
     'metric-weight-rescaled-line',

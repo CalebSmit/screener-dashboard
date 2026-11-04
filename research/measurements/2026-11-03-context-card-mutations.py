@@ -41,6 +41,12 @@ MUTATIONS = [
     ("52-week distance measured from the low", "cPct(c.px / c.hi - 1) + '</span><span class=\"ctx-fs\">high '",
      "cPct(c.px / c.lo - 1) + '</span><span class=\"ctx-fs\">high '"),
     ("52-week low prints the high", "', low ' + cPrice(c.lo) + '</span></div>';", "', low ' + cPrice(c.hi) + '</span></div>';"),
+    ("the tile's ordinal truncates", "const ord = p => { const n = Math.round(Number(p));",
+     "const ord = p => { const n = Math.floor(Number(p));"),
+    ("the tile labels VIX as the curve", "items = [['T10Y3M', 'Curve'], ['VIXCLS', 'VIX'],",
+     "items = [['VIXCLS', 'Curve'], ['T10Y3M', 'VIX'],"),
+    ("the tile's ordinal suffix ignores the teens", "const s = (n % 100 >= 11 && n % 100 <= 13) ? 'th' :",
+     "const s = false ? 'th' :"),
     ("money rounds whole millions", "if (a >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';",
      "if (a >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';"),
 ]

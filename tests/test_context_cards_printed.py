@@ -257,3 +257,50 @@ def test_every_52_week_line_prints_its_own_high_low_and_distance(page, ctx):
         if fs != want:
             bad[t] = f"printed {fs!r}, the payload says {want!r}"
     assert not bad, f"{len(bad)} of {len(tickers)}: {dict(list(bad.items())[:5])}"
+
+
+# --------------------------------------------------------------------------- the Market tile's percentiles
+# context.macro_series pins how pct_10y is computed (market_context.summarise); this reads what the
+# Market section's tile prints from it - which series, in which order, each at its own percentile.
+_MARKET_TILE = [("T10Y3M", "Curve"), ("VIXCLS", "VIX"), ("CPIAUCSL", "Inflation")]
+
+_MACRO_JS = """(market) => { const keep = D.market;
+    try { if (market) D.market = market; renderTileViz();
+          const v = document.querySelector('#sec-market .tile-viz');
+          return v ? [v.getAttribute('aria-label'), [...v.querySelectorAll('.tvp-l')].map(e => e.textContent),
+                      [...v.querySelectorAll('.tvp-v')].map(e => e.textContent)] : null; }
+    finally { D.market = keep; renderTileViz(); } }"""
+
+
+def _ordinal(n: int) -> str:
+    v = n % 100
+    return f"{n}{'th' if 11 <= v <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def _expected_tile(series: dict):
+    shown = [(k, name) for k, name in _MARKET_TILE
+             if isinstance((series.get(k) or {}).get("pct_10y"), (int, float))]
+    if not shown:
+        return None
+    pcts = [series[k]["pct_10y"] for k, _ in shown]
+    label = "; ".join(f"{name} at the {_ordinal(_jsround(p))} percentile of ten years"
+                      for (_, name), p in zip(shown, pcts))
+    return [label, [name for _, name in shown], [_ordinal(_jsround(min(100, max(0, p)))) for p in pcts]]
+
+
+def test_the_market_tile_prints_each_series_at_its_own_percentile(page):
+    market = _payload("dashboard_context.js").get("market") or {}
+    if not market.get("series"):
+        pytest.skip("MISSING DATA: the published context carries no market backdrop")
+    assert page.evaluate(_MACRO_JS, None) == _expected_tile(market["series"])
+
+
+@pytest.mark.parametrize("pcts", [
+    {"T10Y3M": 11.4, "VIXCLS": 12.5, "CPIAUCSL": 21.6},     # 11th, 13th (a half rounds up), 22nd
+    {"T10Y3M": 2.0, "VIXCLS": 3.0, "CPIAUCSL": 99.6},       # 2nd, 3rd, 100th
+    {"T10Y3M": 0.2, "CPIAUCSL": 112.0},                      # no VIX reading: two items; 112 is clamped on the scale only
+])
+def test_a_hand_worked_market_tile(page, pcts):
+    series = {k: {"pct_10y": v} for k, v in pcts.items()}
+    got = page.evaluate(_MACRO_JS, {"series": series})
+    assert got == _expected_tile(series)

@@ -1684,6 +1684,8 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="market_context:summarise",
         checked_by=(
+            "tests/test_context_cards_printed.py::test_the_market_tile_prints_each_series_at_its_own_percentile",
+            "tests/test_context_cards_printed.py::test_a_hand_worked_market_tile",
             "tests/test_context_layer.py::test_read_series_and_summarise",
             "tests/test_context_layer.py::test_cpi_is_shown_year_over_year",
             "tests/test_context_layer_claims.py::test_the_ten_year_percentile_counts_half_of_ties",

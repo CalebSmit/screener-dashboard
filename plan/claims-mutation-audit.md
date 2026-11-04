@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (33 `open:` rows since 2026-11-03 evening):**
+**What remains, as a queue (32 `open:` rows since 2026-11-03 evening):**
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself
@@ -1363,13 +1363,15 @@ unscored checks do not depend on it, because a hand-made unscored category runs 
 3. **The track record's remaining three:** `track-period-count`, `track-changelog-entries` (count
    the changelog's dated entries inside the window independently; on the 2026-10-30 payload its 33
    entries fall on 33 distinct dates, so "on N dates" holds today but nothing checks it), `track-unpriced-picks`.
-4. **Context cards: 5 of 6 CLOSED 2026-11-03 (owner-run evening)** - `insider-card-rows`,
+4. **Context cards: all 6 CLOSED 2026-11-03 (owner-run evening)** - `insider-card-rows`,
    `insider-plan-share`, `case-against-insider-purchases`, `case-against-purchases-figure` and
    `price-trend-52w-line` are read back from the generator's page for every stock, slot by slot,
    against the payload's own fields with the plan share and the net-sale rule worked out
    independently, plus hand-worked fixtures for the branches a day may not take
-   (`tests/test_context_cards_printed.py`; 11 of 11 mutations caught,
-   `research/measurements/2026-11-03-context-card-mutations.py`). Open: `macro-percentile-label`.
+   (`tests/test_context_cards_printed.py`, with the insider sentence's in `tests/test_case_against.py`);
+   `macro-percentile-label` reads the Market tile's label and scale against the published
+   `pct_10y`, with hand-worked ordinals at the edges (11th, 13th, 22nd, 100th). 14 of 14 mutations
+   caught (`research/measurements/2026-11-03-context-card-mutations.py`).
 5. **History and counts:** `rank-history-span`, `rank-history-run-count`, `rank-history-built-from`,
    `noise-band-pairs`, `reporting-soon-counts`, `distribution-range`, `distribution-dot-count`,
    `holdings-rank-strip`, `holdings-rank-strip-axis` (drawn by `renderTileViz`; tonight's `_TILE_JS`
