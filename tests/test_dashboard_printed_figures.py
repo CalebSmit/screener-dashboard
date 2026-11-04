@@ -1219,3 +1219,42 @@ def test_the_convention_note_prints_the_scorers_direction_count_and_true_example
             "a low raw value earns a high percentile.") in txt, txt
     for key in ("ev_ebitda", "beta", "peg_ratio"):
         assert mm[key]["dir"] == "lower" and METRIC_DIR[key] is False, key
+
+
+# ---------------------------------------------------------------------------
+# drilldown.composite_distribution - the rankings strip's own title and label (claims audit queue
+# item 5, 2026-11-03): its company count, range and median, against the ranking table
+# ---------------------------------------------------------------------------
+def test_the_distribution_strip_prints_the_rankings_count_range_and_median(page, data):
+    vals = [r["Composite"] for r in data["table_data"]
+            if isinstance(r.get("Composite"), (int, float)) and math.isfinite(r["Composite"])]
+    if len(vals) < 10:
+        pytest.skip("MISSING DATA: fewer than 10 scored companies - the strip hides itself")
+    got = page.evaluate("""() => { renderDist(); return [document.getElementById('dist-title').textContent,
+        document.getElementById('dist-plot').getAttribute('aria-label')]; }""")
+    med = data["kpis"]["median_composite"]
+    assert got[0] == f"{len(vals)} companies, one dot each"
+    want = (f"{len(vals)} companies by composite score, from {_fixed1(min(vals))} to {_fixed1(max(vals))}, "
+            f"median {_fixed1(med)}.")
+    assert got[1].startswith(want), (got[1], want)
+    # the published median is the median of the ranking it describes (to the table's rounding)
+    assert abs(float(np.median(vals)) - med) <= 0.051, (float(np.median(vals)), med)
+
+
+def _fixed1(x: float) -> str:
+    """toFixed(1): the exact binary value, ties to the larger magnitude."""
+    from decimal import ROUND_HALF_UP, Decimal
+    q = Decimal(abs(x)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+    return ("-" if x < 0 and q != 0 else "") + str(q)
+
+
+def test_the_distribution_strip_counts_only_scored_companies(page, data):
+    """A company with no composite is in the table but not on the strip: a branch today's fully
+    scored ranking may not take, so it is built by hand."""
+    vals = [r["Composite"] for r in data["table_data"]
+            if isinstance(r.get("Composite"), (int, float)) and math.isfinite(r["Composite"])]
+    got = page.evaluate("""() => { const keep = D.table_data;
+        try { D.table_data = keep.concat([{Ticker: 'ZZZ', Composite: null, Rank: null}]); renderDist();
+              return document.getElementById('dist-title').textContent; }
+        finally { D.table_data = keep; renderDist(); } }""")
+    assert got == f"{len(vals)} companies, one dot each"

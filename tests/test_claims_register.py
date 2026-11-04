@@ -1346,9 +1346,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '${Math.abs(X.t).toFixed(1)} standard errors, where two is the usual bar':
         'claim:context.track_luck',
     '${n} companies, one dot each':
-        "open:distribution-dot-count - nothing reads the page's printing",
+        'claim:drilldown.composite_distribution',
     "${n} companies by composite score, from ${fmt(Math.min.apply(null, vals), 'score')} to ${fmt(Math.max.apply(null, vals), 'score')}${(typeof med === 'number' ? ', median ' + med.toFixed(1) : '')}.":
-        "open:distribution-range - nothing reads the page's printing",
+        'claim:drilldown.composite_distribution',
     '${mv.n_up} up of ${N} ${mv.n_down} down':
         'claim:history.run_overview',
     '${mv.n_up} of ${N} stocks moved up materially and ${mv.n_down} moved down':
@@ -1389,8 +1389,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'cadence-turnover',
     'cadence-turnover-ceiling',
     'compare-gap-sentence',
-    'distribution-dot-count',
-    'distribution-range',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
     'metric-points-equation',

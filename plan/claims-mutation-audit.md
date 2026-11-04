@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (28 `open:` rows since 2026-11-03 evening):**
+**What remains, as a queue (26 `open:` rows since 2026-11-03 evening):**
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself
@@ -1379,11 +1379,15 @@ unscored checks do not depend on it, because a hand-made unscored category runs 
    `pct_10y`, with hand-worked ordinals at the edges (11th, 13th, 22nd, 100th). 14 of 14 mutations
    caught (`research/measurements/2026-11-03-context-card-mutations.py`).
 5. **History and counts:** `rank-history-span`, `rank-history-run-count`, `rank-history-built-from`,
-   `noise-band-pairs`, `reporting-soon-counts`, `distribution-range`, `distribution-dot-count`,
+   `noise-band-pairs`, `reporting-soon-counts`, ~~`distribution-range`, `distribution-dot-count`~~
+   (CLOSED 2026-11-03: the rankings strip's count, range and median against the table, the median
+   checked to be the ranking's own, and an unscored row built by hand; 4 of 4 mutations caught),
    `holdings-rank-strip`, `holdings-rank-strip-axis` (drawn by `renderTileViz`; tonight's `_TILE_JS`
    is the pattern), `show-next-count`.
 6. **Single-stock figures with no claim yet:** `price-target-strip`, `ni-growth-yoy`, `short-ratio`,
-   `share-class-price-gap`, ~~`lower-is-better-count`~~ (CLOSED 2026-11-03: new claim
+   `share-class-price-gap` (`ni-growth-yoy` and `short-ratio` print a field the payload cannot
+   recompute - the fiscal-year net incomes are not published and days to cover is Yahoo's own - so
+   a page check there would test only the template; publish the inputs first), ~~`lower-is-better-count`~~ (CLOSED 2026-11-03: new claim
    `drilldown.percentile_convention` - the printed count against the scorer's own directions, and
    its three named examples checked to be inverted; 2 of 2 mutations caught), `compare-gap-sentence`, `cadence-turnover`,
    `cadence-turnover-ceiling` (`tests/test_review_cadence.py` - register it first, as row 222 shows

@@ -956,6 +956,25 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-11-03 (evening) - "Keep finding improvements ... an elite level of detail and precision", plus
+  three posts to look into: DONE (owner-run).** Tags `good/2026-11-03-owner` to `-owner-4` (and a
+  final one with tonight's log). **The wrong sentence from last night is fixed:** the expected-move
+  card now divides by the stock's price in the same quote response as the options and prints that
+  price; NOW reads +/-11.5% instead of +/-27%, and a move without its divisor is withheld rather than
+  shown against the wrong price. **The routine got sturdier:** the morning session now waits up to
+  five minutes for the network instead of skipping the day on one DNS hiccup, a brief that cannot be
+  published no longer blocks the 1 PM session, and the morning brief and health line read each run's
+  real outcome lines instead of anything echoed into the log. **Credibility:** 10 more computed
+  sentences on the page are read back for every stock (28 left), and one test that a fully-scored day
+  would have turned red no longer depends on the day's data. **Your links, researched from the papers
+  and code:** Kronos and Day Trader - no change (never tested at a one-month horizon; level with a
+  linear model on US stocks). The ten-repo stack - one real find: QuantLib could compute option
+  volatilities from our own quotes the way Cboe and OptionMetrics do, instead of trusting Yahoo's
+  undocumented number; opened as a measurement for a scheduled session. The rest either duplicate
+  what the screener already does better or are the "test thousands of variants and keep the winner"
+  practice its research engine exists to prevent. Notes: `research/2026-11-03-kronos-candlestick-foundation-model.md`,
+  `research/2026-11-03-open-source-quant-stack.md`.
+
 - **2026-11-02 (night) - "Keep finding improvements!": DONE (owner-run).** Tags
   `good/2026-11-02-owner-9` onward. **Gate 5:** the code runner now rehearses the next publish
   itself whenever a branch changes code - and caught a real problem within the hour. **A wrong

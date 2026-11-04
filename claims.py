@@ -729,10 +729,15 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "The strip beside a stock's composite states that composite, the number of published "
             "composites and their median, prints the same median under the strip, and marks the one "
-            "bin the stock's composite falls in; with no published median it states none."
+            "bin the stock's composite falls in; with no published median it states none. The "
+            "rankings section's strip counts the companies with a composite (one dot each) and "
+            "states their range and the published median, which is the median of that ranking "
+            "(2026-11-03)."
         ),
         made_true_by="generate_dashboard:generate_html",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_the_distribution_strip_prints_the_rankings_count_range_and_median",
+            "tests/test_dashboard_printed_figures.py::test_the_distribution_strip_counts_only_scored_companies",
             "tests/test_dashboard_printed_figures.py::test_every_masthead_strip_prints_the_composite_the_count_and_the_median",
             "tests/test_dashboard_printed_figures.py::test_a_strip_with_no_published_median_says_none",
         ),
