@@ -1183,6 +1183,9 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="generate_dashboard:_js_drilldown",
         checked_by=(
+            "tests/test_context_cards_printed.py::test_the_case_against_states_each_net_insider_sale_with_its_own_figures",
+            "tests/test_context_cards_printed.py::test_a_hand_worked_case_against_line",
+            "tests/test_context_cards_printed.py::test_the_hand_worked_purchases_figure_is_the_purchases",
             "tests/test_case_against.py::test_every_line_is_the_payloads_own_fact_for_every_stock",
             "tests/test_case_against.py::test_each_check_is_listed_cleared_or_unavailable",
             "tests/test_case_against.py::test_no_line_is_advice_or_a_forbidden_claim",
@@ -1326,6 +1329,9 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="insider_activity:summarise_rows",
         checked_by=(
+            "tests/test_context_cards_printed.py::test_money_is_printed_by_the_rule_the_page_states",
+            "tests/test_context_cards_printed.py::test_every_insider_card_prints_the_published_summary_in_its_own_slots",
+            "tests/test_context_cards_printed.py::test_a_hand_worked_insider_card",
             "tests/test_context_layer.py::test_grants_and_exercises_are_not_purchases",
             "tests/test_context_layer.py::test_ninety_day_summary_and_cluster",
             "tests/test_context_layer.py::test_ten_percent_holders_are_shown_apart",
@@ -1343,6 +1349,9 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="insider_activity:rows_from_sec",
         checked_by=(
+            "tests/test_context_cards_printed.py::test_every_insider_card_prints_the_published_summary_in_its_own_slots",
+            "tests/test_context_cards_printed.py::test_a_hand_worked_insider_card",
+            "tests/test_context_cards_printed.py::test_the_case_against_states_each_net_insider_sale_with_its_own_figures",
             "tests/test_context_layer.py::test_sec_rows_keep_open_market_trades_with_plan_flag_and_filing_link",
             "tests/test_context_layer.py::test_planned_sales_are_summarised_and_unknown_stays_unknown",
             "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
@@ -1609,6 +1618,8 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="context_signals:price_context",
         checked_by=(
+            "tests/test_context_cards_printed.py::test_prices_print_to_the_cent",
+            "tests/test_context_cards_printed.py::test_every_52_week_line_prints_its_own_high_low_and_distance",
             "tests/test_context_layer.py::test_moving_averages_and_range_are_exact",
             "tests/test_context_layer.py::test_recent_returns_use_calendar_lookbacks",
             "tests/test_context_layer.py::test_trend_state_reads_both_averages",

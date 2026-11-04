@@ -1306,7 +1306,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'higher than at ${above}%':
         'claim:context.valuation_history',
     "From 52-week high ${cPct(c.px / c.hi - 1)} high ${cPrice(c.hi)}${(c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '')}, low ${cPrice(c.lo)}":
-        "open:price-trend-52w-line - context.price_trend's page check looks for the words",
+        'claim:context.price_trend',
     '&plusmn;${cPlain(c.om)} The average move options are paying for by ${escapeHtml(cDate(c.ox))} (${c.od} days)':
         'claim:context.expected_move',
     'Expected move = at-the-money call + put, divided by ${cPrice(c.osp)}, the stock&rsquo;s price when the quotes were taken:':
@@ -1314,9 +1314,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "${(mv ? 'Expected move = at-the-money call + put, divided by ' + cPrice(c.osp) + ', the stock&rsquo;s price when the quotes were taken: a straddle costs about the average absolute move to expiry. ' : '')}Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure:":
         'claim:context.expected_move',
     "Open-market buys, 90 days ${(ins.buy_n ? cMoney(ins.buy_value) : 'None')} ${(ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;')} Open-market sales, 90 days ${(ins.sell_n ? cMoney(ins.sell_value) : 'None')} ${(ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + (ins.sell_planned_value != null && ins.sell_value > 0 ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '') : '&nbsp;')}":
-        "open:insider-card-rows - nothing reads the page's printing",
+        'claim:context.insider_trades',
     ', ${Math.round(100 * ins.sell_planned_value / ins.sell_value)}% on pre-set plans':
-        "open:insider-plan-share - printed twice; the case-against copy is pinned, the Insider card's is not",
+        'claim:context.insider_plan',
     "${cPct(c.rb * RATE_STEP, 2)} How the stock has typically moved for each +0.10 percentage point rise in the 10-year Treasury yield (a large day for the 10-year), from the past ${Math.round(c.rn / 21)} months of daily moves${(sr ? '; ' + escapeHtml(s.sector) + ' median ' + cPct(sr.median * RATE_STEP, 2) : '')}.":
         'claim:context.rate_sensitivity',
     "Rate moves explained ${cPlain(c.rr2, 0)} of its daily swings${(c.rr2 < 0.05 ? ', very little, so read the figure loosely' : '')}.":
@@ -1366,9 +1366,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     "Its last close is −${gap.toFixed(gap < 0.1 ? 2 : 1)}% against its 200-day average of ${cPrice(c.s200)}${(tr ? ' (' + TREND_WORD[tr] + ')' : '')}.":
         'claim:drilldown.case_against',
     "Officers and directors made ${cMoney(ins.sell_value)} of open-market sales in the last 90 days (${ins.sell_people} insider${(ins.sell_people === 1 ? '' : 's')}${plan})${(ins.buy_n ? ', against ' + cMoney(ins.buy_value) + ' of purchases.' : ' and no open-market purchases.')} The panel gives the evidence that sales have historically said less than purchases.":
-        'open:case-against-insider-purchases - sales, insiders and the plan share are pinned; the purchases are not',
+        'claim:drilldown.case_against',
     ', against ${cMoney(ins.buy_value)} of purchases.':
-        'open:case-against-purchases-figure - only its presence is asserted',
+        'claim:drilldown.case_against',
     "${(m.ret < 0 ? '&minus;' : '+')}${pc(Math.abs(m.ret))} over ${m.return_window_months} months, with realised volatility of ${pc(m.vol)} a year over ${m.vol_window_days} trading days.":
         'claim:overview.momentum_regime',
     'The return is negative and volatility is above ${pc(m.vol_threshold)}, so the market is in the panic state and Momentum&rsquo;s weight is cut for this run.':
@@ -1388,15 +1388,11 @@ DASHBOARD_SENTENCES: dict[str, str] = {
 DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'cadence-turnover',
     'cadence-turnover-ceiling',
-    'case-against-insider-purchases',
-    'case-against-purchases-figure',
     'compare-gap-sentence',
     'distribution-dot-count',
     'distribution-range',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
-    'insider-card-rows',
-    'insider-plan-share',
     'lower-is-better-count',
     'macro-percentile-label',
     'metric-points-equation',
@@ -1407,7 +1403,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'piotroski-parts-line',
     'piotroski-signals-line',
     'price-target-strip',
-    'price-trend-52w-line',
     'rank-history-built-from',
     'rank-history-run-count',
     'rank-history-span',
