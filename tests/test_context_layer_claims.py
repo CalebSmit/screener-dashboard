@@ -416,7 +416,9 @@ def _log(**cols) -> pd.DataFrame:
 def test_the_harness_excludes_skews_without_legs():
     log = _log(**{"Ticker": ["A", "B", "C"], "_ctx_last_close": [1.0, 2.0, 3.0],
                         "_ctx_opt_status": ["ok", "ok", "ok"], "_ctx_opt_skew": [0.05, 0.07, 0.02],
-                        "_ctx_opt_skew_put_iv": [0.30, None, 0.25], "_ctx_opt_skew_call_iv": [0.25, 0.2, 0.23]})
+                        "_ctx_opt_skew_put_iv": [0.30, None, 0.25], "_ctx_opt_skew_call_iv": [0.25, 0.2, 0.23],
+                        # readings since 2026-11-03 carry the price they were measured from
+                        "_ctx_opt_spot": [1.0, 2.0, 3.0], "_ctx_opt_spot_src": ["chain"] * 3})
     f = ce.signals_frame(log).set_index("Ticker")
     assert f.loc["A", "options_put_skew"] == pytest.approx(0.05)
     assert np.isnan(f.loc["B", "options_put_skew"]) and f.loc["C", "options_put_skew"] == pytest.approx(0.02)
@@ -546,17 +548,32 @@ def _opt_row(**over):
 def test_a_move_is_published_with_its_divisor_or_not_at_all(over, shown):
     out = gd._stock_context(_opt_row(**over), "ZZZ", None)
     if shown:
-        assert out["om"] == 0.07 and out["osp"] == 104.0 and "onsp" not in out
+        assert out["om"] == 0.07 and out["osp"] == 104.0 and out["oi"] == 0.3 and "onsp" not in out
     else:
-        assert not {"om", "ost", "ok", "osp"} & out.keys() and out["onsp"] is True
-        assert out["oi"] == 0.3, "the rest of the reading is still shown"
+        # the move, the ATM volatility and the skew share the anchor, so they go together
+        assert not {"om", "ost", "ok", "osp", "oi", "osk"} & out.keys() and out["onsp"] is True
+        assert out["os"] == "ok" and out["oqd"] == "2026-10-20", "the reading's status and date stay"
+
+
+def test_an_unanchored_volatility_is_withheld_even_without_a_move():
+    """A partial reading (IV, no straddle) taken before the fix: its 'at the money' strike was chosen
+    against an older close, so the volatility goes too."""
+    row = _opt_row(_ctx_opt_move=None, _ctx_opt_straddle=None, _ctx_opt_spot=None, _ctx_opt_spot_src=None,
+                   _ctx_opt_status="partial", _ctx_opt_skew=0.04, _ctx_opt_skew_put_iv=0.33,
+                   _ctx_opt_skew_call_iv=0.29)
+    out = gd._stock_context(row, "ZZZ", None)
+    assert not {"oi", "osk", "oskp", "oskc", "ok"} & out.keys() and out["onsp"] is True
+    anchored = gd._stock_context(_opt_row(_ctx_opt_move=None, _ctx_opt_straddle=None, _ctx_opt_status="partial"), "Z", None)
+    assert anchored["oi"] == 0.3 and "onsp" not in anchored
 
 
 def test_the_record_counts_the_moves_the_page_shows():
     log = _log(Ticker=["A", "B", "C", "D"], _ctx_last_close=[1.0] * 4, _ctx_opt_status=["ok"] * 4,
-               _ctx_opt_move=[0.1] * 4, _ctx_opt_spot=[1.0, 1.0, 1.0, None],
+               _ctx_opt_move=[0.1] * 4, _ctx_opt_iv=[0.3] * 4, _ctx_opt_spot=[1.0, 1.0, 1.0, None],
                _ctx_opt_spot_src=["chain", "last", "run", None])
-    got = ce.signals_frame(log)["options_expected_move"].notna().tolist()
+    frame = ce.signals_frame(log)
+    got = frame["options_expected_move"].notna().tolist()
+    assert frame["options_atm_iv"].notna().tolist() == got, "the volatility shares the move's anchor"
     want = [("om" in gd._stock_context(_opt_row(_ctx_opt_spot=s, _ctx_opt_spot_src=src), "Z", None))
             for s, src in ((1.0, "chain"), (1.0, "last"), (1.0, "run"), (None, None))]
     assert got == want == [True, True, False, False]
@@ -568,19 +585,22 @@ def test_the_page_names_the_divisor_it_was_computed_with(page):
                           "e.innerHTML = cPrice(v); return e.textContent; }", 104.0)
     assert f"divided by {price}, the stock’s price when the quotes were taken" in shown
     assert "±7.0" in shown
-    withheld = _options_text(page, {"om": None, "onsp": True})
-    assert "±" not in withheld and "did not record the stock price its straddle was divided by" in withheld
-    assert "Expected move =" not in withheld
+    withheld = _options_text(page, {"om": None, "oi": None, "onsp": True})
+    assert "±" not in withheld and "did not record the stock price its quotes were measured against" in withheld
+    assert "Expected move =" not in withheld and "Implied volatility (at the money)" not in withheld
     # a payload built before the rule (a move, no divisor) is withheld by the page itself
-    stale = _options_text(page, {"om": 0.273})
-    assert "±" not in stale and "did not record the stock price its straddle was divided by" in stale
+    stale = _options_text(page, {"om": 0.273, "osk": -0.016, "oskp": 0.52, "oskc": 0.53, "oskps": 95, "oskcs": 105})
+    assert "±" not in stale and "did not record the stock price its quotes were measured against" in stale
+    assert "Implied volatility (at the money)" not in stale and "Put skew (out-of-the-money" not in stale
+    anchored_iv = _options_text(page, {"om": None, "osp": 104.0, "os": "partial"})
+    assert "Implied volatility (at the money)" in anchored_iv and "No expected move: the at-the-money bid and ask" in anchored_iv
     chip = "s => ctxBits(s).join(' ')"
     base = {"os": "ok", "om": 0.05, "ox": "2026-11-20", "od": 31}
     assert "Options price" in page.evaluate(chip, {"ctx": {**base, "osp": 104.0}})
     assert "Options price" not in page.evaluate(chip, {"ctx": base}), "the summary chip shows a move with no divisor"
     assert page.evaluate("c => moveShown(c)", {**base, "osp": 104.0}) is True
     assert page.evaluate("c => moveShown(c)", base) is False
-    partial = _options_text(page, {"os": "partial", "om": None})
+    partial = _options_text(page, {"os": "partial", "om": None, "osp": 104.0})
     assert "±" not in partial and "No expected move: the at-the-money bid and ask" in partial
 
 

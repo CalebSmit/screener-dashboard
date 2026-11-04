@@ -138,7 +138,8 @@ def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
             v = v.where(log["_ctx_opt_status"].isin(["ok", "partial"]))
         if key == "_ctx_opt_skew":
             v = v.where(skew_is_the_papers_measure(log))
-        if key == "_ctx_opt_move":
+        if key in ("_ctx_opt_move", "_ctx_opt_iv", "_ctx_opt_skew"):
+            # all three are measured from the reading's own price (2026-11-03 night)
             v = v.where(move_has_its_divisor(log))
         out[col] = v.values
     out["insider_buyers"] = (_num(log["_ctx_ins_buy_people"]) if "_ctx_ins_buy_people" in log.columns

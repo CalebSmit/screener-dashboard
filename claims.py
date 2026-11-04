@@ -1234,10 +1234,13 @@ CLAIMS: tuple[Claim, ...] = (
             "at-the-money strike is chosen against - is the stock's price in the same quote "
             "response (2026-11-03; until then the refresh used the close a session before its "
             "quotes, while the card named this run's close); the card prints that price, and a "
-            "move recorded without one is withheld with the reason, never shown against another."
+            "move recorded without one is withheld with the reason, never shown against another; "
+            "the at-the-money implied volatility and the put skew's legs are measured from the same "
+            "price, so a reading without it withholds them too (2026-11-03 night)."
         ),
         made_true_by="context_signals:options_context",
         checked_by=(
+            "tests/test_context_layer_claims.py::test_an_unanchored_volatility_is_withheld_even_without_a_move",
             "tests/test_context_layer.py::test_expected_move_is_the_atm_straddle_over_the_price",
             "tests/test_context_layer_claims.py::test_the_divisor_is_the_price_in_the_quote_response",
             "tests/test_context_layer_claims.py::test_the_move_is_its_straddle_over_the_published_divisor",

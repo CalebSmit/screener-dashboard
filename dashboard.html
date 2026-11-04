@@ -10073,7 +10073,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // A move is shown only beside the price it was divided by (2026-11-03): the generator withholds
     // one without it, and the page refuses it too, so a payload built before the rule cannot print a
     // move against a price it was not computed from. One predicate for all three places it appears.
-    function moveShown(c) { return !!c && c.om !== undefined && c.osp !== undefined; }
+    function optAnchored(c) { return !!c && c.osp !== undefined; }
+    function moveShown(c) { return optAnchored(c) && c.om !== undefined; }
     function ctxBits(s) {
         const c = s && s.ctx;
         if (!c) return [];
@@ -10139,22 +10140,22 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const earn = s.earn && s.earn.d;
             // No figure without its divisor (generate_dashboard._stock_context, 2026-11-03), and no
             // "&plusmn;&mdash;" over a sentence about a move when the quotes priced none.
-            const mv = moveShown(c);
+            const mv = moveShown(c), an = optAnchored(c);
             if (mv) o += '<div class="ctx-big">&plusmn;' + cPlain(c.om) + '</div><p class="ctx-line">The average move options are paying for by <b>' + escapeHtml(cDate(c.ox)) + '</b> (' + c.od + ' days)' + (c.oe && earn ? ', an expiry that <b>spans the ' + escapeHtml(cDate(earn)) + ' report</b>' : '') + '. The figure is a size; options do not imply a direction.</p>';
-            else o += '<p class="ctx-line">' + (c.onsp || c.om !== undefined ? 'No expected move: this reading did not record the stock price its straddle was divided by, so the figure is left out rather than shown against a price it may not have been computed from.' : 'No expected move: the at-the-money bid and ask this run received were missing, or too far apart to price a straddle from. The number is left out rather than built from a quote that would not stand up.') + '</p>';
+            else o += '<p class="ctx-line">' + (!an && (c.onsp || c.om !== undefined || c.oi !== undefined || c.osk !== undefined) ? 'No option figures: this reading did not record the stock price its quotes were measured against - the price the move is divided by and that &ldquo;at the money&rdquo; and the 95% put are measured from - so the expected move, implied volatility and skew are left out rather than shown against a price they may not have been computed from.' : 'No expected move: the at-the-money bid and ask this run received were missing, or too far apart to price a straddle from. The number is left out rather than built from a quote that would not stand up.') + '</p>';
             o += '<table class="ctx-table"><tbody>';
-            if (c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
+            if (an && c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
             const rv = (s.raw || {}).volatility;
-            if (rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
-            if (c.osk !== undefined) {
+            if (an && rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
+            if (an && c.osk !== undefined) {
                 o += '<tr><td>Put skew (out-of-the-money put vs at-the-money call)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
                 if (c.oskp !== undefined && c.oskc !== undefined) o += '<tr class="ctx-sub"><td>' + cPrice(c.oskps) + ' put ' + cPlain(c.oskp, 0) + ' − ' + cPrice(c.oskcs) + ' call ' + cPlain(c.oskc, 0) + '</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
             }
             // Plain-English glosses on first use (club readiness, 2026-10-19). Definitions only,
             // matching context_signals.options_context and research/2026-10-12-option-implied-signals.md.
             const og = [];
-            if (c.oi !== undefined) og.push('<b>Implied volatility</b> is the size of the yearly price swings that option prices assume, as an annualised standard deviation; <b>realised</b> is the swing the stock actually had over the past year.');
-            if (c.osk !== undefined) og.push('<b>Put skew</b> is the implied volatility of a put that pays out only after a fall of roughly 5% or more, minus that of a call at today&rsquo;s price, in percentage points. A higher figure means protection against a drop costs more.');
+            if (an && c.oi !== undefined) og.push('<b>Implied volatility</b> is the size of the yearly price swings that option prices assume, as an annualised standard deviation; <b>realised</b> is the swing the stock actually had over the past year.');
+            if (an && c.osk !== undefined) og.push('<b>Put skew</b> is the implied volatility of a put that pays out only after a fall of roughly 5% or more, minus that of a call at today&rsquo;s price, in percentage points. A higher figure means protection against a drop costs more.');
             o += '</tbody></table>' + (og.length ? '<p class="ctx-line ctx-gloss">' + og.join(' ') + '</p>' : '') + '<p class="ctx-why">' + (mv ? 'Expected move = at-the-money call + put, divided by ' + cPrice(c.osp) + ', the stock&rsquo;s price when the quotes were taken: a straddle costs about the average absolute move to expiry. ' : '') + 'Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there: over 1996&ndash;2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? '. <b>This expiry is ' + c.od + ' days, outside that range</b>, so their figures are background here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqi && c.oqt && c.oqd ? 'Quotes were taken at <b>' + escapeHtml(c.oqt) + ' ET on ' + escapeHtml(cDate(c.oqd)) + '</b>, while the market was open: a reading from the middle of that session, not its close.' : c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>' + (c.oqt ? ', collected at ' + escapeHtml(c.oqt) + ' ET.' : '; options are not quoted at the hour this run fetches, so quotes collected after that session&rsquo;s close are used.') : 'This run did not record when its option quotes were taken.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';

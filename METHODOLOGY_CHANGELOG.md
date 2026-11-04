@@ -5033,3 +5033,34 @@ than 5% for 28 - IT 13.2%, FISV 12.5%, SYY 9.3%, mostly stocks that moved on a r
 **Applied by:** owner-run session, 2026-11-03 evening (owner: "Keep finding improvements ... an elite
 level of detail and precision").
 **Rollback:** revert the commit; the tag before it is `good/2026-11-03-1354`.
+
+## 2026-11-03 (night) - Context: the at-the-money volatility and the skew go with the price they were measured from
+
+**Area:** context layer, options panel (display only; settled row "ctx")
+**Changed:** the evening entry's unit rule - a move is published with its divisor or not at all -
+now covers the two other figures measured from that same price: the **at-the-money implied
+volatility** (its strike is the one nearest the price) and the **put skew** (its legs are the put
+nearest 95% of the price and the call nearest 100%). A reading with no recorded price
+(`_ctx_opt_spot` from the quote response) withholds all three, in the generator
+(`_stock_context`), on the page (`optAnchored`, which `moveShown` now builds on, so a payload built
+before the rule cannot show them either) and in `context_eval`, which excludes all three from the
+record by the one predicate.
+**Evidence:** a documented failure, seen on the live page after the evening fix. NOW's card withheld
+its move but still printed "Implied volatility (at the money) 52%" and a put skew of -1.6 points
+from a reading taken before the fix, whose "at-the-money" strike had been chosen against the close
+before the quoted session - the 150 strike, with the stock near $109
+(`research/measurements/2026-11-02-expected-move-divisor.py`: 20 of 359 strikes more than 5% from
+the price). The label "at the money" and the sentence "the put nearest 95% of the price" were false
+for those readings.
+**Expected effect:** none on tonight's 467 refreshed readings, which carry their price; the 30
+older cached readings show "No option figures" until refreshed. On the live page between this push
+and the 02:00 run (a payload built before the evening rule) every options card shows that line.
+The record's ATM-volatility and skew signals, like the move's, begin with the readings that carry a
+price - their first one-month reading moves to about 2026-12-04.
+**Validated by:** `tests/test_context_layer_claims.py` (the unanchored-volatility case, the page with
+a stale move and skew, an anchored partial reading still showing its volatility, the record counting
+the volatility exactly where it counts the move); 12 of 12 mutations caught
+(`research/measurements/2026-11-03-expected-move-divisor-mutations.py`).
+**Applied by:** owner-run session, 2026-11-03 night (owner: "keep finding improvements!! be creative").
+**Rollback:** revert the commit; the tag before it is `good/2026-11-03-owner-6`.
+
