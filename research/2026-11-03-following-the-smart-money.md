@@ -97,8 +97,11 @@ built for a college investment club.
 ## 3. What, if anything, to do
 
 - **Congress: nothing.** Recorded here so a later session does not rebuild the idea from a post.
-- **13F: Proposal status: OPEN** - decide whether to *log* (not show, not score) one line per stock - the number of 13F filers holding it and the change on the prior quarter, dated by quarter end and filing date - as a context-log candidate, with the direction pre-registered here before any data is pulled: **a rising holder count is expected to precede *higher* one-month returns** (Chen, Hong & Stein 2002), against which Lehavy & Sloan (2008) and Dasgupta, Prat & Verardo (2011) predict the opposite, so either sign is informative and neither is assumed.
-  Costs and limits to weigh: the SEC data sets need a CUSIP-to-ticker map (the SEC's quarterly
+- **13F:** an open proposal, below.
+
+**Proposal status: OPEN** - decide whether to *log* (not show, not score) one line per stock - the number of 13F filers holding it and the change on the prior quarter, dated by quarter end and filing date - as a context-log candidate, with the direction pre-registered here before any data is pulled: **a rising holder count is expected to precede *higher* one-month returns** (Chen, Hong & Stein 2002), against which Lehavy & Sloan (2008) and Dasgupta, Prat & Verardo (2011) predict the opposite, so either sign is informative and neither is assumed.
+
+Costs and limits to weigh: the SEC data sets need a CUSIP-to-ticker map (the SEC's quarterly
   13(f) list carries no ticker; OpenFIGI's free API returns tickers, terms not yet read); the
   reading changes once a quarter and is 45-135 days stale, so it yields about four independent
   observations a year and would take roughly two years to reach the engine's gate of eight; and it
