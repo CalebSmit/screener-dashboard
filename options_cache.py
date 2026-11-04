@@ -385,17 +385,11 @@ def refresh(records: list[dict], root: str | os.PathLike | None = None,
 
 def _fetch_one(ticker: str, price, earnings_ts, today: date) -> dict:
     """One stock's chain, through exactly the pipeline's own expiry choice and quality bars."""
-    import numpy as np
     import yfinance as yf
 
-    from context_signals import choose_expiry, options_context
+    from context_signals import chain_spot, choose_expiry, options_context
 
     t = yf.Ticker(ticker)
-    if price is None or not np.isfinite(price) or price <= 0:
-        try:
-            price = float(t.fast_info["lastPrice"])
-        except Exception:  # noqa: BLE001
-            return {}
     ed = None
     try:
         ed = datetime.fromtimestamp(int(earnings_ts), tz=timezone.utc).date() if earnings_ts else None
@@ -405,7 +399,19 @@ def _fetch_one(ticker: str, price, earnings_ts, today: date) -> dict:
     if not exp:
         return {}
     ch = t.option_chain(exp)
-    return options_context(ch.calls, ch.puts, float(price), exp, today, spans)
+    # The divisor and the at-the-money strike come from the stock's price in the chain's own
+    # response, not from ``price`` - the newest run's close, a session before these quotes
+    # (context_signals.chain_spot, 2026-11-03).
+    spot, src = chain_spot(getattr(ch, "underlying", None), price)
+    if spot is None:
+        try:
+            spot, src = float(t.fast_info["lastPrice"]), "last"
+        except Exception:  # noqa: BLE001
+            return {}
+    out = options_context(ch.calls, ch.puts, spot, exp, today, spans)
+    if "_ctx_opt_spot" in out:
+        out["_ctx_opt_spot_src"] = src
+    return out
 
 
 def main(argv=None) -> int:

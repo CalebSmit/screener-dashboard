@@ -1204,11 +1204,23 @@ CLAIMS: tuple[Claim, ...] = (
             "Where they were fetched live (2026-10-20), it says when: taken while the market was "
             "open is named as a mid-session reading with its Eastern clock time, never as a close; "
             "taken after the close is that session's close; a reading with no recorded time says so "
-            "rather than calling it the previous close."
+            "rather than calling it the previous close. The divisor - and the price the "
+            "at-the-money strike is chosen against - is the stock's price in the same quote "
+            "response (2026-11-03; until then the refresh used the close a session before its "
+            "quotes, while the card named this run's close); the card prints that price, and a "
+            "move recorded without one is withheld with the reason, never shown against another."
         ),
         made_true_by="context_signals:options_context",
         checked_by=(
             "tests/test_context_layer.py::test_expected_move_is_the_atm_straddle_over_the_price",
+            "tests/test_context_layer_claims.py::test_the_divisor_is_the_price_in_the_quote_response",
+            "tests/test_context_layer_claims.py::test_the_move_is_its_straddle_over_the_published_divisor",
+            "tests/test_context_layer_claims.py::test_both_option_paths_divide_by_the_chains_own_price",
+            "tests/test_context_layer_claims.py::test_the_refresh_falls_back_and_says_so",
+            "tests/test_context_layer_claims.py::test_a_move_is_published_with_its_divisor_or_not_at_all",
+            "tests/test_context_layer_claims.py::test_the_record_counts_the_moves_the_page_shows",
+            "tests/test_context_layer_claims.py::test_the_page_names_the_divisor_it_was_computed_with",
+            "tests/test_context_layer_claims.py::test_every_published_move_reproduces_from_its_published_divisor",
             "tests/test_context_layer.py::test_expiry_spans_a_nearby_report",
             "tests/test_context_layer.py::test_stale_or_wide_quotes_give_no_move",
             "tests/test_option_quote_hours.py::test_a_served_reading_carries_its_quote_date",

@@ -154,6 +154,7 @@ def page(tmp_path_factory):
 def _options_text(page, extra: dict) -> str:
     c = {"os": "ok", "om": 0.05, "ox": "2026-11-20", "od": 31, "px": 100.0, "oi": 0.30}
     c.update(extra)
+    c = {k: v for k, v in c.items() if v is not None}   # None = absent, as the payload omits it
     s = {"sector": "Energy", "raw": {}, "ctx": c}
     page.evaluate("s => renderContext('ZZZ', s)", s)
     return re.sub(r"\s+", " ", page.evaluate("document.getElementById('modal-context').textContent"))
@@ -428,6 +429,7 @@ def test_the_harness_evaluates_every_option_reading_the_panel_shows():
     shown = {"om": "options_expected_move", "oi": "options_atm_iv", "osk": "options_put_skew"}
     log = _log(**{"Ticker": ["A"], "_ctx_last_close": [1.0], "_ctx_opt_status": ["ok"],
                   **{gd.CTX_FIELDS[k]: [0.1] for k in shown},
+                  "_ctx_opt_spot": [1.0], "_ctx_opt_spot_src": ["chain"],
                   "_ctx_opt_skew_put_iv": [0.3], "_ctx_opt_skew_call_iv": [0.2]})
     f = ce.signals_frame(log)
     for key, signal in shown.items():
@@ -440,3 +442,161 @@ def test_every_new_claim_is_registered_and_resolves():
         c = claims.claim(cid)
         assert callable(c.resolve()), cid
         assert all("test_context_layer_claims" in x or "test_" in x for x in c.checked_by)
+
+
+# --------------------------------------------------------------------------- the expected move's divisor
+# 2026-11-03. The card said "divided by the price $<this run's close>" while the 20:00 refresh had
+# divided by the newest run's close - a session *before* the quotes - and chosen the at-the-money
+# strike against it: 273 of 359 divisors off by more than 1% on the 2026-10-30 payload, NOW's
+# strike 37% from its price (research/measurements/2026-11-02-expected-move-divisor.py). The cure
+# takes the price from the quote response itself and publishes it; the page names that price, and
+# a move without one is withheld. These check what the code does, on inputs with known answers.
+
+def _strike_chain():
+    strikes = [95.0, 100.0, 105.0, 110.0, 150.0]
+    calls = pd.DataFrame({"strike": strikes, "bid": [9.0, 5.0, 2.4, 1.0, 0.0],
+                          "ask": [9.4, 5.4, 2.6, 1.2, 0.1], "impliedVolatility": [0.3] * 5,
+                          "openInterest": [100] * 5})
+    puts = pd.DataFrame({"strike": strikes, "bid": [1.0, 2.0, 4.6, 8.0, 45.0],
+                         "ask": [1.2, 2.4, 5.0, 8.4, 46.0], "impliedVolatility": [0.3] * 5,
+                         "openInterest": [100] * 5})
+    return calls, puts
+
+
+class _FakeTicker:
+    """yfinance.Ticker as the two option paths use it: expiries, one chain, and the last price."""
+
+    def __init__(self, underlying, last=None):
+        self._u, self._last = underlying, last
+        self.options = ("2026-11-06",)
+
+    def option_chain(self, exp):
+        from collections import namedtuple
+        calls, puts = _strike_chain()
+        return namedtuple("Options", "calls puts underlying")(calls, puts, self._u)
+
+    @property
+    def fast_info(self):
+        if self._last is None:
+            raise KeyError("lastPrice")
+        return {"lastPrice": self._last}
+
+
+@pytest.mark.parametrize("underlying, fallback, want", [
+    ({"regularMarketPrice": 104.2}, 150.0, (104.2, "chain")),     # the response's own price wins
+    ({"regularMarketPrice": None}, 150.0, (150.0, "run")),
+    ({"regularMarketPrice": 0.0}, 150.0, (150.0, "run")),
+    ({"regularMarketPrice": float("nan")}, 150.0, (150.0, "run")),
+    (None, 150.0, (150.0, "run")),
+    ({}, None, (None, "none")),
+    ({}, -3.0, (None, "none")),
+])
+def test_the_divisor_is_the_price_in_the_quote_response(underlying, fallback, want):
+    assert cs.chain_spot(underlying, fallback) == want
+
+
+def test_the_move_is_its_straddle_over_the_published_divisor():
+    calls, puts = _strike_chain()
+    out = cs.options_context(calls, puts, 104.0, "2026-11-06", datetime(2026, 10, 8).date(), False)
+    assert out["_ctx_opt_spot"] == 104.0 and out["_ctx_opt_atm_strike"] == 105.0
+    assert out["_ctx_opt_straddle"] == pytest.approx(2.5 + 4.8)
+    assert out["_ctx_opt_move"] == pytest.approx((2.5 + 4.8) / 104.0)
+
+
+@pytest.mark.parametrize("path", ["refresh", "live"])
+def test_both_option_paths_divide_by_the_chains_own_price(monkeypatch, path):
+    """Handed 150 (an older close, as the refresh was), quoted against 104: the strike is chosen
+    against 104 and the straddle divided by 104 - not the 150 strike, which is mostly put
+    intrinsic value (the NOW case)."""
+    import yfinance
+    monkeypatch.setattr(yfinance, "Ticker", lambda t: _FakeTicker({"regularMarketPrice": 104.0}))
+    fetch = options_cache._fetch_one if path == "refresh" else context_fetch._options_for
+    out = fetch("ZZZ", 150.0, None, datetime(2026, 10, 8).date())
+    assert out["_ctx_opt_spot"] == 104.0 and out["_ctx_opt_spot_src"] == "chain"
+    assert out["_ctx_opt_atm_strike"] == 105.0
+    assert out["_ctx_opt_move"] == pytest.approx((2.5 + 4.8) / 104.0)
+
+
+def test_the_refresh_falls_back_and_says_so(monkeypatch):
+    import yfinance
+    today = datetime(2026, 10, 8).date()
+    monkeypatch.setattr(yfinance, "Ticker", lambda t: _FakeTicker({}, last=101.0))
+    assert options_cache._fetch_one("ZZZ", 99.0, None, today)["_ctx_opt_spot_src"] == "run"
+    out = options_cache._fetch_one("ZZZ", None, None, today)
+    assert out["_ctx_opt_spot"] == 101.0 and out["_ctx_opt_spot_src"] == "last"
+    monkeypatch.setattr(yfinance, "Ticker", lambda t: _FakeTicker({}, last=None))
+    assert options_cache._fetch_one("ZZZ", None, None, today) == {}
+
+
+def _opt_row(**over):
+    row = {"_ctx_opt_status": "ok", "_ctx_opt_move": 0.07, "_ctx_opt_straddle": 7.3,
+           "_ctx_opt_atm_strike": 105.0, "_ctx_opt_spot": 104.0, "_ctx_opt_spot_src": "chain",
+           "_ctx_opt_iv": 0.3, "_ctx_opt_quote_date": "2026-10-20"}
+    row.update(over)
+    return {k: v for k, v in row.items() if v is not None}
+
+
+@pytest.mark.parametrize("over, shown", [
+    ({}, True),
+    ({"_ctx_opt_spot_src": "last"}, True),
+    ({"_ctx_opt_spot_src": "run"}, False),                          # divided by a handed-in close
+    ({"_ctx_opt_spot": None, "_ctx_opt_spot_src": None}, False),    # recorded before the fix
+    ({"_ctx_opt_spot_src": None}, False),
+])
+def test_a_move_is_published_with_its_divisor_or_not_at_all(over, shown):
+    out = gd._stock_context(_opt_row(**over), "ZZZ", None)
+    if shown:
+        assert out["om"] == 0.07 and out["osp"] == 104.0 and "onsp" not in out
+    else:
+        assert not {"om", "ost", "ok", "osp"} & out.keys() and out["onsp"] is True
+        assert out["oi"] == 0.3, "the rest of the reading is still shown"
+
+
+def test_the_record_counts_the_moves_the_page_shows():
+    log = _log(Ticker=["A", "B", "C", "D"], _ctx_last_close=[1.0] * 4, _ctx_opt_status=["ok"] * 4,
+               _ctx_opt_move=[0.1] * 4, _ctx_opt_spot=[1.0, 1.0, 1.0, None],
+               _ctx_opt_spot_src=["chain", "last", "run", None])
+    got = ce.signals_frame(log)["options_expected_move"].notna().tolist()
+    want = [("om" in gd._stock_context(_opt_row(_ctx_opt_spot=s, _ctx_opt_spot_src=src), "Z", None))
+            for s, src in ((1.0, "chain"), (1.0, "last"), (1.0, "run"), (None, None))]
+    assert got == want == [True, True, False, False]
+
+
+def test_the_page_names_the_divisor_it_was_computed_with(page):
+    shown = _options_text(page, {"om": 0.0702, "osp": 104.0, "ost": 7.3, "ok": 105.0})
+    price = page.evaluate("v => { const e = document.createElement('div'); "
+                          "e.innerHTML = cPrice(v); return e.textContent; }", 104.0)
+    assert f"divided by {price}, the stock’s price when the quotes were taken" in shown
+    assert "±7.0" in shown
+    withheld = _options_text(page, {"om": None, "onsp": True})
+    assert "±" not in withheld and "did not record the stock price its straddle was divided by" in withheld
+    assert "Expected move =" not in withheld
+    # a payload built before the rule (a move, no divisor) is withheld by the page itself
+    stale = _options_text(page, {"om": 0.273})
+    assert "±" not in stale and "did not record the stock price its straddle was divided by" in stale
+    chip = "s => ctxBits(s).join(' ')"
+    base = {"os": "ok", "om": 0.05, "ox": "2026-11-20", "od": 31}
+    assert "Options price" in page.evaluate(chip, {"ctx": {**base, "osp": 104.0}})
+    assert "Options price" not in page.evaluate(chip, {"ctx": base}), "the summary chip shows a move with no divisor"
+    assert page.evaluate("c => moveShown(c)", {**base, "osp": 104.0}) is True
+    assert page.evaluate("c => moveShown(c)", base) is False
+    partial = _options_text(page, {"os": "partial", "om": None})
+    assert "±" not in partial and "No expected move: the at-the-money bid and ask" in partial
+
+
+def test_every_published_move_reproduces_from_its_published_divisor():
+    """On whatever the data loop published: each move is its straddle over its own divisor, and the
+    at-the-money strike is within the 5% bar ``options_context`` applies. Holds vacuously on a
+    run from before the fix, where every move is withheld - the premise is the rule, not a day.
+    A payload *generated* before the rule carries neither ``osp`` nor ``onsp`` anywhere; that is
+    the published file of 2026-11-03 and earlier, and the check waits for the next build."""
+    ctx = _payload("dashboard_context.js")["ctx"]
+    if not any("osp" in c or "onsp" in c for c in ctx.values()):
+        pytest.skip("MISSING DATA: dashboard_context.js was generated before the divisor rule "
+                    "(no osp/onsp key) - the next data run's build is checked")
+    for t, c in ctx.items():
+        if c.get("om") is None:
+            continue
+        assert c.get("osp"), f"{t}: a move published without its divisor"
+        assert abs(c["ok"] / c["osp"] - 1) <= 0.05 + 1e-9, (t, c["ok"], c["osp"])
+        assert c["om"] == pytest.approx(c["ost"] / c["osp"], rel=1e-4, abs=2e-6), t

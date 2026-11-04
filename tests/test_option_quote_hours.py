@@ -332,6 +332,8 @@ def _ctx_row(quote_date):
     return {"_ctx_opt_status": "ok", "_ctx_opt_quote_date": quote_date,
             "_ctx_opt_expiry": "2026-12-18", "_ctx_opt_days": 70, "_ctx_opt_move": 0.06,
             "_ctx_opt_iv": 0.27, "_ctx_opt_atm_strike": 335.0, "_ctx_opt_straddle": 20.0,
+            # a reading since 2026-11-03 carries the price it was divided by (chain_spot)
+            "_ctx_opt_spot": 333.33, "_ctx_opt_spot_src": "chain",
             "_ctx_last_close": 336.64, "_ctx_sma50": 322.36}
 
 

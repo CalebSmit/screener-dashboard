@@ -92,6 +92,23 @@ def skew_is_the_papers_measure(log: pd.DataFrame) -> pd.Series:
     return log[legs].notna().all(axis=1)
 
 
+def move_has_its_divisor(log: pd.DataFrame) -> pd.Series:
+    """True where an expected move was divided by the price its own quotes were taken against.
+
+    Until 2026-11-03 the 20:00 refresh divided the straddle by the newest run's close, a session
+    before its quotes, and chose the at-the-money strike against it too - for 20 stocks of 359 on
+    the 2026-10-30 payload more than 5% from the price
+    (research/measurements/2026-11-02-expected-move-divisor.py). Those readings recorded no
+    divisor. The rule is the generator's (``_stock_context`` withholds a move without one), with
+    one list of accepted sources (``context_signals.SPOT_SOURCES``), so the record and the page
+    count the same readings - the skew's precedent above: excluded, never spliced.
+    """
+    from context_signals import SPOT_SOURCES
+    if "_ctx_opt_spot" not in log.columns or "_ctx_opt_spot_src" not in log.columns:
+        return pd.Series(False, index=log.index)
+    return _num(log["_ctx_opt_spot"]).notna() & log["_ctx_opt_spot_src"].isin(SPOT_SOURCES)
+
+
 def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
     """One row per stock, one column per signal, from a context log."""
     px = _num(log.get("_ctx_last_close"))
@@ -121,6 +138,8 @@ def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
             v = v.where(log["_ctx_opt_status"].isin(["ok", "partial"]))
         if key == "_ctx_opt_skew":
             v = v.where(skew_is_the_papers_measure(log))
+        if key == "_ctx_opt_move":
+            v = v.where(move_has_its_divisor(log))
         out[col] = v.values
     out["insider_buyers"] = (_num(log["_ctx_ins_buy_people"]) if "_ctx_ins_buy_people" in log.columns
                              else pd.Series(np.nan, index=log.index)).values

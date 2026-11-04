@@ -660,6 +660,9 @@ CTX_FIELDS = {
     # When the quotes are from (2026-10-20): the session, and for a reading fetched live the
     # Eastern clock time and whether the market was open then (options_cache.live_quote_stamp).
     "os": "_ctx_opt_status", "oqd": "_ctx_opt_quote_date",
+    # The price the straddle was divided by and the at-the-money strike chosen against
+    # (context_signals.chain_spot, 2026-11-03), printed as the move's divisor.
+    "osp": "_ctx_opt_spot",
     "oqt": "_ctx_opt_quote_time", "oqi": "_ctx_opt_quote_intraday",
     "rb": "_ctx_rate_beta", "rr2": "_ctx_rate_r2", "rn": "_ctx_rate_n",
 }
@@ -699,6 +702,20 @@ def _stock_context(row, ticker: str, run_date) -> dict | None:
     if "osk" in out and not {"oskp", "oskc"} <= out.keys():
         for key in ("osk", "oskps", "oskcs", "oskw"):
             out.pop(key, None)
+
+    # The expected move is published with the price it was divided by, or not at all - the same
+    # rule as the skew above. Until 2026-11-03 the 20:00 refresh divided by the newest run's
+    # close, a session before its quotes, while the page named this run's close: 273 of 359
+    # divisors differed by over 1%, and NOW's "at-the-money" strike sat 37% from its price
+    # (research/measurements/2026-11-02-expected-move-divisor.py). A reading taken since then
+    # carries its spot from the quote response itself (``chain`` - or ``last``, the live price,
+    # when the response had none); one that does not - collected before the fix, or divided by a
+    # handed-in close (``run``) - is withheld and says why, and leaves the cache within days.
+    from context_signals import SPOT_SOURCES
+    if "om" in out and not ("osp" in out and row.get("_ctx_opt_spot_src") in SPOT_SOURCES):
+        for key in ("om", "ost", "ok", "osp"):
+            out.pop(key, None)
+        out["onsp"] = True
 
     wk = row.get("_ctx_weekly")
     if isinstance(wk, str) and wk:
@@ -10311,13 +10328,17 @@ def _js_context() -> str:
 
     // ---- the teaser under "Why it ranks here" ------------------------------------
     // The one-line context summary, shared by the drilldown teaser and each My Holdings card.
+    // A move is shown only beside the price it was divided by (2026-11-03): the generator withholds
+    // one without it, and the page refuses it too, so a payload built before the rule cannot print a
+    // move against a price it was not computed from. One predicate for all three places it appears.
+    function moveShown(c) { return !!c && c.om !== undefined && c.osp !== undefined; }
     function ctxBits(s) {
         const c = s && s.ctx;
         if (!c) return [];
         const bits = [];
         const tr = trendOf(c);
         if (tr) bits.push('<span><b>' + TREND_WORD[tr] + '</b> ' + cPct(c.px / c.s200 - 1) + ' vs 200-day</span>');
-        if (c.om !== undefined && c.os === 'ok') bits.push('<span>Options price <b>&plusmn;' + cPlain(c.om) + '</b> by ' + escapeHtml(cDate(c.ox)) + (c.oe ? ' (spans the report)' : '') + '</span>');
+        if (moveShown(c) && c.os === 'ok') bits.push('<span>Options price <b>&plusmn;' + cPlain(c.om) + '</b> by ' + escapeHtml(cDate(c.ox)) + (c.oe ? ' (spans the report)' : '') + '</span>');
         const ins = c.ins;
         if (ins && ins.buy_n) bits.push('<span><b>' + ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ' bought</b> in 90 days</span>');
         else if (ins && ins.sell_n) bits.push('<span>Insiders: ' + ins.sell_n + ' sale' + (ins.sell_n === 1 ? '' : 's') + ', no buys in 90 days</span>');
@@ -10374,7 +10395,11 @@ def _js_context() -> str:
         let o = '<div class="ctx-card"><div class="ctx-h"><span>What options imply</span></div>';
         if (c.os === 'ok' || c.os === 'partial') {
             const earn = s.earn && s.earn.d;
-            o += '<div class="ctx-big">&plusmn;' + cPlain(c.om) + '</div><p class="ctx-line">The average move options are paying for by <b>' + escapeHtml(cDate(c.ox)) + '</b> (' + c.od + ' days)' + (c.oe && earn ? ', an expiry that <b>spans the ' + escapeHtml(cDate(earn)) + ' report</b>' : '') + '. The figure is a size; options do not imply a direction.</p>';
+            // No figure without its divisor (generate_dashboard._stock_context, 2026-11-03), and no
+            // "&plusmn;&mdash;" over a sentence about a move when the quotes priced none.
+            const mv = moveShown(c);
+            if (mv) o += '<div class="ctx-big">&plusmn;' + cPlain(c.om) + '</div><p class="ctx-line">The average move options are paying for by <b>' + escapeHtml(cDate(c.ox)) + '</b> (' + c.od + ' days)' + (c.oe && earn ? ', an expiry that <b>spans the ' + escapeHtml(cDate(earn)) + ' report</b>' : '') + '. The figure is a size; options do not imply a direction.</p>';
+            else o += '<p class="ctx-line">' + (c.onsp || c.om !== undefined ? 'No expected move: this reading did not record the stock price its straddle was divided by, so the figure is left out rather than shown against a price it may not have been computed from.' : 'No expected move: the at-the-money bid and ask this run received were missing, or too far apart to price a straddle from. The number is left out rather than built from a quote that would not stand up.') + '</p>';
             o += '<table class="ctx-table"><tbody>';
             if (c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
             const rv = (s.raw || {}).volatility;
@@ -10388,7 +10413,7 @@ def _js_context() -> str:
             const og = [];
             if (c.oi !== undefined) og.push('<b>Implied volatility</b> is the size of the yearly price swings that option prices assume, as an annualised standard deviation; <b>realised</b> is the swing the stock actually had over the past year.');
             if (c.osk !== undefined) og.push('<b>Put skew</b> is the implied volatility of a put that pays out only after a fall of roughly 5% or more, minus that of a call at today&rsquo;s price, in percentage points. A higher figure means protection against a drop costs more.');
-            o += '</tbody></table>' + (og.length ? '<p class="ctx-line ctx-gloss">' + og.join(' ') + '</p>' : '') + '<p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there: over 1996&ndash;2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? '. <b>This expiry is ' + c.od + ' days, outside that range</b>, so their figures are background here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqi && c.oqt && c.oqd ? 'Quotes were taken at <b>' + escapeHtml(c.oqt) + ' ET on ' + escapeHtml(cDate(c.oqd)) + '</b>, while the market was open: a reading from the middle of that session, not its close.' : c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>' + (c.oqt ? ', collected at ' + escapeHtml(c.oqt) + ' ET.' : '; options are not quoted at the hour this run fetches, so quotes collected after that session&rsquo;s close are used.') : 'This run did not record when its option quotes were taken.') + '</p>';
+            o += '</tbody></table>' + (og.length ? '<p class="ctx-line ctx-gloss">' + og.join(' ') + '</p>' : '') + '<p class="ctx-why">' + (mv ? 'Expected move = at-the-money call + put, divided by ' + cPrice(c.osp) + ', the stock&rsquo;s price when the quotes were taken: a straddle costs about the average absolute move to expiry. ' : '') + 'Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there: over 1996&ndash;2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? '. <b>This expiry is ' + c.od + ' days, outside that range</b>, so their figures are background here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqi && c.oqt && c.oqd ? 'Quotes were taken at <b>' + escapeHtml(c.oqt) + ' ET on ' + escapeHtml(cDate(c.oqd)) + '</b>, while the market was open: a reading from the middle of that session, not its close.' : c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>' + (c.oqt ? ', collected at ' + escapeHtml(c.oqt) + ' ET.' : '; options are not quoted at the hour this run fetches, so quotes collected after that session&rsquo;s close are used.') : 'This run did not record when its option quotes were taken.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
@@ -10675,7 +10700,7 @@ def _js_context() -> str:
                 const c = x.s.ctx || {};
                 let mv = '<span class="rp-none">&ndash;</span>';
                 if (!CTX_LOADED) mv = '<span class="rp-none">&hellip;</span>';
-                else if ((c.os === 'ok' || c.os === 'partial') && c.oe && c.om !== undefined) mv = '&plusmn;' + cPlain(c.om);
+                else if ((c.os === 'ok' || c.os === 'partial') && c.oe && moveShown(c)) mv = '&plusmn;' + cPlain(c.om);
                 const ins = c.ins;
                 const insTxt = (ins && ins.buy_n) ? '<span class="rp-ins">' + ins.buy_people + ' bought</span>' : '';
                 // The last reported quarter's surprise, from the four quarters behind the surprise

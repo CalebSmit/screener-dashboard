@@ -56,7 +56,7 @@ def _usable_price(p) -> float | None:
 def _options_for(ticker: str, price: float | None, earnings_ts, today) -> dict:
     """One stock's option context, or ``{}``. Shared with the after-close refresh."""
     import yfinance as yf
-    from context_signals import choose_expiry, options_context
+    from context_signals import chain_spot, choose_expiry, options_context
     if price is None or not np.isfinite(price) or price <= 0:
         return {}
     t = yf.Ticker(ticker)
@@ -69,7 +69,13 @@ def _options_for(ticker: str, price: float | None, earnings_ts, today) -> dict:
     if not exp:
         return {}
     ch = t.option_chain(exp)
-    return options_context(ch.calls, ch.puts, float(price), exp, today, spans)
+    # The same rule as the after-close refresh: the stock's price in the chain's own response,
+    # so the quotes and their divisor are one instant (context_signals.chain_spot, 2026-11-03).
+    spot, src = chain_spot(getattr(ch, "underlying", None), price)
+    out = options_context(ch.calls, ch.puts, spot, exp, today, spans)
+    if "_ctx_opt_spot" in out:
+        out["_ctx_opt_spot_src"] = src
+    return out
 
 
 def _context_for(ticker: str, price: float | None, earnings_ts, today, with_options: bool = True) -> dict:

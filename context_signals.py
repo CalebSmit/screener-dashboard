@@ -222,6 +222,42 @@ def _xzz_skew(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, days) -> dic
     }
 
 
+# Where an expected move's divisor may come from for the page to show the move and for
+# ``context_eval`` to count it: the quote response itself (``chain``), or the live last price
+# when that response carried none (``last``, options_cache._fetch_one). A move divided by a
+# handed-in run close (``run``), or recorded before 2026-11-03 with no divisor at all, is a
+# different construction - withheld on the page, excluded from the record, never spliced.
+SPOT_SOURCES = ("chain", "last")
+
+
+def chain_spot(underlying, fallback) -> tuple[float | None, str]:
+    """The stock price an option chain was quoted against, and where it came from.
+
+    Yahoo's chain response carries the underlying's own quote (``option_chain(...).underlying``),
+    so its ``regularMarketPrice`` is the stock's price in the same response as the option quotes:
+    at the 20:00 refresh, the close of the session those quotes are the close of. It is preferred
+    to ``fallback``, the price the caller was handed, which for the refresh is the newest run's
+    close - one session *before* the quotes. Measured on the 2026-10-30 payload, that older close
+    differed from the quoted session's by more than 1% for 273 of 359 stocks and put NOW's
+    "at-the-money" strike 37% from its price (research/measurements/2026-11-02-expected-move-divisor.py).
+    Returns ``(price, "chain")``, ``(fallback, "run")`` when the response has no usable price, or
+    ``(None, "none")``.
+    """
+    u = underlying if isinstance(underlying, dict) else {}
+    p = u.get("regularMarketPrice")
+    try:
+        p = float(p)
+    except (TypeError, ValueError):
+        p = None
+    if p is not None and np.isfinite(p) and p > 0:
+        return p, "chain"
+    try:
+        f = float(fallback)
+    except (TypeError, ValueError):
+        return None, "none"
+    return (f, "run") if np.isfinite(f) and f > 0 else (None, "none")
+
+
 def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry: str,
                     today: date, spans_earnings: bool) -> dict:
     """What one expiry's chain says: the move it prices, implied vol, put skew, positioning.
@@ -261,6 +297,10 @@ def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry
     c_mid, _ = _mid(c_row)
     p_mid, _ = _mid(p_row)
     out["_ctx_opt_atm_strike"] = float(atm)
+    # The price the strike was chosen against and the straddle divided by, published so the page
+    # names the divisor the move was actually computed with (2026-11-03: it named this run's close
+    # while the move had been divided by the close before the quoted session).
+    out["_ctx_opt_spot"] = float(spot)
     if c_mid is not None and p_mid is not None:
         out["_ctx_opt_move"] = float((c_mid + p_mid) / spot)
         out["_ctx_opt_straddle"] = float(c_mid + p_mid)

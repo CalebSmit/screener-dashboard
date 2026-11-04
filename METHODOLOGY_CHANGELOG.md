@@ -4976,3 +4976,53 @@ deadline arithmetic (a 160-day-old statement is not stale under the config, 170 
 165.
 **Applied by:** owner-run session, 2026-11-02 night (owner: "Keep finding improvements!").
 **Rollback:** set the value back to 120; the tag before this commit is `good/2026-11-02-owner-9`.
+**Measured, 2026-11-03 (the first full run under 165):** **13 of 499** flagged (ES, REG, CPT, AEE,
+ILMN, FLEX, FDXF, EXR, DTE, ETR, MDLZ, DD, ABT), not the 21 predicted - eight of those 21 filed their
+September-quarter statements between the 10-30 payload the prediction read and the 11-03 run.
+Statement ages that morning: median 126 days, 34 at the 25th percentile. Direction and order of
+magnitude as expected; the gap is the filing season moving, not the rule.
+
+## 2026-11-03 (evening) - Context: the expected move is divided by the price its quotes were taken against
+
+**Area:** context layer, options panel (display only - context is shown beside the score, never in
+it; settled row "ctx")
+**Changed:** the at-the-money straddle behind "What options imply" is divided by - and its strike
+chosen against - the stock's price **in the same quote response** (`regularMarketPrice` of
+`option_chain(...).underlying`; `context_signals.chain_spot`), on both paths that price a chain:
+the 20:00 refresh (`options_cache._fetch_one`) and the data run's live pass
+(`context_fetch._options_for`). Until today the refresh divided by the **newest run's close**, which
+at 20:00 is the close one session *before* the quotes it records. The divisor is now recorded
+(`_ctx_opt_spot`, with `_ctx_opt_spot_src`), published (`ctx.osp`) and **printed**: the card says
+"divided by $X, the stock's price when the quotes were taken" instead of naming this run's close,
+which was not the number used. A move recorded without its divisor - every reading before tonight's
+refresh, or one divided by a handed-in close - is **withheld with its reason** rather than shown
+against a price it was not computed from (the skew's "published as a unit or not at all" rule,
+2026-10-14). `context_eval` excludes those readings from the expected-move signal by the same rule
+(`move_has_its_divisor`, one list of accepted sources, `SPOT_SOURCES`): two constructions, not
+spliced.
+**Evidence:** a documented failure on the live page, measured
+(`research/measurements/2026-11-02-expected-move-divisor.py`, 2026-10-30 payload): of 359 stocks
+showing a move, the divisor differed from the price the card named by more than 1% for **273**
+(median 1.7%), by more than 5% for 16 and more than 10% for 6; for **20** the "at-the-money" strike
+sat more than 5% from the named price - the bar `options_context` itself refuses. NOW's strike was
+150 against about $110, so its "+/-27.3%" was mostly a deep put's intrinsic value. Checked live
+tonight after the close (AAPL, JPM, NOW, VLO): the response's price is the 16:00 ET close, stamped
+`regularMarketTime` 21:00 UTC; NOW now chooses the 110 strike at $109.16 and prices +/-11.5%.
+**Expected effect:** from the 02:00 run of 2026-11-04 (which reads tonight's 20:00 quotes), each
+shown move names the price it was divided by and reproduces as straddle / divisor. Stocks whose
+only reading predates tonight show no move until their next usable refresh (the cache drops a
+reading after a few sessions). The expected-move signal's first one-month reading in `context_eval`
+moves from the 2026-11-09 run to about 2026-12-04, because the readings before the fix are excluded
+rather than mixed in; the other context signals are unaffected.
+**Validated by:** claim `context.expected_move` gains eight behaviour checks in
+`tests/test_context_layer_claims.py` (the response price wins, both paths use it, the fallbacks are
+labelled, the generator's unit rule, the record and the page count the same readings, the rendered
+card names the divisor and withholds cleanly, and every published move reproduces from its own
+divisor). The page refuses a move without its divisor too (`moveShown`, one predicate for the
+card, the summary chip and the Reporting Soon column), so the rebuilt page cannot print the old
+payload's moves against "-" in the hours before the next data run. Nine reverts of the fix, each
+caught (`research/measurements/2026-11-03-expected-move-divisor-mutations.py`, 9 of 9). Closes the two
+FALSE rows of the claims audit (`expected-move-price`, `expected-move-figure`).
+**Applied by:** owner-run session, 2026-11-03 evening (owner: "Keep finding improvements ... an elite
+level of detail and precision").
+**Rollback:** revert the commit; the tag before it is `good/2026-11-03-1354`.

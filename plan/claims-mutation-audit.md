@@ -1343,11 +1343,17 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day.
 
-**What remains, as a queue (40 `open:` rows):**
+**What remains, as a queue (38 `open:` rows since 2026-11-03 evening):**
 
-1. **The expected-move card (2 rows) - FALSE, fix first.** Above. Pipeline change plus a changelog
-   entry; then a page check of the form used tonight (the printed divisor equals the published
-   spot, the move equals straddle over it).
+1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
+   evening).** The divisor is now the stock's price in the quote response itself
+   (`context_signals.chain_spot`, both option paths), recorded as `_ctx_opt_spot`, published as
+   `ctx.osp` and printed; a move without one is withheld with its reason, and `context_eval` counts
+   only the readings the page shows. Both rows map to `claim:context.expected_move`, which gained
+   eight behaviour checks, including the page check this item asked for (every published move
+   reproduces as straddle / its own divisor, strike within 5%). Mutations: 9 of 9 caught (the page itself also refuses a move without a divisor, `moveShown`)
+   (`research/measurements/2026-11-03-expected-move-divisor-mutations.py`). Changelog 2026-11-03
+   (evening).
 2. **The workings' equation lines (11 rows):** `metric-points-equation`,
    `metric-weight-rescaled-line`, `metric-weight-no-data-line`, `piotroski-parts-line`,
    `piotroski-signals-line`, the four `surprise-*` lines, `roe-sd-line`, `same-value-scored`. The
