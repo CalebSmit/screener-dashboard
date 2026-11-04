@@ -165,6 +165,31 @@ first-time visitor sees the published methodology. Show a clear label stating
 which profile is active and that the pipeline's own portfolio is Balanced-based.
 
 **M4 — Custom weights via sliders.**
+
+**The prior question - can a client-side reweight meet row 0.8? - ANSWERED by measurement,
+2026-11-03 night (owner-run): yes, with two conditions.** Using nothing but `dashboard_data.js`,
+`research/measurements/2026-11-03-profile-composites-from-payload.py` reproduces the engine's
+composites and ranks under all four published weightings (the build computes them with
+`compute_composite` and the run's regime): **every rank exactly, and 1,995 of 1,996 composites to the
+published two decimals** (the one is a half-cent rounding boundary). What it took:
+
+1. **The engine's order of operations, not the obvious one.** `compute_composite` rounds the
+   composite to two decimals *before* ranking (`factor_engine.py`: `Composite.round(2)`, then
+   `rank(ascending=False, method="min")`), so near-equal stocks share a rank - 50 of 499 do on the
+   Balanced ranking today. Ranking the unrounded composite gets 449 of 499 ranks right and 50 wrong.
+   A browser port must round first, and round the way numpy does (half to even on the binary value),
+   or the half-cent cases flip.
+2. **The regime rule.** In the panic state the run cuts Momentum x0.70 and splits the freed weight to
+   Quality and Valuation (`factor_engine.apply_momentum_regime`); the payload publishes the state
+   (`profiles.regime`, `weights.momentum_regime`) but not the rule's constants, so a port either
+   publishes them or ports the function under the lab_engine.js rule (the same arithmetic, held to
+   the Python by a test).
+
+So M4 can satisfy row 0.8 the way the Factor Lab does: one JS function, tested to reproduce the
+engine's composites for every published weighting **and** for random weight vectors, the page saying
+the slider ranking is computed in the browser by the engine's rule. Whether sliders *should* exist on
+a decision-support page (a user tuning weights to a result is the selection problem the research
+engine exists to prevent) is a product question for the owner, not answered here.
 Eight sliders, live renormalization to 100, reset-to-profile, and a shareable
 URL hash. This is genuinely new functionality and deserves its own week — do
 not rush it into M3.
