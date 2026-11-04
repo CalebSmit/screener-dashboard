@@ -1237,10 +1237,10 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:history.rank_counts',
     'Remove all ${holdings.length} names from this list?':
         'claim:dashboard.holdings_fit',
-    'on this screener’s own history, acting on the top ${(c.num_stocks || 25)} at every run implies ${c.turnover_every_run.toFixed(0)}% monthly one-sided turnover against ${c.turnover_monthly.toFixed(0)}% reviewing the same rule monthly.':
-        'open:cadence-turnover - the three turnover figures; no registered check reads them',
+    'on this screener’s own history (${cadenceBasis(c)}), acting on the top ${(c.num_stocks || 25)} at every run implies ${c.turnover_every_run.toFixed(0)}% monthly one-sided turnover against ${c.turnover_monthly.toFixed(0)}% reviewing the same rule monthly.':
+        'claim:dashboard.review_cadence_turnover',
     'Novy-Marx &amp; Velikov ( Review of Financial Studies 29(1), 2016) find anomalies under roughly ${c.turnover_ceiling.toFixed(0)}% mostly survive trading costs, and few above it do.':
-        "open:cadence-turnover-ceiling - nothing reads the page's printing",
+        'claim:dashboard.review_cadence_turnover',
     "${n} name${(n === 1 ? '' : 's')} across ${sectors.length} sector${(sectors.length === 1 ? '' : 's')}":
         'claim:dashboard.holdings_fit',
     '${inTop25} inside the top 25 of ${universe}, ${inTop100} inside the top 100':
@@ -1384,8 +1384,6 @@ DASHBOARD_SENTENCES: dict[str, str] = {
 }
 
 DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
-    'cadence-turnover',
-    'cadence-turnover-ceiling',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
     'ni-growth-yoy',

@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (7 `open:` rows since 2026-11-03 night):**
+**What remains, as a queue (5 `open:` rows since 2026-11-03 night):**
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself
@@ -1403,5 +1403,6 @@ unscored checks do not depend on it, because a hand-made unscored category runs 
    **Still open:** `ni-growth-yoy` and `short-ratio` print a field the payload cannot recompute (the
    fiscal-year net incomes are not published; days to cover is Yahoo's own), so a page check would
    test only the template - publish the inputs first. `cadence-turnover` and
-   `cadence-turnover-ceiling` (`tests/test_review_cadence.py` - register it first, as row 222 shows
-   is worth doing).
+   `cadence-turnover-ceiling` CLOSED 2026-11-03 night - and they were stale: the note printed
+   September's 122% / 24% as current; re-measured 149% / 28%, now measured at every build (claim
+   `dashboard.review_cadence_turnover`).

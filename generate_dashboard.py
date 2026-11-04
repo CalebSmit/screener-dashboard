@@ -423,6 +423,8 @@ CADENCE_TURNOVER = {
     "every run": 121.8,
     "monthly": 24.0,
 }
+# The day those two were measured; the page names it when it falls back to them.
+CADENCE_TURNOVER_MEASURED = "2026-09-14"
 # Novy-Marx & Velikov's survivability boundary, in monthly one-sided turnover %.
 NMV_TURNOVER_CEILING = 50.0
 
@@ -459,7 +461,7 @@ def _share_classes_block(run_data: dict, table_data: list) -> dict:
     return out
 
 
-def _cadence_block(cfg: dict) -> dict:
+def _cadence_block(cfg: dict, history_block: dict | None = None) -> dict:
     """What review cadence to tell the reader the tool is built for.
 
     Read from the *run's* config snapshot rather than the working tree, so the
@@ -480,10 +482,20 @@ def _cadence_block(cfg: dict) -> dict:
         # payload instead of being indistinguishable from a real setting.
         "configured": raw in CADENCE_LABELS,
         "num_stocks": int(num_stocks) if isinstance(num_stocks, (int, float)) else None,
-        "turnover_every_run": CADENCE_TURNOVER["every run"],
-        "turnover_monthly": CADENCE_TURNOVER["monthly"],
+        # Measured from this build's own comparable runs where there are enough (history.
+        # review_turnover, 2026-11-03), else the dated 2026-09-14 figures; ``turnover_basis`` says
+        # which, so the page names what the numbers rest on.
+        **_turnover_fields((history_block or {}).get("turnover")),
         "turnover_ceiling": NMV_TURNOVER_CEILING,
     }
+
+
+def _turnover_fields(t: dict | None) -> dict:
+    if t:
+        return {"turnover_every_run": t["every_run"], "turnover_monthly": t["monthly"],
+                "turnover_basis": {k: t[k] for k in ("reviews", "pairs", "from", "to")}}
+    return {"turnover_every_run": CADENCE_TURNOVER["every run"], "turnover_monthly": CADENCE_TURNOVER["monthly"],
+            "turnover_basis": {"measured": CADENCE_TURNOVER_MEASURED}}
 
 
 def _effective_weight_row(weights: dict, present: list) -> dict:
@@ -1700,7 +1712,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
 
     dashboard_json = {
         "kpis": kpis,
-        "cadence": _cadence_block(run_data.get("cfg") or {}),
+        "cadence": _cadence_block(run_data.get("cfg") or {}, history_block),
         "history": _with_overview(history_block, weights),
         "profiles": _profiles_block(df, weights, run_data.get("cfg") or {}),
         "table_data": table_data,
@@ -3437,6 +3449,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // decision support, refusing to show a number until a date would not be.
     // Returns the sentence(s) only. Callers wrap it, because one surface wants
     // a standalone note and the other wants it inside an existing paragraph.
+    // What the turnover figures rest on: this build's own runs, or the dated measurement it falls
+    // back to (generate_dashboard._turnover_fields, 2026-11-03).
+    function cadenceBasis(c) {{
+        const b = c.turnover_basis || {{}};
+        if (b.reviews) return b.reviews + ' consecutive runs from ' + prettyDate(b.from) + ' to ' + prettyDate(b.to)
+            + ', and ' + b.pairs + ' monthly ' + (b.pairs === 1 ? 'pair' : 'pairs');
+        return 'measured ' + prettyDate(b.measured || '2026-09-14');
+    }}
     function cadenceText(long) {{
         const c = D.cadence;
         if (!c) return '';
@@ -3448,7 +3468,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
         return refresh
             + ' Treating every refresh as a decision point has a measured cost: on this '
-            + 'screener\\u2019s own history, acting on the top '
+            + 'screener\\u2019s own history (' + cadenceBasis(c) + '), acting on the top '
             + (c.num_stocks || 25) + ' at every run implies <strong>'
             + c.turnover_every_run.toFixed(0) + '%</strong> monthly one-sided turnover '
             + 'against <strong>' + c.turnover_monthly.toFixed(0) + '%</strong> reviewing '

@@ -439,3 +439,78 @@ def test_cadence_copy_carries_no_advice_language(tmp_path, script):
     for key in ("s", "l"):
         text = re.sub(r"<[^>]+>", " ", out[key])
         assert stock_summary.advice_terms_in(text) == [], (key, text)
+
+
+# --------------------------------------------------------------------------- the turnover, measured
+# 2026-11-03 night: the two turnover figures were constants measured on 2026-09-14 and printed as
+# "on this screener's own history"; re-measured they read 141-149% and 28%. They are now measured
+# at every build (history.review_turnover) and the sentence names what they rest on.
+def _snaps(days_and_tops):
+    import history
+    out = []
+    for d, top in days_and_tops:
+        ranks = {t: i + 1 for i, t in enumerate(top + [x for x in "ABCDE" if x not in top])}
+        out.append(history.RunSnapshot(date=d, ranks=ranks, composites={}, cat_scores={}))
+    return out
+
+
+def test_review_turnover_on_hand_built_runs():
+    """36 daily runs whose top two alternate {A,B} / {A,C}: every review brings one new name of
+    two (0.5), 35 reviews over 35 days; the one monthly pair (day 0 to day 28) brings none. A run a
+    month before the stretch is outside it."""
+    import history
+    from datetime import date, timedelta
+    d0 = date(2026, 9, 1)
+    runs = [((d0 - timedelta(days=30)).isoformat(), ["D", "E"])]
+    runs += [((d0 + timedelta(days=i)).isoformat(), ["A", "B"] if i % 2 == 0 else ["A", "C"]) for i in range(36)]
+    got = history.review_turnover(_snaps(runs), top=2)
+    months = 35 / (365.25 / 12)
+    assert got == {"every_run": round(100 * 17.5 / months, 1), "monthly": 0.0, "reviews": 35, "pairs": 1,
+                   "from": "2026-09-01", "to": (d0 + timedelta(days=35)).isoformat()}
+
+
+def test_review_turnover_declines_a_thin_record():
+    from datetime import date, timedelta
+    import history
+    d0 = date(2026, 9, 1)
+    assert history.review_turnover(_snaps([((d0 + timedelta(days=i)).isoformat(), ["A", "B"]) for i in range(8)]), top=2) is None
+
+
+def test_block_uses_the_builds_own_measurement_and_says_so():
+    t = {"every_run": 149.3, "monthly": 28.0, "reviews": 51, "pairs": 2, "from": "2026-08-20", "to": "2026-11-03"}
+    block = g._cadence_block({}, {"turnover": t})
+    assert block["turnover_every_run"] == 149.3 and block["turnover_monthly"] == 28.0
+    assert block["turnover_basis"] == {"reviews": 51, "pairs": 2, "from": "2026-08-20", "to": "2026-11-03"}
+    assert g._cadence_block({})["turnover_basis"] == {"measured": "2026-09-14"}
+
+
+@node_only
+def test_long_form_names_what_the_turnover_rests_on(tmp_path, script):
+    basis = {"reviews": 51, "pairs": 2, "from": "2026-08-20", "to": "2026-11-03"}
+    out = _run_js(script, "console.log(JSON.stringify({t: A.cadenceText(true)}));", tmp_path,
+                  dict(REAL, turnover_every_run=149.3, turnover_monthly=28.0, turnover_basis=basis))
+    assert "own history (51 consecutive runs from " in out["t"] and ", and 2 monthly pairs), acting" in out["t"]
+    assert "149%" in out["t"] and "28%" in out["t"]
+    old = _run_js(script, "console.log(JSON.stringify({t: A.cadenceText(true)}));", tmp_path,
+                  dict(REAL, turnover_basis={"measured": "2026-09-14"}))
+    assert "own history (measured " in old["t"] and "122%" in old["t"]
+
+
+def test_the_published_turnover_is_the_snapshots_own():
+    """Recomputed from the committed snapshots up to the published run, wherever the payload was
+    built under the rule (one without ``turnover_basis.reviews`` predates it and is not checked)."""
+    import history
+    p = ROOT / "dashboard_data.js"
+    if not p.exists():
+        pytest.skip("MISSING DATA: no published dashboard_data.js")
+    s = p.read_text(encoding="utf-8")
+    D = json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))
+    c = D.get("cadence") or {}
+    if not (c.get("turnover_basis") or {}).get("reviews"):
+        pytest.skip("MISSING DATA: the published payload predates the measured turnover (2026-11-03)")
+    kept, _ = history.select_comparable_runs(ROOT / "improvement" / "snapshots",
+                                             up_to_date=D["history"]["current_date"])
+    t = history.review_turnover(kept)
+    assert t is not None and t["to"] == c["turnover_basis"]["to"]
+    assert c["turnover_every_run"] == pytest.approx(t["every_run"], abs=0.11)
+    assert c["turnover_monthly"] == pytest.approx(t["monthly"], abs=0.11)

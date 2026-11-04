@@ -1397,6 +1397,28 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="dashboard.review_cadence_turnover",
+        surface=DRILLDOWN,
+        asserts=(
+            "The review-cadence note's turnover figures are measured from this build's own comparable "
+            "runs - the strict top-25 rule's monthly one-sided turnover acted on at every run over the "
+            "latest unbroken weekday stretch, and reviewed monthly over disjoint pairs four to five "
+            "weeks apart - and the note says how many runs and pairs they rest on; with too few it "
+            "quotes the 2026-09-14 measurement and says so. The 50% ceiling is Novy-Marx & Velikov's "
+            "(2016) (2026-11-03)."
+        ),
+        made_true_by="history:review_turnover",
+        checked_by=(
+            "tests/test_review_cadence.py::test_review_turnover_on_hand_built_runs",
+            "tests/test_review_cadence.py::test_review_turnover_declines_a_thin_record",
+            "tests/test_review_cadence.py::test_block_uses_the_builds_own_measurement_and_says_so",
+            "tests/test_review_cadence.py::test_long_form_names_what_the_turnover_rests_on",
+            "tests/test_review_cadence.py::test_the_published_turnover_is_the_snapshots_own",
+            "tests/test_review_cadence.py::test_long_form_quotes_all_three_numbers",
+            "tests/test_review_cadence.py::test_turnover_numbers_bracket_the_nmv_ceiling",
+        ),
+    ),
+    Claim(
         id="history.rank_counts",
         surface=DRILLDOWN,
         asserts=(

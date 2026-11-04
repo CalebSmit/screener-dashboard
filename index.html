@@ -7321,6 +7321,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // decision support, refusing to show a number until a date would not be.
     // Returns the sentence(s) only. Callers wrap it, because one surface wants
     // a standalone note and the other wants it inside an existing paragraph.
+    // What the turnover figures rest on: this build's own runs, or the dated measurement it falls
+    // back to (generate_dashboard._turnover_fields, 2026-11-03).
+    function cadenceBasis(c) {
+        const b = c.turnover_basis || {};
+        if (b.reviews) return b.reviews + ' consecutive runs from ' + prettyDate(b.from) + ' to ' + prettyDate(b.to)
+            + ', and ' + b.pairs + ' monthly ' + (b.pairs === 1 ? 'pair' : 'pairs');
+        return 'measured ' + prettyDate(b.measured || '2026-09-14');
+    }
     function cadenceText(long) {
         const c = D.cadence;
         if (!c) return '';
@@ -7332,7 +7340,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         }
         return refresh
             + ' Treating every refresh as a decision point has a measured cost: on this '
-            + 'screener\u2019s own history, acting on the top '
+            + 'screener\u2019s own history (' + cadenceBasis(c) + '), acting on the top '
             + (c.num_stocks || 25) + ' at every run implies <strong>'
             + c.turnover_every_run.toFixed(0) + '%</strong> monthly one-sided turnover '
             + 'against <strong>' + c.turnover_monthly.toFixed(0) + '%</strong> reviewing '

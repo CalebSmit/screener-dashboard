@@ -588,6 +588,11 @@ narrower — signal given up is a real cost and the practice range's upper end
 | every run (23 reviews, 37 contiguous days, one path) | **121.8%** |
 | monthly spacing (disjoint pairwise) | **24.0%** |
 
+*Re-measured 2026-11-03 by the same definitions on the longer record: 149.3% at every run (51
+reviews, 2026-08-20 to 2026-11-03, every stock each run ranked) and 28.0% monthly (2 disjoint pairs).
+The page now measures these at every build (`history.review_turnover`) and names their basis;
+changelog 2026-11-03 (night, later).*
+
 Novy-Marx & Velikov (2016): anomalies under ~50% monthly one-sided turnover
 mostly survive trading costs; few above it do. **Daily action on a strict
 top-25 rule sits at more than twice the level above which NMV find anomalies

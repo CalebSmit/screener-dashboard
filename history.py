@@ -383,6 +383,54 @@ def select_comparable_runs(
     return kept, excluded
 
 
+# The review-cadence turnover the holdings and What Changed panels quote (2026-11-03 night). It was
+# two constants measured on 2026-09-14 over 23 runs (research/2026-09-14-sell-discipline-and-hold-
+# bands.md section 8.2) and printed as "on this screener's own history"; re-measured on 2026-11-03
+# the same way it read 141% and 28%, not 122% and 24% (research/measurements/2026-11-03-cadence-
+# turnover-remeasured.py). So it is measured at every build from the comparable runs, over the whole
+# universe each run ranked (not only today's members), and the page says what it rests on.
+DENSE_GAP_DAYS = 4                # weekday runs: a weekend or one holiday apart
+MONTHLY_PAIR_DAYS = (28, 35)      # a disjoint "monthly review" pair
+MIN_TURNOVER_REVIEWS = 10
+
+
+def review_turnover(kept: list[RunSnapshot], top: int = 25) -> dict | None:
+    """Monthly one-sided turnover of the strict top-``top`` rule, acted on at every run and monthly.
+
+    One-sided turnover of a review is the share of the top ``top`` that is new. *Every run*: the sum
+    over consecutive runs in the latest unbroken weekday stretch (no gap over ``DENSE_GAP_DAYS``),
+    divided by the months it spans. *Monthly*: the mean over disjoint pairs ``MONTHLY_PAIR_DAYS``
+    apart, walked forward through the same stretch. ``None`` with fewer than
+    ``MIN_TURNOVER_REVIEWS`` reviews or no monthly pair, so the page falls back to the dated figures.
+    """
+    if len(kept) < 2:
+        return None
+    days = [pd.Timestamp(s.date) for s in kept]
+    start = max(i for i in range(len(kept)) if i == 0 or (days[i] - days[i - 1]).days > DENSE_GAP_DAYS)
+    tops = [{t for t, _ in sorted(s.ranks.items(), key=lambda kv: kv[1])[:top]} for s in kept]
+
+    def new_share(a: int, b: int) -> float:
+        return len(tops[b] - tops[a]) / top
+
+    reviews = len(kept) - 1 - start
+    months = (days[-1] - days[start]).days / (365.25 / 12)
+    if reviews < MIN_TURNOVER_REVIEWS or months <= 0:
+        return None
+    every = sum(new_share(i, i + 1) for i in range(start, len(kept) - 1)) / months
+    pairs, i = [], start
+    while True:
+        j = next((k for k in range(i + 1, len(kept))
+                  if MONTHLY_PAIR_DAYS[0] <= (days[k] - days[i]).days <= MONTHLY_PAIR_DAYS[1]), None)
+        if j is None:
+            break
+        pairs.append(new_share(i, j))
+        i = j
+    if not pairs:
+        return None
+    return {"every_run": round(100 * every, 1), "monthly": round(100 * sum(pairs) / len(pairs), 1),
+            "reviews": reviews, "pairs": len(pairs), "from": kept[start].date, "to": kept[-1].date}
+
+
 def rank_change_noise(kept: list[RunSnapshot]) -> dict:
     """Measure the distribution of |rank change| between consecutive runs.
 
@@ -587,7 +635,7 @@ def build_history(
             kept = [s for s in kept if s.date != current_date] + [live]
 
     empty = {
-        "dates": [], "series": {}, "excluded": excluded, "noise": None,
+        "dates": [], "series": {}, "excluded": excluded, "noise": None, "turnover": None,
         "compare": {"prev": None, "m1": None}, "movers": {}, "delta": {},
         "available": False,
     }
@@ -640,6 +688,7 @@ def build_history(
         "series": series,
         "excluded": excluded,
         "noise": noise,
+        "turnover": review_turnover(kept),
         "compare": compare,
         "movers": movers,
         "delta": delta,

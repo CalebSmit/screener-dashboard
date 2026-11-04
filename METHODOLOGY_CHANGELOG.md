@@ -5064,3 +5064,28 @@ the volatility exactly where it counts the move); 12 of 12 mutations caught
 **Applied by:** owner-run session, 2026-11-03 night (owner: "keep finding improvements!! be creative").
 **Rollback:** revert the commit; the tag before it is `good/2026-11-03-owner-6`.
 
+## 2026-11-03 (night, later) - Display: the review-cadence turnover is measured at every build, not quoted from September
+
+**Area:** the holdings and What Changed panels' review-cadence note (display only; no score reads it)
+**Changed:** "on this screener's own history, acting on the top 25 at every run implies 122% monthly
+one-sided turnover against 24% reviewing the same rule monthly" printed two constants measured on
+2026-09-14 over 23 runs (`research/2026-09-14-sell-discipline-and-hold-bands.md` section 8.2) as if
+current. They are now measured at every build from the comparable runs (`history.review_turnover`,
+over every stock each run ranked, not only today's members) - every-run turnover over the latest
+unbroken weekday stretch, monthly over disjoint pairs four to five weeks apart - and the note says
+what they rest on ("51 consecutive runs from Aug 20 to Nov 3, and 2 monthly pairs"); with too few
+runs it quotes the September figures and says "measured Sep 14".
+**Evidence:** re-measured on 2026-11-03 by the same definitions
+(`research/measurements/2026-11-03-cadence-turnover-remeasured.py`): **141.2%** at every run on the
+published series, **149.3%** over the full snapshots (departed stocks add turnover), and **28.0%**
+monthly over 2 disjoint pairs - against the 122% and 24% printed. The conclusion the note draws is
+unchanged and stronger: acting at every run sits about three times above Novy-Marx & Velikov's (2016)
+~50% survivability level, monthly review below it.
+**Expected effect:** from the next run the note prints about 149% and 28%, with its basis; the
+figures move as the record grows. Nothing else changes.
+**Validated by:** claim `dashboard.review_cadence_turnover` - the measurement on hand-built runs, the
+fallback, the printed basis in both branches, and the published figures recomputed from the
+committed snapshots (`tests/test_review_cadence.py`).
+**Applied by:** owner-run session, 2026-11-03 night.
+**Rollback:** revert the commit; the tag before it is `good/2026-11-03-owner-9`.
+
