@@ -18715,6 +18715,16 @@ and this entry's. Worked in a worktree outside OneDrive; pushed only while no se
    ("> 400 stocks", ">= 100 per metric") are gone - coverage is `check_run_health`'s to judge, and a
    floor in a claims check would discard a run over a source dip with nothing misprinted. **Lesson for
    whoever adds a check to that gate: it must hold on every good run, not on today's.**
+9. **Investor profiles M4's prior question answered by measurement** (`plan/investor-profiles.md`):
+   a client-side reweight reproduces the engine - every rank exactly and 1,995 of 1,996 composites
+   under all four published weightings, from `dashboard_data.js` alone - **if** it follows the
+   engine's order: round the composite to two decimals, *then* rank with ties sharing the lower rank.
+   Ranking the unrounded composite gets 50 of 499 Balanced ranks wrong, because 50 stocks share a rank
+   today. A port must also carry the momentum regime rule. Whether sliders belong on a decision-support
+   page is the owner's call.
+10. **Two stale statements corrected:** CLAUDE.md said experiment 18 had no second reader (it had one
+   on 2026-11-02), and priority 6's M4 question is now answered. The page's last literal universe size
+   (`|| 500` in the rank chart) reads the universe being run.
 
 ### Not done, and why
 

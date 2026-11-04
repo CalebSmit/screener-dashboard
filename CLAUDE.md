@@ -976,8 +976,10 @@ record here in either direction.
 **6. Investor profile selector - M1-M3 SHIPPED 2026-10-09 (owner-run).** A Weighting selector on
 the rankings table; profiles from `presets.py`, composites computed at build time by the engine with
 the run's own regime (`apply_momentum_regime`), withheld unless Balanced reproduces the published
-ranking. M4 (custom sliders) is open and must first answer whether any client-side reweight can meet
-row 0.8. `plan/investor-profiles.md`.
+ranking. M4 (custom sliders) is open; its prior question - can a client-side reweight meet row 0.8? - was
+answered by measurement on 2026-11-03: **yes**, if the port rounds the composite to two decimals
+*before* ranking (the engine's order) and carries the momentum regime rule. Whether sliders belong on
+the page is the owner's call. `plan/investor-profiles.md`.
 
 **7. Investment-club readiness** - can a student open this on a phone and
 understand what they're looking at?
