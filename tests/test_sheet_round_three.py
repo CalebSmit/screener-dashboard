@@ -97,7 +97,9 @@ def test_every_published_unscored_category_has_no_weighted_metric_with_data():
             has = [m for m in weighted if s["pct"].get(m) is not None]
             assert (s["cat_scores"].get(c) is None) == (not has), (t, c, has)
             unscored += s["cat_scores"].get(c) is None
-    assert unscored >= 1, "no unscored category in this run - the browser test below has nothing to show"
+    # No floor on ``unscored``: a run in which every category is scored is a good day, not a red
+    # one (CLAUDE.md row "data->red", 2026-11-03). The browser test below builds its own unscored
+    # category when the day's data has none.
 
 
 def test_the_price_history_categories_are_built_only_from_the_price_history(cfg):
@@ -311,8 +313,16 @@ def test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history(browser
     try:
         t, cats = page.evaluate("""() => { const C = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
             for (const t of Object.keys(D.stock_detail)) { const n = C.filter(c => D.stock_detail[t].cat_scores[c] == null);
-                if (n.length) return [t, n]; } return [null, []]; }""")
-        assert t, "no unscored category in this run"
+                if (n.length) return [t, n]; }
+            // None today (row "data->red"): leave one stock's Growth with no weighted metric that has
+            // data, which is exactly the engine's condition for an unscored category.
+            const t = Object.keys(D.stock_detail).find(k => D.stock_detail[k].cat_scores.growth != null);
+            const s = D.stock_detail[t], P = D.weights.profiles.growth;
+            const table = P[(s.wp || {}).growth || 'generic'] || P.generic;
+            for (const [m, w] of Object.entries(table)) if (w > 0) s.pct[m] = null;
+            s.cat_scores.growth = null;
+            return [t, ['growth']]; }""")
+        assert t, "the payload has no stock to show"
         _sheet(page, t)
         subs = page.evaluate("""() => [...document.querySelectorAll('#stock-modal .modal-score-card.is-na .modal-score-sub')].map(e => e.textContent)""")
         assert len(subs) == len(cats)
@@ -323,16 +333,20 @@ def test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history(browser
         labels = page.evaluate(f"unscoredWhy('{c}', D.stock_detail['{t}']).metrics")
         assert labels and all(lbl in note for lbl in labels), (note, labels)
         assert "its weight is shared across the others" in note
-        # a rejected price history (no stock has one today): Momentum and Risk give the engine's reason
-        page.evaluate("""() => { const s = D.stock_detail.JPM; s.__keep = [s.cat_scores.momentum, s.cat_scores.risk, s.flags.px_rejected];
-            s.cat_scores.momentum = null; s.cat_scores.risk = null; s.flags.px_rejected = 'series mixes pre- and post-split prices across a 2:1 split'; }""")
-        _sheet(page, "JPM")
+        # a rejected price history (no stock has one today): Momentum and Risk give the engine's reason.
+        # The stock is any one with every category scored, never a named ticker (row "data->red").
+        px = page.evaluate("""() => { const t = Object.keys(D.stock_detail).find(k => { const c = D.stock_detail[k].cat_scores;
+                return Object.values(c).every(v => v != null); });
+            const s = D.stock_detail[t]; s.flags = s.flags || {};
+            s.cat_scores.momentum = null; s.cat_scores.risk = null; s.flags.px_rejected = 'series mixes pre- and post-split prices across a 2:1 split';
+            return t; }""")
+        _sheet(page, px)
         subs = page.evaluate("""() => [...document.querySelectorAll('#stock-modal .modal-score-card.is-na .modal-score-sub')].map(e => e.textContent)""")
         assert subs == ["Not scored: price history rejected"] * 2, subs
         note = page.evaluate("document.querySelector('#cat-detail-risk .wk-unscored').textContent")
         assert "rejected this stock’s daily price history (series mixes pre- and post-split prices across a 2:1 split)" in note
         # Quality is not built from the price history and never claims it
-        assert "price history" not in page.evaluate("unscoredWhy('quality', D.stock_detail.JPM).long")
+        assert "price history" not in page.evaluate(f"unscoredWhy('quality', D.stock_detail['{px}']).long")
         assert errors == []
     finally:
         ctx.close()

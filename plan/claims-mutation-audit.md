@@ -1341,7 +1341,7 @@ The caption's check was written in `test_dashboard_printed_figures.py` instead (
 `tests/test_sheet_round_three.py::test_every_published_unscored_category_has_no_weighted_metric_with_data`
 ends `assert unscored >= 1` - a premise about the morning's data (row "data->red"): a run in which
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
-unscored checks do not depend on it, because a hand-made unscored category runs every day.
+unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
 **What remains, as a queue (38 `open:` rows since 2026-11-03 evening):**
 
