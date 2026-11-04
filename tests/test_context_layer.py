@@ -964,9 +964,9 @@ def test_a_reading_with_no_implied_volatility_at_all_claims_no_construction():
 
 
 def test_an_unstamped_reading_counts_as_the_source_field():
-    """The eighteen logged days carry no stamp and are all the source's own field, because nothing
-    in this project has ever inverted an option price. They must keep counting, or adopting the
-    inversion would discard a month of evidence it does not need to."""
+    """Every logged day carries no stamp and is the source's own field, because nothing in this
+    project has ever inverted an option price. Those readings must keep counting while the panel
+    publishes that construction, rather than being spliced into a series of a different quantity."""
     import context_eval as ce
     log = _iv_log(Ticker=["A", "B"])                        # no _ctx_opt_iv_src column at all
     assert ce.iv_is_the_published_construction(log).tolist() == [True, True]

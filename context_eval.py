@@ -103,9 +103,11 @@ def iv_is_the_published_construction(log: pd.DataFrame) -> pd.Series:
 
     An **unstamped** reading is a ``source`` reading. Every log to 2026-11-04 is the quote
     response's own ``impliedVolatility`` field, because nothing in this project has ever inverted an
-    option price itself - so the eighteen logged days keep counting while ``source`` is what the
-    panel publishes, and stop counting the day it is not. That is what makes adopting the inversion
-    cost no evidence rather than discarding a month of it.
+    option price itself - so those readings keep counting while ``source`` is what the panel
+    publishes, and stop counting the day it is not, instead of being spliced into a series of a
+    different quantity. (What that is worth today is **one day**, 467 readings: the 2026-11-03
+    anchoring rule already excludes every log before 2026-11-04. Measured through this function, not
+    off the files - the first estimate, taken by reading the logs, was fifteen times too large.)
 
     One constant, ``context_signals.PUBLISHED_IV_CONSTRUCTION``, so the record cannot disagree with
     the page about which readings are the measure the panel's sentence describes - the rule

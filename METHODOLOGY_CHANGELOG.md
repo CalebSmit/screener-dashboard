@@ -5175,3 +5175,88 @@ the file's **last** column, and `check_run_health.CATEGORIES` holds **five** cat
 Struck in the note's §6.2. The verdict is unchanged - the gate *does* read Quality, which is where
 the dispersion cost actually lands.
 
+---
+
+## 2026-11-04 (13:00 session) - Proposal ACCEPTED: the options panel will invert its own mids, and a reading now records which construction it used
+
+**Area:** context layer, options panel (display only; settled row "ctx") + the evidence record
+
+**Changed:** two things, neither of them a number on the page today.
+
+1. **The decision.** The open proposal in `research/2026-11-03-open-source-quant-stack.md` section
+   1 - compute the panel's at-the-money implied volatility and both put-skew legs from **our own
+   bid/ask mids with QuantLib** (American exercise, discrete dividends, a Treasury curve
+   interpolated to the expiry) instead of taking the quote response's `impliedVolatility` field as
+   given - is **ACCEPTED**, with one modification: the construction is **labelled per reading** so
+   the switch excludes rather than splices. Section 1d is the review; the build order is its last
+   subsection. The inversion itself is **not** in this commit.
+2. **The label, which the switch needs first.** `context_signals` gains `IV_CONSTRUCTIONS`
+   (`source`, `own_mid`) and `PUBLISHED_IV_CONSTRUCTION`, and `options_context` stamps
+   `_ctx_opt_iv_src` on every reading that produced an implied volatility at all.
+   `context_eval.iv_is_the_published_construction` masks the two IV-derived signals -
+   `options_atm_iv` and `options_put_skew` - to the construction the panel publishes, by the same
+   one-predicate rule `skew_is_the_papers_measure` and `move_has_its_divisor` already follow. **An
+   unstamped reading counts as `source`**, because nothing in this project has ever inverted an
+   option price. The **expected move is deliberately not masked**: it is mids over the spot, with no
+   inversion in it.
+
+**Evidence:** published research plus a documented, measured defect. No return, IC or backtest
+figure anywhere (rules 4 and 5).
+
+- **Xing, Zhang & Zhao (2010)**, *JFQA* 45(3) 641-662, **Table 1 p. 647** (read from the paper by
+  the 2026-10-14 session, recorded in
+  `research/measurements/2026-10-14-skew-distribution-vs-paper.py`): across 1996-2005, ~840 firms a
+  week, `SKEW` has mean **+6.40** volatility points and a **5th percentile of -0.99** - so in the
+  data this panel's measure comes from, **a negative skew is about a one-in-sixteen event.**
+  Measured against that, the field this panel publishes puts the skew negative for **42-60% of the
+  universe (median 47%) on every one of the 12 logged days** under the current construction,
+  476-493 stocks a day - about 5,800 stock-days. Our own inversion puts it negative for 10% (48
+  stocks, after the close) and 35% (26 stocks, mid-session), and raises the median skew by 1.95-2.51
+  points, narrowing the unexplained ~5-point level gap the 10-14 session measured by about 40%.
+- **Cboe**, *American and European-Style Theoretical Options Calculation Methodology*, and
+  **OptionMetrics IvyDB**'s product literature: both invert a **binomial tree with discrete
+  dividends against the mid of the best bid and offer**, Cboe off the cubic-spline-interpolated
+  Treasury constant-maturity curve. XZZ's own volatilities are IvyDB's. Our construction is theirs
+  with a linear interpolation of the same free curve; the published field is not documented at all.
+- **The defect:** the field reproduces **none of eight candidate constructions** tried across two
+  sessions - four on 11-03 after the close (American/European on the mid and on the last trade) and
+  four on 11-04 mid-session, including the one the earlier diagnostic could not reach: the last
+  trade inverted against **the underlying's price at the minute of that trade**, from the day's
+  1-minute bars (American 2.15 points, European 2.13, against ours at 2.30; 11-12% of contracts
+  within half a point in every case). A number whose method cannot be rebuilt cannot be checked from
+  the page, which row 0.8 requires of every figure the page prints.
+
+**Measured (the review's own, `research/measurements/2026-11-04-implied-vol-review-replication.py`,
+on a sample disjoint from the proposal's):** 40 of 50 stocks priced at the money; QuantLib minus the
+field **median -1.78 points, median |difference| 2.00, max 7.51**, so the pre-registered 1-point bar
+holds on a second sample. An independently written Cox-Ross-Rubinstein tree reproduces QuantLib on
+**19 of 19** contracts within 0.5 points - **10 of 10 with no dividend and 9 of 9 with one**, which
+is the gap the proposal's own cross-check left open. Yahoo's two skew legs' last trades are a
+**median 73 minutes apart** (25 of 26 over five minutes; max fourteen days) with the underlying
+moving a median 0.289% between them.
+
+**Expected effect:** **none today.** No published number, score, rank or sentence changes: every
+reading is `source`, so the new mask passes everything it passed yesterday, and `_ctx_opt_iv_src` is
+not in `generate_dashboard.CTX_FIELDS`, so it does not reach the payload. What changes is what
+happens *at* the switch - the `source` readings stop counting instead of being pooled with a
+different quantity, and the two series accrue in parallel.
+
+**The cost of the switch, re-measured rather than assumed:** through `context_eval.signals_frame`
+itself, **one logged day enters the record today** (2026-11-04: 467 ATM-IV and 466 skew readings);
+all seventeen earlier days are already excluded by the **2026-11-03 (night)** entry above, which
+requires a reading to carry the price its quotes were taken against. A first draft of the review
+sized this at "18 days and 12 days" by reading the log files, which is **fifteen times too large**.
+So the switch costs one day and about one day of calendar time, not the month it appeared to - and
+delay is the expensive option, since every further day accrues evidence on the construction being
+retired.
+
+**Validated by:** 5 tests in `tests/test_context_layer.py` - the stamp and its membership of
+`IV_CONSTRUCTIONS`; a chain with no IV at all claiming no construction; an unstamped reading counting
+as `source` on both signals; the record refusing to pool two constructions **in both directions**
+(flip `PUBLISHED_IV_CONSTRUCTION` and the `source` rows stop counting); and the expected move
+surviving a construction change, which is the distinction the mask exists to keep.
+
+**Applied by:** scheduled code session, 2026-11-04 13:00 slot (the independent reader; it did not
+write the proposal or the 11-03 measurement).
+**Rollback:** revert the commit; the tag before it is `good/2026-11-04`.
+

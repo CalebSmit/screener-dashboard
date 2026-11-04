@@ -63,7 +63,7 @@ Yahoo's after-hours bid/ask is the quote the 20:00 refresh records; (c) one prac
 reports a QuantLib American IV of 141% against Bloomberg's 116% on the same option, unresolved - a
 solver set up wrongly fails silently. So the first step is a measurement, not a change.
 
-**Proposal status: OPEN** - decide whether the options panel's ATM implied volatility and put skew should be computed from our own closing mids with QuantLib instead of Yahoo's `impliedVolatility` (measured 2026-11-03, section 1b: the pre-registered bar is MET - our ATM IV a median 3.2 points below Yahoo's, and Yahoo's skew negative for 28 of 48 stocks against 5 of 48 for ours).
+**Proposal status: DECIDED 2026-11-04 (13:00 session, which did not write this note) - ADOPTED, with one change to the plan: the construction is labelled per reading, so the switch splices nothing instead of discarding a month of evidence.** The reasoning, the disjoint replication and the build order are section 1d; the label shipped the same session.
 
 *The original proposal, as written before the measurement:* a later session pre-registers and runs a paired measurement: for one
 evening's quotes, invert the ATM call and put and the 0.95-moneyness put with QuantLib (CRR or finite
@@ -186,6 +186,168 @@ dividends are present, or if the paper says a negative SKEW for most large stock
 which case the author's inference is wrong and the sign disagreement is not evidence for us.
 Display-only either way (settled row "ctx"); adoption would also have to say what happens to the
 skew already recorded in `data/context_log/`, which is a cost the proposal names and does not size.
+
+### 1d. The decision (2026-11-04, 13:00 session): ADOPTED, and the switch is made to cost no evidence
+
+All three conditions in 1c are met, so the proposal is **accepted**: the panel's implied
+volatilities should be this project's own inversion of its own bid/ask mids, not the source's
+undocumented field. The measurement is
+`research/measurements/2026-11-04-implied-vol-review-replication.py` (committed), run mid-session
+at 14:10 ET on a sample disjoint from the author's.
+
+**The author's pre-registration is genuine.** Section 1a was committed in `57958d5`; the result and
+the script arrived in `741215b`. Nothing was computed before the rule for reading it was fixed.
+
+**(a) The replication holds, and the magnitude is smaller than the note's.** 40 of 50 stocks priced
+at the money. QuantLib minus Yahoo: **median -1.78 volatility points, median |difference| 2.00,
+90th percentile 4.18, maximum 7.51** - against the author's -3.16/3.16/6.09/9.43 after the close.
+Above the 1-point bar on both samples, so the finding replicates; the gap is roughly a third
+narrower mid-session, which is itself consistent with the field being staler at 21:00 than at 14:10.
+
+**(b) The dividend gap in the author's cross-check is closed, and it holds.** The 11-03 printout
+reported 10 of 10 ATM calls reproducing within 0.5 points but did not say how many carried a
+dividend - and the dividend schedule is the part the note itself calls hardest. Measured here on
+two sets chosen by the same rule: **10 of 10 with no dividend in the option's life, and 9 of 9
+with one** (largest gap CF, 60.46% against the CRR tree's 60.82%). A finite-difference engine with
+a discrete dividend schedule and an independently written binomial tree using the escrowed-dividend
+approximation agree on every contract tried, 19 of 19. The solver is not set up wrongly, which is
+the failure mode the note's own practitioner anecdote warns about.
+
+**(c) The paper's own distribution decides it, and the evidence was already in this repository.**
+The note's key inference - that a put a 5% fall away being cheaper in volatility terms than an
+at-the-money call is the unusual case, so a field reporting it for most of the index is the likelier
+error - is marked uncited. It need not be. **Xing, Zhang & Zhao (2010) Table 1, p. 647**, read from
+the paper by the 2026-10-14 session and recorded in
+`research/measurements/2026-10-14-skew-distribution-vs-paper.py`: across 1996-2005, averaging ~840
+firms a week,
+
+    SKEW:  mean +6.40   5% -0.99   25% +2.40   50% +4.76   75% +8.43   95% +19.92   (IV points)
+
+The 5th percentile is **-0.99**, so in the data this measure comes from a **negative SKEW is about a
+one-in-sixteen event**.
+
+Against that, the published record - not a 48-stock evening but **every logged day under the current
+construction**, read from the committed context logs:
+
+| | days | stocks/day | SKEW negative | median SKEW |
+|---|---|---|---|---|
+| Xing, Zhang & Zhao, 1996-2005 | ~520 weeks | ~840 | ~6% (5th pct -0.99) | **+4.76 pts** |
+| ours as published (source field) | **12** | 476-493 | **42-60%, median 47%** | -0.69 to +1.10 pts |
+| QuantLib from our own mids | 1 + 1 | 48 / 26 | 10% / **35%** | ~+2 to +4 pts |
+
+That is about **5,800 stock-days** saying the published field puts the skew negative for roughly
+half the index every single day, where the paper's own cross-sections put it there for about one
+stock in sixteen. **The author's inference is confirmed**, on a base three orders of magnitude
+larger than the one it was drawn from, and adopting moves both the sign frequency and the level
+toward the paper's distribution - the ~5-point level gap the 10-14 session measured and could not
+explain (median -0.20 against +4.76) narrows by roughly 40%.
+
+**The construction boundary was dated from the data, and the existing predicate is already right.**
+The both-leg columns the 10-14 change added appear first in the **2026-10-16** log, so the six logs
+from 10-08 to 10-15 are the old 0.90-moneyness measure and the twelve from 10-16 are the paper's.
+`context_eval.skew_is_the_papers_measure` keys on the presence of those legs rather than on a date,
+which puts the boundary in exactly the right place without anyone having to maintain it - worth
+recording because the prose around it is looser than the code: the 10-14 changelog says "before
+2026-10-14 ... those five log dates" and `CLAUDE.md` says "before 2026-10-16's log". The data says
+six dates, ending 10-15, and `CLAUDE.md` is the accurate one.
+
+#### Three corrections to the note
+
+1. **"5 of 48" does not replicate in magnitude.** Our own construction put the skew negative for
+   **9 of 26 (35%)** mid-session, not 10%. The *Yahoo* side replicates exactly - 15 of 26 (58%)
+   against 28 of 48 (58%), and 47% on the full universe - so the honest contrast is **35% against
+   58%**, or 10-35% against 47-58% across samples, not 10% against 58%. The direction is robust and
+   the gap is narrower than the note implies. Both of our figures are small samples; the full
+   universe cannot be measured for our construction without re-pulling 500 chains, which is not
+   worth a rate-limit risk to the 02:00 run.
+2. **The mechanism the note proposes is not confirmed.** It suggests the field is "computed at some
+   earlier moment of the day against a different underlying price". That is exactly testable
+   mid-session, and the candidate the 11-03 diagnostic could not try after the close was tried
+   here: the **last trade inverted against the underlying's price at the minute of that trade**,
+   from the day's 1-minute bars. Median |difference| from the field: **American 2.15 points (12% of
+   contracts within half a point), European 2.13 (12%)** - against **ours at 2.30 (11%)**. Nothing
+   reproduces it. With the 11-03 diagnostic's four candidates that is **eight constructions across
+   two sessions and the field matches none of them.**
+3. **Which makes the case for adoption stronger than the note's, not weaker.** The argument does
+   not need the staleness story or the sign-plausibility inference. It is this project's own
+   standing rule: *every number on the page must be checkable from the page*, and the page shows
+   the engine's numbers rather than a re-derivation of them (`CLAUDE.md` row 0.8). Ours is specified
+   end to end - American exercise, discrete dividends, a named Treasury curve, our own mids - and
+   reproduces against independently written code on every contract tried. Theirs is a number whose
+   method is documented nowhere and which eight attempts cannot rebuild. For a tool whose product
+   is explainability that is the decision, whichever number is closer to the truth.
+
+#### What the review adds that neither session had
+
+**Yahoo's two skew legs are not a single moment.** For the 26 stocks with both legs, the gap between
+the two contracts' last trades is a **median 73 minutes** - 25 of 26 are more than five minutes
+apart, 14 more than an hour, the largest fourteen days - and the underlying moved a **median 0.289%
+(maximum 1.67%)** between those two moments. Stated honestly, this is a fact about when the two
+contracts last *traded*, and since no candidate reproduces the field it cannot be asserted that its
+volatilities are struck at those moments. It is a reason to doubt a skew built from that source, not
+a proof of its method. Ours takes both legs from one quote snapshot by construction.
+
+#### The cost the proposal did not size, and the change to the plan
+
+Both panel figures that depend on an inversion - the ATM implied volatility and the skew - change
+construction together, and by this project's own precedent (excluded, never spliced) a switch
+retires the readings built the old way. The first draft of this section sized that as **18 logged
+days of `options_atm_iv` and 12 of the skew**, read off the logs. **That is wrong by a factor of
+about fifteen, and the correct number is one day.** Run through `context_eval.signals_frame` itself
+rather than counted by hand, the readings that actually enter the record today are:
+
+| log date | rows | in the ATM-IV record | in the skew record |
+|---|---|---|---|
+| 2026-10-08 .. 2026-11-03 (17 days) | 503 each | **0** | **0** |
+| 2026-11-04 | 503 | **467** | **466** |
+
+Every earlier day is already excluded, by the **2026-11-03 (night)** entry in this changelog: a
+reading is counted only if it carries the price its quotes were taken against (`_ctx_opt_spot_src`),
+and that column exists only from the 11-04 log. So the record for both signals is **one day old**,
+its first one-month reading was already due about **2026-12-04**, and switching construction now
+costs **one day of readings and essentially no calendar time** - about a day of delay, not the month
+the first draft implied. The lesson is the obvious one: the cost of a change to an evidence series
+is a number to get from the code that builds the series, not from the files underneath it.
+
+**The decision still modifies the proposal, for the general reason rather than the sizing: label the
+construction per reading, publish ours, and let the source series keep accruing on its own.** One
+constant decides which series the record counts (`context_signals.PUBLISHED_IV_CONSTRUCTION`), an
+unstamped reading is a `source` reading because nothing here has ever inverted an option price, and
+the two are never pooled. The switch then costs **nothing at all** rather than one day, and it
+produces something neither construction can give alone: a paired record, which is the only way this
+project will ever be able to say which construction predicts better. That part shipped with this
+decision (`context_signals`, `context_eval`, 5 tests).
+
+**And it makes the timing argument the opposite of what it looks like.** A month of accrued evidence
+would have been a reason to delay the switch until the first reading landed. There is no such
+month - the window is as open as it will ever be, and every day of waiting is a day of evidence
+accrued on a construction this review has just found indefensible.
+
+**The one cost still unsized is coverage.** Ours needs a usable bid/ask mid where the field needs
+nothing: **160 of 196 contracts (82%)** that carried a source IV had a usable mid, and the ATM pair
+priced for 40 of 50 stocks. Measure it on the whole universe from one 20:00 refresh before the
+switch - and `MAX_REL_SPREAD` and the IV bounds are **not** to be loosened to win coverage back
+(`CLAUDE.md` 0.11).
+
+#### Build order for the session that takes it
+
+1. **One inversion, feeding all three contracts** (ATM call, ATM put, XZZ put leg), so the panel's
+   subtraction is arithmetic on published numbers and not a second computation (row 0.8).
+2. **No new per-ticker network call.** The Treasury curve is four FRED series cached daily with a
+   last-known fallback; the dividend schedule should come from the run's own `dividendRate` and an
+   ex-date the fetch already carries - **check that it does** before assuming it, because the 11-03
+   measurement used `yf.Ticker.dividends`, which is a request per stock inside a time-budgeted pass.
+3. **Fall back to the source field and stamp it `source`** where QuantLib, the curve or a mid is
+   unavailable. A gate that can only fail closed jams an unattended loop; the same applies to a
+   signal.
+4. **Flip `PUBLISHED_IV_CONSTRUCTION` and add the generator's matching guard in the same commit** -
+   the page must withhold a figure built the way the record refuses to count, as it already does for
+   the expected move's divisor (`SPOT_SOURCES`).
+5. **Pin QuantLib in `requirements.txt`** (1.44, BSD, Windows wheels; 9.6 ms per inversion, so about
+   14 seconds for three contracts across 500 stocks).
+6. **Say the construction on the panel and register the claim**, so the number is checkable from the
+   page.
+7. **Measure coverage before and after**, and report any loss rather than tuning it away.
 
 ## 2. skfolio and "how much"
 
