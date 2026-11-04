@@ -806,8 +806,9 @@ read the brief's `context_eval` line. Three constraints survive it, beyond settl
 that is not a retrospective - one finished experiment a session. **Eighteen experiments as of
 2026-11-02, 148 of 220 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
 ("0.13, the lab's first thirteen experiments" and "experiments 14-18"). Every new experiment needs
-a **second reader** before it counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2) - experiment
-18 (analyst revisions, 2026-11-02) has not had one yet.
+a **second reader** before it counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2) -
+experiment 18 (analyst revisions) had its second reading on 2026-11-02
+(`research/2026-11-02-lab-revisions.md`, "Second reading").
 
 **The rules, which do not move:**
 
