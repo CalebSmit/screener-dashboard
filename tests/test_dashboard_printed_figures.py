@@ -1145,3 +1145,58 @@ def test_the_momentum_weight_card_prints_a_hand_worked_cut(page):
                                                           "risk": 10, "revisions": 10, "size": 5, "investment": 5}})
     assert _card(got["kpi"], "Momentum weight") == ("Momentum weight 9.1% cut from 13% by the momentum regime rule this run"), got["kpi"]
     assert _card(got["kpi"], "Trap flags") is None
+
+
+# ---------------------------------------------------------------------------
+# context.track_record - the panel's three remaining counts (claims audit queue item 3, 2026-11-03):
+# the holding periods, the changelog ticks, and the picks left out of each basket
+# ---------------------------------------------------------------------------
+_BASKET = {"top": "top-25", "q1": "top-fifth", "q5": "bottom-fifth"}
+
+
+def _unpriced_clause(T: dict) -> str | None:
+    """The 'they are N of the M picks in the X baskets' clause, from the record's own fields."""
+    picks, unp = T.get("picks") or {}, T.get("unpriced") or {}
+    parts = [f"{len(unp[k])} of the {picks[k]} picks in the {_BASKET[k]} baskets"
+             for k in ("top", "q1", "q5") if (unp.get(k) or []) and picks.get(k)]
+    return "; they are " + " and ".join(parts) + ". " if parts else None
+
+
+def test_the_track_panel_prints_its_own_period_tick_and_left_out_counts(page, track):
+    txt = _panel(page)
+    assert f"Every holding period ({len(track['periods'])})" in txt, txt[:200]
+    marks = track.get("methodology_changes") or []
+    assert f"The methodology changelog has entries on {len(marks)} dates inside this window" in txt
+    # the count is of dates, as the sentence says: distinct, inside the record's own window
+    dates = [m["date"] for m in marks]
+    assert len(set(dates)) == len(dates) and all(track["start"] <= d <= track["end"] for d in dates)
+    clause = _unpriced_clause(track)
+    if clause:
+        assert clause.strip() in txt, (clause, txt[-600:])
+
+
+def test_the_track_panel_prints_hand_worked_counts(page, track):
+    """Literal counts: 3 periods, 2 changelog dates, and 1 of 75 / 2 of 300 picks left out - with
+    one name in two baskets listed once, and an empty basket left out of the clause."""
+    T = _fixture_track(track, periods=track["periods"][:3],
+                       methodology_changes=[{"date": track["start"], "title": "a"}, {"date": track["end"], "title": "b"}],
+                       unpriced={"top": ["AAA"], "q1": ["AAA", "BBB"], "q5": []},
+                       picks={"top": 75, "q1": 300, "q5": 300})
+    txt = _panel(page, T)
+    assert "Every holding period (3)" in txt
+    assert "The methodology changelog has entries on 2 dates inside this window" in txt
+    assert "(AAA, BBB)" in txt
+    assert "; they are 1 of the 75 picks in the top-25 baskets and 2 of the 300 picks in the top-fifth baskets. " in txt, txt[-700:]
+    assert "bottom-fifth baskets" not in txt
+
+
+def test_the_changelog_ticks_are_one_per_dated_heading_date(tmp_path):
+    """track_record.methodology_dates: several entries on one day are one tick; a heading with no
+    date, or a date inside the text, is not one."""
+    import track_record
+    p = tmp_path / "CHANGELOG.md"
+    p.write_text("# Log\n## 2026-10-01 - first\ntext 2026-10-05 in prose\n## 2026-10-01 (evening) - second\n"
+                 "## Entry format\n## 2026-09-30 - earlier\n", encoding="utf-8")
+    got = track_record.methodology_dates(p)
+    assert [m["date"] for m in got] == ["2026-09-30", "2026-10-01"]
+    assert got[1]["title"] == "first"

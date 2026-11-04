@@ -1326,11 +1326,11 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'one way, on average; ${cPlain(TO.min, 0)} to ${cPlain(TO.max, 0)}':
         'claim:context.track_turnover',
     'Every holding period (${T.periods.length})':
-        "open:track-period-count - nothing reads the page's printing",
+        'claim:context.track_record',
     "${(T.unpriced[k].length)} of the ${picks[k]} picks in the ${({ top: 'top-25', q1: 'top-fifth', q5: 'bottom-fifth' })[k]} baskets":
-        'open:track-unpriced-picks - the basket size is unread; the left-out count only as a substring',
+        'claim:context.track_record',
     "${(X && X.t !== null && X.t !== undefined ? 'Measured day by day against RSP over ' + X.days + ' trading days, the top 25&rsquo;s lead is ' + Number(X.t).toFixed(1) + ' standard errors from zero; two is the usual minimum for telling skill from luck' + (X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '') + '. ' : '')}The methodology changelog has entries on ${(T.methodology_changes || []).length} dates inside this window (the ticks under the chart); not every entry changed how stocks are scored.":
-        "open:track-changelog-entries - nothing reads the page's printing",
+        'claim:context.track_record',
     "${(TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' + (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. ' : 'No trading costs or taxes are deducted. ')}${((T.days || 0) < 365 ? 'No return here is annualised, because none covers a full year. ' : '')}This record is not used to set the methodology.":
         'claim:context.track_turnover',
     "Measured day by day against RSP over ${X.days} trading days, the top 25&rsquo;s lead is ${Number(X.t).toFixed(1)} standard errors from zero; two is the usual minimum for telling skill from luck${(X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '')}.":
@@ -1415,9 +1415,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'surprise-change-line',
     'surprise-median-line',
     'surprise-quarter-count',
-    'track-changelog-entries',
-    'track-period-count',
-    'track-unpriced-picks',
 })
 
 

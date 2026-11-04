@@ -1398,6 +1398,9 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="track_record:build",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_prints_its_own_period_tick_and_left_out_counts",
+            "tests/test_dashboard_printed_figures.py::test_the_track_panel_prints_hand_worked_counts",
+            "tests/test_dashboard_printed_figures.py::test_the_changelog_ticks_are_one_per_dated_heading_date",
             "tests/test_context_layer.py::test_basket_return_matches_hand_arithmetic",
             "tests/test_context_layer.py::test_entry_is_never_before_the_run",
             "tests/test_context_layer.py::test_rebalances_on_the_first_run_of_each_month",

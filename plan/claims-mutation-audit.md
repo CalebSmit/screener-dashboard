@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (32 `open:` rows since 2026-11-03 evening):**
+**What remains, as a queue (29 `open:` rows since 2026-11-03 evening):**
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself
@@ -1360,9 +1360,15 @@ unscored checks do not depend on it, because a hand-made unscored category runs 
    pattern is tonight's `_RANK_JS`: `metricDetailHtml(m, s, r)` and `categoryWorkings` for every
    stock, compared with `calc_trace`'s published points and `metric_lineage`'s recomputation; read
    `drilldown.row_equation`'s browser check first, it may already pin part of this.
-3. **The track record's remaining three:** `track-period-count`, `track-changelog-entries` (count
-   the changelog's dated entries inside the window independently; on the 2026-10-30 payload its 33
-   entries fall on 33 distinct dates, so "on N dates" holds today but nothing checks it), `track-unpriced-picks`.
+3. **The track record's remaining three - CLOSED 2026-11-03 (owner-run evening):** the period
+   count, the changelog-tick count and the left-out picks per basket are read back from the panel
+   against the record's own fields, with a hand-worked record (3 periods, 2 dates, 1 of 75 and 2 of
+   300 picks, a name in two baskets listed once, an empty basket left out). The ticks are counted
+   by `track_record.methodology_dates`, now pinned on a hand-written changelog (several entries on one
+   day are one tick - 75 entries fell on 34 dates in the 11-03 window, so the sentence's "dates" is
+   the right word). Deliberately *not* a recount of the live changelog: a back-dated heading would
+   turn that red until the next data run could republish. 6 of 6 mutations caught
+   (`research/measurements/2026-11-03-track-count-mutations.py`).
 4. **Context cards: all 6 CLOSED 2026-11-03 (owner-run evening)** - `insider-card-rows`,
    `insider-plan-share`, `case-against-insider-purchases`, `case-against-purchases-figure` and
    `price-trend-52w-line` are read back from the generator's page for every stock, slot by slot,
