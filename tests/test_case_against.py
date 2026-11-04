@@ -421,3 +421,59 @@ def test_the_claim_is_registered_and_resolves():
     assert c.surface == claims.DRILLDOWN
     assert callable(c.resolve())
     assert all(x.startswith("tests/test_case_against.py::") for x in c.checked_by)
+
+
+# ---------------------------------------------------------------------------
+# The insider sentence's printed figures (2026-11-03, claims audit queue item 4): every stock's
+# line read back and compared with the payload's insider summary - sales, insiders, the plan share
+# and the purchases each in their own place, and the line present exactly when sales outweigh
+# purchases. The rule for what it must say is test_context_cards_printed's, shared with the card.
+# ---------------------------------------------------------------------------
+from tests import test_context_cards_printed as cards  # noqa: E402
+
+_CASE_JS = """(tickers) => { const out = {};
+    for (const t of tickers) { const r = caseItems(D.stock_detail[t]);
+        const it = (r.items || []).find(x => x.k === 'insider'); out[t] = it ? it.text : null; }
+    return out; }"""
+
+
+def test_the_case_against_states_each_net_insider_sale_with_its_own_figures(page):
+    ctx = cards._payload("dashboard_context.js")["ctx"]
+    tickers = [t for t, c in ctx.items() if c.get("ins")]
+    if not tickers:
+        pytest.skip("MISSING DATA: no stock in the published context carries an insider summary")
+    got = page.evaluate(_CASE_JS, tickers)
+    bad = {}
+    for t in tickers:
+        ins = ctx[t]["ins"]
+        printed = cards._text(got[t]) if got[t] else None
+        want = cards._expected_case(ins) if cards._net_sale(ins) else None
+        if printed != want:
+            bad[t] = (printed, want)
+    assert not bad, f"{len(bad)} of {len(tickers)} misprinted or mis-listed: {dict(list(bad.items())[:3])}"
+
+
+@pytest.mark.parametrize("ins", [h[0] for h in cards._HAND[:3]] + [
+    # sales larger than purchases, both present: the purchases figure is printed
+    {"buy_n": 2, "buy_value": 400_000.0, "buy_people": 2, "sell_n": 5, "sell_value": 9_100_000.0,
+     "sell_people": 3, "sell_planned_value": 9_100_000.0, "src": "sec"},
+    # purchases larger: not a net sale, so no line
+    {"buy_n": 2, "buy_value": 9_000_000.0, "buy_people": 2, "sell_n": 1, "sell_value": 100_000.0,
+     "sell_people": 1, "sell_planned_value": None, "src": "yahoo"},
+])
+def test_a_hand_worked_case_against_line(page, ins):
+    ctx = cards._payload("dashboard_context.js")["ctx"]
+    t = next(iter(ctx))
+    got = page.evaluate("""(args) => { const [t, ins] = args; const s = JSON.parse(JSON.stringify(D.stock_detail[t]));
+        s.ctx = Object.assign({}, s.ctx || {}, {ins: Object.assign({recent: []}, ins)});
+        const it = (caseItems(s).items || []).find(x => x.k === 'insider'); return it ? it.text : null; }""", [t, ins])
+    want = cards._expected_case(ins) if cards._net_sale(ins) else None
+    assert (cards._text(got) if got else None) == want
+
+
+def test_the_hand_worked_purchases_figure_is_the_purchases():
+    """The one fixture above with both sides, written out: $400K of purchases, never the $9.1M of sales."""
+    ins = {"buy_n": 2, "buy_value": 400_000.0, "sell_n": 5, "sell_value": 9_100_000.0, "sell_people": 3,
+           "sell_planned_value": 9_100_000.0}
+    assert cards._expected_case(ins).startswith("Officers and directors made $9.1M of open-market sales in the last "
+                                          "90 days (3 insiders, 100% on pre-set plans), against $400K of purchases.")

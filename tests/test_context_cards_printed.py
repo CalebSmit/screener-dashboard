@@ -202,12 +202,8 @@ def test_a_hand_worked_insider_card(page, ctx, ins, want):
 
 
 # --------------------------------------------------------------------------- the case against
-_CASE_JS = """(tickers) => { const out = {};
-    for (const t of tickers) { const r = caseItems(D.stock_detail[t]);
-        const it = (r.items || []).find(x => x.k === 'insider'); out[t] = it ? it.text : null; }
-    return out; }"""
-
-
+# The sentence's own tests live in tests/test_case_against.py with the rest of its claim's checks;
+# the rule for what it must say is here, beside the card's.
 def _net_sale(ins: dict) -> bool:
     return (ins.get("sell_n") or 0) > 0 and (not ins.get("buy_n") or (ins.get("sell_value") or 0) > (ins.get("buy_value") or 0))
 
@@ -222,45 +218,6 @@ def _expected_case(ins: dict) -> str:
             f"({_plural(ins['sell_people'], 'insider')}{plan}){tail} The panel gives the evidence that sales "
             "have historically said less than purchases.")
 
-
-def test_the_case_against_states_each_net_insider_sale_with_its_own_figures(page, ctx):
-    tickers = [t for t, c in ctx.items() if c.get("ins")]
-    if not tickers:
-        pytest.skip("MISSING DATA: no stock in the published context carries an insider summary")
-    got = page.evaluate(_CASE_JS, tickers)
-    bad = {}
-    for t in tickers:
-        ins = ctx[t]["ins"]
-        printed = _text(got[t]) if got[t] else None
-        want = _expected_case(ins) if _net_sale(ins) else None
-        if printed != want:
-            bad[t] = (printed, want)
-    assert not bad, f"{len(bad)} of {len(tickers)} misprinted or mis-listed: {dict(list(bad.items())[:3])}"
-
-
-@pytest.mark.parametrize("ins", [h[0] for h in _HAND[:3]] + [
-    # sales larger than purchases, both present: the purchases figure is printed
-    {"buy_n": 2, "buy_value": 400_000.0, "buy_people": 2, "sell_n": 5, "sell_value": 9_100_000.0,
-     "sell_people": 3, "sell_planned_value": 9_100_000.0, "src": "sec"},
-    # purchases larger: not a net sale, so no line
-    {"buy_n": 2, "buy_value": 9_000_000.0, "buy_people": 2, "sell_n": 1, "sell_value": 100_000.0,
-     "sell_people": 1, "sell_planned_value": None, "src": "yahoo"},
-])
-def test_a_hand_worked_case_against_line(page, ctx, ins):
-    t = next(iter(ctx))
-    got = page.evaluate("""(args) => { const [t, ins] = args; const s = JSON.parse(JSON.stringify(D.stock_detail[t]));
-        s.ctx = Object.assign({}, s.ctx || {}, {ins: Object.assign({recent: []}, ins)});
-        const it = (caseItems(s).items || []).find(x => x.k === 'insider'); return it ? it.text : null; }""", [t, ins])
-    want = _expected_case(ins) if _net_sale(ins) else None
-    assert (_text(got) if got else None) == want
-
-
-def test_the_hand_worked_purchases_figure_is_the_purchases():
-    """The one fixture above with both sides, written out: $400K of purchases, never the $9.1M of sales."""
-    ins = {"buy_n": 2, "buy_value": 400_000.0, "sell_n": 5, "sell_value": 9_100_000.0, "sell_people": 3,
-           "sell_planned_value": 9_100_000.0}
-    assert _expected_case(ins).startswith("Officers and directors made $9.1M of open-market sales in the last "
-                                          "90 days (3 insiders, 100% on pre-set plans), against $400K of purchases.")
 
 
 # --------------------------------------------------------------------------- the 52-week line
