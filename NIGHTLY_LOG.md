@@ -18758,3 +18758,192 @@ and this entry's. Worked in a worktree outside OneDrive; pushed only while no se
   daytime work, not a midnight edit two hours before a data run.
 - Universe phase 1 continues: `data-run.ps1`'s `$universe = 500` (a daytime edit to the data loop's
   own script, with a dry run), then `size_band` and the per-band gates.
+
+---
+
+## 2026-11-04 - SYNTHESIS. Whatever has changed the methodology since the last synthesis session: how does it fit the rest of the screener, what does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-03_130000-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-04_020001.log` (completed; HEALTH:
+PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (43 rows, but overlapping windows are
+not independent; 111 rows across all horizons), newest 1m run date **2026-10-02 (33 days ago, bound
+40)**. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab**
+(age **23 days**); also open: 0.10 28d; 0.14 21d.
+**Tests:** before 3,887 passed / 1 skipped; after **3,893 passed / 1 skipped**. Gate 5 (publish
+rehearsal) run twice - failed first, see "Did" item 4 - and passes.
+**Owner queue / rotation:** the morning brief listed **four** open proposals, so deciding the
+oldest was the day's first job (prompt section 1). It is also squarely a synthesis question -
+*should a 5-point category be folded into another one* - so the rotation's focus and the owner
+queue pointed at the same work, and nothing was deferred for it. The deferral-streak rule did not
+fire: the top open roadmap item (0.13) is not the thing three consecutive sessions have passed
+over, and this session carried an owner item.
+**I am today's first session.** No earlier entry dated today.
+
+### Did
+
+**Decided the Investment-inside-Quality proposal: the fold REFUSED, the recommendation ACCEPTED,
+and the page work it asked for shipped.** `research/2026-11-02-investment-inside-quality.md`, open
+2 days, written by an owner-run session. **This is the first of seven reviewed proposals whose
+recommendation was accepted as written** - the six before it were refused - and the reason is worth
+recording, because it is not that this note is better argued than the others: it is that it
+recommends *no change to any number*, and it measured the costs of the change it declines before
+declining it. A reviewer's job is easier when the author has already tried to refute themselves.
+
+1. **Re-measured section 4 from scratch, on eight runs instead of one.** The note's own script was
+   not committed, so the review could not read it; it was rebuilt from `factor_engine` as
+   `research/measurements/2026-11-04-investment-fold-review.py` (committed) and run over the eight
+   published payloads 2026-10-22..2026-11-04. The reproduction is faithful - published minus
+   recomputed is 3.5e-07 on Quality, 0.0 on Investment, 4.99e-03 on the composite (the payload's
+   own 2dp rounding). **Every claim held**, and the three counts that were "one cross-section" are
+   now ranges: **455 of 499 composites unchanged on all eight runs, the top 25 untouched (0 in,
+   0 out) on all eight**, Quality's dispersion down **15.0-15.4%** against `check_run_health`'s 20%
+   refusal bar. So the fold buys no ranking change at all, and would spend three-quarters of a
+   safety margin on methodology rather than on data.
+2. **One of the note's listed costs is struck, in the cheaper direction.** §3.2 says
+   `scripts/check_run_health.py` reads `dispersion_history.csv` positionally, "so dropping a column
+   shifts every later one". The positional read is real; the consequence is not, twice over -
+   `investment_disp` is the file's **last** column, and `check_run_health.CATEGORIES` is **five**
+   categories (valuation, quality, growth, momentum, risk), so the gate never reads that column at
+   any position. The verdict is unchanged, because the gate *does* read Quality, which is where the
+   dispersion cost actually lands. (Noticed in passing and not a defect: the CSV **has** a header
+   row, which `header=None` loads as data and `to_numeric(errors="coerce").dropna()` then discards.
+   It works by accident.)
+3. **Every load-bearing figure re-read from the PDF bytes**, not from the note. Fama & French
+   (2015) Table 6 and Table 4 - fourteen figures, **all exact**, including the big-company CMA at
+   0.22/t2.00, 0.11/t1.50, 0.07/t1.03 and the p. 8 sentence *"almost all the average value of CMA
+   is from small stocks"*. MSCI FaCS's 25% Quality-group share **and its worked Microsoft example**,
+   exact. Scientific Beta Exhibit 14, Hsu/Kalesnik/Kose p. 57, Asness p. 5: exact. **Two one-page
+   citation slips and no wrong number** - the Scientific Beta quote is on p. 34 not p. 35, the MSCI
+   worked example on p. 9 not p. 8. One of the note's own figures has drifted (the lab's
+   since-2003 big-company investment factor, -0.06/t-0.35 on 11-02, **-0.049/t-0.312** today)
+   because the lab's data gained months; the sign and the argument are unchanged, and the page
+   states that one as a band held to the lab's live data rather than as a literal that goes stale.
+4. **Shipped the sound part: four paragraphs on the methodology page**, closing items 1-3 of the
+   page work `research/2026-10-19-revenue-growth-vs-asset-growth.md` §11.2 queued on **2026-10-19**
+   and open 16 days. The Investment section had **no large-company caveat** where Size and Momentum
+   both carry thorough ones - the same standard applied unevenly, which is how that note put it. It
+   now says which asset-growth measure the metric is and why that matters, what the large-company
+   evidence actually shows, what the category does jointly with Growth, and why it is standalone
+   when most providers fold it. Claim `overview.investment_standalone`,
+   `tests/test_investment_standalone.py` (6 tests, in the 02:00 publish gate by derivation).
+   **The rehearsal caught the thing the four gates cannot see**, exactly as designed: editing the
+   generator left the committed `SCREENER_OVERVIEW.md` stale and gate 5 failed on the drift
+   tripwire. Regenerating it needed a full run or a hand-edit, so there is now
+   `scripts/regenerate_overview.py` (`--check` to test, no fetch, no scoring, writes only that
+   file). Second rehearsal passes.
+5. **Looked at the page, at 1440 and 375** (`scripts/shot_methodology.py`, pointed at the
+   rehearsal's regenerated page). Desktop: the four paragraphs sit in the Methodology dialog's body
+   beside the "On this page" nav, bold lead-ins, italic quotes, the inline `research/...md` code
+   chip and the en dashes all rendering correctly. Phone: single column, paragraph box **307px
+   wide, no right overflow, visible**; the bold lead-in wraps onto two lines and reads fine. The
+   payload is byte-identical - this is page text, and `dashboard_data.js` and
+   `dashboard_context.js` were unchanged in the rehearsal. The shot script was hardcoded to the
+   Growth section, so `--section` and `--marker` are arguments now, defaulting to the old values.
+
+6. **The `auto-rescue` stash is not empty, and every session since 2026-10-28 has been told it
+   is.** Orient says to inspect it; `git stash show -p stash@{0}` prints **nothing**, which reads
+   as "no work to recover" and is how it has survived seven days. It has **three parents** - it was
+   made with `-u`, and `git stash show` does not show the untracked-files parent. That parent
+   (`f2a4a40`) holds three files: two `improvement/price_cache/` parquets, both since regenerated
+   and present, and **`data/context_log/2026-10-28.parquet`** - 503 rows, 46 columns, schema
+   identical to its neighbours, and **the only weekday absent from `data/context_log/`**, whose
+   other 18 days are *tracked in git*, not ignored.
+   **It is deliberately not committed**, which is the judgement call here rather than the find.
+   `logs/datarun-2026-10-28_020001.log` ends `Run discarded: published-claims check failed`
+   (HEALTH: PASS, then `tests/test_case_against.py` failed in the publish gate) - so 2026-10-28
+   published nothing, and there is no payload commit for that date. Committing its context log
+   would splice an **unpublished run's** signals into the series `context_eval` reads, and this
+   project's standing rule runs the other way ("the skew before 2026-10-16's log is excluded from
+   `context_eval`, never spliced"; CLAUDE.md 0.11). Whether a refused run's readings belong in that
+   series is a real question with an evidence consequence, and it is not a loose end to settle in
+   the last ten minutes of a session that was deciding something else. **Nothing is lost**: the
+   stash is untouched and the blob is
+   `git cat-file blob f2a4a402a27756717bb9aaf3ed9b9481bdf0d9d1:data/context_log/2026-10-28.parquet`.
+   Restored it, validated it, then removed it again so the tree is clean. **Do not drop the stash
+   until that question is answered.**
+
+### Evidence / research
+
+The decision rests on published research and documented practice (rules 4 and 5; no return, IC or
+backtest figure is used anywhere). Fully cited in `METHODOLOGY_CHANGELOG.md` 2026-11-04 and the
+note's new section 6.4; the four that carry it:
+
+- **Fama & French (2015)**, *JFE* 116(1), 1-22, doi:10.1016/j.jfineco.2014.10.010. Table 6 (p. 11):
+  regressed on the other four it is **value** that is spanned (HML intercept -0.04, t -0.47) and
+  investment that survives (CMA 0.28, t 5.03) - the academic models keep investment separate
+  because it is the leg that holds up, which is the opposite of the overlap worry. Table 4 (p. 7)
+  and p. 8: among big companies it is 1.03-2.00 standard errors from zero, 0.07%/month (t 1.03)
+  under joint controls.
+- **Asness (2014)**, AQR, p. 5: with value on the current price and momentum added - this
+  screener's setting - *"it's actually CMA that's mostly redundant."*
+- **MSCI FaCS Methodology** (Jan 2018), p. 8: Investment Quality is its **own** risk-model factor,
+  given a 25% share of the Quality *group* for reporting. The structure closest to a screener that
+  publishes category scores keeps the factor visible and groups it one level up.
+- **ERI Scientific Beta** (May 2017), Exhibit 14 (p. 35) and the conclusion on p. 34: on the **500
+  largest US stocks**, 1975-2015, investment and profitability correlate **-0.18** and *"cannot be
+  combined in a composite manner to represent a single risk factor"*.
+
+**The synthesis finding, which the note did not make and which is this session's own contribution.**
+Reading Exhibit 14 rather than only the sentence quoted from beside it: among large companies the
+investment factor's strongest documented relationship by a wide margin is **+0.68 with low
+volatility**, not with profitability (-0.18). This screener's own scores agree in direction, far
+more weakly: Investment against Quality **-0.068**, Risk **+0.166**, Valuation **+0.228**, Size
+**+0.259**. **So the fold would house asset growth under the category it is least related to** -
+an argument against it that is independent of explainability, and the one that makes the decision a
+coherence decision rather than a presentational one. It also reframes what is still open: if these
+5 points overlap anything here, it is Risk's 10 and Valuation's 22, not Quality's 22. Exhibit 15,
+on the facing page and uncited by the note, says the same by overlap - the two factor indices share
+only ~50% of their stocks (110 of 250), the same as value, size and momentum share with each other.
+**Nothing here authorises moving a weight**: that is a correlation between long/short factors, not
+between this screener's categories, and +0.166 on one run is weak. It is a Monday.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-11-04 - "Investment stays its own category, and the page now
+  says why"**. A decision entry: **no weight, metric, threshold or scoring line changed** and
+  `CAT_METRICS` keeps eight categories. What changed is the published methodology text, with its
+  sources and the structural measurement behind the refusal.
+
+### Tried and rejected
+
+- **The fold itself** - refused on the measurement above and on Scientific Beta's -0.18 / MSCI's
+  decision to keep the factor visible. The clincher beyond the numbers: **ERIE misses all six
+  weighted Quality metrics and has no Quality score at all**; folded, renormalisation would hand
+  asset growth the whole 27 points and publish a "Quality" score for it composed **entirely of the
+  one metric that is not about quality**.
+- **A first draft of the page paragraph said the screener's total-asset-growth measure is "not the
+  per-share version Fama & French use to sort CMA".** That is wrong - FF2015's `Inv` *is*
+  total-asset growth, confirmed from the paper (*"Inv is the growth of total assets for the fiscal
+  year ending in t-1 divided by total assets at the end of t-2"*), and the 10-19 note says so at
+  its line 319. The per-share construction belongs to their earlier anomaly work. Corrected before
+  commit; recorded in the note's §6.5 because the near-miss is the instructive part - the
+  distinction is real and worth stating, and getting its attribution backwards would have put a
+  false sentence **about a cited paper** on the public methodology page.
+- **Asserting the fold's counts of every run.** "455 of 499" was true on all eight runs measured,
+  but a count that moves with coverage must not become a standing claim: a claim's check runs in
+  the 02:00 publish gate, where failing **discards the night** (CLAUDE.md row `data->red`, and
+  2026-11-03's own lesson). The page states it as what a named measurement found over named runs,
+  and the check holds it to the committed script and note rather than to today's payload.
+
+### Next
+
+- **Decide the three remaining open proposals**, all opened 2026-11-03 and all written by the same
+  owner-run conversation, so any scheduled session is an independent reader: the **QuantLib
+  implied-volatility construction** (measurement done, its pre-registered bar met - the decision is
+  whether to adopt, and if so to log which construction each reading used and exclude the
+  Yahoo-field skew from `context_eval`), the **13F-filer log line**, and **registering the
+  `short_interest_ratio` research-engine experiment** (note that registering one forces a rerun of
+  all 32 rows, ~20 min with `--jobs 4` - budget it).
+- **A Monday on Investment's 5 points and Risk**, which §6.3 opened: the documented large-company
+  correlation of the investment factor with low volatility is +0.68, and this screener carries
+  Investment 5 beside Risk 10 whose heaviest metric is volatility at 42.86%. The question is
+  overlap, not the heading. Pre-registration before any measurement, per the lab-to-weights route.
+- **Decide whether a refused run's context log belongs in `data/context_log/`** (item 6 above),
+  then either commit `2026-10-28.parquet` from the stash or drop the stash saying why. While it is
+  undecided, **two things should change regardless**: Orient's instruction to read a stash with
+  `git stash show -p` is wrong for any `-u` stash and should say to check the parent count, and a
+  data run that is discarded currently leaves its context log on disk, uncommitted and invisible -
+  if those readings are not wanted, the run should not write them.
+- Still waiting from 2026-11-03: the **37 named-ticker references in 6 payload-reading test
+  modules** (daytime work, rewrites JavaScript in UI modules), and **universe phase 1**'s next
+  slice (`data-run.ps1`'s `$universe = 500`, then `size_band` and the per-band gates).

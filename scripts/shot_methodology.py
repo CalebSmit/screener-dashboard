@@ -1,4 +1,4 @@
-"""Screenshot the Methodology dialog's Growth section at desktop and phone widths.
+"""Screenshot one section of the Methodology dialog at desktop and phone widths.
 
 The four ship gates read the *committed* index.html, which only a full run rewrites, so a
 generator change to the methodology text cannot be looked at there. Point this at the page
@@ -6,10 +6,18 @@ generator change to the methodology text cannot be looked at there. Point this a
 
     python scripts/rehearse_publish.py            # writes logs/rehearse-publish/site/
     python scripts/shot_methodology.py <label> [--page <path to dashboard.html>]
+                                               [--section "8. Investment"]
+                                               [--marker "most practitioners file it"]
 
 Defaults to the rehearsal's page if it exists, else the published index.html. Writes
-logs/design/<label>-methodology-{desktop,mobile}.png (gitignored) and prints the Growth
+logs/design/<label>-methodology-{desktop,mobile}.png (gitignored) and prints the chosen
 section's text as the dialog actually renders it, so the session can say what it saw.
+
+`--section` is the "### n. <Category>" heading to print; `--marker` is a regex for the
+paragraph to scroll to and to measure on the phone. Both default to the Growth section's
+weight paragraph, which is what this script was written for on 2026-11-03; they became
+arguments on 2026-11-04, when a second session needed a second section and the alternative
+was a hand-edit nobody would have kept.
 
 The dialog is filled on first open (`hydrateMethodology`); `.methodology-body` is empty before
 that by design (CLAUDE.md, ship gates). So it is opened before anything is read.
@@ -46,11 +54,14 @@ def main() -> int:
     page_path = REHEARSAL if REHEARSAL.exists() else ROOT / "index.html"
     if "--page" in args:
         page_path = Path(args[args.index("--page") + 1]).resolve()
+    section = args[args.index("--section") + 1] if "--section" in args else "3. Growth"
+    marker = args[args.index("--marker") + 1] if "--marker" in args else "Why the weight stays"
     if not page_path.exists():
         print(f"no page at {page_path}")
         return 1
     OUT.mkdir(parents=True, exist_ok=True)
     print(f"page: {page_path}")
+    print(f"section: {section!r}  marker: /{marker}/")
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -63,36 +74,40 @@ def main() -> int:
                 "() => { const b = document.querySelector('#methodology-modal .methodology-body');"
                 " return b && b.innerText.length > 2000; }"
             )
-            # scroll the Growth section into view so the shot shows the paragraph, not the top
+            # scroll the chosen paragraph into view so the shot shows it, not the top of the doc
             page.evaluate(
-                """() => {
+                """(marker) => {
+                  const re = new RegExp(marker);
                   const body = document.querySelector('#methodology-modal .methodology-body');
                   const hit = [...body.querySelectorAll('h3, h2, strong')]
-                    .find(e => /Why the weight stays/.test(e.textContent));
+                    .find(e => re.test(e.textContent));
                   if (hit) hit.scrollIntoView({block: 'center'});
-                }"""
+                }""",
+                marker,
             )
             page.wait_for_timeout(250)
             shot = OUT / f"{label}-methodology-{name}.png"
             page.screenshot(path=str(shot))
             print(f"  {name:7} {width}x{height} -> {shot.name}")
             if name == "desktop":
-                got = page.evaluate(SECTION_JS, "3. Growth")
-                print("\n--- Growth section as the dialog renders it ---")
+                got = page.evaluate(SECTION_JS, section)
+                print(f"\n--- {section} as the dialog renders it ---")
                 print(got.get("text") or got)
                 print("--- end ---\n")
             else:
                 # on a phone, confirm the paragraph is present and not clipped out of the layout
                 box = page.evaluate(
-                    """() => {
+                    """(marker) => {
+                      const re = new RegExp(marker);
                       const body = document.querySelector('#methodology-modal .methodology-body');
                       const hit = [...body.querySelectorAll('p, strong')]
-                        .find(e => /Why the weight stays/.test(e.textContent));
+                        .find(e => re.test(e.textContent));
                       if (!hit) return null;
                       const r = hit.getBoundingClientRect();
                       return {w: Math.round(r.width), overflowsRight: r.right > window.innerWidth + 1,
                               visible: getComputedStyle(hit).display !== 'none'};
-                    }"""
+                    }""",
+                    marker,
                 )
                 print(f"  phone paragraph box: {box}")
             page.close()

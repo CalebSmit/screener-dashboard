@@ -5089,3 +5089,89 @@ committed snapshots (`tests/test_review_cadence.py`).
 **Applied by:** owner-run session, 2026-11-03 night.
 **Rollback:** revert the commit; the tag before it is `good/2026-11-03-owner-9`.
 
+---
+
+## 2026-11-04 - Investment stays its own category, and the page now says why
+
+**Area:** category structure (decision: no change) + published methodology text
+
+**Changed:** **No weight, metric, threshold or scoring line.** The open proposal in
+`research/2026-11-02-investment-inside-quality.md` - fold the Investment category
+(`asset_growth`, 5 points) into Quality at the weight-preserving 18.5185% of a 27-point Quality -
+is **REFUSED**, and the note's own recommendation accepted. `CAT_METRICS` keeps eight categories.
+What did change is `build_screener_overview()`'s Investment section, which gains four paragraphs:
+which asset-growth measure the metric is and why that matters, the large-company reading of the
+evidence, what the category does jointly with Growth, and why it is standalone when most providers
+file asset growth under Quality. That closes items 1-3 of the page work
+`research/2026-10-19-revenue-growth-vs-asset-growth.md` §11.2 queued on 2026-10-19 - the section
+had no large-company caveat where Size and Momentum both carry thorough ones, which is the same
+standard applied unevenly.
+
+**Evidence:** published research and documented practice (CLAUDE.md rules 4 and 5; no return, IC or
+backtest figure is used). All re-read from the PDFs on 2026-11-04, not from the note:
+
+- **Fama & French (2015)**, *JFE* 116(1), 1-22, https://doi.org/10.1016/j.jfineco.2014.10.010.
+  Table 6 (p. 11): regressed on the other four factors it is *value* that is spanned (HML
+  intercept **-0.04**, t **-0.47**) while investment survives (CMA **0.28**, t **5.03**) - so the
+  academic models keep investment separate because it is the leg that holds up. Table 4 (p. 7):
+  the big-company investment factor is **0.22** (t 2.00), **0.11** (t 1.50) and **0.07** (t 1.03)
+  across the three constructions, and p. 8: *"almost all the average value of CMA is from small
+  stocks."* `Inv` is defined as growth in **total** assets, the same construction this screener
+  scores.
+- **Asness (2014)**, AQR, *Our model goes to six*, p. 5: with value measured on the current price
+  and momentum added - this screener's setting - *"it's actually CMA that's mostly redundant."*
+- **Hsu, Kalesnik & Kose (2019)**, *FAJ* 75(2), 44-61,
+  https://doi.org/10.1080/0015198X.2019.1567194, p. 57: *"most models considered in academia
+  include profitability and investment as separate factors."*
+- **MSCI FaCS Methodology** (January 2018), p. 8: Investment Quality is its own risk-model factor,
+  given a **25%** share of the Quality factor *group* for reporting - the structure closest to a
+  screener that publishes category scores, and it keeps the factor visible.
+- **ERI Scientific Beta**, *The Dimensions of Quality Investing* (May 2017), Exhibit 14 (p. 35):
+  on the **500 largest US stocks**, weekly 1975-2015, the investment and profitability factors
+  correlate **-0.18**, and the two *"cannot be combined in a composite manner to represent a
+  single risk factor"* (p. 34). Exhibit 15: their factor indices share about **50%** of their
+  stocks (110 of 250), the same as value, size and momentum share with each other.
+- **Factor Lab** (public French-library data): the large-company investment factor averaged
+  **+0.2165% a month (t 1.991)** over FF2015's own sample to 2013 - an independent reproduction of
+  their 0.22 at t 2.00 - and **-0.049% (t -0.312)** since 2003.
+
+**And the structural measurement that decided it** (not a return figure; the arithmetic of a
+relabelling on the published payload): `research/measurements/2026-11-04-investment-fold-review.py`,
+rebuilt from `factor_engine` independently of the note's uncommitted script and run over the eight
+published runs 2026-10-22 to 2026-11-04. A weight-preserving fold leaves **455 of about 500
+composites unchanged and the top 25 untouched on every one of the eight runs** - so it buys no
+ranking improvement - while being non-neutral in exactly the places the machinery treats a
+category as a unit: 44 stocks re-weighted by missing data, 13-17 trap flags flipped with no
+research behind the flip, two of three investor profiles' top 25 changed, and Quality's dispersion
+down **15.0-15.4%** against `check_run_health`'s 20% refusal bar - three-quarters of a safety
+margin spent by methodology rather than by data. ERIE, which has no Quality score at all, would be
+published with a "Quality" score composed **entirely of asset growth**.
+
+**Expected effect:** on the ranking, **nothing** - no number, rank, flag or score moves, and the
+payload is unaffected. On the page, the Investment section grows from five lines to nine
+paragraphs and states its own weakest evidence, as the Size section does. The reader gains the one
+true thing about these 8.25 points that the page could not previously tell them: Growth's revenue
+leg and Investment's asset leg jointly express a preference for revenue outgrowing the balance
+sheet, measured at **+0.89 to +0.92** against the within-sector rank spread in all 40 replayed
+runs, which is the quantity FTSE Russell scores directly.
+
+**Validated by:** claim `overview.investment_standalone` and `tests/test_investment_standalone.py`
+(6 tests, in the 02:00 publish gate by derivation), which read the **generator's** output and not
+the committed markdown. The lab figures are recomputed from the lab's live data with bands, so a
+refresh that changes the picture fails the suite instead of leaving the page wrong; the
+run-dependent counts are stated as what a named measurement found over named runs, never as
+properties of today's run, because a claim's check failing in the publish gate discards the night.
+Full suite 3,893 passed / 1 skipped against a 3,887 / 1 baseline.
+
+**Applied by:** morning session, 2026-11-04 (synthesis), reviewing a proposal it did not write.
+
+**Rollback:** revert the commit; the tag before it is `good/2026-11-03`.
+
+**One correction to the note, in the cheaper direction.** Its §3.2 cost list says
+`scripts/check_run_health.py` reads `dispersion_history.csv` positionally so "dropping a column
+shifts every later one". The positional read is real, the consequence is not: `investment_disp` is
+the file's **last** column, and `check_run_health.CATEGORIES` holds **five** categories
+(valuation, quality, growth, momentum, risk), so the gate never reads that column at any position.
+Struck in the note's §6.2. The verdict is unchanged - the gate *does* read Quality, which is where
+the dispersion cost actually lands.
+
