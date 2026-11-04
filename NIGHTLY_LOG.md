@@ -18732,3 +18732,13 @@ and this entry's. Worked in a worktree outside OneDrive; pushed only while no se
 - After the 02:00 run: `test_every_published_move_reproduces_from_its_published_divisor` and
   `test_the_published_turnover_is_the_snapshots_own` stop skipping and check the first payload
   built under tonight's rules.
+- **37 references to named tickers in 6 payload-reading test modules** (JPM, EXPE, APA, MSFT, plus HST
+  and BBY in one compare tray; `research/measurements/2026-11-03-named-tickers-in-payload-tests.py`) -
+  row "data->red" in waiting: each turns `main` red the morning that company leaves the index. The
+  recipe: pick by property from the payload (the highest-ranked stock with every category scored; the
+  highest-ranked stock scored with bank weights for JPM's uses; for APA's short-sheet test, the
+  property it was chosen for), with the named ticker kept as the first choice so today's behaviour is
+  unchanged. Not done tonight on purpose - it rewrites JavaScript inside six UI modules, which is
+  daytime work, not a midnight edit two hours before a data run.
+- Universe phase 1 continues: `data-run.ps1`'s `$universe = 500` (a daytime edit to the data loop's
+  own script, with a dry run), then `size_band` and the per-band gates.
