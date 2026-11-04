@@ -63,7 +63,9 @@ Yahoo's after-hours bid/ask is the quote the 20:00 refresh records; (c) one prac
 reports a QuantLib American IV of 141% against Bloomberg's 116% on the same option, unresolved - a
 solver set up wrongly fails silently. So the first step is a measurement, not a change.
 
-**Proposal status: OPEN** - a later session pre-registers and runs a paired measurement: for one
+**Proposal status: OPEN** - decide whether the options panel's ATM implied volatility and put skew should be computed from our own closing mids with QuantLib instead of Yahoo's `impliedVolatility` (measured 2026-11-03, section 1b: the pre-registered bar is MET - our ATM IV a median 3.2 points below Yahoo's, and Yahoo's skew negative for 28 of 48 stocks against 5 of 48 for ours).
+
+*The original proposal, as written before the measurement:* a later session pre-registers and runs a paired measurement: for one
 evening's quotes, invert the ATM call and put and the 0.95-moneyness put with QuantLib (CRR or finite
 differences, discrete dividends from the run's own dividend fields, FRED constant-maturity rate
 interpolated to expiry), against Yahoo's `impliedVolatility` for the same contracts; report the
@@ -100,6 +102,44 @@ measurement is not deciding on it. Fixed before any number is seen:
 - **Bar, unchanged from above:** a change is warranted only if the median absolute ATM difference
   exceeds 1 volatility point **and** the independent check reproduces QuantLib. Otherwise Yahoo's
   field stays, and this note says it was measured and found adequate.
+
+### 1b. Result (2026-11-03, about 21:30 ET; the decision is OPEN for a session that did not write this)
+
+`research/measurements/2026-11-03-implied-vol-quantlib-vs-yahoo.py`, as pre-registered, on 51 stocks
+(every 10th ticker), quotes pulled once after the close. Self-test first: QuantLib and the CRR tree
+each recover a 25.0% volatility from QuantLib's own price, with and without a discrete dividend.
+
+- **Priced at the money: 38 of 51.** Not priced: 11 with a leg that had no usable quote or no Yahoo
+  IV, 2 with no common strike, NVR with no expiry - listed in the output, none dropped by choice.
+- **ATM IV, QuantLib minus Yahoo: median -3.16 volatility points; median |difference| 3.16; 90th
+  percentile 6.09; maximum 9.43** (ZBH: 48.4% against Yahoo's 57.8%, 17 days out).
+- **Independent check: 10 of 10 ATM calls reproduce within 0.5 points** (largest gap BIIB, 0.43).
+- **Put skew (XZZ legs, the same contracts the panel uses): 30 stocks priced, median difference +2.51
+  points, and the sign differs for 17 of 30.**
+- No QuantLib ATM value fell outside the panel's IV bounds.
+- **The pre-registered bar is MET** (median |ATM difference| 3.16 > 1, and 10 of 10 reproduce).
+
+**What Yahoo's number is, as far as can be told** - a diagnostic run after the result, deciding
+nothing (`research/measurements/2026-11-03-yahoo-iv-what-does-it-invert.py`). Against Yahoo's figure
+on the same contracts, median |difference| in points: American on the mid (ours) 2.29, American on the
+last trade 4.03, European on the mid 2.08, European with no rate on the last trade 4.38 - **none of the
+four reproduces it** (each within half a point for 4-7% of contracts). The last trades were a median
+**9.8 hours** old when pulled (over 6 hours for 112 of 144), so Yahoo's field is most likely computed
+at some earlier moment of the day against a different underlying price - which no reader of the panel
+is told. **The skew is where it matters: Yahoo's is negative (out-of-the-money put below the
+at-the-money call) for 28 of 48 stocks; ours, from the closing quotes, for 5 of 48.** A put a 5% fall
+away being cheaper in volatility terms than an at-the-money call is the unusual case for single
+stocks, so a field that says so for most of the index is the likelier error. That inference is
+this session's, not a cited measurement - the deciding session should weigh it.
+
+**Cost if adopted:** 9.6 ms per American inversion with a dividend, so three contracts for 500 stocks
+is about 14 seconds a refresh; QuantLib 1.44 has Windows wheels (BSD licence) and would join
+`requirements.txt`. **What adopting would change:** the 20:00 refresh and the live pass invert the
+ATM call, ATM put and the XZZ put from the mids they already keep (the expected move is unaffected);
+the context log records which construction each reading used, and `context_eval` excludes the
+Yahoo-field skew from the record rather than splicing it (the 2026-10-14 precedent). **What not
+adopting would leave:** a put-skew sign on the page that disagrees with the quotes it sits beside for
+more than half the sample.
 
 ## 2. skfolio and "how much"
 
