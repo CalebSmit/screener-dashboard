@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 04 November 2026, 02:22
+# Morning Brief - Wednesday 04 November 2026, 06:56
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (latest) | **completed** - last ran today |
+| Code session (latest) | **stopped deliberately** - last ran today |
 | Dashboard data from | 2026-11-04 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
@@ -41,8 +41,17 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - 2026-11-09 (in 5 days) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
 - 2026-11-16 (in 12 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
 
+## Things that needed attention
+
+- GATE 5 publish rehearsal: FAIL (REHEARSAL FAILED: fix it before the data loop publishes it.)
+- FAIL  check_published_claims
+- SHIP GATES FAILED: publish-rehearsal. Not merging.
+- Work pushed to nightly/2026-11-04 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
+- Run finished with failing gates - see above.
+
 ## What changed in the repo
 
+- `b876aa4 brief: data run 2026-11-04`
 - `bd1702c data: screener run 2026-11-04 - 499 scored, top: EXPE VLO MU SNDK APA`
 - `9a289d9 OWNER_FOCUS: the night's later items`
 - `12fc0a6 Research: days to cover (short_interest_ratio), Revisions' last unresearched leg - weight kept, experiment proposed`
@@ -57,7 +66,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `e3d1175 NIGHTLY_LOG and OWNER_FOCUS: the owner-run night; Coming up gains 2026-12-04`
 - `27aafe2 Claims audit: the dashboard sweep is closed - 0 open rows`
 - `8bfcd65 Claims audit: the holdings rank strip and the phone table's pages (2 open)`
-- `c948214 Review cadence: the turnover figures are measured at every build and name their basis`
 
 ## The session's own account
 
