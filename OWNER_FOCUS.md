@@ -972,6 +972,12 @@ Completed items, newest first.
   its fees, so at most a logged, never-scored line, left as a proposal. The screener's insider panel
   already follows the best-evidenced informed money: executives buying their own company's stock.
   Notes: `research/2026-11-03-following-the-smart-money.md`, `research/2026-11-03-open-source-quant-stack.md`.
+  **Later the same night:** your top open item, beyond the S&P 500, moved - phase 1's first slice
+  (every size check now reads one universe definition, nothing published changed); the slider idea
+  for investor profiles was shown to be buildable without breaking "the page shows the engine's
+  numbers" (measured on all four published weightings); the Revisions category's last unresearched
+  piece, short interest, now has its research note (weight kept, a test proposed); and the 2 AM
+  publish gate was audited so none of tonight's new checks can throw away a good night's run.
 
 - **2026-11-03 (evening) - "Keep finding improvements ... an elite level of detail and precision", plus
   three posts to look into: DONE (owner-run).** Tags `good/2026-11-03-owner` to `-owner-4` (and a
