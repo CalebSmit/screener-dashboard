@@ -1311,8 +1311,6 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:context.expected_move',
     'Expected move = at-the-money call + put, divided by ${cPrice(c.osp)}, the stock&rsquo;s price when the quotes were taken:':
         'claim:context.expected_move',
-    "${(mv ? 'Expected move = at-the-money call + put, divided by ' + cPrice(c.osp) + ', the stock&rsquo;s price when the quotes were taken: a straddle costs about the average absolute move to expiry. ' : '')}Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure:":
-        'claim:context.expected_move',
     "Open-market buys, 90 days ${(ins.buy_n ? cMoney(ins.buy_value) : 'None')} ${(ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;')} Open-market sales, 90 days ${(ins.sell_n ? cMoney(ins.sell_value) : 'None')} ${(ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + (ins.sell_planned_value != null && ins.sell_value > 0 ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '') : '&nbsp;')}":
         'claim:context.insider_trades',
     ', ${Math.round(100 * ins.sell_planned_value / ins.sell_value)}% on pre-set plans':

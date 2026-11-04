@@ -588,6 +588,10 @@ def test_the_page_names_the_divisor_it_was_computed_with(page):
     withheld = _options_text(page, {"om": None, "oi": None, "onsp": True})
     assert "±" not in withheld and "did not record the stock price its quotes were measured against" in withheld
     assert "Expected move =" not in withheld and "Implied volatility (at the money)" not in withheld
+    # the skew's explanation and effect sizes go with the skew (2026-11-03 night)
+    assert "Put skew is Xing" not in withheld and "McLean" not in withheld and "Shown, never scored." in withheld
+    skewed = _options_text(page, {"osp": 104.0, "osk": 0.04, "oskp": 0.33, "oskc": 0.29, "oskps": 99, "oskcs": 104})
+    assert "Put skew is Xing, Zhang & Zhao’s (2010) measure" in skewed and "McLean & Pontiff 2016" in skewed
     # a payload built before the rule (a move, no divisor) is withheld by the page itself
     stale = _options_text(page, {"om": 0.273, "osk": -0.016, "oskp": 0.52, "oskc": 0.53, "oskps": 95, "oskcs": 105})
     assert "±" not in stale and "did not record the stock price its quotes were measured against" in stale
