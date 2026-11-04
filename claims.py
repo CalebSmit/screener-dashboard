@@ -1994,6 +1994,42 @@ CLAIMS: tuple[Claim, ...] = (
             "the register is where a later session is told which test enforces that."
         ),
     ),
+    # --- Investment: why it is standalone, 2026-11-04 ------------------------------------
+    # Decides the open proposal in research/2026-11-02-investment-inside-quality.md (REFUSE the
+    # fold; state the convention) and closes items 1-3 of the page work
+    # research/2026-10-19-revenue-growth-vs-asset-growth.md section 11.2 queued on 2026-10-19.
+    #
+    # The run-dependent figures are deliberately stated as what a *named measurement over a
+    # named set of runs* found, never as properties of today's run: a check registered on a
+    # claim also runs in the 02:00 publish gate, where failing discards the night, so a count
+    # that moves with coverage may not be asserted of every run (CLAUDE.md row `data->red`).
+    # The fold count and the top-25 result are re-derivable at any time with
+    # `research/measurements/2026-11-04-investment-fold-review.py --history 8`.
+    Claim(
+        id="overview.investment_standalone",
+        surface=OVERVIEW,
+        asserts=(
+            "The Investment section states: the metric is year-on-year growth in total assets "
+            "(not an assets-per-share measure); the large-company evidence is the weak half "
+            "(Fama & French's own big-company CMA is 1.03-2.00 standard errors from zero and "
+            "0.07% a month at t 1.03 under joint controls, and the Factor Lab's large-company "
+            "investment factor averaged about 0.2% a month over their sample to 2013 and below "
+            "zero since 2003 at |t| < 1); the Growth and Investment legs jointly express rising "
+            "asset turnover, measured at +0.89 to +0.91 against the within-sector rank spread "
+            "across 40 published runs; and the category is standalone though most providers "
+            "house asset growth inside Quality, because a weight-preserving fold left 455 of "
+            "about 500 composites and the whole top 25 unchanged on all eight runs measured."
+        ),
+        made_true_by="run_screener:build_screener_overview",
+        checked_by=(
+            "tests/test_investment_standalone.py::test_the_section_names_the_measure_the_engine_computes",
+            "tests/test_investment_standalone.py::test_the_large_company_reading_is_the_labs_own",
+            "tests/test_investment_standalone.py::test_the_joint_position_is_the_replays_range",
+            "tests/test_investment_standalone.py::test_the_fold_measurement_is_the_committed_one",
+            "tests/test_investment_standalone.py::test_the_practice_figures_are_the_sources_own",
+        ),
+        detect=r"\*\*Why it is its own category, when most practitioners file it under Quality\.\*\*",
+    ),
     Claim(
         id="overview.factor_premia_since_2014",
         surface=OVERVIEW,

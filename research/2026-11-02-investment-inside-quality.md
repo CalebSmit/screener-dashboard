@@ -2,7 +2,12 @@
 
 2026-11-02, owner-run night.
 
-**Proposal status: OPEN** - decide whether to fold the Investment category (`asset_growth`, 5%) into Quality at the weight-preserving 18.52% of a 27% Quality (section 3) or keep it standalone, as this note recommends, with the practitioner convention stated on the methodology page; read section 4's measured non-neutralities before deciding.
+**Proposal status: REFUSED 2026-11-04** (the 06:00 session, which did not write this note) - the
+fold is refused and the recommendation accepted: Investment stays standalone and the practitioner
+convention now appears on the methodology page, with the large-company caveat
+`research/2026-10-19-revenue-growth-vs-asset-growth.md` §11.2 queued. Section 4 was rebuilt
+independently and run over eight payloads rather than one; every figure held, and one of the
+listed costs does not exist. The review is **section 6**.
 
 No return, IC, backtest or track-record figure from this system is used as evidence anywhere in
 this note (CLAUDE.md rules 4 and 5). The factor figures are published research and the lab's
@@ -396,3 +401,160 @@ work nightly sessions do not take on (CLAUDE.md 0.8/0.9), and buys less than the
   lab raised"; `config.yaml`; `factor_engine.py` (`CAT_METRICS`, `metric_weight_profiles`,
   `compute_category_scores`, `apply_momentum_regime`, `compute_composite`, the trap flags);
   `scripts/check_run_health.py` (`check_dispersion`); `dashboard_data.js` (2026-10-30 run).
+
+---
+
+## 6. Review, 2026-11-04 (06:00 session, which did not write this note)
+
+**Verdict: the fold is REFUSED and section 5's recommendation is ACCEPTED.** Investment stays
+standalone; the practitioner convention, the large-company caveat and the joint position with
+Growth are now on the methodology page behind claim `overview.investment_standalone`
+(`METHODOLOGY_CHANGELOG.md` 2026-11-04). This is the first of seven reviewed proposals whose
+recommendation was accepted as written - the six before it were refused as written - and the
+reason is visible in the note's own structure: it recommends *no change to any number*, and it
+measured the costs of the change it declines before declining it.
+
+### 6.1 What was re-measured, and on how many runs
+
+Section 4's script was not committed, so the review could not read it. It was rebuilt from
+`factor_engine` instead of from the note - `research/measurements/2026-11-04-investment-fold-review.py`,
+committed - and run on **the committed payload plus the last eight published runs**
+(2026-10-22 to 2026-11-04), which closes the note's own caveat that "section 4 is one run's
+cross-section". The reproduction is faithful: published minus recomputed is **3.5e-07** on
+Quality, **0.0** on Investment, and **4.99e-03** on the composite, the last being the payload's
+own two-decimal rounding.
+
+| Section 4's claim | the note (2026-10-30) | this review (2026-11-04) | over eight runs |
+|---|---|---|---|
+| composites unchanged by the fold | 455 of 499 | **455 of 499** | **455 on all eight** |
+| top 25 changed | none | **none** | **0 in, 0 out, all eight** |
+| stocks missing a weighted Quality metric | 42 | **42** | - |
+| stocks missing asset growth | DPZ, FDXF, HONA | **DPZ, FDXF, HONA** | - |
+| stocks with no Quality score | ERIE | **ERIE** | - |
+| largest composite move | 5.19 points | **5.103 points** (BX) | - |
+| Quality dispersion drop | 15.3% | **15.4%** | **15.0% to 15.4%** |
+| trap flags flipped | 14 | **15** (4 value, 11 growth) | **13 to 17** |
+| Investment vs Quality (Spearman) | -0.061 | **-0.068** | - |
+
+Every claim holds. The fold's arithmetic was re-derived from `config.yaml` as well: 5/27 =
+**18.5185%**, the rescale factor 22/27 = **0.814815**, and every metric's composite points are
+preserved by construction. The dispersion result is the one worth keeping as a range rather than
+as a number: the fold would spend **three-quarters of the health gate's margin** on the first run
+after it shipped, on all eight runs measured, and the gate does read Quality (see 6.2).
+
+### 6.2 One of the listed costs does not exist
+
+Section 3.2 lists, among what a fold would have to change: *"`scripts/check_run_health.py` reads
+`improvement/dispersion_history.csv` **positionally** (`header=None`), so dropping a column shifts
+every later one."* The positional read is real. The consequence is not, twice over:
+
+1. `investment_disp` is the **last** of the file's nine columns, so dropping it shifts nothing.
+2. `check_run_health.CATEGORIES` is `["valuation", "quality", "growth", "momentum", "risk"]` -
+   **five** categories. The dispersion gate never reads `revisions_disp`, `size_disp` or
+   `investment_disp`, at any position.
+
+So this cost is struck, which makes the fold marginally *cheaper* than the note argued - the same
+direction as the 2026-10-30 review, and the reason a reviewer measures a cost list rather than
+reading it. It does not change the verdict: the gate reads Quality at position 2, so section 4
+item 5 - the 15.4% dispersion drop - stands, and is the live one. (A separate observation, not a
+defect: the file **has** a header row, which `header=None` loads as data and
+`pd.to_numeric(..., errors="coerce").dropna()` then discards. It works; it works by accident.)
+
+### 6.3 The coherence argument the note did not make
+
+This is a synthesis session, so the question it owes is not only "is the fold neutral" but "does
+the result fit the other seven categories". Reading Scientific Beta's Exhibit 14 (p. 35) rather
+than only the sentence the note quotes beside it, the investment factor's correlations **on the
+500 largest US stocks, 1975-2015** are:
+
+| Investment factor vs | correlation |
+|---|---|
+| Profitability | **-0.18** |
+| Size | -0.02 |
+| Momentum | -0.04 |
+| Value | +0.30 |
+| **Low Volatility** | **+0.68** |
+
+**Among large companies the investment factor's strongest documented relationship by a wide margin
+is with low volatility, not with profitability** - and this screener's own scores agree in
+direction, if far more weakly: Investment against Quality is **-0.068** today, against Risk
+**+0.166**, against Valuation **+0.228** and Size **+0.259**. Folding asset growth into Quality
+would house it under the category it has the *least* relationship to, which is a coherence
+argument against the fold independent of explainability. It also reframes the remaining open
+questions: if these 5 points overlap anything in this screener, it is Risk's 10 and Valuation's
+22, not Quality's 22. **That is a question for a Monday, and nothing here authorises moving a
+weight on it** - the correlation is between *factors* in a long/short construction, not between
+this screener's categories, and +0.166 against Risk is a weak reading on one run.
+
+Exhibit 15, on the facing page and not cited by the note, measures the same thing by overlap: the
+low-investment and high-profitability factor indices **share about 50% of their stocks (110 of
+250)** out of a 500-stock universe, which Scientific Beta notes is *"not very different from that
+of other factor indices such as value, size and momentum, each of which shares roughly 50%"*.
+That is a direct measurement of the factor-lab row's question, on a universe the size of this
+screener's, and it points the same way as the -0.18.
+
+**And one consequence of the fold that the note states but understates.** ERIE misses all six
+weighted Quality metrics and has no Quality score at all. Folded, its "Quality" score would be
+**asset growth alone** - a stock with no quality data would be published with a quality number,
+because renormalisation would hand asset growth the whole 27 points. A category score that can be
+composed entirely of the one metric that is not about quality is a worse outcome than a 5-point
+relabelling is worth.
+
+### 6.4 Sources: every load-bearing figure re-read from the PDF bytes
+
+Read with `pypdf` from the files in the gitignored `data/papers/`, not from the note:
+
+| Source | Checked | Result |
+|---|---|---|
+| **Fama & French (2015)** Table 6, p. 11 | HML intercept -0.04 (t -0.47), slopes CMA 1.04 / RMW 0.23 at t 23.03 / 5.36; CMA intercept 0.28 (t 5.03), slopes HML 0.45 / RMW -0.21 (t -7.84) | **exact, all eight figures** |
+| **FF2015** Table 4, p. 7 | big-company CMA 0.22 (t 2.00), 0.11 (t 1.50), 0.07 (t 1.03) across the 2x3, 2x2 and 2x2x2 sorts | **exact, all six** |
+| **FF2015** p. 8 | *"In the 2x2x2 sorts the average value of CMA_B is 0.07% per month (t = 1.03), and almost all the average value of CMA is from small stocks"*; *"the average value of CMA_B is only 1.03-2.00 standard errors from zero"* | **exact, and the page is right** |
+| **FF2015** variable definition | *"Inv is the growth of total assets for the fiscal year ending in t-1 divided by total assets at the end of t-2"* | **exact** - see 6.5 |
+| **MSCI FaCS Methodology**, Jan 2018 | *"we assigned a 25% weight to each of the three SES quality factors and a -12.5% weight to each of the other two"*; Exhibit 2's weight column; the Microsoft worked example, 0.25x0.169 + 0.25x(-0.055) + 0.25x0.403 - 0.125x(-0.442) - 0.125x0.289 = 0.148 | **exact**; the weights sentence is on p. 8 as cited, the worked example on **p. 9** |
+| **ERI Scientific Beta**, May 2017 | Exhibit 14 (p. 35): investment vs profitability -0.18, value +0.30, low volatility +0.68; weekly, 1975-2015, EDHEC Risk LTTR US = the 500 largest US stocks | **exact**; the *"cannot be combined in a composite manner"* conclusion is on **p. 34**, not p. 35 |
+| **Hsu, Kalesnik & Kose (2019)** p. 57 | *"most models considered in academia include profitability and investment as separate factors"* | **exact** |
+| **Asness (2014)** p. 5 | *"using up-to-date timely value, and making the obvious addition of momentum to the Five Factor Model, it's actually CMA that's mostly redundant"*, and *"it's still statistically almost, barely, but not quite interesting"* | **exact**, and the note's "comes close but doesn't break 2.0" is a fair reading of the second |
+| **Factor Lab**, big-company investment factor | recomputed over FF2015's own sample, 1963-07 to 2013-12 | **+0.2165% a month, t 1.991** - an independent reproduction of their Table 4 CMA_B of 0.22 at t 2.00 |
+
+Two one-page citation slips (the Scientific Beta quote, the MSCI worked example) and **no wrong
+figure**. Sections 1 and 2 are sound as written.
+
+**One of its own figures has drifted, and the cause is the lab, not the note.** Section 1.2 and
+Finding 2 give the lab's big-company investment factor since 2003 as **-0.06% a month (t -0.35)**.
+Recomputed today it is **-0.049% (t -0.312)**: the lab's French-library data has gained months
+since 11-02. The sign, the significance and the argument are unchanged - which is why the page
+states this one as a band held to the lab's live data (`tests/test_investment_standalone.py`)
+rather than as a literal that goes quietly stale.
+
+### 6.5 A correction the review made to its own first draft
+
+The page paragraph first said the screener uses total-asset growth "not the per-share version Fama
+& French use to sort CMA". **That is wrong**, and the 10-19 note says so at its line 319: FF2015's
+`Inv` *is* total-asset growth, confirmed above from the paper itself. The per-share construction
+belongs to Fama & French's earlier anomaly work, which is how §11.2 item 2 put it ("not FF2008's
+per-share version") and how the page now puts it. Recorded because the error is instructive: the
+distinction is real and worth stating, and getting its attribution backwards would have put a
+false sentence about a cited paper on the public methodology page. Writing a metric's provenance
+down is what exposed it - the same lesson CLAUDE.md 0.10 draws about writing a metric's arithmetic
+down.
+
+### 6.6 What shipped, and what did not
+
+**Shipped:** four paragraphs in `build_screener_overview()`'s Investment section - the measure and
+why it matters, the large-company reading, the joint position with Growth, and why the category is
+standalone when most providers fold it - with claim `overview.investment_standalone` and
+`tests/test_investment_standalone.py` (6 tests, in the 02:00 publish gate by derivation). That
+closes items 1, 2 and 3 of `research/2026-10-19-revenue-growth-vs-asset-growth.md` §11.2, open
+since 2026-10-19; item 4 was already on the page in the Growth section.
+
+**Not shipped, deliberately:** no weight, metric, threshold or scoring line changed, and
+`CAT_METRICS` is untouched. The FaCS-style display option in section 5 ("Quality and investment"
+as a heading over an unchanged score) is still design work nightly sessions do not take on, and
+still buys less than the paragraph.
+
+**Left open, unchanged by this review:** whether 5 points is the right weight for asset growth
+among large companies, and the tail-shape question (§11.3 item 1 of the 10-19 note) - both their
+own Mondays. The trigger to reopen the fold is the one section 5 names: a weight change that makes
+a one-metric category stop earning a line. 6.3 adds a second question for a Monday, about Risk and
+Valuation rather than Quality.
+
