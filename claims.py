@@ -541,6 +541,8 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="factor_engine:metric_weight_profiles",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_workings_row_prints_the_weight_and_points_worked_out_from_the_published_tables",
+            "tests/test_dashboard_printed_figures.py::test_a_hand_worked_workings_row",
             "tests/test_calculation_reproducibility.py::test_live_payload_reproduces_every_category_score_and_composite",
             "tests/test_calculation_reproducibility.py::test_category_scores_reproduce_from_the_published_tables",
             "tests/test_dashboard_browser.py::test_bank_valuation_workings_use_bank_weights_and_add_up",

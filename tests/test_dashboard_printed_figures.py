@@ -1258,3 +1258,110 @@ def test_the_distribution_strip_counts_only_scored_companies(page, data):
               return document.getElementById('dist-title').textContent; }
         finally { D.table_data = keep; renderDist(); } }""")
     assert got == f"{len(vals)} companies, one dot each"
+
+
+# ---------------------------------------------------------------------------
+# drilldown.metric_weights - every workings row's weight lines and points equation (claims audit
+# queue item 2, 2026-11-03): the share after rescaling, the points and the printed lines, worked
+# out here from the published weight table and percentiles for every stock, category and metric
+# ---------------------------------------------------------------------------
+_WK_JS = """(cats) => { const out = [];
+    for (const t of Object.keys(D.stock_detail)) { const s = D.stock_detail[t];
+        renderCategoryDetails(t, s, cats);
+        for (const c of cats) { const wk = categoryWorkings(c, s); if (!wk) continue;
+            // the weight line as the page rendered it: the title on each row's weight cell
+            const shown = {};
+            document.querySelectorAll('#cat-detail-' + c + ' tr.metric-row').forEach(tr => {
+                const cell = tr.querySelector('.metric-weight');
+                shown[tr.dataset.metric] = cell ? cell.getAttribute('title') : null; });
+            for (const r of wk.rows) {
+                let pts = null;
+                if (r.pct !== null && (D.lineage || {})[r.metric]) {
+                    const h = metricDetailHtml(r.metric, s, r);
+                    const k = h.indexOf('<span class="wk-k">Points</span>');
+                    pts = k < 0 ? '' : h.slice(k, h.indexOf('</div></div>', k));
+                }
+                out.push([t, c, r.metric, wk.wp.pid, r.metric in shown ? shown[r.metric] : '(no row rendered)', pts]);
+            } } }
+    return out; }"""
+
+
+def _fixed_n(x: float, n: int) -> str:
+    """Number.prototype.toFixed(n): the exact binary value, ties away from zero."""
+    from decimal import ROUND_HALF_UP, Decimal
+    q = Decimal(abs(x)).quantize(Decimal(1).scaleb(-n), rounding=ROUND_HALF_UP)
+    return ("-" if x < 0 and q != 0 else "") + str(q)
+
+
+def _fmt_weight(w: float) -> str:
+    return (str(_jsround(w)) if abs(w - _jsround(w)) < 0.05 else _fixed_n(w, 1)) + "%"
+
+
+def test_every_workings_row_prints_the_weight_and_points_worked_out_from_the_published_tables(page, data):
+    """For each row: the configured weight is the published table's (the stock's own profile), the
+    share is that weight over the total of the weighted metrics with data, the points are percentile
+    x share, and the printed lines say exactly that. Each scored category's points add up to its
+    published score (the build's own guarantee, calc_trace)."""
+    profiles = data["weights"]["profiles"]
+    sd = data["stock_detail"]
+    got = page.evaluate(_WK_JS, CATS)
+    assert got, "no workings rows rendered"
+    by: dict[tuple[str, str], list] = {}
+    for t, c, m, pid, tip, pts in got:
+        by.setdefault((t, c), []).append((m, pid, tip, pts))
+    problems, n_rows, n_eq = [], 0, 0
+    for (t, c), rows in by.items():
+        s = sd[t]
+        pid = (s.get("wp") or {}).get(c) or "generic"
+        table = profiles[c].get(pid) or profiles[c]["generic"]
+        total = sum(w for mm, w in table.items() if w and w > 0 and s["pct"].get(mm) is not None)
+        cat_points = 0.0
+        for m, page_pid, tip, pts in rows:
+            n_rows += 1
+            w = table[m]
+            p = s["pct"].get(m)
+            if page_pid != pid:
+                problems.append(f"{t}/{c}: page used profile {page_pid}, the payload says {pid}")
+            if p is None:
+                want = f"Configured {_fmt_weight(w)}; no data for this stock, so it carries no weight here."
+            else:
+                share = w / total * 100
+                points = p * share / 100
+                cat_points += points
+                want = (f"Configured {_fmt_weight(w)} of this weighting; {_fmt_weight(share)} of this score "
+                        "after rescaling to the metrics that have data.")
+                if pts is not None:
+                    n_eq += 1
+                    eq = (f"Points {_fixed_n(p, 2)} percentile × {_fmt_weight(share)} weight = "
+                          f"{_fixed_n(points, 2)} points toward the category score")
+                    if _text(pts) != eq:
+                        problems.append(f"{t}/{c}/{m}: printed {_text(pts)!r}, worked out {eq!r}")
+            if tip != want:
+                problems.append(f"{t}/{c}/{m}: printed {tip!r}, worked out {want!r}")
+        sc = (s.get("cat_scores") or {}).get(c)
+        if sc is not None and abs(cat_points - sc) > 0.06:
+            problems.append(f"{t}/{c}: rows add up to {cat_points:.3f}, published score {sc}")
+    assert n_rows > 1000 and n_eq > 1000, (n_rows, n_eq)
+    assert not problems, f"{len(problems)} of {n_rows} rows: {problems[:6]}"
+
+
+def test_a_hand_worked_workings_row(page, data):
+    """Three weighted metrics configured 50 / 30 / 20, the 30 with no data: the others rescale to
+    71.4% and 28.6% of the score; a percentile of 80.0 at 71.4% is 57.14 points."""
+    t = next(iter(data["stock_detail"]))
+    got = page.evaluate("""(t) => { const keep = D.weights.profiles.valuation;
+        const s = JSON.parse(JSON.stringify(D.stock_detail[t]));
+        try { D.weights.profiles.valuation = { generic: { ev_ebitda: 50, fcf_yield: 30, earnings_yield: 20 } };
+              s.wp = Object.assign({}, s.wp || {}, { valuation: 'generic' });
+              s.pct = Object.assign({}, s.pct, { ev_ebitda: 80.0, fcf_yield: null, earnings_yield: 40.0 });
+              const wk = categoryWorkings('valuation', s);
+              const r = wk.rows.find(x => x.metric === 'ev_ebitda');
+              const h = metricDetailHtml('ev_ebitda', s, r);
+              const k = h.indexOf('<span class="wk-k">Points</span>');
+              return [wk.rows.map(x => [x.metric, x.share, x.points]), h.slice(k, h.indexOf('</div></div>', k))]; }
+        finally { D.weights.profiles.valuation = keep; } }""", t)
+    rows = {m: (sh, pt) for m, sh, pt in got[0]}
+    assert rows["fcf_yield"] == (None, None)
+    assert rows["ev_ebitda"][0] == pytest.approx(500 / 7) and rows["ev_ebitda"][1] == pytest.approx(80 * 50 / 70)
+    assert rows["earnings_yield"][0] == pytest.approx(200 / 7)
+    assert _text(got[1]) == "Points 80.00 percentile × 71.4% weight = 57.14 points toward the category score"

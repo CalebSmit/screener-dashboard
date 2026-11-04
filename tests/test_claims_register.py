@@ -1272,9 +1272,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'None of the ${n} metrics this category weights for this stock has data in this run (${listed(names)})${shared}':
         'claim:drilldown.unscored_category',
     'Configured ${fmtWeight(r.configured)} of this weighting; ${fmtWeight(r.share)} of this score after rescaling to the metrics that have data.':
-        'open:metric-weight-rescaled-line - drilldown.metric_weights reads the weight column, not this line',
+        'claim:drilldown.metric_weights',
     'Configured ${fmtWeight(r.configured)}; no data for this stock, so it carries no weight here.':
-        "open:metric-weight-no-data-line - nothing reads the page's printing",
+        'claim:drilldown.metric_weights',
     "Ranked ${ordinal(pc0.rank)} of ${pc0.n} in ${where}, ${pc0.lower ? 'lower' : 'higher'} being better":
         'claim:drilldown.peer_rank',
     '; sector median ${fmtMetric(pc0.st[2], meta.fmt)} , middle half ${fmtMetric(pc0.st[1], meta.fmt)} to ${fmtMetric(pc0.st[3], meta.fmt)}':
@@ -1282,7 +1282,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     'That is the ${ordinal(Math.round(pctv0))} percentile.':
         'claim:drilldown.peer_rank',
     '${r.pct.toFixed(2)} percentile &times; ${fmtWeight(r.share)} weight = ${r.points.toFixed(2)} points toward the category score':
-        "open:metric-points-equation - nothing reads the page's printing",
+        'claim:drilldown.metric_weights',
     "${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}":
         'open:piotroski-parts-line - drilldown.piotroski_beneish_parts checks the payload, not the line',
     'The last ${q.length} quarters, oldest first':
@@ -1391,9 +1391,6 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'compare-gap-sentence',
     'holdings-rank-strip',
     'holdings-rank-strip-axis',
-    'metric-points-equation',
-    'metric-weight-no-data-line',
-    'metric-weight-rescaled-line',
     'ni-growth-yoy',
     'noise-band-pairs',
     'piotroski-parts-line',

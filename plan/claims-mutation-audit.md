@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (26 `open:` rows since 2026-11-03 evening):**
+**What remains, as a queue (23 `open:` rows since 2026-11-03 night):**
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself
@@ -1354,8 +1354,12 @@ unscored checks do not depend on it, because a hand-made unscored category runs 
    reproduces as straddle / its own divisor, strike within 5%). Mutations: 9 of 9 caught (the page itself also refuses a move without a divisor, `moveShown`)
    (`research/measurements/2026-11-03-expected-move-divisor-mutations.py`). Changelog 2026-11-03
    (evening).
-2. **The workings' equation lines (11 rows):** `metric-points-equation`,
-   `metric-weight-rescaled-line`, `metric-weight-no-data-line`, `piotroski-parts-line`,
+2. **The workings' equation lines (11 rows; 3 CLOSED 2026-11-03 night):** ~~`metric-points-equation`,
+   `metric-weight-rescaled-line`, `metric-weight-no-data-line`~~ - every row of every stock's
+   workings, the rescaled share, the points, both weight lines as the page renders them and the
+   points equation, worked out from the published tables, plus a hand-worked row; 7 of 7 mutations
+   (`research/measurements/2026-11-03-workings-line-mutations.py` - the first draft rebuilt the
+   weight line from its own copy of the template and one mutation survived it). Open: `piotroski-parts-line`,
    `piotroski-signals-line`, the four `surprise-*` lines, `roe-sd-line`, `same-value-scored`. The
    pattern is tonight's `_RANK_JS`: `metricDetailHtml(m, s, r)` and `categoryWorkings` for every
    stock, compared with `calc_trace`'s published points and `metric_lineage`'s recomputation; read
