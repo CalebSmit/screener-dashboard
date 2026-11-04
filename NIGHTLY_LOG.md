@@ -18640,3 +18640,78 @@ ran normally (`good/2026-11-03-1354`). Both entries are above.
 - **Decide Investment-inside-Quality** (still the oldest open proposal).
 - Read tomorrow's brief for the first payload built under the divisor rule:
   `test_every_published_move_reproduces_from_its_published_divisor` stops skipping and checks it.
+
+
+## 2026-11-03 (owner-run, night) - "keep finding improvements!! be creative. work until the 2 am session"
+
+**Health (rule 8, all five):** as the evening entry above - no scheduled session or data run since.
+Last code session ran? yes - `logs/nightly-2026-11-03_130000-midday.log` (completed). Data loop
+published? yes - `logs/datarun-2026-11-03_020000.log` (HEALTH: PASS). Evidence base at `1m`: 5 of 8
+needed (43 rows), newest 1m run date 2026-10-02 (32 days, bound 40). Priority 0: `allow_auto_apply`
+**false**. Top open roadmap item: **0.13, The Factor Lab** (age **22 days**).
+**Tests:** 3,879 passed / 3 skipped at the last gate run. Tags `good/2026-11-03-owner-6` to `-12`
+and this entry's. Worked in a worktree outside OneDrive; pushed only while no session ran; the
+20:00 option refresh ran tonight's code and was measured (evening entry, item 7).
+
+### Did
+
+1. **QuantLib against Yahoo's implied volatility: pre-registered, measured, bar MET, decision OPEN**
+   (`research/2026-11-03-open-source-quant-stack.md` sections 1a-1b; pre-registration committed as
+   `57958d5` before any number). On 51 stocks: our American IVs from closing mids sit a median
+   **3.16 points below** Yahoo's at the money (90th pct 6.09); an independent CRR tree reproduces
+   QuantLib on **10 of 10** contracts; the put skew's **sign differs for 17 of 30**. Diagnostic: no
+   simple construction reproduces Yahoo's field (last trades a median 9.8 h old), and Yahoo's skew is
+   negative for **28 of 48** stocks against **5 of 48** from the closing quotes. ~14 s a refresh if
+   adopted. This session wrote the proposal, so a scheduled session decides; the brief lists it.
+2. **The options panel's anchoring, completed and seen on the live page.** After the evening fix the
+   card withheld a pre-fix move but still printed its "at the money" volatility and skew - NOW's
+   from the 150 strike with the stock near $109. The move, the ATM IV and the skew legs share one
+   anchor, so a reading without its recorded price withholds all three, in the generator, on the page
+   (`optAnchored`) and in `context_eval`; the skew's explanation and effect sizes now appear only
+   beside a skew. Looked at the live card at 375px after each change. Simulated tomorrow's 02:00 read
+   of tonight's cache: **467** stocks will show option figures with their divisor, 12 older readings
+   withheld; NOW will read +/-11.5% divided by $109.16 at the 110 strike. 12 of 12 mutations.
+3. **The claims audit's dashboard sweep is closed: 38 -> 0 open rows.** Every computed sentence on the
+   page now carries a verdict a test enforces - the workings' weight lines and points equation for
+   every row of every stock (the first draft rebuilt the line from its own copy of the template and a
+   mutation survived it), the Piotroski / surprise / ROE lines redoing their arithmetic from the
+   inputs published beside them, the history and Reporting Soon counts, the price-target strip (its
+   mean-target upside equals the scored one for 496 of 496), the share-class gap, the compare
+   sentence, the holdings strip, the phone table's pages, and the snapshot's net-income growth and
+   days to cover against the run's own fetch. New claims: `drilldown.percentile_convention`,
+   `drilldown.price_targets`, `history.rank_counts`, `dashboard.reporting_soon_counts`,
+   `dashboard.review_cadence_turnover`, `dashboard.phone_table_pages`. Four mutations survived first
+   drafts on today's data (every stock ranked today, no report exactly 8 days out, every company
+   scored, a template copied into the test) and were caught by hand-built cases.
+4. **A stale figure found and fixed: the review-cadence turnover.** The note printed September's
+   "122% at every run against 24% monthly" as "this screener's own history"; re-measured the same way
+   on the longer record it is **149%** and **28%**. `history.review_turnover` now measures both at
+   every build over every stock each run ranked, and the note names its basis (changelog 2026-11-03
+   night, later). The conclusion stands and is stronger.
+5. **Research, at the owner's request: "follow the smart money"**
+   (`research/2026-11-03-following-the-smart-money.md`). Congress: **not built** - post-2012 trades
+   show no outperformance, 2004-08 portfolios trailed an index ($69 vs $80, checked), the data are
+   late, ranged and partly scanned, and 5 U.S.C. 13107(c) restricts commercial use. Hedge-fund 13F:
+   copying earns the fund's return minus its fees; large-cap evidence after the 45-day lag is weak
+   and its sign contested - one log-only line left as an **OPEN** proposal with its direction
+   pre-registered. The insider panel already carries the best-evidenced "informed money" signal.
+6. **Smaller:** the brief's "Coming up" gains 2026-12-04 (the option signals' first one-month reading);
+   two tests updated to the anchoring premise, one of them building an anchored reading rather than
+   skipping.
+
+### Not done, and why
+
+- **The three open proposals** (Investment-inside-Quality, QuantLib IVs, 13F log line) - this
+  conversation wrote all three, so a scheduled session decides them.
+- One research agent sent the owner's email address in a browser header while downloading a paper
+  from nber.org. Reported to the owner; nothing to undo.
+
+### Next
+
+- **Decide the QuantLib IV proposal** - the measurement is done and the bar met; the decision is
+  whether to adopt, and if so to log which construction each reading used and exclude the Yahoo-field
+  skew from `context_eval` (the 2026-10-14 precedent).
+- **Decide Investment-inside-Quality** (oldest open proposal).
+- After the 02:00 run: `test_every_published_move_reproduces_from_its_published_divisor` and
+  `test_the_published_turnover_is_the_snapshots_own` stop skipping and check the first payload
+  built under tonight's rules.

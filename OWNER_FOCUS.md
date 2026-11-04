@@ -956,6 +956,23 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-11-03 (night) - "keep finding improvements!! be creative", plus "follow the smart money ...
+  or the government, like senators": DONE (owner-run).** Tags `good/2026-11-03-owner-6` onward.
+  **Every computed sentence on the dashboard is now checked** against the page's own code for every
+  stock - the last 38 of the 77 open on 2026-11-02 closed tonight. **A stale number fixed:** the
+  review-cadence note quoted September's turnover as current (122% / 24%); it is 149% / 28% and is
+  now measured every run. **The options card** withholds every figure measured from an old price, not
+  just the move, and tomorrow 467 stocks show their figures with the price they were divided by.
+  **Implied volatility measured our own way:** computed from closing quotes with QuantLib, the put
+  skew's sign disagrees with Yahoo's figure for more than half the sample, and Yahoo's says puts are
+  cheaper than calls for most of the index - opened as a decision for a scheduled session.
+  **Your "smart money" idea, researched:** senators' and representatives' trades - not built (after
+  2012 they have not beaten the market, the reports come up to 45 days late, and federal law
+  restricts commercial use); hedge-fund 13F filings - copying them gets you the fund's return minus
+  its fees, so at most a logged, never-scored line, left as a proposal. The screener's insider panel
+  already follows the best-evidenced informed money: executives buying their own company's stock.
+  Notes: `research/2026-11-03-following-the-smart-money.md`, `research/2026-11-03-open-source-quant-stack.md`.
+
 - **2026-11-03 (evening) - "Keep finding improvements ... an elite level of detail and precision", plus
   three posts to look into: DONE (owner-run).** Tags `good/2026-11-03-owner` to `-owner-4` (and a
   final one with tonight's log). **The wrong sentence from last night is fixed:** the expected-move

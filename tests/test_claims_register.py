@@ -1383,8 +1383,9 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:drilldown.beta_overlap',
 }
 
-DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
-})
+# Empty since 2026-11-03 night: of the 77 rows open on 2026-11-02, 37 closed that night and 40 on
+# 2026-11-03 (plan/claims-mutation-audit.md). Literals, never a comprehension; only ever shrinks.
+DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset()
 
 
 def _dashboard_slug(verdict: str) -> str:
