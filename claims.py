@@ -1763,6 +1763,7 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="metric_lineage:EQUATIONS",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_sum_of_parts_line_redoes_its_own_arithmetic",
             "tests/test_metric_lineage.py::test_the_equation_on_the_row_gives_the_value_that_was_scored",
             "tests/test_metric_lineage.py::test_every_weighted_metric_has_a_line_on_the_row",
             "tests/test_metric_lineage.py::test_template_slots_name_published_inputs",
@@ -1946,6 +1947,7 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="factor_engine:_beneish_parts",
         checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_sum_of_parts_line_redoes_its_own_arithmetic",
             "tests/test_metric_lineage.py::test_piotroski_signals_add_up_to_the_score",
             "tests/test_metric_lineage.py::test_beneish_indices_rebuild_the_m_score",
             "tests/test_metric_lineage.py::test_the_engines_beneish_indices_rebuild_its_m_score_with_the_published_weights",

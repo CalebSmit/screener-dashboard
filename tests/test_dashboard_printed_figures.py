@@ -1365,3 +1365,99 @@ def test_a_hand_worked_workings_row(page, data):
     assert rows["ev_ebitda"][0] == pytest.approx(500 / 7) and rows["ev_ebitda"][1] == pytest.approx(80 * 50 / 70)
     assert rows["earnings_yield"][0] == pytest.approx(200 / 7)
     assert _text(got[1]) == "Points 80.00 percentile × 71.4% weight = 57.14 points toward the category score"
+
+
+# ---------------------------------------------------------------------------
+# drilldown.row_equation - the workings' summary lines for the scores that are sums or statistics
+# of parts (claims audit queue item 2, 2026-11-03): each line's arithmetic redone here from the
+# inputs the payload publishes beside it (``pio``, ``eq4``, ``roe5``), and checked to give the
+# value that was scored
+# ---------------------------------------------------------------------------
+_SURPRISES = re.compile(r"Latest surprise ([+−]?)([\d.]+)% − the quarter before ([+−]?)([\d.]+)% = ")
+_SUM_METRICS = ["piotroski_f_score", "analyst_surprise", "earnings_acceleration", "consecutive_beat_streak",
+                "earnings_variability"]
+_SUMS_JS = """(ms) => { const out = {};
+    for (const t of Object.keys(D.stock_detail)) { const s = D.stock_detail[t]; out[t] = {};
+        for (const m of ms) {
+            if (s.raw[m] == null) continue;
+            const meta = D.metric_meta[m] || { fmt: 'ratio' };
+            const h = metricDetailHtml(m, s, null);
+            const sums = [...h.matchAll(/<div class="wk-sum">([\\s\\S]*?)<\\/div>/g)].map(x => x[1]);
+            const head = (h.match(/The last (\\d+) quarters, oldest first/) || [null, null])[1];
+            const ok = (h.match(/Rebuilt from the inputs above: the same ([\\s\\S]*?) that was scored/) || [null, null])[1];
+            out[t][m] = { sums: sums, head: head, ok: ok, eq: equationHtml(m, s, meta), raw: fmtMetric(s.raw[m], meta.fmt) };
+        } }
+    return out; }"""
+
+
+def _ints(txt: str) -> list[int]:
+    return [int(x) for x in re.findall(r"\d+", txt)]
+
+
+def test_every_sum_of_parts_line_redoes_its_own_arithmetic(page, data):
+    """Piotroski: passed and testable counted from the nine published signals, the score equal to the
+    passes (the engine does not rescale). Surprises: the median of the valid quarters, the latest minus
+    the one before, and the recency-weighted beat share x 10, each from the published quarters and
+    equal to the scored value. ROE: the sample standard deviation of the five published ROEs. And the
+    quarter count is the number of published quarters."""
+    sd = data["stock_detail"]
+    got = page.evaluate(_SUMS_JS, _SUM_METRICS)
+    problems, checked = [], {m: 0 for m in _SUM_METRICS}
+    for t, per in got.items():
+        s = sd[t]
+        for m, g in per.items():
+            raw = s["raw"][m]
+            sums = [_text(x) for x in g["sums"]]
+            if m == "piotroski_f_score" and s.get("pio"):
+                sig = s["pio"]
+                n, k = sig.count("1"), sum(c != "-" for c in sig)
+                want = f"{n} passed of {k} testable = score {g['raw']}"
+                if want not in sums or raw != n or k < 6:
+                    problems.append(f"{t}/{m}: {sums} for signals {sig}, raw {raw}")
+                if _text(g["eq"]) != f"{n} of {k} testable signals passed = {_text(g['raw'])}":
+                    problems.append(f"{t}/{m}: row line {_text(g['eq'])!r}")
+                checked[m] += 1
+            q = s.get("eq4") or []
+            if m in ("analyst_surprise", "earnings_acceleration", "consecutive_beat_streak") and q:
+                if g["head"] is None or int(g["head"]) != len(q):
+                    problems.append(f"{t}/{m}: quarter count {g['head']} for {len(q)} published")
+                vals = [r[3] for r in q if r[3] is not None]
+                if m == "analyst_surprise":
+                    ok = abs(float(np.median(vals)) - raw) < 1e-9
+                    line = next((x for x in sums if x.startswith("Median of the")), "")
+                    ok &= line.startswith(f"Median of the {len(vals)} valid surprises (") and line.endswith(f"= {_text(g['raw'])}")
+                elif m == "earnings_acceleration":
+                    ok = q[-1][3] is not None and q[-2][3] is not None and abs((q[-1][3] - q[-2][3]) - raw) < 1e-9
+                    line = next((x for x in sums if x.startswith("Latest surprise")), "")
+                    ok &= line.endswith(f"= {_text(g['raw'])}")
+                    # each printed surprise is its own quarter's: the newest first, then the one before
+                    mm_ = _SURPRISES.match(line)
+                    if ok and mm_:
+                        for (sign, mag), want_v in zip((mm_.group(1, 2), mm_.group(3, 4)), (q[-1][3], q[-2][3])):
+                            v = float(mag) * (-1 if sign == "−" else 1)
+                            step = 0.5 * 10 ** -(len(mag.split(".")[1]) if "." in mag else 0)
+                            ok &= abs(v - 100 * want_v) <= step + 1e-9
+                    ok &= mm_ is not None
+                else:
+                    L = len(q)
+                    pos = [(4 - (L - 1 - i), r[3]) for i, r in enumerate(q) if r[3] is not None]
+                    beat, every = [w for w, v in pos if v > 0], [w for w, _ in pos]
+                    ok = abs(10 * sum(beat) / sum(every) - raw) < 1e-9
+                    line = next((x for x in sums if "with data" in x), "")
+                    head, _, tail = line.partition(" of ")
+                    ok &= (_ints(head.split(" (")[0]) == beat if beat else head == "No quarter with data beat its estimate")
+                    ok &= _ints(tail.split("with data")[0]) == every and line.endswith(f"= {_text(g['raw'])}")
+                if not ok:
+                    problems.append(f"{t}/{m}: {sums} from quarters {q}, raw {raw}")
+                checked[m] += 1
+            if m == "earnings_variability" and s.get("roe5"):
+                roes = [r[3] for r in s["roe5"]]
+                ok = None not in roes and len(roes) == 5 and abs(float(np.std(roes, ddof=1)) - raw) < 1e-9
+                ok &= f"Sample standard deviation of the five ROEs = {_text(g['raw'])}" in sums
+                if not ok:
+                    problems.append(f"{t}/{m}: {sums} from ROEs {roes}, raw {raw}")
+                checked[m] += 1
+            if g["ok"] is not None and _text(g["ok"]) != _text(g["raw"]):
+                problems.append(f"{t}/{m}: 'the same {_text(g['ok'])} that was scored' against {_text(g['raw'])}")
+    assert all(n >= 100 for n in checked.values()), checked
+    assert not problems, f"{len(problems)}: {problems[:5]}"

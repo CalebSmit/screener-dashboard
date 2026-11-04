@@ -1284,21 +1284,21 @@ DASHBOARD_SENTENCES: dict[str, str] = {
     '${r.pct.toFixed(2)} percentile &times; ${fmtWeight(r.share)} weight = ${r.points.toFixed(2)} points toward the category score':
         'claim:drilldown.metric_weights',
     "${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}":
-        'open:piotroski-parts-line - drilldown.piotroski_beneish_parts checks the payload, not the line',
+        'claim:drilldown.piotroski_beneish_parts',
     'The last ${q.length} quarters, oldest first':
-        "open:surprise-quarter-count - nothing reads the page's printing",
+        'claim:drilldown.row_equation',
     "Median of the ${vs.length} valid surprises (${vs.map(sp).join(', ')}) = ${fmtMetric(s.raw[m], meta.fmt)}":
-        "open:surprise-median-line - not verified against drilldown.row_equation's checks",
+        'claim:drilldown.row_equation',
     'Latest surprise ${sp(q[L - 1][3])} &minus; the quarter before ${sp(q[L - 2][3])} = ${fmtMetric(s.raw[m], meta.fmt)}':
-        "open:surprise-change-line - not verified against drilldown.row_equation's checks",
+        'claim:drilldown.row_equation',
     "${(beatW.length ? `...` : 'No quarter with data beat its estimate')} of ${allW.join(' + ')} with data, &times; 10 = ${fmtMetric(s.raw[m], meta.fmt)}":
-        "open:surprise-beat-weights-line - not verified against drilldown.row_equation's checks",
+        'claim:drilldown.row_equation',
     'Sample standard deviation of the five ROEs = ${fmtMetric(s.raw[m], meta.fmt)}':
-        "open:roe-sd-line - not verified against drilldown.row_equation's checks",
+        'claim:drilldown.row_equation',
     'the same ${fmtMetric(s.raw[m], meta.fmt)} that was scored.':
-        "open:same-value-scored - not verified against drilldown.row_equation's checks",
+        'claim:drilldown.row_equation',
     "${sig.filter(c => c === '1').length} of ${sig.filter(c => c !== '-').length} testable signals passed = ${res}":
-        'open:piotroski-signals-line - drilldown.piotroski_beneish_parts checks the payload, not the line',
+        'claim:drilldown.piotroski_beneish_parts',
     "${escapeHtml(a)} scores ${Math.abs(gap).toFixed(1)} composite points ${(gap >= 0 ? 'above' : 'below')} ${escapeHtml(b)} ${(lead.length ? '. The largest differences: ' + lead.join(' and ') + '.' : '.')}":
         "open:compare-gap-sentence - compare.composite_gap's page check reads the gap rows, not this sentence",
     '${vhChartSvg(y, m0, label)} ${label} ${cPlain(y.now)} of its past ${y.n} month-ends':
@@ -1393,22 +1393,14 @@ DASHBOARD_KNOWN_OPEN: frozenset[str] = frozenset({
     'holdings-rank-strip-axis',
     'ni-growth-yoy',
     'noise-band-pairs',
-    'piotroski-parts-line',
-    'piotroski-signals-line',
     'price-target-strip',
     'rank-history-built-from',
     'rank-history-run-count',
     'rank-history-span',
     'reporting-soon-counts',
-    'roe-sd-line',
-    'same-value-scored',
     'share-class-price-gap',
     'short-ratio',
     'show-next-count',
-    'surprise-beat-weights-line',
-    'surprise-change-line',
-    'surprise-median-line',
-    'surprise-quarter-count',
 })
 
 

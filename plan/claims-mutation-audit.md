@@ -1343,7 +1343,7 @@ ends `assert unscored >= 1` - a premise about the morning's data (row "data->red
 every category is scored would fail it. Not changed tonight (outside this pass's scope); the new
 unscored checks do not depend on it, because a hand-made unscored category runs every day. **Resolved 2026-11-03 (owner-run evening):** the floor is gone, and the browser test uses a real unscored category when the day has one and otherwise builds one (both branches run), with its rejected-price stock chosen from the payload instead of JPM.
 
-**What remains, as a queue (23 `open:` rows since 2026-11-03 night):**
+**What remains, as a queue (15 `open:` rows since 2026-11-03 night):**
 
 1. ~~**The expected-move card (2 rows) - FALSE, fix first.**~~ **CLOSED 2026-11-03 (owner-run
    evening).** The divisor is now the stock's price in the quote response itself
@@ -1359,11 +1359,12 @@ unscored checks do not depend on it, because a hand-made unscored category runs 
    workings, the rescaled share, the points, both weight lines as the page renders them and the
    points equation, worked out from the published tables, plus a hand-worked row; 7 of 7 mutations
    (`research/measurements/2026-11-03-workings-line-mutations.py` - the first draft rebuilt the
-   weight line from its own copy of the template and one mutation survived it). Open: `piotroski-parts-line`,
-   `piotroski-signals-line`, the four `surprise-*` lines, `roe-sd-line`, `same-value-scored`. The
-   pattern is tonight's `_RANK_JS`: `metricDetailHtml(m, s, r)` and `categoryWorkings` for every
-   stock, compared with `calc_trace`'s published points and `metric_lineage`'s recomputation; read
-   `drilldown.row_equation`'s browser check first, it may already pin part of this.
+   weight line from its own copy of the template and one mutation survived it). **The other 8 CLOSED
+   the same night:** the Piotroski lines, the four surprise lines, the ROE line and "the same value
+   that was scored" - each line's arithmetic redone from the inputs published beside it (`pio`, `eq4`,
+   `roe5`) for every stock and checked to give the scored value; 7 of 7 mutations
+   (`research/measurements/2026-11-03-sum-line-mutations.py`; one survived until the surprise-change
+   check matched each printed surprise to its own quarter). **Group 2 is closed.**
 3. **The track record's remaining three - CLOSED 2026-11-03 (owner-run evening):** the period
    count, the changelog-tick count and the left-out picks per basket are read back from the panel
    against the record's own fields, with a hand-worked record (3 periods, 2 dates, 1 of 75 and 2 of
