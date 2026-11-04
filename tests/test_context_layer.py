@@ -919,3 +919,83 @@ def test_a_pick_that_stopped_trading_is_priced_from_the_record_until_it_stopped(
     assert out.loc["2026-02-16", "GONE"] == 60.0 and out.loc["2026-02-20":, "GONE"].isna().all()
     v, info = tr.run_basket(out, ["GONE", "T1"], pd.Timestamp("2026-01-05"), None, 100.0)
     assert info["held"] == 2 and "GONE" in info["stale"]   # held to its last record, then as cash
+
+
+# ---- which construction an implied volatility came from (2026-11-04, review of the QuantLib
+#      proposal: research/2026-11-03-open-source-quant-stack.md section 1d) -------------------
+#
+# The ATM IV and the put skew are both implied volatilities, and the two available constructions
+# are a median 2.0-3.2 points apart at the money. So a reading records *how* its IVs were built,
+# and the record counts one construction at a time - the 2026-10-14 splice, one level down.
+
+def _iv_log(**cols):
+    n = len(next(iter(cols.values())))
+    # Every column signals_frame reads positionally, so the fixture states its own premise rather
+    # than borrowing a committed log's schema (CLAUDE.md row data->red).
+    base = {"Ticker": ["A", "B", "C", "D"][:n], "Sector": ["Industrials"] * n,
+            "_ctx_opt_status": ["ok"] * n,
+            "_ctx_last_close": [100.0] * n, "_ctx_sma200": [95.0] * n, "_ctx_sma50": [98.0] * n,
+            "_ctx_sma21": [99.0] * n, "_ctx_ret_1m": [0.01] * n, "_ctx_ret_5d": [0.002] * n,
+            "_ctx_ret_3m": [0.03] * n, "_ctx_high_52w": [120.0] * n, "_ctx_low_52w": [80.0] * n,
+            "_ctx_vol_ratio": [1.1] * n,
+            "_ctx_opt_spot": [100.0] * n, "_ctx_opt_spot_src": ["chain"] * n,
+            "_ctx_opt_iv": [0.30] * n, "_ctx_opt_skew": [0.08] * n, "_ctx_opt_move": [0.06] * n,
+            "_ctx_opt_skew_put_iv": [0.38] * n, "_ctx_opt_skew_call_iv": [0.30] * n}
+    base.update(cols)
+    return pd.DataFrame(base)
+
+
+def test_a_reading_records_which_construction_its_implied_volatilities_came_from():
+    calls, puts = _chain()
+    out = cs.options_context(calls, puts, 100.0, "2026-11-06", date(2026, 10, 8), True)
+    assert out["_ctx_opt_iv_src"] == "source"              # the quote response's own field
+    assert out["_ctx_opt_iv_src"] in cs.IV_CONSTRUCTIONS
+    assert cs.PUBLISHED_IV_CONSTRUCTION in cs.IV_CONSTRUCTIONS
+
+
+def test_a_reading_with_no_implied_volatility_at_all_claims_no_construction():
+    """Stamped where there is something to describe - not on a chain that produced no IV."""
+    calls, puts = _chain()
+    for frame in (calls, puts):
+        frame["impliedVolatility"] = np.nan
+    out = cs.options_context(calls, puts, 100.0, "2026-11-06", date(2026, 10, 8), True)
+    assert "_ctx_opt_iv" not in out and "_ctx_opt_skew" not in out
+    assert "_ctx_opt_iv_src" not in out
+
+
+def test_an_unstamped_reading_counts_as_the_source_field():
+    """The eighteen logged days carry no stamp and are all the source's own field, because nothing
+    in this project has ever inverted an option price. They must keep counting, or adopting the
+    inversion would discard a month of evidence it does not need to."""
+    import context_eval as ce
+    log = _iv_log(Ticker=["A", "B"])                        # no _ctx_opt_iv_src column at all
+    assert ce.iv_is_the_published_construction(log).tolist() == [True, True]
+    sf = ce.signals_frame(log)
+    assert sf["options_atm_iv"].notna().all() and sf["options_put_skew"].notna().all()
+
+
+def test_the_record_does_not_pool_two_constructions(monkeypatch):
+    import context_eval as ce
+    log = _iv_log(_ctx_opt_iv_src=["source", "own_mid", None])
+    assert ce.iv_is_the_published_construction(log).tolist() == [True, False, True]
+    sf = ce.signals_frame(log)
+    # the own_mid row is withheld from both IV-derived signals while `source` is published
+    assert sf["options_atm_iv"].notna().tolist() == [True, False, True]
+    assert sf["options_put_skew"].notna().tolist() == [True, False, True]
+    # ...and the day the panel publishes the inversion, the source readings stop counting instead
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "own_mid")
+    assert ce.iv_is_the_published_construction(log).tolist() == [False, True, False]
+    sf2 = ce.signals_frame(log)
+    assert sf2["options_atm_iv"].notna().tolist() == [False, True, False]
+    # an unstamped log is entirely excluded once the published construction is not `source`
+    assert not ce.iv_is_the_published_construction(_iv_log(Ticker=["A", "B"])).any()
+
+
+def test_the_expected_move_does_not_depend_on_an_inversion(monkeypatch):
+    """The move is bid/ask mids over the spot - no implied volatility in it - so a construction
+    change must not withhold it. Keeping that straight is why the mask names two keys, not three."""
+    import context_eval as ce
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "own_mid")
+    sf = ce.signals_frame(_iv_log(_ctx_opt_iv_src=["source", "source"]))
+    assert sf["options_expected_move"].notna().all()
+    assert sf["options_atm_iv"].isna().all() and sf["options_put_skew"].isna().all()
