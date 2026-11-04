@@ -18722,6 +18722,12 @@ and this entry's. Worked in a worktree outside OneDrive; pushed only while no se
    Ranking the unrounded composite gets 50 of 499 Balanced ranks wrong, because 50 stocks share a rank
    today. A port must also carry the momentum regime rule. Whether sliders belong on a decision-support
    page is the owner's call.
+11. **Research: days to cover, Revisions' last unresearched leg** (`research/2026-11-03-short-interest-days-to-cover.md`,
+   lab question 8). Weight **kept** by the project's rule (no lab evidence; literature marginal where
+   the screener lives: value-weighted DTC 0.67% a month, t 2.24 all stocks, no S&P 500 test; Asquith et
+   al.: large heavily-shorted stocks "do not reliably underperform"). Practice keeps short interest out
+   of revisions - a placement question for a synthesis day. Not analyst data, so testable: a
+   pre-registered research-engine experiment on FINRA's free days-to-cover is proposed (OPEN).
 10. **Two stale statements corrected:** CLAUDE.md said experiment 18 had no second reader (it had one
    on 2026-11-02), and priority 6's M4 question is now answered. The page's last literal universe size
    (`|| 500` in the rank chart) reads the universe being run.
