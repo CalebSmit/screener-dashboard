@@ -99,7 +99,11 @@ built for a college investment club.
 - **Congress: nothing.** Recorded here so a later session does not rebuild the idea from a post.
 - **13F:** an open proposal, below.
 
-**Proposal status: OPEN** - decide whether to *log* (not show, not score) one line per stock - the number of 13F filers holding it and the change on the prior quarter, dated by quarter end and filing date - as a context-log candidate, with the direction pre-registered here before any data is pulled: **a rising holder count is expected to precede *higher* one-month returns** (Chen, Hong & Stein 2002), against which Lehavy & Sloan (2008) and Dasgupta, Prat & Verardo (2011) predict the opposite, so either sign is informative and neither is assumed.
+**Proposal status: DECIDED 2026-11-05 (06:00 session, which did not write this note) - REFUSED as
+written, and buildable later on two pre-registered conditions.** The reason is not the literature,
+which is this note's own work and stands: it is that logging a **quarterly** signal through the
+context layer's **daily** record would overstate its independence by about **3.2x** on the one
+count rule 4 and priority 0 exist to protect. Section 4 is the review and carries the conditions.
 
 Costs and limits to weigh: the SEC data sets need a CUSIP-to-ticker map (the SEC's quarterly
   13(f) list carries no ticker; OpenFIGI's free API returns tickers, terms not yet read); the
@@ -110,3 +114,96 @@ Costs and limits to weigh: the SEC data sets need a CUSIP-to-ticker map (the SEC
 - **What the owner's instinct is already served by:** the insider panel - officers and directors
   buying their own company's stock on the open market, which is the "informed money" case with the
   strongest and most timely public evidence in this whole area.
+
+## 4. Review of the proposal (2026-11-05, 06:00 session)
+
+Measured: `research/measurements/2026-11-05-quarterly-signal-accrual.py`, output committed beside
+it. The verdicts in sections 1 and 2 were not re-opened; what is reviewed is the one thing left
+open - whether to start logging the holder count.
+
+### 4.1 A quarterly signal in a daily record overstates its own independence by 3.2x
+
+`context_eval` already refuses to count overlapping windows: it reads the improvement engine's own
+`_effective_observations` over the **run dates** it has logs for, spacing them 30 days apart
+(`_non_overlapping(span=30)`), and the gate is **8 effective observations**. That is the right
+machinery for a signal that moves every day, which every context signal logged so far does.
+
+A 13F reading does not. It changes on **four filing dates a year** - 45 days after each quarter
+end - and is the same cross-section in between, so three consecutive monthly windows rank the
+stocks identically against three different forward months. Measured against the data loop's own
+weekday cadence:
+
+| window | run dates logged | effective observations the gate would read | distinct signal vintages | overstatement |
+|---|---:|---:|---:|---:|
+| 1 year | 262 | **13** | **4** | **3.25x** |
+| 2 years | 523 | **25** | **8** | **3.12x** |
+
+This is the defect `research/2026-08-10-ic-evidence-independence.md` measured at **2.35x** in the
+screener's own IC series, which is why rule 4 says to quote `_n_observations` and never
+`_n_raw_observations` - and it would be **worse here, and of a different kind**: there the overlap
+is in the forward window, which `_effective_observations` was written to see; here it is in the
+**signal**, which it cannot see at all, because nothing in the record says when the reading last
+changed. The gate would read 8 effective observations after about **eight months** of logging,
+while the signal would have provided **two or three** genuine cross-sections.
+
+**So the counting has to change before the signal is logged, not after.** A context signal carrying
+a vintage - the quarter end and the filing date the proposal itself asks to store - must be counted
+by vintage, and `context_eval` has no notion of one today. Logging first and fixing the count later
+inverts the order rule 4 insists on, and the first thing anyone would do with 8 apparent
+observations is read an IC off them.
+
+### 4.2 Counted honestly, the decision point is 2028-08-14
+
+Eight genuine vintages from the next filing deadline: 2026-11-14, 2027-02-14, 2027-05-15,
+2027-08-14, 2027-11-14, 2028-02-14, 2028-05-15, **2028-08-14**. That is the earliest date this
+signal could be *considered* for the score, about **21 months** after its first reading - and the
+note's own section 1 is the reason to be careful about spending that wait: after the 45-day lag, in
+large companies, it finds no robust effect and a contested sign. A long wait for a signal whose
+prior is "probably nothing" is defensible as evidence-gathering and indefensible as a priority; it
+is not refused on the wait, but the wait belongs in the decision.
+
+### 4.3 What this review can and cannot say about "little to sort on"
+
+The note cites Gompers & Metrick (2001) for institutional ownership being uniformly high in the
+S&P 500. On this screener's own data (`00_raw_fetch.parquet`, the 2026-11-05 run,
+`heldPercentInstitutions`, 502 of 503 covered): median **0.9167**, interquartile range
+**0.8208-0.9956**, and **458 of 502 (91.1%)** above 0.70. Two things follow, and only the first
+is about the proposal:
+
+- **That field is not a substitute and must not be logged as one.** The note already says it is a
+  level rather than a change; it is also **not a fraction** - **123 of 502 (24.5%) exceed 1.00**,
+  p90 1.0515 and p99 1.1609 - so it cannot be read as a share of the company and its near-uniformity
+  may be partly an artefact of whatever denominator Yahoo uses.
+- **It does not establish the point for the proposal's own construct.** Chen, Hong & Stein's signal
+  is **breadth** - the *number* of holders - and a count varies where a near-saturated percentage
+  cannot. This project has one measurement of it: the 2016 Q1 13F data set, parsed for
+  `research/2026-10-20-free-survivorship-sources.md` section 5(d), had a **median of 598 filers
+  per security**. So "little to sort on" is supported for concentration and **left open for
+  breadth**, which is the honest reading and is weaker than the note's.
+
+### 4.4 The data cost is known, and the identifier is the unsolved part
+
+Also from that 2026-10-20 probe: one quarterly SEC data set is enough, the holder count per CUSIP
+is a `groupby`, and **issuer-name matching reached 118 of 172 (~70%)** on the hard cases. So the
+build is "one zip, one groupby, one identifier map", and the map is the only unsolved piece - the
+note is right that the SEC's 13(f) list carries no ticker, and OpenFIGI's terms are still unread.
+**One untested free candidate, recorded so the next session does not start from OpenFIGI:** a
+Schedule 13D/13G cover page carries the subject class's CUSIP *and* the filing is indexed under the
+subject company's CIK, which would give an exact CUSIP-to-CIK map for widely held US stocks from
+EDGAR alone. **Not verified here** - no filing was fetched or parsed for this review - so it is a
+lead, not a finding.
+
+### 4.5 The conditions, pre-registered
+
+If a later session builds this, these bind, and the note's direction stands as written
+(a rising holder count expected to precede *higher* one-month returns, Chen, Hong & Stein 2002,
+against Lehavy & Sloan 2008 and Dasgupta, Prat & Verardo 2011 - either sign informative):
+
+1. **`context_eval` counts by vintage first.** A signal whose log rows carry a vintage is counted
+   on distinct vintages, not on spaced run dates, and the gate reads that number. Shipped and
+   tested **before** the first holder count is logged.
+2. **The identifier route is settled without an unread licence** - either OpenFIGI's terms read and
+   found to permit it, or an EDGAR-only map, with its match rate measured against the live universe
+   and stated. A signal covering an unmeasured share of the index is not loggable.
+
+**No weight, metric, threshold, published sentence or production line changed by this review.**

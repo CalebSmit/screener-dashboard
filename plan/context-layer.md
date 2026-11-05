@@ -396,3 +396,13 @@ run never writes the log; every computational sentence on a context panel has a 
 - Do not let a context field reach `raw`, `pct`, `cat_scores` or the composite.
 - Do not show a list of current top-25 names as "the portfolio".
 - Do not use the track record as evidence for a methodology change (rule 4).
+- **Do not log a signal that changes less often than monthly until `context_eval` counts by
+  vintage** (2026-11-05, deciding `research/2026-11-03-following-the-smart-money.md` section 3).
+  Every signal logged so far moves every day, so `_effective_observations` over spaced run dates is
+  the right count for it. A quarterly reading - 13F holder counts, anything on a 45-day filing lag -
+  is the same cross-section for three months at a time, and measured against the data loop's weekday
+  cadence the gate would read **13 effective observations a year against 4 genuine vintages, a
+  3.25x overstatement** (`research/measurements/2026-11-05-quarterly-signal-accrual.py`). That is
+  the 2026-08-10 independence defect in a form `_effective_observations` cannot see, because nothing
+  in the log says when the reading last changed. The fix is a vintage column and a count over
+  distinct vintages, **shipped before the first such signal is logged**, never after.
