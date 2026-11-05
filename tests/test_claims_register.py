@@ -267,7 +267,7 @@ def test_rank_share_is_exact_for_every_published_stock(payload):
     n = len(detail)
     assert n > 100, f"expected a full universe, got {n}"
 
-    pattern = re.compile(r"ahead of (\d+)% of the other (\d+) stocks")
+    pattern = re.compile(r"ahead of (\d+(?:\.\d)?)% of the other (\d+) stocks")
     failures = []
     for ticker, stock in detail.items():
         sentence = stock_summary._sentence_rank(stock, n)
@@ -276,8 +276,16 @@ def test_rank_share_is_exact_for_every_published_stock(payload):
         if not match:
             failures.append(f"{ticker}: no share in {sentence!r}")
             continue
-        expected = round((n - stock["rank"]) / (n - 1) * 100)
-        if int(match.group(1)) != expected:
+        exact = (n - stock["rank"]) / (n - 1) * 100
+        printed = float(match.group(1))
+        # whole percent, or one decimal where whole percent would say 100 or 0 and that is not
+        # true (2026-11-05): within half a unit of the last digit printed, and never an extreme
+        # the rank does not earn
+        unit = 0.1 if "." in match.group(1) else 1.0
+        expected = f"{exact:.2f}"
+        cut = (unit == 0.1 and ((printed == 99.9 and exact > 99.9) or (printed == 0.1 and exact < 0.1)))
+        if ((abs(printed - exact) > unit / 2 + 1e-9 and not cut) or (printed == 100 and stock["rank"] != 1)
+                or (printed == 0 and stock["rank"] != n) or (unit == 0.1 and 0.5 <= exact < 99.5)):
             failures.append(f"{ticker}: printed {match.group(1)}%, "
                             f"rank {stock['rank']} implies {expected}%")
         if int(match.group(2)) != n - 1:

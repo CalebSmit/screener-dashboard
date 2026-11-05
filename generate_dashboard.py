@@ -6294,6 +6294,7 @@ def _css() -> str:
         .mover-delta.neg, .delta-cell.neg { color: var(--red); }
         .mover-meta { grid-area: meta; font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .mover-driver { color: var(--text-secondary); }
+        .mover-meta, .mover-driver, .kpi-sub, .mk-ref-l, .defensibility-summary .def-badge, .tr-kpi-s, .dist-x { font-variant-numeric: tabular-nums; }
         .mover-driver.muted, .delta-cell.muted { color: var(--text-muted); }
         .mover-none { padding: 10px; color: var(--text-muted); font-size: 13px; }
         .rt-badge {
@@ -8140,6 +8141,12 @@ def _css() -> str:
         @media (max-width: 1100px) {
             .top5-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
+        /* three and two, the two sharing the second row, rather than three and a hole (2026-11-05) */
+        @media (min-width: 761px) and (max-width: 1100px) {
+            .top5-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+            .top5-row > .top5-card { grid-column: span 2; }
+            .top5-row > .top5-card:nth-child(n+4) { grid-column: span 3; }
+        }
         @media (max-width: 760px) {
             .dashboard-header { position: static; height: auto; padding: 12px var(--gap); flex-wrap: wrap; gap: 8px 12px; }
             .header-left { flex-wrap: wrap; flex: 1 1 100%; gap: 2px 12px; }
@@ -9725,11 +9732,22 @@ def _css_ux() -> str:
 
         /* ---- TRAP RATE BARS (replaces the canvas chart) ---- */
         .trap-bars { display: flex; flex-direction: column; gap: 2px; }
+        /* name and figure on one line, the bar beneath at full width: the panel is narrow, and a
+           three-column row cut five sector names short ("Consumer Discr...", 2026-11-05) */
         .trap-row {
-            display: grid; grid-template-columns: minmax(0, 160px) minmax(40px, 1fr) 104px; gap: 10px;
-            align-items: center; min-height: 26px; font-size: 12.5px;
+            display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n v" "t t";
+            gap: 4px 10px; align-items: baseline; padding-top: 5px; padding-bottom: 5px; font-size: 12.5px;
         }
-        .trap-name { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .trap-name { grid-area: n; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .trap-row .trap-track { grid-area: t; }
+        .trap-row .trap-val { grid-area: v; }
+        /* below 1240px the sector table and the trap bars stack, each at full width: side by side, the
+           table scrolled sideways inside its panel and the trap names were cut short (2026-11-05) */
+        @media (min-width: 761px) and (max-width: 1240px) {
+            #sec-analytics .chart-row { flex-direction: column; }
+            #sec-analytics .chart-row > .chart-container { flex: 1 1 auto !important; width: 100%; }
+            #trap-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 36px; }
+        }
         .trap-track { height: 8px; border-radius: 4px; background: var(--bg-elevated); overflow: hidden; }
         .trap-track i { display: block; height: 100%; background: var(--accent); opacity: .75; border-radius: 4px; }
         .trap-val { display: flex; justify-content: flex-end; align-items: baseline; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -9737,7 +9755,7 @@ def _css_ux() -> str:
         .trap-val span { font-size: 11px; color: var(--text-muted); }
 
         .trap-row[data-sector], .sm-table tbody tr[data-sector] { cursor: pointer; }
-        .trap-row[data-sector] { border-radius: 6px; padding: 0 6px; margin: 0 -6px; }
+        .trap-row[data-sector] { border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
         .trap-row[data-sector]:hover { background: var(--bg-card-hover); }
         .sm-table tbody tr[data-sector]:hover .sm-sector { color: var(--accent-text); }
         .trap-row:focus-visible, .sm-table tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -10254,7 +10272,6 @@ def _css_ux() -> str:
             .cmp-table th, .cmp-table td { padding: 10px 8px; }
             .cmp-content { max-height: calc(100vh - 16px); }
             .cmp-overlay { padding: 8px; }
-            .trap-row { grid-template-columns: minmax(0, 1fr) 64px 100px; }
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
@@ -11702,7 +11719,13 @@ def _css_context() -> str:
             .ctx-split { grid-template-columns: 1fr; }
             .tr-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .tr-kpi { border-bottom: 1px solid var(--border); }
-            .mk-rate-row { grid-template-columns: 120px 1fr 56px; }
+            /* on a phone the sector name and its figure share a line and the bar runs beneath, so
+               "Consumer Discretionary" is not cut to "Consumer Disc..." (2026-11-05) */
+            .mk-rate-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n v" "t t"; gap: 3px 10px; padding: 3px 0; }
+            .mk-rate-row .mk-rate-n { grid-area: n; }
+            .mk-rate-row .mk-rate-track { grid-area: t; }
+            .mk-rate-row .mk-rate-v { grid-area: v; }
+            .mk-rate-head .mk-rate-axis { grid-column: 1 / -1; }
         }
 
         /* ---- PHONE MENU (club readiness, 2026-10-19): a way back from deep in the page ---- */
@@ -12377,7 +12400,10 @@ def _css_page() -> str:
         /* the tick at 50 sits over the bar, so a score just above or below it reads as such */
         .fp-track::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--text-muted); opacity: .8; z-index: 1; }
         .top5-card { display: flex; flex-direction: column; }
-        .top5-company { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* the full name, on two lines where it needs them ("Valero Energy Cor..." at 1280px, 2026-11-05);
+           every card keeps two lines' height so the five sets of bars stay level */
+        .top5-company { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;
+                        overflow: hidden; line-height: 1.35; min-height: calc(2em * 1.35); }
         .top5-who { min-width: 0; }
         .t5-key { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 12.5px; color: var(--text-muted); }
         .t5-key i { position: relative; width: 22px; height: 6px; border-radius: 3px; background: var(--bg-elevated); flex: none; }

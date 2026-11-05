@@ -45,6 +45,8 @@ computed in the browser - so what shipped is what a reader can diff.
 
 from __future__ import annotations
 
+import math
+
 import re
 from datetime import date
 
@@ -180,6 +182,26 @@ def _scored_categories(detail: dict) -> list[str]:
     return [c for c in CATEGORIES if _num(cats.get(c)) is not None]
 
 
+def _share_text(share: float, rank: int, n: int) -> str:
+    """The share of the other stocks this one is ahead of, as printed.
+
+    Whole percent, except where whole percent would state an extreme that is not true: the 3rd of
+    499 is ahead of 99.6%, and "ahead of 100%" reads as first (it printed exactly that for the 2nd
+    to the 3rd stock every run until 2026-11-05). So a share that is not 100 or 0 but rounds to one
+    takes a decimal, and if a decimal still rounds to the extreme it is cut toward the true side.
+    The page's near-zero rule for percentages (`pctNearZero`), applied at both ends.
+    """
+    whole = f"{share:.0f}"
+    if (whole == "100" and rank > 1) or (whole == "0" and rank < n):
+        one = f"{share:.1f}"
+        if one == "100.0":
+            one = f"{math.floor(share * 10) / 10:.1f}"
+        elif one == "0.0":
+            one = f"{math.ceil(share * 10) / 10:.1f}"
+        return one
+    return whole
+
+
 def _sentence_rank(detail: dict, universe_size: int) -> str | None:
     """Rank, the share of the universe it beats, and what the composite is.
 
@@ -224,7 +246,7 @@ def _sentence_rank(detail: dict, universe_size: int) -> str | None:
         # them, the last beats none. Both operands are on screen, so a reader
         # can check the division.
         share = (n - rank) / (n - 1) * 100
-        sentence += f", ahead of {share:.0f}% of the other {n - 1} stocks"
+        sentence += f", ahead of {_share_text(share, rank, n)}% of the other {n - 1} stocks"
     n_cats = len(_scored_categories(detail))
     cat_phrase = (
         f"its {n_cats} category scores" if n_cats else "its category scores"

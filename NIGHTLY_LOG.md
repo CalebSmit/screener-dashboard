@@ -19498,3 +19498,63 @@ Payload byte-identical (`scripts/rebuild_page.py`).
   range, but its "Last quarter" column is an EPS surprise, not a price reaction, so there is no honest
   pairing to draw yet); the Diagnostics correlation shading is by magnitude only, which is the right
   question there (independence), so it was left.
+
+## 2026-11-05 (owner-run, midday) - "professional and expensive": nothing cut short, no holes, one false 100%
+
+**Health (rule 8):** unchanged from this morning's owner-run entries (code session shipped
+`good/2026-11-05`; data loop PASS; `1m` evidence **44 rows, newest 2026-10-05, 5 effective**;
+`allow_auto_apply` false; top open item **0.13, The Factor Lab, 24 days**).
+
+**Owner request:** *"keep finding improvements with the presentation and front end please. Make
+sure it is looking professional and expensive."*
+
+### The audit (measured, the generator's page on the published payloads)
+
+At 1440, 1280, 1100, 1000 and 375px: every leaf element whose text is wider than its box, the type
+sizes in use, the corner radii, and digits not set in tabular figures. Radii were already a clean
+two-level system (14px sections, 8px cards inside). What read as unfinished was text cut short and
+an empty grid slot:
+
+- **leaders, 761-1100px:** three cards and two with an empty slot;
+- **leaders, 1280px:** "Valero Energy Cor...", "Marathon Petroleum Cor...", "Micron Technolog...";
+- **trap rate by sector:** five sector names cut ("Consumer Discr...") at every desktop width, and
+  below ~1240px the sector table scrolled sideways inside its panel;
+- **Market, phone:** three sector names cut in the rate chart.
+
+**And one false statement found by reading a sheet:** Expedia, ranked 3rd of 499, said *"ahead of
+100% of the other 498 stocks"*. 496/498 is 99.6%; whole-percent rounding turned it into "100%",
+which reads as first. Ranks 2 and 3 have printed that every run.
+
+### Did
+
+- **Leaders:** a 6-column grid from 761 to 1100px (three cards, then two sharing the row); the
+  company name wraps to two lines and every card keeps two lines' height, so the five sets of bars
+  start level (measured: one top value).
+- **Trap rate by sector:** name and figure on one line, the bar beneath at full width; below 1240px
+  the sector table and the trap bars stack at full width, the bars in two columns.
+- **Market rate chart on a phone:** the same stacked row.
+- **Tabular figures** on the mover lines, KPI sub-lines, chart reference labels and the
+  diagnostics badges.
+- **`stock_summary._share_text`:** whole percent, except a share that is not 100 or 0 but rounds
+  to one takes a decimal (99.8%, 99.6%; 0.2% for the second-last), cut toward the truth if one
+  decimal still rounds to the extreme. The page's near-zero rule, applied at both ends. Claim
+  `summary.rank` updated; `tests/test_claims_register.py::test_rank_share_is_exact_for_every_published_stock`
+  now checks the decimal case and refuses an untrue extreme; 8 hand-worked edges in
+  `tests/test_stock_summary.py`. **This sentence is baked at run time, so the live page shows it
+  after the 02:00 run.**
+- `tests/test_layout_polish.py` (8 browser tests, geometry only): **7 of 8 fail on the page as it
+  was this morning**, all pass now.
+
+Payload byte-identical (`scripts/rebuild_page.py`).
+
+### Methodology changed
+
+- **None.** The rank-share fix changes how one figure is printed, not how anything is computed.
+
+### Next
+
+- The page uses **21 font sizes**, five of them half-pixel steps (10.5, 11.5, 12.5, 13.5, 14.5). A
+  tighter type scale would look more deliberate; it touches most of the CSS, so it wants a session
+  of its own with before/after screenshots of every surface.
+- On a phone, long company names on the What changed mover lines end in an ellipsis; the ticker is
+  beside them, so it was left.

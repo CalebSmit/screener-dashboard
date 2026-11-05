@@ -236,6 +236,21 @@ def test_rank_share_is_derived_from_the_rank_not_the_composite():
     assert "ahead of 0% of the other 501 stocks" in last
 
 
+@pytest.mark.parametrize("rank, n, want", [
+    (1, 499, "100"),      # first is ahead of every other stock
+    (2, 499, "99.8"),     # 497/498: whole percent would say 100, which reads as first
+    (3, 499, "99.6"),     # the 2026-11-05 case on the live page (EXPE)
+    (4, 499, "99"),       # 495/498 = 99.4: whole percent is already true
+    (498, 499, "0.2"),    # one stock behind it: not "ahead of 0%"
+    (499, 499, "0"),      # last is ahead of none
+    (2, 5000, "99.9"),    # 4998/4999 = 99.98: one decimal still says 100.0, so cut toward the truth
+    (4999, 5000, "0.1"),  # 1/4999 = 0.02: one decimal says 0.0, so lift it
+])
+def test_the_rank_share_never_prints_an_extreme_that_is_not_true(rank, n, want):
+    fact = _fact(_build(_detail(rank=rank, composite=50.0), universe_size=n), "rank")
+    assert f"ahead of {want}% of the other {n - 1} stocks" in fact
+
+
 def test_category_count_in_the_rank_sentence_is_this_stocks_own_count():
     """Measured 2026-10-07: 500 of 502 stocks have eight scored categories, one
     has six and one has five (FDXF, PSKY - both sparse financials). A

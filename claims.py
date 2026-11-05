@@ -123,7 +123,9 @@ CLAIMS: tuple[Claim, ...] = (
         surface=SUMMARY,
         asserts=(
             "The stock's rank, the share of the *other* stocks it is ahead of as "
-            "(N - rank) / (N - 1), and that the composite is a 0-100 score built "
+            "(N - rank) / (N - 1) - in whole percent, with one decimal where whole percent would "
+            "print 100 or 0 and that is not true (the 3rd of 499 is ahead of 99.6%, not 100%) - "
+            "and that the composite is a 0-100 score built "
             "from this stock's own category scores and their weights - explicitly "
             "NOT a percentile."
         ),
@@ -131,6 +133,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_stock_summary.py::test_composite_is_not_described_as_a_percentile",
             "tests/test_stock_summary.py::test_rank_share_is_derived_from_the_rank_not_the_composite",
+            "tests/test_stock_summary.py::test_the_rank_share_never_prints_an_extreme_that_is_not_true",
             "tests/test_stock_summary.py::test_category_count_in_the_rank_sentence_is_this_stocks_own_count",
             "tests/test_claims_register.py::test_rank_share_is_exact_for_every_published_stock",
         ),
