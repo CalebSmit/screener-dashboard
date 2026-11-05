@@ -277,6 +277,15 @@ try {
     Write-Log "Running: python $($args -join ' ')  (expect this to take a while)"
 
     $run = Invoke-Native 'python' $args
+    # The whole output, beside this log (2026-11-04). The log keeps only the last 25 lines, so the
+    # fetch's batch-by-batch account - where Yahoo's rate limit first hit, how far the adaptive
+    # throttle backed off - was thrown away every morning while the brief reported 39-51 tickers
+    # rate-limited on every 02:00 run since 2026-10-27. A crash's traceback above line 25 went the
+    # same way. Pruned with this log (scripts/prune_artifacts.py); never fatal.
+    $screenerOut = $LogFile -replace '\.log$', '.screener.txt'
+    try { Set-Content -Path $screenerOut -Value $run.Text -Encoding utf8 -ErrorAction Stop
+          Write-Log "Screener output saved: $screenerOut" }
+    catch { Write-Log "Could not save the screener output to $screenerOut ($($_.Exception.Message))" 'WARN' }
     foreach ($line in ($run.Output | Select-Object -Last 25)) {
         if ($line -and $line.Trim()) { Write-Log "    $($line.Trim())" }
     }

@@ -1554,6 +1554,28 @@ def should_write_score_cache(args) -> bool:
     return not getattr(args, "tickers", None)
 
 
+def rate_limit_detail(tickers: list, raw: list[dict]) -> dict:
+    """Where in the fetch Yahoo's rate limit hit, for ``meta.json`` (2026-11-04). Provenance only.
+
+    Every 02:00 run since phase timing began (2026-10-27) recorded 39-51 tickers rate-limited and a
+    ~130 s retry pass, and nothing recorded *when* in the pass the limit arrived or what Yahoo said -
+    so whether it is a request budget exhausted part-way (a pacing question) or a burst at the start
+    (a cold-session question) could not be told apart. Positions are 0-based in the requested order,
+    which is the batch order; the error text is the fetch's own, cut to 120 characters.
+    """
+    order = {t: i for i, t in enumerate(tickers)}
+    hit = sorted((order.get(r.get("Ticker"), -1), r.get("Ticker"), str(r.get("_error") or "")[:120])
+                 for r in raw if r.get("_rate_limited"))
+    if not hit:
+        return {}
+    errors: dict[str, int] = {}
+    for _, _, e in hit:
+        errors[e] = errors.get(e, 0) + 1
+    return {"rate_limited_positions": [p for p, _, _ in hit],
+            "rate_limited_tickers": [t for _, t, _ in hit],
+            "rate_limit_errors": dict(sorted(errors.items(), key=lambda kv: -kv[1])[:5])}
+
+
 def run_factor_engine(cfg, args, ctx=None):
     """Run the complete factor scoring pipeline. Returns (scored_df, stats_dict)."""
     pipeline_log = _init_pipeline_logger()
@@ -1774,7 +1796,8 @@ def run_factor_engine(cfg, args, ctx=None):
                     batch_size=fetch_cfg.get("batch_size", 30),
                     inter_batch_delay=fetch_cfg.get("inter_batch_delay", 3.0),
                     sum_ticker_seconds=round(sum(r.get("_fetch_time_ms", 0) or 0 for r in raw) / 1000, 1),
-                    rate_limited=sum(1 for r in raw if r.get("_rate_limited")))
+                    rate_limited=sum(1 for r in raw if r.get("_rate_limited")),
+                    **rate_limit_detail(tickers, raw))
 
         # ---- Retry pass: re-fetch failed tickers with conservative settings ----
         if fetch_cfg.get("retry_failed", True):

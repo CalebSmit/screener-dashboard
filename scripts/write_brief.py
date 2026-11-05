@@ -75,6 +75,37 @@ STOPPED = ("Run discarded",)
 # Called "stopped deliberately" until 2026-11-04, which read as the session choosing to stop and
 # did not say where the work was.
 GATES_FAILED = ("SHIP GATES FAILED:",)
+# The runner lists a refused session's commits under this line, newest first, one indented
+# "<sha> <subject>" message each (nightly-screener.ps1, before the gate verdict).
+NEW_COMMITS = re.compile(r"^\d+ new commit\(s\) since main was at [0-9a-f]+$")
+COMMIT_LINE = re.compile(r"^\s+([0-9a-f]{7,40}) ")
+
+
+def held_work_landed(lines: list[str]) -> bool:
+    """Whether the newest commit a gate-refused session made is now on ``origin/main``.
+
+    Added 2026-11-04. That morning the 06:00 session's work was refused by a gate failure that never
+    reproduced, an owner-run session merged it after re-running all five gates, and the 13:00
+    session's health line still said "held back by its gates" - so that session spent its opening
+    looking for a branch to merge that was already on main. The log is history and cannot change; the
+    answer has to come from where the work is now. False whenever it cannot be shown - no commit
+    listed, or a sha git does not know - so the warning is never softened on a guess.
+    """
+    msgs = messages(lines)
+    for i, m in enumerate(msgs):
+        if NEW_COMMITS.match(m) and i + 1 < len(msgs):
+            sha = COMMIT_LINE.match(msgs[i + 1])
+            if not sha:
+                return False
+            try:
+                return subprocess.run(
+                    ["git", "merge-base", "--is-ancestor", sha.group(1), "origin/main"],
+                    cwd=ROOT, capture_output=True, timeout=30).returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                return False
+    return False
+
+
 # Written from the runner's `finally`, after everything else: a log without it is still running.
 FINISHED = ("Writing morning brief",)
 
@@ -130,6 +161,8 @@ def outcome(lines: list[str]) -> tuple[str, list[str]]:
     if said(lines, *NO_CHANGES):
         return "completed, nothing to change", notable
     if said(lines, *GATES_FAILED):
+        if held_work_landed(lines):
+            return "held back by its gates, and that work has since reached main", notable
         return "held back by its gates (work kept on its branch, not on main)", notable
     if said(lines, *STOPPED):
         return "stopped deliberately", notable

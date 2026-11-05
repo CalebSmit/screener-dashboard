@@ -165,3 +165,22 @@ def test_module_has_no_scoring_imports():
     imported |= {n.module.split(".")[0] for n in ast.walk(ast.parse(src))
                  if isinstance(n, ast.ImportFrom) and n.module}
     assert imported <= {"__future__", "time", "typing"}, imported
+
+
+def test_the_fetch_records_where_the_rate_limit_hit_and_what_it_said():
+    """2026-11-04: every 02:00 run since 2026-10-27 counted 39-51 tickers rate-limited, and nothing
+    said when in the pass it happened or what Yahoo returned - the count alone cannot tell a request
+    budget exhausted part-way from a burst at the start. Positions are in the requested order."""
+    import run_screener
+    tickers = ["A", "B", "C", "D", "E"]
+    raw = [{"Ticker": "C", "_error": "Too Many Requests. Rate limited.", "_rate_limited": True},
+           {"Ticker": "A"},
+           {"Ticker": "E", "_error": "Too Many Requests. Rate limited.", "_rate_limited": True},
+           {"Ticker": "B", "_error": "404 not found", "_non_retryable": True},
+           {"Ticker": "D", "_error": "x" * 300, "_rate_limited": True}]
+    d = run_screener.rate_limit_detail(tickers, raw)
+    assert d["rate_limited_positions"] == [2, 3, 4]
+    assert d["rate_limited_tickers"] == ["C", "D", "E"]
+    assert d["rate_limit_errors"] == {"Too Many Requests. Rate limited.": 2, "x" * 120: 1}
+    assert run_screener.rate_limit_detail(tickers, [{"Ticker": "A"}]) == {}, \
+        "a clean fetch adds nothing to meta.json"

@@ -250,3 +250,34 @@ def test_no_held_back_work_adds_nothing_and_an_unreadable_repo_is_none():
     def boom(args):
         raise OSError("git missing")
     assert hn.held_back(boom) == []
+
+
+def test_a_refused_session_whose_work_reached_main_is_not_reported_as_held_back(tmp_path, monkeypatch):
+    """2026-11-04: an owner-run session merged the 06:00 session's refused work after re-running
+    every gate, and the 13:00 health line still read "held back by its gates" - so that session
+    began by hunting for a branch that was already on main. The verdict now asks git where the
+    newest listed commit is; a sha git cannot place keeps the warning."""
+    origin, clone = tmp_path / "origin.git", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, capture_output=True)
+    for k, v in (("user.email", "t@example.invalid"), ("user.name", "t")):
+        _git(clone, "config", k, v)
+    _git(clone, "commit", "-q", "--allow-empty", "-m", "base")
+    _git(clone, "commit", "-q", "--allow-empty", "-m", "Investment stays standalone")
+    landed = subprocess.run(["git", "rev-parse", "--short=7", "HEAD"], cwd=clone,
+                            capture_output=True, text=True, check=True).stdout.strip()
+    _git(clone, "push", "-q", "origin", "main")
+    _git(clone, "fetch", "-q", "origin")
+    monkeypatch.setattr(hn.wb, "ROOT", clone)
+
+    def log(sha):
+        return ["[06:56:25] [INFO] 1 new commit(s) since main was at b876aa4d",
+                f"[06:56:25] [INFO]     {sha} Investment stays standalone",
+                "[06:56:25] [ERROR] SHIP GATES FAILED: publish-rehearsal. Not merging.",
+                "[06:56:27] [INFO] Writing morning brief..."]
+
+    assert hn.wb.outcome(log(landed))[0] == "held back by its gates, and that work has since reached main"
+    unknown = "0123abc" if landed != "0123abc" else "0123abd"
+    assert hn.wb.outcome(log(unknown))[0] == "held back by its gates (work kept on its branch, not on main)"
+    # An echoed commit subject is never read as the listing: only the runner's own count line opens it.
+    assert not hn.wb.held_work_landed([f"[06:56:25] [INFO]     {landed} 1 new commit(s) since main was at b"])

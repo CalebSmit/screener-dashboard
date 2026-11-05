@@ -208,3 +208,33 @@ class TestSafety:
         assert marker.exists(), "the once-per-day success marker was deleted"
         assert lock.exists(), "the lock file was deleted"
         assert len(list(logs.glob("datarun-*.log"))) == 2
+
+
+def test_keep_counts_runs_and_a_runs_sidecars_follow_its_log(tmp_path, monkeypatch):
+    """2026-11-04: ``keep`` counted files, so each new kind of file a run leaves beside its log (a
+    transcript, a saved gate output, the screener's full output) shortened the history kept, and
+    could delete a run's saved gate output while the log that points at it survived. Now ``keep``
+    counts ``.log`` files and every ``<stem>.*`` lives and dies with its log."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    monkeypatch.setattr(prune, "LOGS", logs)
+
+    def put(name, t):
+        f = logs / name
+        f.write_text("x", encoding="utf-8")
+        os.utime(f, (t, t))
+        return f
+
+    for i in range(4):  # four runs, oldest first, each with sidecars
+        stem = f"nightly-2026-11-0{i + 1}_060000"
+        put(f"{stem}.log", 1_000 + 10 * i)
+        put(f"{stem}.json", 1_001 + 10 * i)
+        put(f"{stem}.gate5.txt", 1_002 + 10 * i)
+    put("datarun-2026-10-01_020000.screener.txt", 500)    # an orphan, older than every kept log
+    fresh = put("datarun-2026-11-05_020000.screener.txt", 2_000)  # a run still writing, no log yet
+
+    n, _ = prune.prune_logs(keep=2, dry=False)
+    left = sorted(f.name for f in logs.iterdir())
+    assert left == sorted([fresh.name] + [f"nightly-2026-11-0{i}_060000{s}"
+                                          for i in (3, 4) for s in (".log", ".json", ".gate5.txt")])
+    assert n == 7  # two runs x three files, and the old orphan

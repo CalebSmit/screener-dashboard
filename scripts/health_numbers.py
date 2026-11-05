@@ -69,7 +69,8 @@ def last_code_session() -> str:
             why = marker.group(1).strip()
             return f"**no** - `logs/{path.name}`: SESSION DID NOT RUN ({why[:140]})"
         state, _ = wb.outcome(lines)
-        if state.startswith("completed"):
+        # A refused session whose work has since reached main ran and its work landed: not an alarm.
+        if state.startswith("completed") or state.endswith("has since reached main"):
             return f"yes - `logs/{path.name}` ({state})"
         # Say why it stopped: "failed" alone sent a reader to the log for the one fact that matters.
         errors = [m.group(1) for m in map(RUNNER_ERROR.search, lines) if m]

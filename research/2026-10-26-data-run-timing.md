@@ -353,3 +353,43 @@ boundary on both runs: **1,075.1 s on 2026-10-26, 906.3 s on 2026-10-27 - 169 s,
 with the shortfall explained by the fetch phase running long and retrying.
 `context.options_pass` is **1.0 s**, against the 178 s section 4.3 removed, so that skip landed
 exactly as claimed.
+
+### 8.7 The distinguishing night happened, and the throttle is the pass's own (2026-11-04, owner-run)
+
+Section 8.5 named what would separate "a rolling request budget left over from an earlier run" from
+"the pass rate-limits itself": *a second rate-limited 02:00 run on a night with no preceding owner
+session.* It has happened. Every 02:00 run since phase timing began, from `meta.json`
+`phase_detail.fetch.tickers.rate_limited` and `fetch.retry`:
+
+| run | rate-limited | retry pass |
+|---|---:|---:|
+| 2026-10-27 | 39 | 125 s |
+| 2026-10-28 | 44 | 144 s |
+| 2026-10-29 | 45 | 140 s |
+| 2026-10-30 | 42 | 140 s |
+| **2026-11-02** | **45** | 138 s |
+| 2026-11-03 | 51 | 155 s |
+| 2026-11-04 | 40 | 128 s |
+
+**2026-11-02 is the control.** `runs/` holds no folder of any kind - full, subset or dry - between
+the 2026-10-30 02:00 run and that one, so no screener fetch ran on this machine for **72 hours**
+before it; no owner-run session is logged for 10-30, 10-31 or 11-01; and the option-quote task runs
+weekdays only, so its last Yahoo pass was Friday 20:00, **54 hours** earlier. It was rate-limited for
+45 tickers, inside the range of every other night. So the leftover-budget reading is refuted for
+the 02:00 slot: **the pass rate-limits itself**, at the request rate its own settings produce, every
+night, and the retry pass recovers every ticker (503 of 503 fetched on each of the seven runs).
+
+What this does **not** license is a change to the settings. Two numbers are still missing: *where*
+in the pass the limit arrives, and *what* Yahoo answers. A budget exhausted part-way through says
+"pace the whole pass"; a burst at the start says "warm up"; and the adaptive throttle
+(`factor_engine.fetch_all_tickers`: on any rate-limited batch, pause 30/60/120 s, drop a worker,
+add 2 s between batches, never recover) behaves very differently under the two. Both are recorded
+from tonight's run onwards: `phase_detail.fetch.tickers.rate_limited_positions` / `_tickers` /
+`rate_limit_errors` (`run_screener.rate_limit_detail`), and the screener's whole output - every
+`Batch i/17 [workers=, delay=]` and `Rate limit detected - pausing` line - in
+`logs/datarun-<stamp>.screener.txt` beside the data loop's log, which until now kept the last 25
+lines. **Read a week of both before proposing a change**, and remember what the change would be
+worth at most: the gap between `fetch.tickers` (~650 s) and `sum_ticker_seconds / workers`
+(~340 s), plus the ~140 s retry pass - roughly 7 of the run's 18 minutes. Any change to
+`factor_engine.py` stales every research-engine ledger row (`v2_experiments.RESULT_PATHS`); budget
+the ~20-minute rerun.

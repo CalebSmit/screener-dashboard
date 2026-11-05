@@ -177,15 +177,33 @@ def prune_runs(keep: int, dry: bool, now: float | None = None) -> tuple[int, int
     return len(doomed), freed
 
 
+def _log_stem(f: Path) -> str:
+    """``nightly-2026-11-04_060000`` for that run's ``.log``, ``.json`` and ``.gate5.txt`` alike."""
+    return f.name.split(".", 1)[0]
+
+
 def prune_logs(keep: int, dry: bool) -> tuple[int, int]:
     if not LOGS.exists():
         return 0, 0
     # Only the timestamped run logs. Lock files and success markers are state,
     # not history, and are managed by the runners themselves.
+    #
+    # ``keep`` counts *runs* - one ``.log`` each - and every other file a run left beside its log
+    # (``<stem>.json`` transcript, ``<stem>.gate1.txt`` / ``.gate5.txt``, ``<stem>.screener.txt``)
+    # lives and dies with that log (2026-11-04). Counting every file instead meant each new kind of
+    # sidecar silently shortened how many runs of history were kept, and could prune a run's saved
+    # gate output while its log - the file that points at it - survived.
     files = [f for f in LOGS.iterdir()
              if f.is_file() and (f.name.startswith(("datarun-", "nightly-")))]
-    files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-    doomed = files[keep:]
+    logs = sorted((f for f in files if f.suffix == ".log"), key=lambda f: f.stat().st_mtime, reverse=True)
+    kept = {_log_stem(f) for f in logs[:keep]}
+    oldest_kept = min((f.stat().st_mtime for f in logs[:keep]), default=float("inf"))
+    # A sidecar with no log of its own (a run that died before writing one) is kept while it is
+    # newer than the oldest kept log, so a run in progress is never pruned out from under itself.
+    with_log = {_log_stem(f) for f in logs}
+    doomed = [f for f in files
+              if _log_stem(f) not in kept
+              and (_log_stem(f) in with_log or f.stat().st_mtime < oldest_kept)]
     freed = 0
     for f in doomed:
         freed += f.stat().st_size
