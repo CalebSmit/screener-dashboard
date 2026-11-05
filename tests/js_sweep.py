@@ -322,10 +322,14 @@ NUMBER_HELPERS = frozenset({
     # classification test could not see that, because the name does not have a `fmt`/`cX` shape.
     # `pct[A-Z]` is in FORMATTER_SHAPE now, so the next one must be classified.
     "pctNearZero", "pctPlain",
+    # the Market panel's level at any point and its thresholds (2026-11-05)
+    "mkAt", "mkCut",
 })
 # a called name of these shapes must be in one of the two lists above
 FORMATTER_SHAPE = re.compile(r"^(?:fmt|c[A-Z]|mk[A-Z]|pct[A-Z])")
-NOT_NUMBER_HELPERS = frozenset({"fmtD", "fmtDate", "fmtTime", "prettyDate", "cDate"})
+# mkG is geometry (a CSS offset, never printed); mkDay/mkMonth are dates; mkChart/mkGauge build markup
+NOT_NUMBER_HELPERS = frozenset({"fmtD", "fmtDate", "fmtTime", "prettyDate", "cDate",
+                                "mkG", "mkDay", "mkMonth", "mkChart", "mkGauge"})
 _NUMBER_WORDS = frozenset({"toFixed", "toPrecision", "toLocaleString", "length", "Math"})
 
 

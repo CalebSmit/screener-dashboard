@@ -1792,7 +1792,10 @@ CLAIMS: tuple[Claim, ...] = (
             "the last value on or before 30 and 365 days earlier; its percentile of the last ten "
             "years as the share of readings below today's plus half of those equal to it; inflation "
             "as the change in the CPI index over twelve monthly readings; and the VIX against its "
-            "ten-year median."
+            "ten-year median. The card's range bar runs from the ten-year low to the ten-year high with "
+            "today's marker at that percentile, so its middle is the median (2026-11-05). Each reading's "
+            "gauge lights the zone its word names, from the same table that chose the word "
+            "(market_context.READING_BANDS), with today's value inside that zone."
         ),
         made_true_by="market_context:summarise",
         checked_by=(
@@ -1803,6 +1806,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_context_layer_claims.py::test_the_ten_year_percentile_counts_half_of_ties",
             "tests/test_context_layer_claims.py::test_changes_are_against_the_last_value_30_and_365_days_back",
             "tests/test_context_layer_claims.py::test_the_vix_reading_quotes_the_ten_year_median",
+            "tests/test_market_backdrop_visuals.py::test_every_series_with_a_history_is_charted_and_its_range_marker_is_its_own_percentile",
+            "tests/test_market_backdrop_visuals.py::test_each_gauge_lights_the_zone_its_reading_names_and_today_sits_inside_it",
+            "tests/test_market_backdrop_visuals.py::test_readings_take_their_word_from_the_band_table",
         ),
     ),
     Claim(

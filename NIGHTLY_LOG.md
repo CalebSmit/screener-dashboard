@@ -19377,3 +19377,68 @@ clearing two decisions; it is this entry's Next.
   that it removes tomorrow's 02:00 run from the clean-control set for the rate-limit record.
 - Keep adding a row to `research/2026-10-26-data-run-timing.md` section 8.8 each morning: position
   range, contiguous or not, the error strings, the batch the first backoff follows. Six more nights.
+
+## 2026-11-05 (owner-run, morning) - "the market backdrop's visuals could do more, explain more"
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-05_060000.log`
+(shipped to main, `good/2026-11-05`). Data loop published? yes - `logs/datarun-2026-11-05_020000.log`
+(Data loop complete; HEALTH: PASS). Evidence base at `1m`: **44 rows, newest run date 2026-10-05,
+5 effective observations** (31 days, bound 40). Priority 0: `allow_auto_apply` **false**. Top open
+roadmap item: **0.13, The Factor Lab**, opened 2026-10-12 - **24 days**.
+
+**Owner request, in his words:** *"work on the ui and ux of the market backdrop dropdown ... it is
+not very informative ... The visuals i mean, the words are good. But the visuals could do more,
+explain more."* Owner-run design work; the standing "nightly sessions do not take on design" rule is
+about the scheduled sessions and is unchanged.
+
+### What the panel showed before (looked at live, 1280px)
+
+Five reading cards that were text plus a state pill; ten series cards each with a 120x34 spark line
+(no axis, no dates, no reference line, no latest point) and a 2px tick on a bare line for the
+ten-year percentile, with no low, high or median shown. Nothing on the page let a reader see *why* a
+reading said "Tight" or "Positive", or how far today was from normal.
+
+### Did
+
+- **A gauge on every reading** (`mkGauge`). The zones that set the reading's word, today's value on
+  them (white line, value above), the ten-year median (tick beneath), the cut values beneath, and
+  the ten-year low and high. The VIX's 2020 high (82.7) would squeeze every zone into a corner, so a
+  long tail is cut past the last cut and the end label says the high is "off this scale". Credit is
+  judged on its percentile, so its gauge runs on the percentile scale. Caution words light amber,
+  the others the accent - colour for meaning, as the state pills already did.
+- **One table for the word and the picture.** The five reading cuts moved out of inline comparisons
+  in `market_context.readings()` into `READING_BANDS` + `band_state()`, and the generator writes the
+  same table into the page (`MK_BANDS`). A test pins the old comparisons at both sides of every edge,
+  so **no published word changed**; another checks the page is built with the table itself.
+- **Real charts on the ten series** (`mkChart`): three years, the ten-year median as a dashed line,
+  zero for the two curve spreads with the inverted part shaded amber (the 2022-24 inversion the
+  curve sentence calls "the open case" is now visible), the 2% goal on CPI, start and end months,
+  the latest point, and a hover/drag tooltip that reads any week off the line.
+- **The ten-year range bar** now prints its low and high at the ends and the median under it; the
+  marker still sits at `pct_10y`, so the middle of the bar is the median - the page says so.
+- **Grouped** the ten cards as Interest rates / Risk appetite / The economy, each with a one-line
+  plain-words description; the sector rate chart now labels its sides.
+- Registered: the range bar and the gauge are in claim `context.macro_series`'s `asserts`, with
+  three checks from the new module, so they run in the 02:00 publish gate. The browser checks assert
+  relationships only (lit zone == the reading's own word, today inside it, marker == its own
+  percentile) - no date, level or state is named (rows "data->red", "clock->red").
+- `tests/js_sweep.py`: classified the new helpers (`mkAt`, `mkCut` number; `mkG` geometry; the rest
+  dates or markup). The register reports no new unchecked computed sentence.
+
+**Verified in a browser** (the worktree's page served locally, both published payloads): desktop at
+1280 and 1024, phone at 375 (no horizontal scroll, `scrollWidth` 375), hover tooltip, no console
+errors. Two defects found by looking and fixed before shipping: today's line struck through the zone
+name it sat in (the name now moves to the other side of its zone), and the median tick inside the
+bar did the same (moved beneath).
+
+**Payload byte-identical** (`scripts/rebuild_page.py`); `index.html`/`dashboard.html` rebuilt.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or published word moved. `market_context`'s cuts were
+  moved, not changed, and a test proves it value by value.
+
+### Next
+
+- Nothing queued from this. If the owner wants more here, the obvious next step is a longer window
+  (the payload carries three years of points; the ten-year range is summarised, not drawn).

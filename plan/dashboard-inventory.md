@@ -316,8 +316,16 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
   in `_js_context()`.
 - **Market Backdrop** (`sec-market`, collapsed) - readings for the yield curve, credit spreads, VIX,
   inflation and the Sahm indicator, each naming its rule or source; ten FRED series with value,
-  1m/1y change, 3-year spark line and 10-year percentile; each sector's median rate sensitivity;
-  three factor notes. Payload `market` (from `data/market_context.json`).
+  1m/1y change and 10-year percentile; each sector's median rate sensitivity; three factor notes.
+  Payload `market` (from `data/market_context.json`). **2026-11-05 (owner request, visuals):** each
+  reading carries a **gauge** (`mkGauge`) - the zones its word comes from, today's value on them and
+  the ten-year median, drawn from `market_context.READING_BANDS`, the same table that chose the word
+  (written into the page at build as `MK_BANDS`; never a second copy of the cuts). The ten series sit
+  in three groups (Interest rates, Risk appetite, The economy) and each card has a **3-year chart**
+  (`mkChart`: area, ten-year median line, zero line with the inverted part shaded for the two curve
+  spreads, the 2% goal for CPI, hover/drag tooltip by week) and a **ten-year range bar** with its low
+  and high at the ends and the median at the middle. The sector rate chart says which side is "falls
+  when yields rise". `tests/test_market_backdrop_visuals.py`.
 - **Track Record** (`sec-track`, collapsed) - the ranking's top 25 vs RSP and SPY since the first
   comparable run, the top fifth vs bottom fifth view (in percentage points), every holding period
   (with a "Traded" one-way turnover column), changelog-entry ticks on the chart, and the caveats.

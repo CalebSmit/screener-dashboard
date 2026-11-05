@@ -10223,6 +10223,7 @@ def _js_context() -> str:
     numbers the run published (``ctx`` per stock, ``D.market``, ``D.track``) and never feeds
     anything back into a score. See plan/context-layer.md.
     """
+    import market_context
     return r"""
     // =====================================================================
     // CONTEXT LAYER (2026-10-08, plan/context-layer.md)
@@ -10488,13 +10489,130 @@ def _js_context() -> str:
     }
 
     // ---- Market backdrop ---------------------------------------------------------
-    function sparkSvg(vals, w, h) {
-        const v = (vals || []).filter(x => x !== null && x !== undefined);
-        if (v.length < 3) return '';
-        const lo = Math.min(...v), hi = Math.max(...v), n = v.length - 1;
-        const X = i => 1 + i / n * (w - 2), Y = x => 2 + (hi - x) / ((hi - lo) || 1) * (h - 4);
-        return '<svg class="mk-spark" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><path d="' + v.map((x, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(x).toFixed(1)).join('') + '"/></svg>';
+    // The cuts that chose each reading's word (market_context.READING_BANDS, written in at build
+    // time), so the gauge drawn behind a reading is the rule that named it, never a copy of it.
+    const MK_BANDS = __MK_BANDS__;
+    const MK_CAUTION = ['inverted', 'wide', 'elevated', 'triggered', 'above target'];
+    const MK_ZERO = { T10Y3M: 1, T10Y2Y: 1 };   // a yield spread: below zero the curve is inverted
+    const MK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const mkG = x => (+x).toFixed(2);   // geometry only: a CSS offset or an SVG coordinate, never a printed figure
+    function mkMonth(d) { const p = String(d || '').split('-'); return p.length < 2 ? '' : MK_MON[+p[1] - 1] + ' ' + p[0]; }
+    function mkDay(d) { const p = String(d || '').split('-'); return p.length < 3 ? String(d || '') : MK_MON[+p[1] - 1] + ' ' + (+p[2]) + ', ' + p[0]; }
+    function mkAt(sr, v) { return mkVal({ unit: sr.unit, last: v }).replace(/^-/, '−'); }   // a level at any point, with a true minus
+    // A threshold as the reader would say it: 0.5pp, 15, 2.5%, 67th pct.
+    function mkCut(sr, onPct, t) { return onPct ? mkOrd(t) + ' pct' : (+t) + (sr && sr.unit === '%' ? '%' : (!sr || sr.unit === 'pp') ? 'pp' : ''); }
+    // A reading's gauge: the zones its word comes from, today's value on them, and the ten-year
+    // median where the series has one. Credit is judged on its ten-year percentile, so its gauge
+    // runs on that scale; the others run on the value itself.
+    function mkGauge(r, M) {
+        const b = MK_BANDS[r.k];
+        if (!b) return '';
+        const sr = b.series ? (M.series || {})[b.series] : null;
+        const onPct = b.read === 'pct_10y';
+        const x = b.read === 'sahm' ? M.sahm : (sr ? sr[b.read] : null);
+        if (typeof x !== 'number' || !isFinite(x)) return '';
+        const cuts = b.cuts.map(c => c[0]), last = cuts[cuts.length - 1];
+        const has10 = !!sr && typeof sr.min_10y === 'number' && typeof sr.max_10y === 'number';
+        let lo = 0, hi = 100, capped = false;
+        if (!onPct) {
+            lo = Math.min(has10 ? sr.min_10y : x, cuts[0], x);
+            hi = Math.max(has10 ? sr.max_10y : x, last, x);
+            if (b.read === 'sahm') { lo = Math.min(lo, -0.25); hi = Math.max(hi, 1); }
+            // A long tail (the VIX's 2020 spike) would squeeze every zone into a corner: stop the
+            // scale past the last cut and say where the ten-year high was instead.
+            if (hi - lo > 4 * (last - lo)) { capped = true; hi = Math.max(last + (last - lo) / 2, x * 1.1); }
+        }
+        const P = v => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100));
+        const edges = [lo].concat(cuts, [hi]);
+        const xp = P(x);
+        // A zone's name moves to the side of it that today's line is not on, so the line never strikes through it.
+        const zones = b.states.map((st, i) => {
+            const a = P(edges[i]), w = P(edges[i + 1]) - a, on = st === r.state;
+            const side = xp >= a && xp <= a + w ? ((xp - a) / (w || 1) < 0.5 ? ' tr' : ' tl') : '';
+            return '<span class="mk-z' + (on ? (MK_CAUTION.includes(st) ? ' on warn' : ' on') : '') + side + '" style="left:' + mkG(a) + '%;width:' + mkG(w) + '%" title="' + escapeHtml(st) + '">' +
+                (on || w >= 2 * st.length + 3 ? escapeHtml(st) : '') + '</span>';
+        }).join('');
+        const shown = b.read === 'sahm' ? mkChg({ unit: 'pp', s: x }, 's') : mkAt(sr, sr.last);
+        let over = '<em class="mk-g-now' + (xp < 10 ? ' l' : xp > 90 ? ' r' : '') + '" style="left:' + mkG(xp) + '%">' + shown + '</em>';
+        let ticks = '';
+        if (sr && typeof sr.median_10y === 'number') {
+            const mp = onPct ? 50 : P(sr.median_10y);
+            if (onPct || (sr.median_10y >= lo && sr.median_10y <= hi)) ticks += '<i class="mk-g-med" style="left:' + mkG(mp) + '%" title="Ten-year median: ' + mkAt(sr, sr.median_10y) + '"></i>';
+        }
+        (b.marks || []).forEach(m => {
+            const mp = P(m[0]);
+            ticks += '<i class="mk-g-ref" style="left:' + mkG(mp) + '%" title="' + escapeHtml(m[1]) + '"></i>';
+            if (Math.abs(mp - xp) >= 18) over += '<em class="mk-g-goal" style="left:' + mkG(mp) + '%">' + escapeHtml(m[1]) + '</em>';
+        });
+        const cutRow = '<div class="mk-g-cuts">' + cuts.map(t => '<span style="left:' + mkG(P(t)) + '%">' + mkCut(sr, onPct, t) + '</span>').join('') + '</div>';
+        const ends = has10 ? '<div class="mk-g-ends"><span>10-yr low ' + mkAt(sr, sr.min_10y) + '</span><span>10-yr high ' + mkAt(sr, sr.max_10y) + (capped ? ', off this scale &rarr;' : '') + '</span></div>' : '';
+        return '<div class="mk-gauge" role="img" aria-label="' + escapeHtml(r.title + ': ' + r.state) + '"><div class="mk-g-bar">' + zones + ticks +
+            '<i class="mk-g-x" style="left:' + mkG(xp) + '%"></i>' + over + '</div>' + cutRow + ends + '</div>';
     }
+    // A series' last three years, with the lines that give its level a meaning: the ten-year
+    // median, zero for a yield spread, and any reference its reading names (the 2% goal).
+    function mkChart(k, sr) {
+        const v = sr.spark || [], d = sr.spark_d || [], n = v.length - 1;
+        const pts = v.map((y, i) => [i, y]).filter(q => typeof q[1] === 'number' && isFinite(q[1]));
+        if (pts.length < 3 || n < 2) return '';
+        const refs = [];
+        if (typeof sr.median_10y === 'number') refs.push({ y: sr.median_10y, cls: 'med', t: '10-yr median ' + mkAt(sr, sr.median_10y) });
+        if (MK_ZERO[k]) refs.push({ y: 0, cls: 'zero', t: 'Inverted below 0' });
+        Object.keys(MK_BANDS).forEach(key => { if (MK_BANDS[key].series === k) (MK_BANDS[key].marks || []).forEach(m => refs.push({ y: m[0], cls: 'goal', t: m[1] })); });
+        const ys = pts.map(q => q[1]).concat(refs.map(q => q.y));
+        let lo = Math.min(...ys), hi = Math.max(...ys);
+        const pad = (hi - lo) * 0.12 || 1; lo -= pad; hi += pad;
+        const X = i => i / n * 100, Y = y => (hi - y) / (hi - lo) * 100;
+        const line = pts.map((q, j) => (j ? 'L' : 'M') + mkG(X(q[0])) + ' ' + mkG(Y(q[1]))).join('');
+        const base = MK_ZERO[k] ? Y(0) : 100;
+        const area = line + 'L' + mkG(X(pts[pts.length - 1][0])) + ' ' + mkG(base) + 'L' + mkG(X(pts[0][0])) + ' ' + mkG(base) + 'Z';
+        let svg = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">';
+        if (MK_ZERO[k]) {
+            svg += '<defs><clipPath id="mkc-' + k + '-u"><rect x="0" y="-5" width="100" height="' + mkG(base + 5) + '"/></clipPath><clipPath id="mkc-' + k + '-d"><rect x="0" y="' + mkG(base) + '" width="100" height="' + mkG(105 - base) + '"/></clipPath></defs>' +
+                '<path class="mk-area" clip-path="url(#mkc-' + k + '-u)" d="' + area + '"/><path class="mk-area neg" clip-path="url(#mkc-' + k + '-d)" d="' + area + '"/>';
+        } else svg += '<path class="mk-area" d="' + area + '"/>';
+        refs.forEach(q => { svg += '<line class="mk-ref ' + q.cls + '" x1="0" x2="100" y1="' + mkG(Y(q.y)) + '" y2="' + mkG(Y(q.y)) + '" vector-effect="non-scaling-stroke"/>'; });
+        svg += '<path class="mk-line" d="' + line + '" vector-effect="non-scaling-stroke"/></svg>';
+        // Labels sit just above their line; one that would collide with the label before it drops below its line.
+        let labels = '', prev = null;
+        refs.slice().sort((a, b) => Y(a.y) - Y(b.y)).forEach(q => {
+            const t = Y(q.y), below = prev !== null && t - prev < 16;
+            labels += '<span class="mk-ref-l ' + q.cls + (below ? ' below' : '') + '" style="top:' + mkG(t) + '%">' + q.t + '</span>';
+            prev = t;
+        });
+        const lp = pts[pts.length - 1];
+        return '<div class="mk-ch" data-k="' + escapeHtml(k) + '" data-lo="' + lo + '" data-hi="' + hi + '">' + svg + labels +
+            '<i class="mk-dot" style="left:' + mkG(X(lp[0])) + '%;top:' + mkG(Y(lp[1])) + '%"></i><i class="mk-guide"></i><i class="mk-hdot"></i><span class="mk-tip"></span></div>' +
+            '<div class="mk-ax"><span>' + mkMonth(d[0]) + '</span><span>3 years, ' + (sr.freq === 'monthly' ? 'monthly' : 'weekly') + '</span><span>' + mkMonth(d[n]) + '</span></div>';
+    }
+    // Hover (or drag on a phone) to read any week off a chart.
+    function mkHover(e) {
+        const host = e.currentTarget, el = e.target && e.target.closest ? e.target.closest('.mk-ch') : null;
+        host.querySelectorAll('.mk-ch.hov').forEach(x => { if (x !== el) x.classList.remove('hov'); });
+        if (!el) return;
+        const sr = ((D.market || {}).series || {})[el.dataset.k];
+        if (!sr) return;
+        const v = sr.spark || [], d = sr.spark_d || [], n = v.length - 1;
+        const rc = el.getBoundingClientRect();
+        let i = Math.round(Math.max(0, Math.min(1, (e.clientX - rc.left) / rc.width)) * n);
+        while (i > 0 && typeof v[i] !== 'number') i--;
+        if (typeof v[i] !== 'number') return;
+        const lo = +el.dataset.lo, hi = +el.dataset.hi, xp = i / n * 100, yp = (hi - v[i]) / (hi - lo) * 100;
+        el.classList.add('hov');
+        el.querySelector('.mk-guide').style.left = mkG(xp) + '%';
+        const dot = el.querySelector('.mk-hdot');
+        dot.style.left = mkG(xp) + '%'; dot.style.top = mkG(yp) + '%';
+        const tip = el.querySelector('.mk-tip');
+        tip.innerHTML = escapeHtml(mkDay(d[i])) + ' &middot; <b>' + mkAt(sr, v[i]) + '</b>';
+        tip.style.left = mkG(xp) + '%';
+        tip.classList.toggle('flip', xp > 55);
+    }
+    // The cards in three groups, each with what it measures in plain words.
+    const MK_GROUPS = [
+        ['Interest rates', 'The overnight rate the Fed targets, what the Treasury pays to borrow for 2 and 10 years, and the gap between long and short rates.', ['DFF', 'DGS2', 'DGS10', 'T10Y3M', 'T10Y2Y']],
+        ['Risk appetite', 'The extra yield lower-grade companies pay over the Treasury, and the options market\'s price for the next month\'s stock-market swings.', ['BAA10Y', 'VIXCLS']],
+        ['The economy', 'Prices, and the job market two ways: the monthly unemployment rate and the weekly count of new jobless claims.', ['CPIAUCSL', 'UNRATE', 'ICSA']],
+    ];
     function mkVal(sr) {
         const u = sr.unit;
         return (u === '%' || u === 'pp') ? Number(sr.last).toFixed(2) + (u === '%' ? '%' : 'pp') : (u === 'k' ? Math.round(sr.last) + 'k' : Number(sr.last).toFixed(1));
@@ -10531,27 +10649,42 @@ def _js_context() -> str:
         // The Sahm indicator in plain words, under the reading that names it (club readiness, 2026-10-19).
         // Its definition is market_context.sahm_indicator's (claim context.sahm).
         const MK_GLOSS = {jobs: 'In plain terms, the indicator measures how far unemployment, averaged over three months, has risen above its lowest three-month average of the past year. The rule triggers at a rise of 0.50 percentage points.'};
+        h += '<p class="mk-howto">Each reading&rsquo;s bar shows the rule behind its label: the zones, where today sits on them (the white line), and the ten-year median (the tick beneath).</p>';
         h += '<div class="mk-readings">' + (M.readings || []).map(r =>
-            '<div class="mk-reading"><div class="mk-r-h"><span>' + escapeHtml(r.title) + '</span><span class="mk-state mk-' + escapeHtml(r.state.replace(/\s+/g, '-')) + '">' + escapeHtml(r.state) + '</span></div><p>' + escapeHtml(r.text) + '</p>' +
+            '<div class="mk-reading"><div class="mk-r-h"><span>' + escapeHtml(r.title) + '</span><span class="mk-state mk-' + escapeHtml(r.state.replace(/\s+/g, '-')) + '">' + escapeHtml(r.state) + '</span></div>' + mkGauge(r, M) + '<p>' + escapeHtml(r.text) + '</p>' +
             (MK_GLOSS[r.k] && /Sahm/.test(r.text) ? '<p class="mk-gloss">' + MK_GLOSS[r.k] + '</p>' : '') + '</div>').join('') + '</div>';
-        const order = ['DGS10', 'DGS2', 'T10Y3M', 'BAA10Y', 'VIXCLS', 'DFF', 'CPIAUCSL', 'UNRATE', 'ICSA', 'T10Y2Y'];
-        h += '<div class="mk-grid">' + order.filter(k => S[k]).map(k => {
-            const sr = S[k];
-            const pct = sr.pct_10y;
-            return '<div class="mk-card"><div class="mk-label">' + escapeHtml(sr.label) + '</div><div class="mk-row"><span class="mk-val">' + mkVal(sr) + '</span>' + sparkSvg(sr.spark, 120, 34) + '</div>' +
-                '<div class="mk-chg"><span>1m ' + (mkChg(sr, 'chg_1m') || '&mdash;') + '</span><span>1y ' + (mkChg(sr, 'chg_1y') || '&mdash;') + '</span></div>' +
-                (pct !== undefined ? '<div class="mk-pct" title="Where today sits in this series\' last ten years"><span class="mk-pct-track"><i style="left:' + pct + '%"></i></span><span class="mk-pct-t">' + mkOrd(Math.round(pct)) + ' percentile of 10 years</span></div>' : '') +
-                '<div class="mk-date">' + escapeHtml(cDate(sr.date)) + (sr.freq !== 'daily' ? ' &middot; ' + sr.freq : '') + '</div></div>';
-        }).join('') + '</div>';
+        const seen = {};
+        const groups = MK_GROUPS.map(g => [g[0], g[1], g[2].filter(k => S[k] && (seen[k] = 1))]);
+        const rest = Object.keys(S).filter(k => !seen[k] && S[k] && S[k].label);
+        if (rest.length) groups[groups.length - 1][2].push(...rest);
+        h += '<h3 class="chart-title mk-h3">The ten readings behind it</h3><p class="chart-note">Each chart is the last three years; hover or drag across it to read any point. The dashed line is the ten-year median. The bar beneath runs from the lowest reading of the last ten years to the highest, with today placed by the share of those readings below it, so the middle of the bar is the median.</p>';
+        groups.filter(g => g[2].length).forEach(g => {
+            h += '<div class="mk-group"><div class="mk-group-h"><h4>' + g[0] + '</h4><p>' + g[1] + '</p></div><div class="mk-grid">' + g[2].map(k => {
+                const sr = S[k];
+                const pct = sr.pct_10y;
+                const has10 = typeof sr.min_10y === 'number' && typeof sr.max_10y === 'number';
+                return '<div class="mk-card"><div class="mk-label">' + escapeHtml(sr.label) + '</div><div class="mk-row"><span class="mk-val">' + mkVal(sr) + '</span>' +
+                    '<div class="mk-chg"><span>1m ' + (mkChg(sr, 'chg_1m') || '&mdash;') + '</span><span>1y ' + (mkChg(sr, 'chg_1y') || '&mdash;') + '</span></div></div>' +
+                    mkChart(k, sr) +
+                    (pct !== undefined ? '<div class="mk-pct" title="Where today sits in this series\' last ten years">' + (has10 ? '<span class="mk-pct-e">' + mkAt(sr, sr.min_10y) + '</span>' : '') + '<span class="mk-pct-track"><b></b><i style="left:' + pct + '%"></i></span>' + (has10 ? '<span class="mk-pct-e">' + mkAt(sr, sr.max_10y) + '</span>' : '') + '</div>' +
+                        '<div class="mk-pct-t">' + mkOrd(Math.round(pct)) + ' percentile of 10 years' + (typeof sr.median_10y === 'number' ? ' &middot; median ' + mkAt(sr, sr.median_10y) : '') + '</div>' : '') +
+                    '<div class="mk-date">Latest ' + escapeHtml(sr.freq === 'monthly' ? mkMonth(sr.date) : cDate(sr.date)) + (sr.freq !== 'daily' ? ' &middot; ' + sr.freq : '') + '</div></div>';
+            }).join('') + '</div></div>';
+        });
         const sr = M.sector_rate || {};
         const ks = Object.keys(sr).sort((a, b) => sr[a].median - sr[b].median);
         if (ks.length) {
             const mx = Math.max(...ks.map(k => Math.abs(sr[k].median)), 0.0001);
-            h += '<h3 class="chart-title mk-h3">How each sector has moved with the 10-year yield</h3><p class="chart-note">The typical move for each +0.10 percentage point rise in the 10-year Treasury yield, from the past ~13 months of daily moves: the median across the sector\'s stocks. Each stock\'s own figure is in its drilldown under Before you decide.</p><div class="mk-rates">' +
+            h += '<h3 class="chart-title mk-h3">How each sector has moved with the 10-year yield</h3><p class="chart-note">The typical move for each +0.10 percentage point rise in the 10-year Treasury yield, from the past ~13 months of daily moves: the median across the sector\'s stocks. Each stock\'s own figure is in its drilldown under Before you decide.</p><div class="mk-rates"><div class="mk-rate-row mk-rate-head"><span></span><span class="mk-rate-axis"><em>&larr; falls when yields rise</em><em>rises &rarr;</em></span><span></span></div>' +
                 ks.map(k => { const v = sr[k].median, w = Math.abs(v) / mx * 50;
-                    return '<div class="mk-rate-row"><span class="mk-rate-n">' + escapeHtml(k) + '</span><span class="mk-rate-track"><i class="' + (v >= 0 ? 'pos' : 'neg') + '" style="width:' + w.toFixed(1) + '%"></i></span><span class="mk-rate-v">' + cPct(v * RATE_STEP, 2) + '</span></div>'; }).join('') + '</div>';
+                    return '<div class="mk-rate-row" title="' + escapeHtml(k) + ': median of ' + sr[k].n + ' stocks"><span class="mk-rate-n">' + escapeHtml(k) + '</span><span class="mk-rate-track"><i class="' + (v >= 0 ? 'pos' : 'neg') + '" style="width:' + w.toFixed(1) + '%"></i></span><span class="mk-rate-v">' + cPct(v * RATE_STEP, 2) + '</span></div>'; }).join('') + '</div>';
         }
         h += '<h3 class="chart-title mk-h3">How this connects to the factors</h3><div class="mk-notes">' + (M.factor_notes || []).map(n => '<div class="mk-note"><b>' + escapeHtml(n.title) + '.</b> ' + escapeHtml(n.text) + '</div>').join('') + '</div>';
+        if (!host.dataset.mkHover) {
+            host.dataset.mkHover = '1';
+            host.addEventListener('pointermove', mkHover);
+            host.addEventListener('pointerleave', () => host.querySelectorAll('.mk-ch.hov').forEach(x => x.classList.remove('hov')));
+        }
         h += '<p class="modal-note">Source: ' + escapeHtml(M.source || 'FRED') + '. As of ' + escapeHtml(cDate(M.as_of || '')) + '.' + (M.errors && Object.keys(M.errors).length ? ' Unavailable this run: ' + Object.keys(M.errors).join(', ') + '.' : '') + '</p>';
         host.innerHTML = h;
     }
@@ -10915,7 +11048,7 @@ def _js_context() -> str:
             return out;
         };
     })();
-"""
+""".replace("__MK_BANDS__", json.dumps(market_context.READING_BANDS))
 
 
 def _css_investor() -> str:
@@ -11355,15 +11488,67 @@ def _css_context() -> str:
         .mk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 10px; }
         .mk-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 12px 14px; }
         .mk-label { font-size: 12px; color: var(--text-muted); min-height: 32px; }
-        .mk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .mk-grid .mk-label { min-height: 0; margin-bottom: 4px; }
+        /* a group's cards share its row: two risk cards run wide rather than leaving two empty slots */
+        .mk-group .mk-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
+        .mk-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
         .mk-val { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-        .mk-spark { width: 120px; height: 34px; flex: none; }
-        .mk-spark path { fill: none; stroke: var(--accent); stroke-width: 1.5; }
-        .mk-chg { display: flex; gap: 14px; font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-variant-numeric: tabular-nums; }
-        .mk-pct { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .mk-chg { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-size: 11.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .mk-pct { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+        .mk-pct-e { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
         .mk-pct-track { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--bg-elevated); }
-        .mk-pct-track i { position: absolute; top: -3px; width: 2px; height: 10px; margin-left: -1px; background: var(--text-primary); border-radius: 1px; }
-        .mk-pct-t { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+        .mk-pct-track b { position: absolute; left: 50%; top: -3px; height: 10px; border-left: 1px dashed var(--text-muted); }
+        .mk-pct-track i { position: absolute; top: -4px; width: 3px; height: 12px; margin-left: -1.5px; background: var(--text-primary); border-radius: 1px; box-shadow: 0 0 0 2px var(--bg-card); }
+        .mk-pct-t { font-size: 11px; color: var(--text-muted); margin-top: 5px; font-variant-numeric: tabular-nums; }
+        /* the reading's gauge: the zones its word comes from (market_context.READING_BANDS) */
+        .mk-howto { font-size: 12.5px; color: var(--text-muted); margin: -2px 0 12px; }
+        .mk-gauge { margin: 28px 0 12px; }
+        .mk-g-bar { position: relative; height: 20px; border-radius: 4px; background: var(--bg-elevated); }
+        .mk-z { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; font-size: 10.5px; color: var(--text-muted); text-transform: capitalize; background: rgba(255,255,255,.03); border-right: 1px solid var(--bg-card); }
+        .mk-z:first-child { border-radius: 4px 0 0 4px; }
+        .mk-z:last-of-type { border-right: 0; border-radius: 0 4px 4px 0; }
+        .mk-z.on { background: var(--accent-glow); color: var(--accent-text); box-shadow: inset 0 0 0 1px rgba(57,135,229,.45); font-weight: 500; }
+        .mk-z.on.warn { background: var(--amber-dim); color: var(--amber); box-shadow: inset 0 0 0 1px rgba(250,178,25,.45); }
+        .mk-g-med { position: absolute; top: 100%; height: 6px; border-left: 1px solid var(--text-secondary); }
+        .mk-z.tl { justify-content: flex-start; padding-left: 6px; }
+        .mk-z.tr { justify-content: flex-end; padding-right: 6px; }
+        .mk-g-ref { position: absolute; top: -3px; bottom: -3px; border-left: 1px dotted var(--text-secondary); }
+        .mk-g-x { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; background: var(--text-primary); border-radius: 2px; box-shadow: 0 0 0 2px var(--bg-card); }
+        .mk-g-now, .mk-g-goal { position: absolute; bottom: calc(100% + 7px); transform: translateX(-50%); font-style: normal; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .mk-g-now { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+        .mk-g-goal { font-size: 10.5px; color: var(--text-muted); }
+        .mk-g-now.l { transform: translateX(-2px); }
+        .mk-g-now.r { transform: translateX(calc(-100% + 2px)); }
+        .mk-g-cuts { position: relative; height: 14px; margin-top: 5px; font-size: 10.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .mk-g-cuts span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+        .mk-g-ends { display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        /* a series' chart: three years, with its reference lines; hover to read a point */
+        .mk-ch { position: relative; height: 78px; margin: 12px 0 4px; cursor: crosshair; touch-action: pan-y; }
+        .mk-ch svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+        .mk-line { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+        .mk-area { fill: var(--accent); opacity: .13; }
+        .mk-area.neg { fill: var(--amber); opacity: .28; }
+        .mk-ref { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+        .mk-ref.zero { stroke: var(--amber); stroke-dasharray: none; opacity: .6; }
+        .mk-ref.goal { stroke: var(--text-secondary); stroke-dasharray: 1 3; }
+        .mk-ref-l { position: absolute; left: 0; transform: translateY(calc(-100% - 1px)); font-size: 10px; line-height: 1.2; color: var(--text-muted); white-space: nowrap; pointer-events: none; padding: 0 4px; border-radius: 3px; background: color-mix(in srgb, var(--bg-card) 82%, transparent); }
+        .mk-ref-l.below { transform: translateY(2px); }
+        .mk-ref-l.zero { color: var(--amber); }
+        .mk-dot, .mk-hdot { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-card); pointer-events: none; }
+        .mk-hdot { background: var(--text-primary); display: none; }
+        .mk-guide { position: absolute; top: -4px; bottom: -4px; width: 1px; background: var(--border-bright); display: none; pointer-events: none; }
+        .mk-tip { position: absolute; top: -8px; transform: translate(8px, -100%); display: none; z-index: 3; padding: 3px 8px; border-radius: 6px; background: var(--bg-elevated); border: 1px solid var(--border-bright); font-size: 11px; color: var(--text-secondary); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+        .mk-tip b { color: var(--text-primary); font-weight: 600; }
+        .mk-tip.flip { transform: translate(calc(-100% - 8px), -100%); }
+        .mk-ch.hov .mk-guide, .mk-ch.hov .mk-hdot, .mk-ch.hov .mk-tip { display: block; }
+        .mk-ax { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .mk-group { margin-top: 16px; }
+        .mk-group-h { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; }
+        .mk-group-h h4 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .mk-group-h p { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+        .mk-rate-head { min-height: 18px; }
+        .mk-rate-axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); }
+        .mk-rate-axis em { font-style: normal; }
         .mk-date { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
         .mk-h3 { margin: 24px 0 6px; }
         .mk-rates { display: flex; flex-direction: column; gap: 3px; max-width: 760px; }

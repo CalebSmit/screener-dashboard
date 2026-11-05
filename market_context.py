@@ -163,12 +163,44 @@ def sahm_indicator(unrate: pd.Series) -> float | None:
     return round(float(v), 2) if np.isfinite(v) else None
 
 
+# The word each reading carries, and the zones the Market panel draws behind it, come from this
+# one table (2026-11-05): the gauge on the page is drawn from the same cuts that chose the word, so
+# the two cannot disagree. ``read`` names what the cut is applied to - a series' latest value, its
+# ten-year percentile, or the Sahm indicator. Each cut is ``[threshold, inclusive]``: a reading
+# moves into the next zone when it is above the threshold, or when it equals it and the cut is
+# inclusive. ``marks`` are reference lines the sentence already names (the Fed's 2% goal).
+READING_BANDS: dict[str, dict] = {
+    "curve": {"series": "T10Y3M", "read": "last", "cuts": [[0.0, True], [0.5, True]],
+              "states": ["inverted", "flat", "positive"]},
+    "credit": {"series": "BAA10Y", "read": "pct_10y", "cuts": [[33, True], [67, False]],
+               "states": ["tight", "normal", "wide"]},
+    "vol": {"series": "VIXCLS", "read": "last", "cuts": [[15, True], [25, False]],
+            "states": ["calm", "normal", "elevated"]},
+    "inflation": {"series": "CPIAUCSL", "read": "last", "cuts": [[1.5, True], [2.5, False]],
+                  "states": ["below target", "near target", "above target"],
+                  "marks": [[2.0, "2% goal"]]},
+    "jobs": {"series": None, "read": "sahm", "cuts": [[0.5, True]],
+             "states": ["not triggered", "triggered"]},
+}
+
+
+def band_state(k: str, x: float) -> str:
+    """The word for reading ``k`` at value ``x``, from ``READING_BANDS``."""
+    b, i = READING_BANDS[k], 0
+    for t, inclusive in b["cuts"]:
+        if x > t or (inclusive and x == t):
+            i += 1
+        else:
+            break
+    return b["states"][i]
+
+
 def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised") -> list[dict]:
     """One descriptive sentence per theme, with the rule or source behind the word it uses."""
     out = []
     c = summ.get("T10Y3M")
     if c:
-        state = "inverted" if c["last"] < 0 else ("flat" if c["last"] < 0.5 else "positive")
+        state = band_state("curve", c["last"])
         out.append({"k": "curve", "state": state, "title": "Yield curve",
                     "text": f"The 10-year yield is {abs(c['last']):.2f}pp {'below' if c['last'] < 0 else 'above'} the 3-month. "
                             "An inverted curve (10-year below 3-month) has preceded all eight US recessions since 1968, "
@@ -179,7 +211,7 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
     b = summ.get("BAA10Y")
     if b and "pct_10y" in b:
         p = b["pct_10y"]
-        state = "tight" if p < 33 else ("wide" if p > 67 else "normal")
+        state = band_state("credit", p)
         out.append({"k": "credit", "state": state, "title": "Credit spreads",
                     "text": f"Lower-grade corporate bonds yield {b['last']:.2f}pp over Treasuries, higher than {p:.0f}% of the last ten years. "
                             "A wider spread is partly compensation for expected defaults and partly the premium lenders charge "
@@ -187,7 +219,7 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
                             "activity. Wide spreads have coincided with stress for indebted companies."})
     v = summ.get("VIXCLS")
     if v:
-        state = "calm" if v["last"] < 15 else ("elevated" if v["last"] > 25 else "normal")
+        state = band_state("vol", v["last"])
         out.append({"k": "vol", "state": state, "title": "Volatility",
                     "text": f"The VIX is {v['last']:.1f}, against a ten-year median of {v.get('median_10y', float('nan')):.1f}. "
                             "It is the S&P 500 options market's price for the next 30 days' swings. "
@@ -196,12 +228,12 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
                             "index is down over two years and volatile, and never raises it."})
     i = summ.get("CPIAUCSL")
     if i:
-        state = "above target" if i["last"] > 2.5 else ("near target" if i["last"] >= 1.5 else "below target")
+        state = band_state("inflation", i["last"])
         out.append({"k": "inflation", "state": state, "title": "Inflation",
                     "text": f"Consumer prices are {i['last']:.1f}% higher than a year earlier, against the Federal Reserve's 2% goal "
                             f"(measured there on a different index, PCE). Latest reading: {_month_name(i['date'])}."})
     if sahm is not None:
-        state = "triggered" if sahm >= 0.5 else "not triggered"
+        state = band_state("jobs", sahm)
         u = summ.get("UNRATE") or {}
         # The real-time Sahm series can arrive while the UNRATE fetch failed (review, 2026-10-09).
         lead = f"Unemployment is {u['last']:.1f}%. " if u.get("last") is not None else ""
