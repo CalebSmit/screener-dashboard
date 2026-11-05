@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import generate_dashboard as gd  # noqa: E402
+from tests import sheet_warm  # noqa: E402 - settle the sheet pre-warm (2026-11-05)
 
 try:
     from playwright import sync_api
@@ -78,6 +79,9 @@ def page(tmp_path_factory):
         pg.wait_for_function("typeof renderContext === 'function' && typeof caseItems === 'function' && "
                              "typeof D !== 'undefined' && window.SCREENER_CONTEXT !== undefined && "
                              "Object.values(D.stock_detail).some(s => s.ctx)", timeout=60000)
+        # The sheet pre-warm would otherwise rewrite #modal-context from an idle
+        # callback, between a render and its read - see tests/sheet_warm.py.
+        sheet_warm.settle(pg)
         yield pg
         b.close()
         assert not errors, errors
