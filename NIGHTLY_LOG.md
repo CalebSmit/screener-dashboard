@@ -19177,8 +19177,10 @@ OneDrive; pushed while no session ran; tag `good/2026-11-04-owner-2`.
 
 - **4 GB of stale agent worktrees sit inside the OneDrive folder** (`.claude/worktrees/agent-*`, from
   2026-11-02, none holding unmerged or uncommitted work - checked). `git worktree remove` unregistered
-  the two git still knew, but the sandbox refuses deleting their files, so the owner removes the folder
-  by hand. OneDrive syncing 4 GB of churn is a plausible contributor to the file locks suspected in
+  the two git still knew, but the sandbox refused deleting their files. **Removed later the same
+  evening at the owner's request**, after checking every file git would track in all four against the
+  repository's history (each one's content is in a commit; only the `.git` pointer differed): 4 GB, the
+  dead `.git/worktrees/` records and two merged `worktree-agent-*` branches; `git fsck` clean after. OneDrive syncing 4 GB of churn is a plausible contributor to the file locks suspected in
   this morning's unreproducible gate-5 failure - unproven.
 - The three proposals and the inversion build stay with the scheduled sessions (this conversation
   wrote two of them).
