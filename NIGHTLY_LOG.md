@@ -19193,3 +19193,143 @@ OneDrive; pushed while no session ran; tag `good/2026-11-04-owner-2`.
   moves.
 - The midday entry's Next stands: build the implied-volatility inversion (fetch `exDividendDate`
   first), then the two waiting proposals.
+
+## 2026-11-05 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-04_130001-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-05_020000.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: **5 of 8 effective observations needed (44 rows; 112 across all horizons),
+newest 1m run date 2026-10-05 - 31 days ago, bound 40.** Priority 0: `allow_auto_apply` **false**.
+Top open roadmap item: **0.13, The Factor Lab** (age **24 days**); also open 0.10 (29d), 0.14 (22d).
+No branch held back by the gates. `git stash list` carries one `auto-rescue 2026-10-28_060001` entry
+that `git stash show` reports as empty (no diff, no stat) - left alone, as four prior sessions did.
+**Tests:** before **3,908 passed / 1 skipped** (parallel, 2:57); after **3,919 passed / 1 skipped**.
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` item 1 - **decide the OPEN proposals** - outranked the
+rotation, and both were listed in the brief at 2 days old. **Both decided; the queue is empty for the
+first time since 2026-11-03.** Thursday's build is the guard the first decision needed, so this is a
+build day as well as a decision day. Deferred: the implied-volatility inversion, named in the 11-04
+13:00 entry's Next - it is the accepted ninth proposal's build and needs a session that is not also
+clearing two decisions; it is this entry's Next.
+
+### Did
+
+1. **Proposal decided - `research/2026-11-03-short-interest-days-to-cover.md` section 5: REFUSED as
+   written. The experiment it asks for cannot measure anything.** It wanted a research-engine
+   experiment dropping `short_interest_ratio` from Revisions. The engine has never scored that
+   metric: `v2_config` zeroes it and the record leaves its column **NaN in 176 of 176 months**
+   (68,197 stock-months), which makes **Revisions the only category backtest v2 does not score at
+   all**. Measured over every month on file
+   (`research/measurements/2026-11-05-short-interest-registration.py`): the arm, written the way the
+   registry's own metric-level precedent writes it (`drop-revenue-growth`, `kind: config`), is
+   **dict-identical to the baseline**, and ranks **0 of 67,113 stock-months differently - maximum
+   composite difference 0.0**. Read as `drop_category revisions` it is identical too. So the row
+   would publish "no difference, not distinguishable from zero" - the note's own prediction - which
+   a reader takes as *the leg is not earning its 1.35 composite points* and is in fact an identity.
+   The third expression the registry allows (`kind: metrics`) does move the ranking, but only by
+   putting weight back on five all-NaN analyst columns.
+   **The second half is blocked by the engine's own rule, not only by the missing panel:** FINRA's
+   files begin 2017-12-29, which is **80 of 80** months after 2020 and **25 of 96** in the presample,
+   and nothing is CONFIRMED without a presample arm pointing the same way - so a built panel could
+   only be judged on 2018-2026, a `METHOD_VERSION` change that reruns everything.
+   The note's research and its verdict (the weight stays; placement inside Revisions is a synthesis
+   question) are untouched. Note section 6.
+2. **Built: `tests/test_registry_can_measure_what_it_registers.py`** (11 tests). This was the
+   **third** proposal refused on the same fact - 2026-10-23 was asked to put weight *on* the metric,
+   this one to remove it - and each refusal was derived by hand from a comment in `backtest_v2.py`.
+   The module fails the suite on any registered transform that (a) leaves v2's configuration
+   unchanged, (b) weights a column `pit_record` classes `no_free_history`, or (c) leaves nothing
+   measurable carrying weight. `baseline` and `whole_market` are exempt **by name with their
+   reasons**, and a test fails if a third kind joins them. All four refused entries are fixtures, so
+   a guard that passes on what it was built to catch is impossible.
+   **Mutation-checked**: each of the three refused entries appended to a copy of the registry makes
+   the module fail (2 of 11 each time), and the registry is restored.
+   **And measured: before today nothing in the suite checked this.** With the entry registered and
+   the new module excluded, the full suite reports **2 failed, 3,906 passed, 1 skipped** - and
+   neither failure is a check of the arm: both read `summary.json`'s **count** of registered
+   alternatives (a drift tripwire, and the methodology page's quote of it), so both go green the
+   moment the registering session runs the engine and regenerates the page, which the rules require
+   it to do. Same distinction the 2026-10-31 pass drew: a mutation can read as caught and still ship.
+   A runtime refusal in `v2_experiments.run` would be better and is deliberately **not** built -
+   `v2_experiments.py` is in `RESULT_PATHS`, so the edit stales all 32 ledger rows for a ~20-minute
+   rerun whose numbers provably cannot change. Queued in `plan/research-engine.md` item 6 for a
+   session already paying for a rerun, with the helper to move named.
+3. **Proposal decided - `research/2026-11-03-following-the-smart-money.md` section 3: REFUSED as
+   written, on a defect in how the context layer would count it rather than on the note.** It
+   proposed logging each stock's 13F holder count and its quarterly change. A 13F reading changes on
+   **four filing dates a year** (45 days after each quarter end) and is the same cross-section in
+   between; `context_eval` counts effective observations over **spaced run dates**, which is right
+   for a signal that moves daily and blind to one that does not. Measured against the data loop's
+   own weekday cadence (`research/measurements/2026-11-05-quarterly-signal-accrual.py`): the gate
+   would read **13 effective observations a year against 4 genuine vintages (3.25x)** and **25
+   against 8 over two years (3.12x)**. That is the 2026-08-10 independence defect - measured at
+   2.35x then - in a form `_effective_observations` **cannot** see, because the overlap is in the
+   *signal* rather than the window and nothing in the log says when the reading last changed. On the
+   one number rule 4 and priority 0 exist to protect. So the counting changes **before** such a
+   signal is logged: recorded in `plan/context-layer.md` under "Things not to do", and the note's
+   section 4.5 pre-registers it as condition 1 (condition 2: the identifier route settled without
+   OpenFIGI's unread terms, match rate measured).
+   Counted honestly the decision point is **2028-08-14** - eight vintages - for a signal the note's
+   own section 1 finds absent in large companies after the lag.
+   **Two things measured beside it.** `heldPercentInstitutions`, already in the fetch, is not a
+   substitute and must not be logged as one: median **0.9167**, **91.1%** of the universe above
+   0.70, and **24.5% above 1.00**, so it is not a share of the company at all. But it does **not**
+   settle the note's "little to sort on" for the proposal's own construct - breadth is a *count*,
+   and this project's own 2016 Q1 13F probe found a median of **598 filers per security**. That
+   reading is left open, which is weaker than the note's.
+4. **Carried out the 11-04 evening session's Next: the first rate-limit position record.**
+   `runs/7bf31db85519/meta.json`, `phase_detail.fetch.tickers`, plus the sidecar the same session
+   shipped. 38 rate-limited, positions **352-389 inclusive - exactly 38, perfectly contiguous**
+   (`max - min + 1 == len`), OTIS..RF, one error string for all 38 ("Too Many Requests"), 38 of 38
+   recovered in a 120.9 s retry pass. The sidecar shows the first backoff after **batch 12 of 17**,
+   the throttle stepping 3 workers/3 s -> 2/5 s -> 1/7 s, and **no further rate-limited ticker** in
+   batches 14-17. So for this night it is a **wall at a cumulative request count** (~4,200 requests
+   at section 3.1's 12 per ticker) rather than a burst or a scatter - of the three readings section
+   8.7 set out, the one pointing at pacing the whole pass. **One night is not the evidence**; section
+   8.7's week stands and nothing moved. `research/2026-10-26-data-run-timing.md` section 8.8, with
+   the four facts to record each morning.
+
+### Evidence / research
+
+- No new literature was read; two notes' literature was reviewed and **not** re-opened. The
+  decisions rest on measurement of this system: 176 monthly records, 67,113 stock-months, the
+  registry's own transform kinds, `context_eval`'s counting, and the live run's raw fetch.
+- The two sources the decisions lean on were already in the repository: the FINRA start date
+  (`research/measurements/2026-10-23-finra-short-interest-probe.py`, 2017-12-29) and the 13F data
+  set's own numbers (`research/2026-10-20-free-survivorship-sources.md` section 5(d): 2016 Q1,
+  median 598 filers per security, issuer-name matching 118 of 172).
+- **One finding reported rather than worked**, because it belongs to the claims audit:
+  `computed_sentences()` walks `ast.JoinedStr`, so a computed figure the generator **hard-codes**
+  is outside the sweep by construction and `KNOWN_OPEN` being empty says nothing about it. The
+  instance: `research_page.py:969` tells the public the engine omits "about a sixth of the live
+  weighting". Measured **15.85 composite points, 1/6.31** - true today, read by nothing, and it
+  would go false silently on a weight change. Queued as item 4 in
+  `plan/claims-mutation-audit.md`'s next list, with the route in and an instruction not to close
+  the class by registering the one sentence.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, published sentence or production line moved. Both
+  decisions were refusals of registrations and of a new signal; the only code added is a test
+  module.
+
+### Tried and rejected
+
+- **Registering the short-interest experiment anyway, on 2018-2026 only.** Ruled out by the
+  registry's own confirmation rule plus `METHOD_VERSION`: changing how an experiment is judged
+  reruns every row, and the presample arm would measure coverage rather than the metric for the 71
+  uncovered months.
+- **Logging `heldPercentInstitutions`'s change as a cheap stand-in for 13F breadth.** Rejected on
+  construct grounds (breadth is a count, not a percentage) *and* on the field itself - 24.5% of the
+  index above 1.00 means it is not a share of shares outstanding.
+- **Folding the three registry conditions into `v2_experiments.run` today.** Correct destination,
+  wrong session: it stales 32 ledger rows for a rerun that cannot change a number. Queued.
+
+### Next
+
+- **Build the implied-volatility inversion** (the accepted ninth proposal;
+  `research/2026-11-03-open-source-quant-stack.md` section 1d has the order, `exDividendDate` first).
+  It is the one open build with a decision already behind it, and the proposal queue is now empty,
+  so nothing outranks it.
+- Keep adding a row to `research/2026-10-26-data-run-timing.md` section 8.8 each morning: position
+  range, contiguous or not, the error strings, the batch the first backoff follows. Six more nights.
