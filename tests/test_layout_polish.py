@@ -128,14 +128,21 @@ def test_on_a_phone_no_market_sector_name_is_cut_short(site):
 
 @pytest.mark.parametrize("width,height", [(1440, 900), (1280, 900), (375, 812)])
 def test_each_leaders_run_line_fits_on_one_line_and_the_columns_start_level(site, width, height):
-    """The rank-by-run columns under each leader (2026-11-05): their caption on one line, and the five
-    sets of columns level with one another, so the cards still read as a row."""
+    """The rank-by-run columns under each leader (2026-11-05): neither half of the caption ever breaks
+    inside itself, and the five sets of columns sit level, so the cards still read as a row.
+
+    The first version asserted the caption's height and passed here, while the live page at 1280px
+    printed "since Oct / 7": this browser has no web font, and the fallback is narrower than Inter. So
+    the rule is pinned (each half white-space: nowrap) and checked as a rule - each half one line tall -
+    which holds whatever the font measures."""
     pg, errors = _open(site, width, height)
     try:
-        caps = pg.evaluate("[...document.querySelectorAll('#top5-row .t5-runs-cap')].map(e => [e.getBoundingClientRect().height, parseFloat(getComputedStyle(e).lineHeight) || 0])")
+        caps = pg.evaluate("""[...document.querySelectorAll('#top5-row .t5-runs-cap')].map(e =>
+            [...e.children].map(s => [getComputedStyle(s).whiteSpace,
+                s.getBoundingClientRect().height <= parseFloat(getComputedStyle(s).fontSize) * 1.7 ? 1 : 2]))""")
         if not caps:
             pytest.skip("MISSING DATA: no comparable history to draw under the leaders")
-        assert all(h <= (lh or 18) * 1.5 for h, lh in caps), caps
+        assert all(len(c) == 2 and all(ws == "nowrap" and n == 1 for ws, n in c) for c in caps), caps
         if width > 760:
             tops = pg.evaluate("[...document.querySelectorAll('#top5-row .t5-runs')].map(e => Math.round(e.getBoundingClientRect().top))")
             assert len(set(tops)) <= 1 or width < 1240, tops

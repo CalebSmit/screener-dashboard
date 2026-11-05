@@ -19620,3 +19620,11 @@ scroll-spies are right - the screenshots were taken before the next animation fr
   deliberate (they are small: the material threshold is 37 ranks), not an oversight.
 - Still open from earlier today: the 21-size type scale, and mover names ellipsizing on phones.
 
+**Caught on the live page after shipping (`good/2026-11-05-owner-4`):** at 1280px the leader caption
+broke inside the date ("since Oct / 7"). The layout test had asserted the caption's height and passed,
+because the test browser has no web font and its fallback is narrower than Inter. Fixed by splitting the
+caption into two halves that never break inside themselves (the date drops to its own line, whole, on
+all five cards at once), and the test now pins that rule instead of measuring a height the font decides
+(mutation-checked: without the rule it fails at 1440, 1280 and 375). The general lesson is already in
+memory - a geometry test in a font-less browser cannot see a wrap the real font causes; pin the rule.
+

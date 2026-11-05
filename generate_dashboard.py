@@ -2892,7 +2892,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             '<title>' + escapeHtml(each) + '</title>' +
             '<path class="t5-runs-out" d="' + pout + '"/><path class="t5-runs-in" d="' + pin + '"/>' +
             '<path class="t5-runs-ref" d="M0 ' + yRef + 'H' + W + '"/></svg>' +
-            '<div class="t5-runs-cap">Top 25 in <b>' + L.n + ' of ' + L.k + ' runs</b> since ' + escapeHtml(prettyDate(L.dates[0])) + '</div></div>';
+            '<div class="t5-runs-cap"><span>Top 25 in <b>' + L.n + ' of ' + L.k + ' runs</b></span> <span>since ' + escapeHtml(prettyDate(L.dates[0])) + '</span></div></div>';
     }}
     const ldG = x => (+x).toFixed(1);   // geometry: a column's position or height, never a printed figure
 
@@ -12502,6 +12502,9 @@ def _css_page() -> str:
         .t5-runs-out { fill: #55544f; }
         .t5-runs-ref { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; fill: none; }
         .t5-runs-cap { margin-top: 7px; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        /* two pieces that never break inside themselves: where the card is too narrow for both (1280px with
+           the web font: "since Oct / 7", 2026-11-05) the date moves to its own line whole */
+        .t5-runs-cap > span { white-space: nowrap; }
         .t5-runs-cap b { color: var(--text-secondary); font-weight: 600; }
 
         /* ---- THE SUMMARY TILES: a small true chart under each headline ---- */
