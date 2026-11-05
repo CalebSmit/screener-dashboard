@@ -19628,3 +19628,145 @@ all five cards at once), and the test now pins that rule instead of measuring a 
 (mutation-checked: without the rule it fails at 1440, 1280 and 375). The general lesson is already in
 memory - a geometry test in a font-less browser cannot see a wrap the real font causes; pin the rule.
 
+## 2026-11-05 (13:00) - QUEUE. A red baseline came first, and it turned out to be a real defect
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-05_060000.log`
+(shipped to main, `good/2026-11-05`); four owner-run sessions followed it, `good/2026-11-05-owner-1..4`.
+Data loop published? yes - `logs/datarun-2026-11-05_020000.log` (Data loop complete; HEALTH: PASS).
+Evidence base at `1m`: **44 rows, newest run date 2026-10-05 - 31 days ago, bound 40, 5 effective
+observations of the 8 the engine's gate needs.** Priority 0: `allow_auto_apply` **false**. Top open
+roadmap item: **0.13, The Factor Lab**, opened 2026-10-12 - **24 days**; also open 0.10 (29d, opened
+2026-10-07) and 0.14 (22d, opened 2026-10-14). No branch held back by the gates. `git stash list`
+still carries the one `auto-rescue 2026-10-28_060001` entry that `git stash show` reports as empty -
+left alone, as five prior sessions did.
+
+**Tests:** before **3,976 passed / 1 skipped** (parallel, 3:02 - my own run; the runner's baseline at
+13:03 reported 1 failure, see below), after **3,982 passed / 1 skipped** (parallel, 3:04). The six
+new tests are 1 in `tests/test_gate_ordering.py` and 5 in `tests/test_sheet_warm_is_settled.py`.
+All five gates pass on this tree.
+
+**Owner queue / rotation:** `write_brief.open_proposals()` returns `[]` - no proposal waiting.
+`OWNER_FOCUS.md`'s open items are the universe expansion (next: phase 1) and the 2026-10-20
+fine-tune item. The 06:00 entry's **Next** was the implied-volatility inversion build. **Neither was
+taken, and the reason is the first line of the prompt**: the runner reported `main` **RED on
+arrival**, which outranks the focus - and chasing it down produced the session's work. See "Why not
+the IV build" below; nothing was deferred silently.
+
+### Did
+
+1. **A red baseline now keeps its transcript, like gates 1 and 5 do.** At 13:03:29 the runner logged
+   `BASELINE main was RED on arrival: 1 pre-existing failure(s)` and named
+   `tests/test_context_layer_claims.py::test_the_page_says_when_each_kind_of_quote_was_taken` - a
+   browser module that `claims.py` also puts in the 02:00 publish gate, where a failure **discards
+   the night's data**. And nothing else: no assertion, no traceback. Gates 1 and 5 have saved their
+   whole output beside the log since 2026-11-04, for exactly this reason ("the log said only FAIL
+   check_published_claims"); the baseline, which the session reads *first* and which the prompt makes
+   its first job, did not. Measured cost: about **40 minutes** of this session establishing that
+   `main` was in fact green.
+   `Save-GateOutput` gains a `$Level` parameter defaulting to `'ERROR'`, so gates 1 and 5 are
+   byte-unchanged, and the baseline calls it at `WARN` - it is not a gate and decides nothing - on
+   **both** red branches, including "could not be taken", the most opaque of the three states.
+   `tests/test_gate_ordering.py` (1 new test, 14 total); **5 mutations, 5 caught**
+   (`research/measurements/2026-11-05-baseline-output-mutations.py`), including the save moved inside
+   the named-failures branch and either gate made to pass its own level.
+2. **Then the flake itself, found and fixed - it was a real defect in the harness, not luck.**
+   It never reproduced: 8 runs across 4 scenarios, including **two whole-suite parallel runs of all
+   28 Chromium modules, 737 tests each**, all green
+   (`research/measurements/2026-11-05-context-claims-flake.py`).
+   The cause, measured rather than inferred
+   (`research/measurements/2026-11-05-prewarm-clobbers-the-panel.py`): `generate_dashboard`'s
+   `sheetPrewarm` lays the top-ranked stock's sheet out unseen once the page is idle - correct, and
+   invisible to a reader, because `openStockDetail` stops it and rewrites the sheet - and it gets
+   there by calling `renderSheet(top, ...)`, **which rewrites `#modal-context`**. The test's helper is
+   two round-trips, a render then a read, and the fixture's own `wait_for_function` returns with
+   `SHEET_WARM.state === 'wait'`. Forced, the panel comes back as **VLO's**: the synthetic sentence
+   gone, `"close of"` present - **exactly the two assertions that test makes first**, and exactly the
+   pair that failed at 13:03.
+   Why it surfaced today is the part worth keeping: the flake needs the pre-warm to land in the few
+   milliseconds between one render and its read, and the number of such windows per run rose sharply
+   this morning when an owner-run session added `tests/test_dashboard_printed_figures.py`, which
+   renders per-stock context **in a loop** over the whole universe.
+   The fix is in the harness, since production is right: `tests/sheet_warm.py`'s `settle(page)`,
+   called in the fixtures of the three exposed modules (`test_context_layer_claims`,
+   `test_context_cards_printed`, `test_dashboard_printed_figures` - the three that write into the
+   sheet without opening a stock; an open settles it in the page).
+   `tests/test_sheet_warm_is_settled.py` (5 tests) is the tripwire: a **sweep** over every Chromium
+   module, so the next one written without it fails the suite, plus the behaviour on a real page both
+   ways.
+   **6 mutations, 6 caught** (`research/measurements/2026-11-05-sheet-warm-tripwire-mutations.py`) -
+   and the sixth is the one worth reading: with `settle` reduced to a **no-op** the module first
+   passed, because its single test settled a pre-warm that had **already finished**. Splitting it so
+   the helper is exercised on a *pending* pre-warm is what gave it teeth. Generalised: *a test of a
+   "wait until X is safe" helper must start from the unsafe state, or it passes whatever the helper
+   does.*
+3. **Recorded as a third failure class in `CLAUDE.md`**, beside `data->red` and `clock->red`:
+   **`paint->red`** - a test whose premise is that the page has stopped changing. The two existing
+   rows cover a premise set by the day's data and one set by the clock; this one is set by deferred
+   rendering, and the lesson had nowhere to live.
+4. **Checked, and it is reassuring: the 02:00 publish gate has never been tripped by a flake.**
+   Two `PUBLISHED CLAIMS: FAIL` in the whole datarun log history, both genuine, data-dependent claim
+   failures that refused a run as designed - 2026-10-28 (`test_case_against`) and 2026-11-02
+   (`test_growth_category` + `test_valuation_history`, the growth-exposure drift already in
+   `OWNER_FOCUS.md`). And **4 red baselines ever recorded**, of which **2 are Chromium modules**
+   (2026-11-03 `test_every_panel_reads_clean`, today's). So the risk this fix removes is real and the
+   damage so far is one session's time, not a lost night of evidence. **Nothing was weakened to get
+   there**: no retry, no rerun plugin, no loosened assertion - the flake's cause was found, so none
+   was needed.
+
+### Why not the IV build
+
+The 06:00 **Next** was the implied-volatility inversion (`research/2026-11-03-open-source-quant-stack.md`
+section 1d, ACCEPTED 2026-11-04). It was read in full and **not started**, deliberately, because a
+red baseline outranks the focus and then the work it turned into was real. It is also the wrong size
+for what was left: its own build order makes step 2 - adding `exDividendDate` to the core `.info`
+fetch - "a session of its own", because a fetch-schema change needs a **throwaway full run** to
+verify (~15-20 min, and a second Yahoo fetch in a day), and the edit lands in `factor_engine.py`,
+one of `v2_experiments.RESULT_PATHS`, which **stales all 32 ledger rows** and forces a `--jobs 4`
+rerun (15-30 min). Starting either after 15:00 would have ended the session dirty, which the settled
+row forbids. Three things measured for the session that takes it, so it starts ahead:
+
+- **QuantLib 1.44 is already installed** and imports; step 5 is a one-line pin in `requirements.txt`.
+- **The dividend schedule needs more than `exDividendDate`.** The accepted measurement's
+  `projected_dividends` (in `research/measurements/2026-11-03-implied-vol-quantlib-vs-yahoo.py`) takes
+  the **last ex-date and the median past interval** from `yf.Ticker.dividends` - a request per stock,
+  in the pass that tripped the rate limiter. From `.info` alone the frequency has to come from
+  somewhere else; `lastDividendValue` with `dividendRate` would give it (`rate / value` = instalments
+  a year). **Which of those three fields the source actually serves is unmeasured** - the note says
+  only that they are absent from the *parquet*, which is what you would expect when the fetch does
+  not ask for them. Probe `.info` before editing the fetch, as the 2026-10-14 dividend-field probe did.
+- **Step 7's coverage number cannot be measured from the cache.** `data/options/quotes.json` stores
+  only derived readings, no bid/ask, so "measure it on the whole universe from one 20:00 refresh"
+  means instrumenting the 20:00 pass, not reading what it already wrote.
+
+### Evidence / research
+
+- No literature read; none needed. Both changes rest on demonstrated user-facing failures and on
+  measurement of this system: the 13:03 baseline, the 8-run non-reproduction, the forced clobber, the
+  2 publish-gate failures and 4 red baselines in the log history, and 11 mutations across the two
+  tripwires.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, published sentence or scoring line moved. The diff is the
+  runner, the test harness, two tripwire modules, four measurement scripts and `CLAUDE.md`.
+
+### Tried and rejected
+
+- **Making the suite's browser tests more robust by changing xdist's distribution** (`--dist loadfile`,
+  so a module's tests share one worker and one Chromium instead of up to N). Attractive and
+  **rejected**: it is a change to gate 1's own command justified only by a guess that contention
+  caused the flake. Once the cause was measured, contention turned out not to be the mechanism at all
+  - the clobber happens in a single-page, unloaded run too - so the change would have bought nothing
+  and obscured the real defect. Recorded in case a future session reaches for it.
+- **A retry or rerun plugin on the publish-gate browser tests.** That is weakening a gate to pass it,
+  and it would have hidden this defect permanently.
+
+### Next
+
+- **Build the implied-volatility inversion** - still the one open build with a decision behind it and
+  an empty proposal queue. Start with the `.info` probe named above (cheap, no pipeline run), then
+  step 2 and its throwaway full run, and **budget the 15-30 minute ledger rerun in the same session**;
+  `tests/test_ledger_is_level_with_the_code.py` stays red until the ledger and report are committed.
+- Keep adding a row to `research/2026-10-26-data-run-timing.md` section 8.8 each morning: position
+  range, contiguous or not, the error strings, the batch the first backoff follows. Five more nights.
+- If another red baseline arrives, **read `logs/nightly-<stamp>.baseline.txt` first** - it exists now.
