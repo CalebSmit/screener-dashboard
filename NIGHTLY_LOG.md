@@ -19203,11 +19203,12 @@ newest 1m run date 2026-10-05 - 31 days ago, bound 40.** Priority 0: `allow_auto
 Top open roadmap item: **0.13, The Factor Lab** (age **24 days**); also open 0.10 (29d), 0.14 (22d).
 No branch held back by the gates. `git stash list` carries one `auto-rescue 2026-10-28_060001` entry
 that `git stash show` reports as empty (no diff, no stat) - left alone, as four prior sessions did.
-**Tests:** after **3,919 passed / 1 skipped** (parallel, 3:05). **The baseline was not a separate
+**Tests:** after **3,926 passed / 1 skipped** (parallel, 3:04). **The baseline was not a separate
 run** - it is read off the mutation check in item 2, which ran the whole suite with this session's
-new module excluded and reported 3,906 passed with the 2 failures the mutation itself caused, i.e.
-**3,908 passed / 1 skipped** on the arriving tree, matching the 11-04 evening entry. The 11 new
-tests account for the difference exactly.
+first new module excluded and reported 3,906 passed with the 2 failures the mutation itself caused,
+i.e. **3,908 passed / 1 skipped** on the arriving tree, matching the 11-04 evening entry. The 18 new
+tests (11 + 7) account for the difference exactly. All five gates pass on this tree: suite, dry-run,
+both payloads parse, clean tree, and `scripts/rehearse_publish.py`.
 
 **Owner queue / rotation:** `OWNER_FOCUS.md` item 1 - **decide the OPEN proposals** - outranked the
 rotation, and both were listed in the brief at 2 days old. **Both decided; the queue is empty for the
@@ -19293,6 +19294,40 @@ clearing two decisions; it is this entry's Next.
    8.7's week stands and nothing moved. `research/2026-10-26-data-run-timing.md` section 8.8, with
    the four facts to record each morning.
 
+5. **Found and fixed a live defect the decisions walked into: the research engine's published
+   results had been produced by code that no longer existed, and nothing could see it.** While
+   checking what the next session's build would cost (the build order's step 2 edits
+   `factor_engine.py`, which is in `v2_experiments.RESULT_PATHS`), the claim in `CLAUDE.md` that
+   such an edit "stales every ledger row, and
+   `test_the_baseline_weighting_is_hashed_separately_from_the_transformed_one` stays red" did not
+   reproduce: with `factor_engine.py` edited, `tests/test_v2_experiments.py` reports **57 passed**.
+   `base_config_hash` is computed from `config.yaml`'s **parsed** contents, so that test is blind to
+   a comment there and to all seven other result-affecting files; the other provenance test asserts
+   the newest rows agree **with each other**, which is a different fact.
+   **So I asked the tooling instead: `python scripts/rerun_experiments.py --status` reported
+   `STALE REMAINING: 32` on a green `main`.** All 32 rows had been stale since **2026-11-03**, when
+   `universe_history.py` was edited by the universe phase-1 slice (commit f02cf1b), and the 11-04
+   and 11-05 data runs both published `research.html` from them with every gate passing.
+   **Rerun and levelled**: `--jobs 4`, **15.5 minutes**, `STALE REMAINING: 0`. The numbers did not
+   move, as predicted before it ran (that file is read when the monthly records are *built*, not
+   when they are ranked, and `content_hash` was identical): **32 ids, 27,225 statistics, 0
+   differences** (`research/measurements/2026-11-05-ledger-rerun-moved-nothing.py`). `summary.json`
+   and `research.html` are byte-identical; `RESULTS.md` moved two provenance lines.
+6. **Built the check that would have caught it, with its blast radius chosen deliberately.**
+   `tests/test_ledger_is_level_with_the_code.py` (7 tests) compares the newest row per id against
+   the live `code_hash`, `content_hash`, `base_config_hash` and `method_version`, reading
+   **`scripts/rerun_experiments.py`'s own `current_provenance`** so the suite cannot be green while
+   `--status` says stale - one definition, which is what was missing. A fourth test proves the
+   fingerprint really sees each of the eight `RESULT_PATHS` files, by hashing a copy of the tree
+   with one file changed, for each file in turn.
+   **Mutation-checked**: with `universe_history.py`, `factor_engine.py` or `backtest_v2.py` edited,
+   the new module fails (1 of 7) and `tests/test_v2_experiments.py` passes (57) - every time.
+   **It is deliberately *not* in the 02:00 publish gate**, and a test fails if a claim ever puts it
+   there. `tests/test_v2_experiments.py` is named by claim `overview.research_engine`, so a failure
+   in it **discards the night's data**; a stale ledger is a code session's missed rerun and must
+   block that session's merge (gate 1) rather than throw away evidence the data loop collected.
+   `CLAUDE.md` priority 3 and `plan/research-engine.md` rule 7 now say what was measured.
+
 ### Evidence / research
 
 - No new literature was read; two notes' literature was reviewed and **not** re-opened. The
@@ -19334,6 +19369,11 @@ clearing two decisions; it is this entry's Next.
 - **Build the implied-volatility inversion** (the accepted ninth proposal;
   `research/2026-11-03-open-source-quant-stack.md` section 1d has the order, `exDividendDate` first).
   It is the one open build with a decision already behind it, and the proposal queue is now empty,
-  so nothing outranks it.
+  so nothing outranks it. **Budget two things the note does not mention:** step 2 edits
+  `factor_engine.py`, which is in `RESULT_PATHS`, so it forces a full ledger rerun (15-30 min at
+  `--jobs 4`) and `tests/test_ledger_is_level_with_the_code.py` stays red until the ledger and the
+  report are committed; and the step needs a throwaway full run to verify the fetch schema, which
+  is a second Yahoo fetch in a day - note in `research/2026-10-26-data-run-timing.md` section 8.8
+  that it removes tomorrow's 02:00 run from the clean-control set for the rate-limit record.
 - Keep adding a row to `research/2026-10-26-data-run-timing.md` section 8.8 each morning: position
   range, contiguous or not, the error strings, the batch the first backoff follows. Six more nights.
