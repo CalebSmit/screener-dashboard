@@ -11048,7 +11048,7 @@ def _js_context() -> str:
             return out;
         };
     })();
-""".replace("__MK_BANDS__", json.dumps(market_context.READING_BANDS))
+""".replace("__MK_BANDS__", json.dumps(market_context.READING_BANDS, indent=1))   # indented: a flat dump ends in "}}", which the page's template check forbids
 
 
 def _css_investor() -> str:

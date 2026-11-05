@@ -96,8 +96,11 @@ def _page_html() -> str:
 
 def test_the_page_is_built_with_the_band_table_itself():
     html = _page_html()
-    assert "const MK_BANDS = " + json.dumps(mc.READING_BANDS) + ";" in html
     assert "__MK_BANDS__" not in html
+    start = html.index("const MK_BANDS = ") + len("const MK_BANDS = ")
+    table, end = json.JSONDecoder().raw_decode(html[start:])
+    assert html[start + end] == ";"
+    assert table == mc.READING_BANDS
 
 
 def test_every_caution_colour_is_a_word_a_band_can_give():
