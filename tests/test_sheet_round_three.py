@@ -35,6 +35,7 @@ import generate_dashboard as gd
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
+from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
 WAIT = 8000
 CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
 
@@ -212,7 +213,7 @@ def test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet(browser):
     and both used to light Data. Each tab, clicked in turn, lights itself and is aria-current."""
     ctx, page, errors = _open(browser)
     try:
-        _sheet(page, "APA")
+        _sheet(page, examples.stock("APA"))
         _settled(page)
         tabs = page.evaluate("[...document.querySelectorAll('#stock-modal .modal-nav a')].filter(a => !a.hidden).map(a => a.getAttribute('href').slice(1))")
         assert "section-snapshot" in tabs

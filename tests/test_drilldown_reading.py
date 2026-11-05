@@ -34,6 +34,8 @@ from stock_summary import advice_terms_in
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
+from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+EX = examples.stock("EXPE")  # a stock with every section of the sheet
 WAIT = 8000
 
 pytestmark = pytest.mark.skipif(not PAGE.exists() or not PAYLOAD.exists(),
@@ -189,7 +191,7 @@ def test_plain_words_in_the_workings(browser):
 def test_a_tab_moves_focus_to_its_section_and_is_marked_current(browser):
     ctx, page, errors = _open(browser)
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         page.wait_for_function("document.querySelectorAll('#stock-modal .modal-nav a[aria-current=location]').length === 1", timeout=WAIT)
         page.focus("#stock-modal .modal-nav a[href='#section-peers']")
         page.keyboard.press("Enter")
@@ -210,7 +212,7 @@ def test_a_tab_moves_focus_to_its_section_and_is_marked_current(browser):
 def test_a_strip_wider_than_the_sheet_says_so(browser):
     ctx, page, errors = _open(browser, 1280, 900)
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         page.wait_for_function("""() => { const n = document.querySelector('#stock-modal .modal-nav');
             return n.scrollWidth > n.clientWidth + 1; }""", timeout=WAIT)
         page.wait_for_function("document.querySelector('#stock-modal .mnav-wrap').classList.contains('more-r')", timeout=WAIT)
@@ -254,7 +256,7 @@ def test_the_research_under_a_reading_opens_from_a_button(browser):
     ctx, page, errors = _open(browser)
     try:
         page.wait_for_function("!!window.SCREENER_CONTEXT", timeout=30000)
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         page.wait_for_function("document.querySelectorAll('#modal-context .ctx-why-more').length > 0", timeout=WAIT)
         b = "#modal-context .ctx-why-more"
         pid = page.get_attribute(b, "aria-controls")
@@ -275,7 +277,7 @@ def test_the_research_under_a_reading_opens_from_a_button(browser):
 def test_a_phone_labels_the_workings_figures(browser):
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         page.evaluate("openWorkings('valuation')")
         page.wait_for_function("!document.getElementById('cat-detail-valuation').classList.contains('collapsed')", timeout=WAIT)
         got = page.evaluate("""() => { const r = document.querySelector('#cat-detail-valuation tr.metric-row:not(.wk-nodata)');
@@ -296,7 +298,7 @@ def test_a_phone_labels_the_workings_figures(browser):
 def test_printing_with_a_sheet_open_prints_the_sheet_and_puts_it_back(browser):
     ctx, page, errors = _open(browser)
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         before = page.evaluate("[...document.querySelectorAll('#stock-modal .collapsible.collapsed')].map(s => s.id)")
         assert before, "some sections start folded"
         page.evaluate("window.print = () => {}; printSheet()")

@@ -26,6 +26,8 @@ sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not ins
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
+from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+EX = examples.stock("EXPE")  # a stock with every section of the sheet
 
 pytestmark = pytest.mark.skipif(not PAGE.exists() or not PAYLOAD.exists(),
                                 reason="generated dashboard not present")
@@ -75,7 +77,7 @@ def test_figure_emphasis_never_changes_a_sentence(browser):
         }""")
         assert bad == [], f"{len(bad)} stocks render a sentence that is not the published one: {bad[:5]}"
         # and the emphasis did happen: a figure with a decimal point is wrapped
-        page.evaluate("renderSummary(D.stock_detail.EXPE)")
+        page.evaluate("t => renderSummary(D.stock_detail[t])", EX)
         assert page.locator("#modal-summary-body .summary-lead .fig").count() >= 2
         assert not errors, errors
     finally:
@@ -99,9 +101,9 @@ def test_figure_emphasis_leaves_entities_and_plain_counts_alone(browser):
 def test_masthead_marks_the_published_composite_among_all_of_them(browser):
     ctx, page, _ = _open(browser)
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         got = page.evaluate("""() => {
-            const s = D.stock_detail.EXPE, svg = document.querySelector('#modal-headline .cd-svg');
+            const s = D.stock_detail[UX.current], svg = document.querySelector('#modal-headline .cd-svg');
             return { label: svg.getAttribute('aria-label'), on: svg.querySelectorAll('rect.cd-on').length,
                      comp: fmt(s.composite, 'score'), med: fmt(D.kpis.median_composite, 'score'),
                      n: Object.keys(D.stock_detail).filter(t => typeof D.stock_detail[t].composite === 'number').length,
@@ -156,7 +158,7 @@ def test_the_stacked_total_draws_each_categorys_published_points(browser):
 def test_header_folds_when_reading_and_opens_at_the_top(browser):
     ctx, page, _ = _open(browser)
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         assert not page.evaluate("document.querySelector('#stock-modal .modal-content').classList.contains('is-compact')")
         page.evaluate("document.querySelector('#stock-modal .modal-body').scrollTop = 1500")
         page.wait_for_timeout(150)
@@ -172,7 +174,7 @@ def test_header_folds_when_reading_and_opens_at_the_top(browser):
 def test_enter_works_the_cards_a_click_works(browser):
     ctx, page, _ = _open(browser)
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         page.focus("#modal-score-row .modal-score-card[role=button]")
         page.keyboard.press("Enter")
         page.wait_for_timeout(200)
@@ -198,7 +200,7 @@ def test_phone_sheet_closes_on_a_long_drag_down_and_springs_back_on_a_short_one(
         return mid;
     }"""
     try:
-        _sheet(page, "EXPE")
+        _sheet(page, EX)
         assert page.evaluate(drag, 40) == "translateY(40px)"
         page.wait_for_timeout(250)
         assert page.is_visible("#stock-modal .modal-content")
@@ -210,12 +212,12 @@ def test_phone_sheet_closes_on_a_long_drag_down_and_springs_back_on_a_short_one(
         ctx.close()
 
 
-@pytest.mark.parametrize("ticker", ["EXPE", "JPM"])
+@pytest.mark.parametrize("ticker", [EX, "JPM"])
 def test_phone_sheet_fits_and_its_controls_are_thumb_sized(browser, ticker):
     ctx, page, _ = _open(browser, 375, 812, touch=True)
     try:
         long_name = page.evaluate("Object.keys(D.stock_detail).sort((a, b) => (D.stock_detail[b].company || '').length - (D.stock_detail[a].company || '').length)[0]")
-        flagged = page.evaluate("Object.keys(D.stock_detail).find(t => D.stock_detail[t].vt && D.stock_detail[t].gt) || 'EXPE'")
+        flagged = page.evaluate("Object.keys(D.stock_detail).find(t => D.stock_detail[t].vt && D.stock_detail[t].gt) || " + repr(EX))
         for t in (ticker, long_name, flagged):
             _sheet(page, t)
             over = page.evaluate("""() => [...document.querySelectorAll('#stock-modal .modal-header *')]

@@ -41,6 +41,8 @@ import stock_summary  # noqa: E402
 
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
+from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+EX = examples.stock("EXPE")  # a stock with every section of the sheet
 CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
 
 
@@ -487,7 +489,7 @@ def test_the_sheet_says_which_way_the_scores_run(browser):
 def test_two_stocks_side_by_side_fit_a_phone(browser):
     ctx, page, errors = _open(browser)
     try:
-        page.evaluate("try { localStorage.setItem('screener_ux_compare', JSON.stringify(['EXPE', 'JPM'])) } catch (e) {}")
+        page.evaluate("l => { try { localStorage.setItem('screener_ux_compare', JSON.stringify(l)) } catch (e) {} }", [EX, "JPM"])
         page.reload(wait_until="load")
         page.wait_for_function("document.querySelectorAll('#universe-tbody tr[data-t]').length > 0", timeout=30000)
         page.evaluate("openCompare()")
@@ -537,7 +539,7 @@ def test_a_phone_reader_deep_in_the_ranking_has_a_way_back(browser):
 def test_the_phone_menu_stays_out_of_the_sheet_and_the_tray(browser):
     ctx, page, errors = _open(browser)
     try:
-        page.evaluate("try { localStorage.setItem('screener_ux_compare', JSON.stringify(['EXPE', 'JPM'])) } catch (e) {}")
+        page.evaluate("l => { try { localStorage.setItem('screener_ux_compare', JSON.stringify(l)) } catch (e) {} }", [EX, "JPM"])
         page.reload(wait_until="load")
         page.wait_for_function("document.querySelectorAll('#universe-tbody tr[data-t]').length > 0", timeout=30000)
         page.evaluate("window.scrollTo(0, 20000)")

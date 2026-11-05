@@ -37,6 +37,10 @@ import stock_summary  # noqa: E402
 
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
+from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+EX = examples.stock("EXPE")  # a stock with every section of the sheet
+CMP2 = examples.stock("HST", exclude=(EX,))
+CMP3 = examples.stock("BBY", exclude=(EX, CMP2))
 CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
 
 
@@ -178,8 +182,8 @@ def test_a_company_name_finds_its_ticker(browser):
     ctx, page, _ = _open(browser)
     try:
         page.evaluate("openPalette()")
-        page.keyboard.type("expedia")
-        assert page.inner_text("#pal-list .pal-item.sel .pal-t") == "EXPE"
+        page.keyboard.type(examples.search_text(EX))
+        assert page.inner_text("#pal-list .pal-item.sel .pal-t") == EX
         page.keyboard.press("Escape")
         assert not page.is_visible("#pal-input")
     finally:
@@ -203,7 +207,7 @@ def test_a_stock_link_opens_that_stock_on_load(browser):
 def test_back_closes_the_sheet_instead_of_leaving(browser):
     ctx, page, _ = _open(browser)
     try:
-        page.evaluate("openStockDetail('EXPE')")
+        page.evaluate(f"openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         page.go_back()
         page.wait_for_timeout(200)
@@ -240,7 +244,7 @@ def test_j_and_k_step_through_the_tables_current_order(browser):
 def test_compare_lines_up_scores_and_reconciles_the_gap(browser):
     ctx, page, errors = _open(browser)
     try:
-        page.evaluate("openStockDetail('EXPE')")
+        page.evaluate(f"openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         page.keyboard.press("c")
         page.keyboard.press("j")
@@ -270,7 +274,7 @@ def test_compare_lines_up_scores_and_reconciles_the_gap(browser):
 def test_phone_compare_and_sheet_do_not_scroll_the_page_sideways(browser):
     ctx, page, _ = _open(browser, 375, 812)
     try:
-        page.evaluate("UX.compare = ['EXPE', 'HST', 'BBY']; saveCompare(); openStockDetail('EXPE')")
+        page.evaluate(f"UX.compare = {[EX, CMP2, CMP3]!r}; saveCompare(); openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         page.wait_for_timeout(350)
         assert page.evaluate("document.documentElement.scrollWidth") <= 376
@@ -365,7 +369,7 @@ def test_every_metric_row_shows_its_own_numbers(browser):
     with the stock's figures through the formula, its rank, and percentile x weight = points."""
     ctx, page, errors = _open(browser)
     try:
-        page.evaluate("openStockDetail('EXPE')")
+        page.evaluate(f"openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         page.evaluate("openWorkings('valuation')")
         page.wait_for_timeout(300)
@@ -386,7 +390,7 @@ def test_every_metric_row_shows_its_own_numbers(browser):
         assert page.get_attribute("#cat-detail-valuation tr[data-metric='fcf_yield'] .wk-more", "aria-expanded") == "true"
         # every scored metric on the page has a calculation line in its card
         missing = page.evaluate("""() => {
-            const s = D.stock_detail.EXPE, out = [];
+            const s = D.stock_detail[UX.current], out = [];
             Object.keys(D.lineage).forEach(m => {
                 if (s.raw[m] === null || s.raw[m] === undefined) return;
                 const h = metricDetailHtml(m, s, null);
@@ -404,7 +408,7 @@ def test_unused_metrics_say_why(browser):
     """Owner: 'it should say a little bit about why something was not used in the score'."""
     ctx, page, errors = _open(browser)
     try:
-        page.evaluate("openStockDetail('EXPE')")
+        page.evaluate(f"openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         page.evaluate("openWorkings('valuation')")
         off = page.inner_text("#cat-detail-valuation .wk-off")
@@ -428,7 +432,7 @@ def test_jumping_inside_the_sheet_never_lifts_its_header(browser):
     header 164px off the screen (found by screenshot, 2026-10-07). The overlay must not scroll."""
     ctx, page, _ = _open(browser, 1440, 1000)
     try:
-        page.evaluate("openStockDetail('EXPE')")
+        page.evaluate(f"openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         for js in ("openWorkings('valuation')", "goToModal('section-peers')", "openWorkings('risk')"):
             page.evaluate(js)
@@ -466,7 +470,7 @@ def test_arrow_keys_walk_the_rankings_past_the_rendered_window(browser):
 def test_tab_stays_inside_an_open_drilldown(browser):
     ctx, page, _ = _open(browser)
     try:
-        page.evaluate("openStockDetail('EXPE')")
+        page.evaluate(f"openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         for _ in range(80):
             page.keyboard.press("Tab")

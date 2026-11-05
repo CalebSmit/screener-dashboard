@@ -43,6 +43,8 @@ import generate_dashboard as gd  # noqa: E402
 
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
+from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+EX = examples.stock("EXPE")  # a stock with every section of the sheet
 SECTIONS = ["sec-top5", "sec-holdings", "sec-changed", "sec-reporting", "sec-market", "sec-track",
             "sec-analytics", "sec-defensibility", "sec-universe"]
 
@@ -351,7 +353,7 @@ def test_the_track_record_tile_names_both_benchmarks(browser, server):
 def test_open_and_close_leave_no_dead_back_presses(browser, server):
     ctx, page, errors = _open(browser, server)
     try:
-        for t in ("JPM", "MSFT", "EXPE"):
+        for t in ("JPM", "MSFT", EX):
             page.evaluate(f"openStockDetail('{t}')")
             page.wait_for_selector("#stock-modal .modal-body", state="visible")
             assert page.evaluate("location.hash") == "#stock=" + t
