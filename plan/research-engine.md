@@ -69,6 +69,18 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    the engine's own `ledger.jsonl` and `RESULTS.md`, so every second entry point in a rerun was
    branded unreproducible. The guard and the marker say the same thing about the same tree, or one
    of them is wrong.
+   **And since 2026-11-05 the rows are compared with the live tree, which nothing did before.**
+   The refusal above guards a *run*; between runs, the only checks were that the newest rows agree
+   **with each other** (`test_every_ledger_row_the_report_reads_names_its_code_and_its_baseline`)
+   and that `base_config_hash` matches `config.yaml`'s *parsed* contents - so an edit to any of the
+   other seven `RESULT_PATHS` files left the page quoting results from superseded code with a green
+   suite. Measured: all 32 rows were stale from **2026-11-03** (`universe_history.py`), two data
+   runs published from them, and `tests/test_v2_experiments.py` reported **57 passed** with any of
+   three of those files edited. `tests/test_ledger_is_level_with_the_code.py` now compares all four
+   provenance keys with `scripts/rerun_experiments.py`'s own `current_provenance` - one definition,
+   so the suite cannot be green while `--status` says stale - and is **kept out of the 02:00 publish
+   gate on purpose**, because a stale ledger is a code session's missed rerun and should block that
+   merge rather than discard a night of the data loop's evidence.
 
 ## Queue (in order)
 
