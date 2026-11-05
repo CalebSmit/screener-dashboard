@@ -128,6 +128,25 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    gate 1 - and `research.html` cannot even represent a registered-but-unrun entry, because
    `research_page.display_label` labels anything carrying a `construction_note` and the page lists
    only rows the ledger has.
+
+   **And check first that the engine can measure the idea at all** (2026-11-05). Three proposals
+   have now asked to register a `short_interest_ratio` test - two of them from the same metric's two
+   opposite directions - and all three were refused on one fact: v2's baseline zeroes the metric and
+   the record leaves its column NaN in all 176 months, so **Revisions is the only category v2 does
+   not score**. Measured for the latest refusal
+   (`research/measurements/2026-11-05-short-interest-registration.py`): the "drop it" arm ranks
+   **0 of 67,113 stock-months** differently from the baseline. A row like that publishes a null that
+   is a property of the missing panel, not of the weighting.
+   `tests/test_registry_can_measure_what_it_registers.py` now fails the suite on any registered
+   transform that leaves v2's configuration unchanged, weights an `UNMEASURABLE_METRICS` column, or
+   leaves nothing measurable carrying weight.
+   **Queued: fold the same three conditions into `v2_experiments.run` as a refusal**, beside
+   `refuse_known_outcomes` and `refuse_edited_tree`, so the engine declines before ~45 minutes of
+   compute rather than at the gates. Not done on 2026-11-05 because `v2_experiments.py` is in
+   `RESULT_PATHS` and the edit stales all 32 ledger rows for a rerun whose numbers provably cannot
+   change - **do it in a session that is already paying for a rerun** (registering a real
+   experiment, or a data fix). The helper to move is `_measurable_weight` in that test module, and
+   the test keeps its fixtures either way.
 7. **DONE 2026-10-16 (audit of `research.html`): the page now claims only what the ledger supports.**
    Size's lead is stated as a survivorship hypothesis the data cannot separate from time (the
    sentence is generated, `research_page.size_coverage_relation`); the seven `only-*` entries whose
