@@ -135,12 +135,16 @@ function Write-NativeOutput {
 # A failed gate's whole output, beside the log it belongs to (logs/ is gitignored), so the next
 # reader can see which test failed and why without re-running anything (2026-11-04). Never fatal:
 # a gate's verdict must not depend on whether its transcript could be written.
+#
+# $Level exists because the gate-1 baseline uses this too (2026-11-05) and the baseline is not a
+# gate - it decides nothing, so its lines are WARN. The default keeps gates 1 and 5 logging at
+# ERROR exactly as they did.
 function Save-GateOutput {
-    param([object]$Result, [string]$Name)
+    param([object]$Result, [string]$Name, [string]$Level = 'ERROR')
     $path = $LogFile -replace '\.log$', ".$Name.txt"
     try {
         Set-Content -Path $path -Value $Result.Text -Encoding utf8 -ErrorAction Stop
-        Write-Log "    full output: $path" 'ERROR'
+        Write-Log "    full output: $path" $Level
     } catch {
         Write-Log "    could not save the full output to $path ($($_.Exception.Message))" 'WARN'
     }
@@ -626,6 +630,17 @@ try {
         } else {
             Write-Log "BASELINE could not be taken (python/pytest exited $($b.ExitCode) with no FAILED lines) - gate 1 is unlabelled today." 'WARN'
         }
+        # The transcript, for the same reason gates 1 and 5 keep theirs (2026-11-04) - and the
+        # reason is sharper here, because the prompt makes a red baseline the session's first job
+        # ahead of its focus. Measured 2026-11-05: the 13:00 session was handed one test name,
+        # `tests/test_context_layer_claims.py::test_the_page_says_when_each_kind_of_quote_was_taken`,
+        # with no assertion and no traceback; the same command on the same commit reported 3,976
+        # passed seven minutes later and the failure never reproduced in 8 further runs of that
+        # module, including two whole-suite parallel runs. The session spent about 40 minutes
+        # establishing that main was in fact green - time the saved output would have cost a
+        # minute. Saved on both red branches, including "could not be taken", which is the most
+        # opaque state of the three. Logging only, at WARN: the baseline decides nothing.
+        Save-GateOutput $b 'baseline' 'WARN'
     }
     Restore-Artifacts 'left by the baseline test run'
 

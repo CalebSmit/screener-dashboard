@@ -305,3 +305,58 @@ def test_a_failed_gate_leaves_its_whole_output_and_names_its_failures():
     ignored = subprocess.run(["git", "check-ignore", "-q", "logs/nightly-2026-01-01_060000.gate5.txt"],
                              cwd=ROOT)
     assert ignored.returncode == 0
+
+
+def test_a_red_baseline_leaves_its_whole_output_too():
+    """2026-11-05: the same gap one level up, and it cost a session about 40 minutes.
+
+    The 13:00 session was told `main` arrived red with exactly one failure - a browser test in
+    `tests/test_context_layer_claims.py`, which `claims.py` also puts in the 02:00 publish gate -
+    and nothing else: no assertion, no traceback. The same command on the same commit reported
+    3,976 passed seven minutes later, and the failure never reproduced (8 further runs across 4
+    scenarios, two of them whole-suite parallel runs;
+    `research/measurements/2026-11-05-context-claims-flake.py`). Establishing that `main` was in
+    fact green took the session most of an hour, because the prompt makes a red baseline its first
+    job ahead of its focus - correctly, since nothing merges onto a red `main`.
+
+    So the baseline keeps its transcript, like gates 1 and 5. The properties that matter:
+
+    * it saves on **both** red branches - the named-failures one and "could not be taken", which
+      is the most opaque of the three states;
+    * it is still reporting only - saving happens at WARN, not ERROR, because the baseline is not
+      a gate, and `test_the_baseline_runs_before_the_session_and_cannot_decide_anything` above
+      still forbids this block from merging, pushing, tagging or touching `$gateFailures`;
+    * gates 1 and 5 are **unchanged** - they pass no level and get ERROR from the default.
+    """
+    base = CODE.index("$BaselineFailures = @()")
+    end = CODE.index("Restore-Artifacts 'left by the baseline test run'")
+    block = CODE[base:end]
+
+    assert "Save-GateOutput $b 'baseline' 'WARN'" in block, (
+        "a red baseline must save its whole output beside the log"
+    )
+    # Both red branches reach it: it sits after the if/else that distinguishes them, inside the
+    # non-zero-exit branch. So the named-failure line and the "could not be taken" line both
+    # precede it, and the green branch does not.
+    red = block.index("BASELINE main was RED on arrival")
+    unknown = block.index("BASELINE could not be taken")
+    save = block.index("Save-GateOutput $b 'baseline'")
+    assert red < unknown < save, "both red branches must fall through to the save"
+    assert block.index("BASELINE main is GREEN on arrival") < red, (
+        "the green branch is a different branch and saves nothing"
+    )
+
+    # The level is a real parameter with the gates' behaviour as its default.
+    fn = CODE[CODE.index("function Save-GateOutput"):CODE.index("function Stop-Run")]
+    assert "[string]$Level = 'ERROR'" in fn
+    assert "Write-Log \"    full output: $path\" $Level" in fn
+    for gate in ("Save-GateOutput $t 'gate1'", "Save-GateOutput $r5 'gate5'"):
+        assert gate in CODE, gate
+        assert f"{gate} '" not in CODE, (
+            f"{gate} must pass no level, so it keeps ERROR from the default"
+        )
+
+    # Beside the log, under logs/, which git ignores - so gate 4 cannot see it as a stray file.
+    ignored = subprocess.run(
+        ["git", "check-ignore", "-q", "logs/nightly-2026-01-01_060000.baseline.txt"], cwd=ROOT)
+    assert ignored.returncode == 0

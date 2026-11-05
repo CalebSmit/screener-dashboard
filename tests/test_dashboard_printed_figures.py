@@ -38,6 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import generate_dashboard as gd  # noqa: E402
+from tests import sheet_warm  # noqa: E402 - settle the sheet pre-warm (2026-11-05)
 from factor_engine import METRIC_DIR, SECTOR_MIN_PEERS, metric_weight_profiles  # noqa: E402
 
 try:
@@ -107,6 +108,9 @@ def page(browser, tmp_path_factory):
     pg.goto((d / "index.html").as_uri(), wait_until="load", timeout=60000)
     pg.wait_for_function("typeof renderContribVisual === 'function' && typeof D !== 'undefined' && "
                          "window.SCREENER_CONTEXT !== undefined && D.track !== undefined", timeout=60000)
+    # The sheet pre-warm would otherwise rewrite #modal-context from an idle
+    # callback, between a render and its read - see tests/sheet_warm.py.
+    sheet_warm.settle(pg)
     yield pg
     pg.close()
     assert not errors, errors

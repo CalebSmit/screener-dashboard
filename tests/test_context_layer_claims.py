@@ -52,6 +52,7 @@ import generate_dashboard as gd  # noqa: E402
 import market_context as mc  # noqa: E402
 import options_cache  # noqa: E402
 import stock_summary  # noqa: E402
+from tests import sheet_warm  # noqa: E402 - settle the sheet pre-warm (2026-11-05)
 from factor_engine import compute_metrics  # noqa: E402
 
 try:
@@ -146,6 +147,9 @@ def page(tmp_path_factory):
         pg.goto((d / "index.html").as_uri(), wait_until="load", timeout=60000)
         pg.wait_for_function("typeof renderContext === 'function' && typeof D !== 'undefined' && "
                              "Object.values(D.stock_detail).some(s => s.ctx)", timeout=60000)
+        # The sheet pre-warm would otherwise rewrite #modal-context from an idle callback, between
+        # the render and the read of every helper below - see tests/sheet_warm.py.
+        sheet_warm.settle(pg)
         yield pg
         b.close()
         assert not errors, errors
