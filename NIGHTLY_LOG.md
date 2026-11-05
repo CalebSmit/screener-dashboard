@@ -19127,3 +19127,67 @@ to be accepted after six refusals. I did not write the note or its measurement.
 - The 06:00 entry's Next still stands: the refused-run context-log question (and the
   `auto-rescue` stash with it), the 37 named-ticker references in 6 payload-reading test modules, and
   universe phase 1's next slice.
+
+## 2026-11-04 (owner-run, evening) - "keep finding improvements please, be creative": the data loop's blind spots
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-04_130001-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-04_020001.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: 5 of 8 effective observations needed (43 rows), newest 1m run date 2026-10-02
+(**33 days**, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The
+Factor Lab** (age **23 days**). **Tests:** 3,896 passed / 1 skipped at the morning's merge; **3,908
+passed / 1 skipped** on this tree (parallel, 3:15). All five gates passed in a worktree outside
+OneDrive; pushed while no session ran; tag `good/2026-11-04-owner-2`.
+
+### Did
+
+1. **The 02:00 run rate-limits itself, every night - and nothing recorded where.** Seven consecutive
+   02:00 runs: 39-51 tickers rate-limited, a 125-155 s retry pass, every ticker recovered. The
+   2026-11-02 run had **no fetch of any kind for 72 hours before it** (no `runs/` folder since 10-30,
+   no owner session, no weekend option refresh) and still read 45 - the control the timing note's
+   section 8.5 asked for, so the "leftover budget from an earlier run" reading is refuted
+   (`research/2026-10-26-data-run-timing.md` section 8.7). The data loop logged only the last 25 lines
+   of the screener's output, so the batch-by-batch throttle was discarded every morning. Now:
+   - `data-run.ps1` saves the whole output as `logs/datarun-<stamp>.screener.txt` (never fatal);
+   - `meta.json` records `rate_limited_positions` / `_tickers` / `rate_limit_errors`
+     (`run_screener.rate_limit_detail`; provenance only, `factor_engine.py` untouched so no ledger
+     rerun).
+   No setting changed: the note says what a week of both must show before one does.
+2. **A refused session whose work later landed is no longer reported as held back.** The 13:00
+   session's health line said "held back by its gates" about the 06:00 run whose work this morning's
+   owner session had merged, and that session spent its opening looking for a branch. The verdict now
+   asks git whether the newest commit the runner listed is on `origin/main` ("held back by its gates,
+   and that work has since reached main"; the health line says **yes**). A sha git cannot place keeps
+   the warning. Tested in a bare-origin sandbox.
+3. **Log retention counts runs, not files.** `prune_artifacts.prune_logs(keep=60)` counted every file,
+   so each new sidecar (transcripts, the morning's `.gate1/.gate5.txt`, tonight's `.screener.txt`)
+   silently shortened the history kept and could prune a run's saved gate output while its log
+   survived. Now a run's sidecars live and die with its `.log`.
+4. **An index change can no longer discard a night's data through a browser test.** Four modules in
+   the 02:00 publish gate opened EXPE, APA, HST and BBY by name (the queued "37 named-ticker
+   references"); a deletion from the S&P 500 would have failed the gate on every run. `tests/examples.py`
+   returns the named stock unchanged while the payload carries it - every test reads exactly as before
+   today - else the best-ranked stock with a full sheet. **Measured on a copy of the payload with those
+   four removed: the old modules failed 6 tests, the new ones none that open a stock** (two others
+   failed on that doctored copy because removing stocks moves the median and the profile ranks - an
+   artifact of the surgery, not of a name). JPM and MSFT stay named: their tests assert what only
+   those companies are. Tripwire: `tests/test_browser_examples.py` (caught the old APA line when put
+   back; one false positive, a test that deletes FOX itself, exempted by rule).
+
+### Not done, and why
+
+- **4 GB of stale agent worktrees sit inside the OneDrive folder** (`.claude/worktrees/agent-*`, from
+  2026-11-02, none holding unmerged or uncommitted work - checked). `git worktree remove` unregistered
+  the two git still knew, but the sandbox refuses deleting their files, so the owner removes the folder
+  by hand. OneDrive syncing 4 GB of churn is a plausible contributor to the file locks suspected in
+  this morning's unreproducible gate-5 failure - unproven.
+- The three proposals and the inversion build stay with the scheduled sessions (this conversation
+  wrote two of them).
+
+### Next
+
+- **After tomorrow's 02:00 run, read `logs/datarun-2026-11-05_*.screener.txt` and the run's
+  `phase_detail.fetch.tickers`**: which batch the first `Rate limit detected` arrives in, and whether
+  the positions cluster. A week of that is the evidence section 8.7 asks for before any fetch setting
+  moves.
+- The midday entry's Next stands: build the implied-volatility inversion (fetch `exDividendDate`
+  first), then the two waiting proposals.
