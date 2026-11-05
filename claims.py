@@ -1457,6 +1457,26 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="history.recent_ranks",
+        surface=DRILLDOWN,
+        asserts=(
+            "Each leading card's 'Top 25 in N of K runs since D' counts, over the last K comparable runs "
+            "of the published history (20, or all of them when there are fewer), the runs whose "
+            "published rank was 25 or better; D is the first of those runs' dates; a run that did not "
+            "rank the stock counts against it; the columns drawn are its rank in each of those runs, the "
+            "filled ones exactly the N. A My holdings card's line ('Rank in every comparable run since D, "
+            "#1 at the top; the dashed line is #25') draws the stock's published rank in every run that "
+            "ranked it, on one scale from #1 to the universe for every card, and colours its end dot only "
+            "for a change at or past the material threshold (2026-11-05)."
+        ),
+        made_true_by="generate_dashboard:generate_html",
+        checked_by=(
+            "tests/test_dashboard_printed_figures.py::test_every_leader_card_counts_its_own_top_25_runs",
+            "tests/test_dashboard_printed_figures.py::test_a_hand_worked_leader_line",
+            "tests/test_dashboard_printed_figures.py::test_every_holding_line_draws_its_own_ranks_on_one_fixed_scale",
+        ),
+    ),
+    Claim(
         id="dashboard.reporting_soon_counts",
         surface=DRILLDOWN,
         asserts=(

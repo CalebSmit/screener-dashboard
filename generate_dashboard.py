@@ -2082,7 +2082,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
             <div class="section-body" id="sec-top5-body">
                 <div class="top5-row" id="top5-row"><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div></div>
-                <p class="t5-key"><i aria-hidden="true"></i>Each bar is a category score from 0 to 100; the tick marks 50, near the sector median.</p>
+                <p class="t5-key"><span class="t5-key-a"><i aria-hidden="true"></i>Each bar is a category score from 0 to 100; the tick marks 50, near the sector median.</span><span class="t5-key-runs"><b aria-hidden="true"></b>The columns are its rank in each recent run: the taller, the higher it ranked; the line marks #25.</span></p>
             </div>
         </section>
 
@@ -2856,9 +2856,45 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="top5-score"><span class="top5-composite">${{fmt(h.composite,'score')}}</span><span class="top5-composite-label">Composite</span></div>
                 </div>
                 <div class="t5-fp" aria-label="Category scores, 0 to 100">${{cells}}</div>
+                ${{leaderRunsHtml(h.ticker)}}
             </div>`;
         }}).join('');
     }}
+
+    // How long a leader has led (2026-11-05): its published rank in each of the last LEAD_RUNS
+    // comparable runs (history.series, the same ranks Rank history draws), one column per run, filled
+    // in the accent where it ranked in the top LEAD_TOP. The question a first-time reader should ask of
+    // a leading card is whether it is a fluke; this is the page's own answer, counted, not judged.
+    const LEAD_RUNS = 20, LEAD_TOP = 25, LEAD_FLOOR = 50;
+    function leaderRuns(ranks, dates) {{
+        const all = dates || [], k = Math.min(LEAD_RUNS, all.length, (ranks || []).length);
+        if (k < 2) return null;
+        const win = ranks.slice(ranks.length - k), when = all.slice(all.length - k);
+        const shown = win.filter(r => r !== null && r !== undefined);
+        if (shown.length < 2) return null;
+        return {{ ranks: win, dates: when, k: k, n: win.filter(r => r !== null && r !== undefined && r <= LEAD_TOP).length }};
+    }}
+    function leaderRunsHtml(t) {{
+        const ser = H && H.available && H.series && H.series[t];
+        const L = ser ? leaderRuns(ser.r, H.dates) : null;
+        if (!L) return '';
+        const VH = 40, top = 36, step = 10, bw = 7;
+        const hOf = r => Math.max(1.5, (LEAD_FLOOR + 1 - Math.min(r, LEAD_FLOOR + 1)) / LEAD_FLOOR * top);
+        let pin = '', pout = '';
+        L.ranks.forEach((r, i) => {{
+            if (r === null || r === undefined) return;
+            const hh = hOf(r), d = 'M' + ldG(i * step + 1.5) + ' ' + ldG(VH) + 'v-' + ldG(hh) + 'h' + bw + 'v' + ldG(hh) + 'z';
+            if (r <= LEAD_TOP) pin += d; else pout += d;
+        }});
+        const yRef = ldG(VH - hOf(LEAD_TOP) - 0.5), W = L.k * step;
+        const each = L.ranks.map((r, i) => prettyDate(L.dates[i]) + ' ' + (r === null || r === undefined ? 'not ranked' : '#' + r)).join(', ');
+        return '<div class="t5-runs"><svg class="t5-runs-svg" viewBox="0 0 ' + W + ' ' + VH + '" preserveAspectRatio="none" role="img" aria-label="Rank in each of the last ' + L.k + ' runs: ' + escapeHtml(each) + '">' +
+            '<title>' + escapeHtml(each) + '</title>' +
+            '<path class="t5-runs-out" d="' + pout + '"/><path class="t5-runs-in" d="' + pin + '"/>' +
+            '<path class="t5-runs-ref" d="M0 ' + yRef + 'H' + W + '"/></svg>' +
+            '<div class="t5-runs-cap">Top 25 in <b>' + L.n + ' of ' + L.k + ' runs</b> since ' + escapeHtml(prettyDate(L.dates[0])) + '</div></div>';
+    }}
+    const ldG = x => (+x).toFixed(1);   // geometry: a column's position or height, never a printed figure
 
     // =====================================================================
     // COMPOSITE HISTOGRAM
@@ -3718,6 +3754,32 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }}
 
     const HC_SHORT = {{ valuation: 'Val', quality: 'Qual', growth: 'Grow', momentum: 'Mom', risk: 'Risk', revisions: 'Rev', size: 'Size', investment: 'Inv' }};
+    // Where a held name has been (2026-11-05): its published rank in every comparable run, on one fixed
+    // scale - #1 at the top, the whole universe below - so a drift from #40 to #60 looks as small as it
+    // is and a slide from the top 25 to the middle of the index looks as large. The dashed line is #25.
+    // The end dot is coloured only when the move beside it clears the material threshold, the movers'
+    // rule. The figures are the card's own (rank, change since the comparison run); this draws them.
+    function holdingPathSvg(t, dr) {{
+        const ser = H && H.available && H.series && H.series[t];
+        const ranks = ser ? ser.r : [];
+        const pts = ranks.map((r, i) => [i, r]).filter(q => q[1] !== null && q[1] !== undefined);
+        if (pts.length < 2) return '';
+        const N = Math.max((D.kpis && D.kpis.universe_size) || 0, D.table_data.length, ...pts.map(q => q[1]));
+        const Wd = 136, Ht = 30, P = 3, last = ranks.length - 1;
+        const x = i => P + (last ? i / last : 0) * (Wd - 2 * P), y = r => P + (r - 1) / Math.max(1, N - 1) * (Ht - 2 * P);
+        const line = pts.map((q, k) => (k ? 'L' : 'M') + hpG(x(q[0])) + ' ' + hpG(y(q[1]))).join('');
+        const end = pts[pts.length - 1];
+        const area = line + 'L' + hpG(x(end[0])) + ' ' + Ht + 'L' + hpG(x(pts[0][0])) + ' ' + Ht + 'Z';
+        const floor = (H.noise && H.noise.material_threshold) || 0;
+        const dot = Math.abs(dr || 0) >= floor && dr ? (dr > 0 ? 'up' : 'down') : 'flat';
+        return '<svg class="holding-path" width="' + Wd + '" height="' + Ht + '" viewBox="0 0 ' + Wd + ' ' + Ht + '" preserveAspectRatio="none" aria-hidden="true">' +
+            '<title>Rank in every comparable run since ' + escapeHtml(prettyDate(H.dates[pts[0][0]])) + ', #1 at the top; the dashed line is #25</title>' +
+            '<path class="hp-area" d="' + area + '"/>' +
+            '<path class="hp-ref" d="M0 ' + hpG(y(25)) + 'H' + Wd + '"/><path class="hp-line" d="' + line + '"/>' +
+            '<path class="hp-end hp-' + dot + '" d="M' + hpG(x(end[0])) + ' ' + hpG(y(end[1])) + 'h0"/></svg>';
+    }}
+    const hpG = v => (+v).toFixed(1);   // geometry: a point on the line, never a printed figure
+
     function holdingCard(r) {{
         const t = r.t, s = r.s;
         const d = holdingDelta(t);
@@ -3776,10 +3838,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
           +   '<span class="holding-sector">' + escapeHtml(s.sector || '') + '</span>'
           +   trap
           +   '<span class="holding-spacer"></span>'
+          +   '<span class="holding-end">'
+          +   holdingPathSvg(t, d ? d.dr : 0)
           +   deltaChip
           +   '<span class="holding-composite" title="Composite score - the weighted blend of the eight category scores, 0-100; the ranking key">'
           +     ((s.composite === null || s.composite === undefined) ? '--' : s.composite.toFixed(1)) + '</span>'
           +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list" aria-label="Remove ' + escapeHtml(t) + ' from your list">&times;</button>'
+          +   '</span>'
           + '</div>'
           + '<div class="holding-cats">' + strip + '</div>'
           + (notes ? '<div class="holding-notes">' + notes + '</div>' : '')
@@ -6372,6 +6437,22 @@ def _css() -> str:
             border-radius: 4px; padding: 1px 5px; white-space: nowrap;
         }
         .holding-spacer { flex: 1; }
+        /* where a held name has been: rank in every comparable run, #1 at the top (2026-11-05) */
+        .holding-path { flex: none; overflow: visible; }
+        /* the line, the change, the score and the remove button wrap as one group, never one by one */
+        .holding-end { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; white-space: nowrap; }
+        @media (max-width: 560px) {
+            .holding-end { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; width: 100%; }
+            .holding-path { order: 2; width: 100%; height: 34px; }
+        }
+        .holding-path .hp-ref { stroke: var(--border-bright); stroke-width: 1; stroke-dasharray: 2 3; fill: none; vector-effect: non-scaling-stroke; }
+        .holding-path .hp-line { stroke: var(--text-primary); stroke-width: 1.6; fill: none; stroke-linejoin: round; stroke-linecap: round; opacity: .85; vector-effect: non-scaling-stroke; }
+        .holding-path .hp-area { fill: var(--text-secondary); opacity: .12; }
+        .holding-path { background: var(--bg-elevated); border-radius: 4px; }
+        /* the end dot is a zero-length stroke, so it stays round when the line is stretched on a phone */
+        .holding-path .hp-end { stroke: var(--text-primary); stroke-width: 5.5; stroke-linecap: round; fill: none; vector-effect: non-scaling-stroke; }
+        .holding-path .hp-up { stroke: var(--green); }
+        .holding-path .hp-down { stroke: var(--red); }
         .holding-delta { font-size: 12px; white-space: nowrap; cursor: help; }
         .holding-delta-up { color: var(--green); }
         .holding-delta-down { color: var(--red); }
@@ -12408,6 +12489,20 @@ def _css_page() -> str:
         .t5-key { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 12.5px; color: var(--text-muted); }
         .t5-key i { position: relative; width: 22px; height: 6px; border-radius: 3px; background: var(--bg-elevated); flex: none; }
         .t5-key i::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--text-muted); }
+        .t5-key { flex-wrap: wrap; row-gap: 6px; column-gap: 22px; }
+        .t5-key-a, .t5-key-runs { display: inline-flex; align-items: center; gap: 8px; }
+        .t5-key-runs b { width: 16px; height: 10px; flex: none; background:
+            linear-gradient(var(--accent), var(--accent)) 0 100% / 4px 100% no-repeat,
+            linear-gradient(var(--accent), var(--accent)) 6px 100% / 4px 70% no-repeat,
+            linear-gradient(#55544f, #55544f) 12px 100% / 4px 35% no-repeat; }
+        /* how long a leader has led: its rank in each recent run (2026-11-05) */
+        .t5-runs { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+        .t5-runs-svg { display: block; width: 100%; height: 34px; overflow: visible; }
+        .t5-runs-in { fill: var(--accent); }
+        .t5-runs-out { fill: #55544f; }
+        .t5-runs-ref { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; fill: none; }
+        .t5-runs-cap { margin-top: 7px; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .t5-runs-cap b { color: var(--text-secondary); font-weight: 600; }
 
         /* ---- THE SUMMARY TILES: a small true chart under each headline ---- */
         .sec-grid .tile-viz { order: 5; flex: 1 0 100%; margin: 4px 0 2px; }

@@ -119,6 +119,15 @@ Presentation only (payload byte-identical). What a session must know before touc
   momentum weight when the regime rule moved it). Metric coverage lives in Diagnostics.
 - **Leading the ranking** (`#sec-top5`, nav "Leaders"): each card's eight scores as a horizontal
   fingerprint (`.t5-fp`, since 2026-10-27; was the column profile `.t5-profile`); a swipe row on a phone.
+  **Since 2026-11-05 each card also shows how long it has led** (`leaderRunsHtml` / `leaderRuns`,
+  `.t5-runs`): one column per comparable run for the last 20 (`LEAD_RUNS`), height = published rank on a
+  #1-#50 scale, filled in the accent where the rank was 25 or better, a dashed line at #25, and the
+  caption "Top 25 in N of K runs since D". Claim `history.recent_ranks`.
+- **My Holdings cards draw where each name has been** (2026-11-05, `holdingPathSvg`, `.holding-path`):
+  the published rank in every comparable run on one fixed #1-to-universe scale for every card, a dashed
+  line at #25, the end dot coloured only for a change past the material threshold (the movers' rule).
+  The line, the change, the composite and the remove button sit in `.holding-end` and wrap as one
+  group; on a phone the line spans the card under them. Claim `history.recent_ranks`.
 - **Section tiles**: Holdings ... Diagnostics are wrapped in `#sec-grid` - two columns of tiles, each with
   `.sec-meta` (its headline number) and `.sec-blurb`; an open tile spans the row. **Sections that draw
   charts open first and draw second** (the toggle wrappers in `_js` and `initContext`) - a chart drawn

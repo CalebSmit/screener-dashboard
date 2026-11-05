@@ -124,3 +124,54 @@ def test_on_a_phone_no_market_sector_name_is_cut_short(site):
         assert errors == []
     finally:
         pg.close()
+
+
+@pytest.mark.parametrize("width,height", [(1440, 900), (1280, 900), (375, 812)])
+def test_each_leaders_run_line_fits_on_one_line_and_the_columns_start_level(site, width, height):
+    """The rank-by-run columns under each leader (2026-11-05): their caption on one line, and the five
+    sets of columns level with one another, so the cards still read as a row."""
+    pg, errors = _open(site, width, height)
+    try:
+        caps = pg.evaluate("[...document.querySelectorAll('#top5-row .t5-runs-cap')].map(e => [e.getBoundingClientRect().height, parseFloat(getComputedStyle(e).lineHeight) || 0])")
+        if not caps:
+            pytest.skip("MISSING DATA: no comparable history to draw under the leaders")
+        assert all(h <= (lh or 18) * 1.5 for h, lh in caps), caps
+        if width > 760:
+            tops = pg.evaluate("[...document.querySelectorAll('#top5-row .t5-runs')].map(e => Math.round(e.getBoundingClientRect().top))")
+            assert len(set(tops)) <= 1 or width < 1240, tops
+        assert errors == []
+    finally:
+        pg.close()
+
+
+@pytest.mark.parametrize("width,height", [(1440, 900), (1100, 900), (800, 800), (375, 812)])
+def test_a_holding_cards_line_change_and_score_never_split_and_nothing_overflows(site, width, height):
+    """The rank line added to My holdings (2026-11-05) pushed the composite onto a row of its own at
+    800px. The line, the change, the score and the remove button now wrap as one group: on a desktop
+    they share one row; on a phone the change and the score share one and the line spans the card."""
+    pg, errors = _open(site, width, height)
+    try:
+        picks = pg.evaluate("D.table_data.slice().sort((a, b) => a.Rank - b.Rank).filter((r, i) => i % 97 === 3).slice(0, 4).map(r => r.Ticker)")
+        pg.evaluate("ts => { ts.forEach(t => addHolding(t)); }", picks)
+        pg.wait_for_function("document.querySelectorAll('#holdings-body .holding-card .holding-end').length >= 1", timeout=8000)
+        if not pg.evaluate("document.querySelectorAll('#holdings-body .holding-path').length"):
+            pytest.skip("MISSING DATA: no comparable history to draw")
+        rows = pg.evaluate("""() => [...document.querySelectorAll('#holdings-body .holding-end')].map(g => {
+            const top = e => e ? Math.round(e.getBoundingClientRect().top + e.getBoundingClientRect().height / 2) : null;
+            return [top(g.querySelector('.holding-delta')), top(g.querySelector('.holding-composite')), top(g.querySelector('.holding-remove')),
+                    top(g.querySelector('.holding-path')), g.querySelector('.holding-path') ? g.querySelector('.holding-path').getBoundingClientRect().width : 0,
+                    g.closest('.holding-card').getBoundingClientRect().width]; })""")
+        for delta, comp, rm, path, pw, cw in rows:
+            assert abs(delta - comp) <= 3 and abs(comp - rm) <= 3, (width, rows)
+            if path is None:
+                continue
+            if width > 560:
+                assert abs(path - comp) <= 3, (width, rows)
+            else:
+                assert path > comp and pw > cw * 0.7, (width, rows)
+        assert pg.evaluate("document.documentElement.scrollWidth") <= width
+        assert errors == []
+    finally:
+        pg.evaluate("() => { try { localStorage.clear(); } catch (e) {} }")
+        pg.close()
+

@@ -1516,6 +1516,131 @@ def test_every_rank_history_line_is_the_stocks_own_series(page, data):
     assert not problems, f"{len(problems)}: {problems[:5]}"
 
 
+_LEAD_JS = """(stocks) => { const out = {};
+    for (const t of stocks) { const box = document.createElement('div'); box.innerHTML = leaderRunsHtml(t);
+        const cap = box.querySelector('.t5-runs-cap');
+        const n = sel => { const p = box.querySelector(sel); return p ? (p.getAttribute('d').match(/M/g) || []).length : null; };
+        out[t] = cap ? [cap.textContent, n('.t5-runs-in'), n('.t5-runs-out')] : null; }
+    return out; }"""
+_LEAD_CAP = re.compile(r"^Top 25 in (\d+) of (\d+) runs since (.+)$")
+
+
+def _lead_want(ranks, dates):
+    """The rule the leader cards state, worked here: the last min(20, runs) comparable runs, the ones
+    ranked 25 or better counted, the window's first date named; fewer than two ranked runs, no line."""
+    k = min(20, len(dates), len(ranks))
+    if k < 2:
+        return None
+    win = ranks[len(ranks) - k:]
+    ranked = [r for r in win if r is not None]
+    if len(ranked) < 2:
+        return None
+    top = sum(1 for r in ranked if r <= 25)
+    return k, top, len(ranked) - top, dates[len(dates) - k]
+
+
+def test_every_leader_card_counts_its_own_top_25_runs(page, data):
+    """'Top 25 in N of K runs since D' under each leading card, for every stock the history carries (a
+    leader is any of them on another morning): K is the last 20 comparable runs or all of them if
+    fewer, N the runs among them whose published rank was 25 or better, D the first of their dates -
+    and the columns drawn are those runs, the filled ones exactly the N."""
+    H = data.get("history") or {}
+    if not (H.get("available") and H.get("series")):
+        pytest.skip("MISSING DATA: the payload carries no comparable history")
+    got = page.evaluate(_LEAD_JS, list(H["series"]))
+    pretty = dict(zip(H["dates"], page.evaluate("ds => ds.map(prettyDate)", H["dates"])))
+    problems = []
+    for t, ser in H["series"].items():
+        want = _lead_want(ser["r"], H["dates"])
+        if want is None:
+            if got.get(t) is not None:
+                problems.append(f"{t}: a leader line with fewer than two ranked runs")
+            continue
+        if got.get(t) is None:
+            problems.append(f"{t}: no leader line")
+            continue
+        k, top, rest, since = want
+        cap, n_in, n_out = got[t]
+        m = _LEAD_CAP.match(re.sub(r"\s+", " ", cap).strip())
+        if not m or m.groups() != (str(top), str(k), pretty[since]):
+            problems.append(f"{t}: printed {cap!r}, its series says {top} of {k} since {pretty[since]}")
+        if (n_in, n_out) != (top, rest):
+            problems.append(f"{t}: drew {n_in} filled and {n_out} other columns, its series has {top} and {rest}")
+    assert not problems, f"{len(problems)}: {problems[:5]}"
+
+
+def test_a_hand_worked_leader_line(page):
+    """A window with an unranked run, a rank exactly on the line (25), one just under it (26), and a
+    history longer than the window: only the last 20 runs count, and an unranked run counts against."""
+    ranks = [3] * 5 + [None, 25, 26, 1, 40] + [30] * 15        # 25 runs; the last 20 start at None
+    dates = [f"2026-0{1 + i // 9}-{10 + i % 9}" for i in range(25)]
+    L = page.evaluate("([r, d]) => leaderRuns(r, d)", [ranks, dates])
+    assert (L["k"], L["n"]) == (20, 2), L
+    assert L["dates"][0] == dates[5] and L["ranks"][0] is None
+    assert page.evaluate("([r, d]) => leaderRuns(r, d)", [[None, None, 7], dates[:3]]) is None
+    assert page.evaluate("([r, d]) => leaderRuns(r, d)", [[9, 30], dates[:2]]) == {
+        "ranks": [9, 30], "dates": dates[:2], "k": 2, "n": 1}
+
+
+_HOLD_PATH_JS = """(args) => { const out = {};
+    for (const [t, dr] of args) { const box = document.createElement('div'); box.innerHTML = holdingPathSvg(t, dr);
+        const svg = box.querySelector('svg');
+        if (!svg) { out[t] = null; continue; }
+        const vb = svg.getAttribute('viewBox').split(' ').map(Number);
+        const pts = (svg.querySelector('.hp-line').getAttribute('d').match(/-?[0-9.]+ -?[0-9.]+/g) || []).map(q => q.split(' ').map(Number));
+        const end = svg.querySelector('.hp-end');
+        out[t] = { vb: vb, pts: pts, end: (end.getAttribute('d').match(/-?[0-9.]+/g) || []).slice(0, 2).map(Number),
+                   cls: end.getAttribute('class'), ref: Number(svg.querySelector('.hp-ref').getAttribute('d').split(' ')[1].replace('H', ' ').split(' ')[0]) }; }
+    return out; }"""
+
+
+def test_every_holding_line_draws_its_own_ranks_on_one_fixed_scale(page, data):
+    """The rank line on a My holdings card, for every stock the history carries: one point per run that
+    ranked it, at that run's position across the history, each at its published rank on a scale that
+    puts #1 at the top and the universe at the bottom - the same scale for every card - with the dashed
+    line at #25 and the end dot coloured only for a move at or past the material threshold."""
+    H = data.get("history") or {}
+    if not (H.get("available") and H.get("series")):
+        pytest.skip("MISSING DATA: the payload carries no comparable history")
+    floor = (H.get("noise") or {}).get("material_threshold") or 0
+    n_univ = max((data.get("kpis") or {}).get("universe_size") or 0, len(data["table_data"]))
+    probes = []
+    for i, t in enumerate(H["series"]):
+        probes.append([t, (floor, -floor, floor - 1, 0)[i % 4] if floor else (i % 3) - 1])
+    got = page.evaluate(_HOLD_PATH_JS, probes)
+    problems = []
+    for t, dr in probes:
+        ranks = H["series"][t]["r"]
+        pts = [(i, r) for i, r in enumerate(ranks) if r is not None]
+        g = got.get(t)
+        if len(pts) < 2:
+            if g is not None:
+                problems.append(f"{t}: a line with fewer than two ranked runs")
+            continue
+        if g is None:
+            problems.append(f"{t}: no line")
+            continue
+        _, _, wd, ht = g["vb"]
+        pad, last = 3, len(ranks) - 1
+        n = max(n_univ, max(r for _, r in pts))
+        xs = [pad + (i / last if last else 0) * (wd - 2 * pad) for i, _ in pts]
+        ys = [pad + (r - 1) / max(1, n - 1) * (ht - 2 * pad) for _, r in pts]
+        if len(g["pts"]) != len(pts):
+            problems.append(f"{t}: {len(g['pts'])} points for {len(pts)} ranked runs")
+            continue
+        off = max(max(abs(a - x), abs(b - y)) for (a, b), x, y in zip(g["pts"], xs, ys))
+        if off > 0.06:
+            problems.append(f"{t}: a point is {off:.2f} from its rank")
+        if max(abs(g["end"][0] - xs[-1]), abs(g["end"][1] - ys[-1])) > 0.06:
+            problems.append(f"{t}: the end dot is not the last ranked run")
+        if abs(g["ref"] - (pad + 24 / max(1, n - 1) * (ht - 2 * pad))) > 0.06:
+            problems.append(f"{t}: the dashed line is not at #25")
+        want = "hp-up" if dr and abs(dr) >= floor and dr > 0 else ("hp-down" if dr and abs(dr) >= floor else "hp-flat")
+        if want not in g["cls"].split():
+            problems.append(f"{t}: a move of {dr} against a threshold of {floor} drew {g['cls']!r}")
+    assert not problems, f"{len(problems)}: {problems[:5]}"
+
+
 def test_the_whats_changed_caption_and_footnote_count_their_own_runs(page, data):
     """'Built from N comparable runs, first to last' counts the published dates; the noise band's
     'N paired runs' is the number of consecutive dates no more than history.MAX_NOISE_PAIR_GAP_DAYS

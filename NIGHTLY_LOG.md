@@ -19564,3 +19564,59 @@ Payload byte-identical (`scripts/rebuild_page.py`).
   of its own with before/after screenshots of every surface.
 - On a phone, long company names on the What changed mover lines end in an ellipsis; the ticker is
   beside them, so it was left.
+
+## 2026-11-05 (owner-run, early afternoon) - "keep finding improvements! make something great"
+
+**Health (rule 8):** unchanged from this morning's owner-run entries (code session shipped
+`good/2026-11-05`; data loop PASS, morning brief published 02:21; `1m` evidence **44 rows, newest
+2026-10-05, 5 effective**; `allow_auto_apply` false; top open item **0.13, The Factor Lab, 24 days**).
+
+**Owner request:** *"keep finding improvements! make something great."*
+
+### The gap
+
+Walked the page at 1440 and 375px as a first-time reader. The story it tells runs: what is ranked
+(the hero and the dot plot), who leads (the leader cards), what changed, has it worked. The question a
+newcomer should ask between the second and third - **is this leader a fluke?** - had no answer on the
+cards, and My Holdings, the sell-side surface, was all prose: no picture of where a held name had been.
+Both answers were already in the first-paint payload (`history.series`, every stock's published rank in
+every comparable run), so this is presentation only and the payload is byte-identical.
+
+(A false alarm on the way, recorded so nobody chases it: screenshots taken straight after a scripted
+`scrollTo` showed the nav and the sheet's tabs lit one section behind. Measured after a frame, both
+scroll-spies are right - the screenshots were taken before the next animation frame.)
+
+### Did
+
+- **Leader cards: how long each has led.** Under the eight category bars, one column per run for the
+  last 20 comparable runs: height is the published rank on a #1-#50 scale, accent where it ranked in the
+  top 25, a dashed line at #25, and "Top 25 in N of 20 runs since Oct 7". Today it reads as the data
+  does: Expedia #1 for 17 straight runs, Micron climbing from #48 to #4, Marathon Petroleum #26 the run
+  before it jumped to #2. The key under the cards says what the columns are.
+- **My Holdings: where each name has been.** A small rank line in each card's header: every comparable
+  run, #1 at the top and the whole universe at the bottom, the same scale on every card (so a drift from
+  #40 to #60 looks as small as it is), a dashed line at #25, and the end dot coloured only when the
+  change beside it clears the material threshold - the movers' rule, so the colour never asserts more
+  than the measurement does. At 800px the extra width pushed the composite onto a row of its own; the
+  line, the change, the score and the remove button now wrap as one group, and on a phone the line
+  spans the card beneath them (the end dot is a zero-length stroke, so it stays round when stretched).
+
+### Checks added
+
+- `tests/test_dashboard_printed_figures.py`: every stock's leader caption and columns recounted from its
+  own series (the window, the count at <= 25, the date, filled vs other columns); a hand-worked window
+  with an unranked run, a rank exactly on the line and a history longer than the window; every stock's
+  holdings line point-by-point against its published ranks on the fixed scale, the #25 line, and the
+  dot's colour against the material threshold. Claim `history.recent_ranks`, so the 02:00 publish gate
+  runs them.
+- `tests/test_layout_polish.py`: the leader caption on one line and the columns level (1440, 1280,
+  375); the holdings group never split and no sideways scroll (1440, 1100, 800, 375).
+- Mutation-checked: `<= 25` turned into `< 25` fails both leader tests; the holdings group made
+  `display: contents` fails the layout test at 1440, 1100 and 800.
+
+### Left
+
+- The leader columns use a #1-#50 scale, so day-to-day moves inside the top ten look small. That is
+  deliberate (they are small: the material threshold is 37 ranks), not an oversight.
+- Still open from earlier today: the 21-size type scale, and mover names ellipsizing on phones.
+
