@@ -1,0 +1,64 @@
+{
+  "accrual": {
+    "1y": {
+      "distinct_signal_vintages": 4,
+      "effective_observations_the_gate_would_read": 13,
+      "first_vintage": "2025-11-14",
+      "last_vintage": "2026-08-14",
+      "overstatement_factor": 3.25,
+      "run_dates_logged": 262
+    },
+    "2y": {
+      "distinct_signal_vintages": 8,
+      "effective_observations_the_gate_would_read": 25,
+      "first_vintage": "2024-11-14",
+      "last_vintage": "2026-08-14",
+      "overstatement_factor": 3.12,
+      "run_dates_logged": 523
+    },
+    "eight_genuine_vintages_from_today": [
+      "2026-11-14",
+      "2027-02-14",
+      "2027-05-15",
+      "2027-08-14",
+      "2027-11-14",
+      "2028-02-14",
+      "2028-05-15",
+      "2028-08-14"
+    ],
+    "gate": {
+      "effective_observations_required": 8,
+      "horizon_days": [
+        30,
+        40
+      ],
+      "non_overlap_span_days": 30
+    }
+  },
+  "ownership": {
+    "above_0_70": [
+      458,
+      91.1
+    ],
+    "above_1_00": [
+      123,
+      24.5
+    ],
+    "coverage": [
+      502,
+      503
+    ],
+    "mean": 0.8977,
+    "quantiles": {
+      "0.01": 0.4373,
+      "0.1": 0.7152,
+      "0.25": 0.8208,
+      "0.5": 0.9167,
+      "0.75": 0.9956,
+      "0.9": 1.0515,
+      "0.99": 1.1609
+    },
+    "run": "7bf31db85519",
+    "sd": 0.1451
+  }
+}

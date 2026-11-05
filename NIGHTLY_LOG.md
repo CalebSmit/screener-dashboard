@@ -19203,7 +19203,11 @@ newest 1m run date 2026-10-05 - 31 days ago, bound 40.** Priority 0: `allow_auto
 Top open roadmap item: **0.13, The Factor Lab** (age **24 days**); also open 0.10 (29d), 0.14 (22d).
 No branch held back by the gates. `git stash list` carries one `auto-rescue 2026-10-28_060001` entry
 that `git stash show` reports as empty (no diff, no stat) - left alone, as four prior sessions did.
-**Tests:** before **3,908 passed / 1 skipped** (parallel, 2:57); after **3,919 passed / 1 skipped**.
+**Tests:** after **3,919 passed / 1 skipped** (parallel, 3:05). **The baseline was not a separate
+run** - it is read off the mutation check in item 2, which ran the whole suite with this session's
+new module excluded and reported 3,906 passed with the 2 failures the mutation itself caused, i.e.
+**3,908 passed / 1 skipped** on the arriving tree, matching the 11-04 evening entry. The 11 new
+tests account for the difference exactly.
 
 **Owner queue / rotation:** `OWNER_FOCUS.md` item 1 - **decide the OPEN proposals** - outranked the
 rotation, and both were listed in the brief at 2 days old. **Both decided; the queue is empty for the
