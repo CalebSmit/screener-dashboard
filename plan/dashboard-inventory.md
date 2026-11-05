@@ -270,7 +270,10 @@ through the older blocks. What a session must know before touching these:
   Delta column is blank. `tests/test_investor_profiles.py`, browser test in
   `test_dashboard_navigation.py`.
 - **What Changed overview** (`#changed-overview`): two or three build-time sentences per baseline
-  from `history.overview` (`run_overview.py`, claim `history.run_overview`).
+  from `history.overview` (`run_overview.py`, claim `history.run_overview`). **2026-11-05:** beside it,
+  **What moved the scores** (`#changed-shares`, `renderChangedShares`) draws the same published
+  `shares`, all eight, largest first, the three fundamentals (`run_overview.FUNDAMENTAL`, written in as
+  `CHG_FUND`) in the accent. `tests/test_story_visuals.py`.
 - **Column tooltips** for the six weighted categories fill their weights at load from
   `D.weights.profiles` (`weightList`) - no weight is typed into the page any more
   (`tests/test_header_weights.py`).
@@ -326,6 +329,11 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
   spreads, the 2% goal for CPI, hover/drag tooltip by week) and a **ten-year range bar** with its low
   and high at the ends and the median at the middle. The sector rate chart says which side is "falls
   when yields rise". `tests/test_market_backdrop_visuals.py`.
+- **Track Record, 2026-11-05:** a **Period by period** strip under the chart (`trackLeadBars`): one bar
+  per holding period, top 25 minus RSP, green exactly where the record counts it ahead (`top > RSP`),
+  captioned with the published `beat_rsp of periods_compared`. The caveats now show two sentences (the
+  standard errors and that the record does not set the methodology); the method notes fold into **How
+  the record is measured**. `tests/test_story_visuals.py`.
 - **Track Record** (`sec-track`, collapsed) - the ranking's top 25 vs RSP and SPY since the first
   comparable run, the top fifth vs bottom fifth view (in percentage points), every holding period
   (with a "Traded" one-way turnover column), changelog-entry ticks on the chart, and the caveats.
@@ -397,7 +405,7 @@ Last owner-run pass, on top of everything below:
 | **Full Universe Rankings** | The workhorse. Scrolls **with the page**; header row sticky below the top bar; **windowed rows** (only what is on screen plus a margin is in the DOM; `renderWindow()`, fixed `--row-h`); score cells tinted by value; designed filters (search with `/` shortcut, sector, trap flags, composite minimum, clear); flags as words, blank when none; phone: each row is a 96px card and a "Sort by" select replaces the header. **Section order is pinned by tests: Top 5, What Changed, then this** |
 | **My Holdings** | Unchanged in behaviour (every property in the section below is still pinned). The seven cited rationales moved behind "Why this panel works this way". Pass 2: names can be added from any drilldown (**Add to Holdings**, or `H`); cards de-boxed (no per-category accent rules); the collapsed header previews the saved tickers |
 | **What Changed** | Five movers each way, "Show all N" for the rest; footnote behind "How to read this". The collapsed header previews "N up, M down materially since <date>" |
-| **Factor Analytics** | **Where each sector scores** - a sector x category matrix (median or average, one hue, shading relative within each column; the old bar chart was flat at ~50 for every sector) and **Trap Rate by Sector as HTML bars** (pass 2; rate and "n of N" printed on each row - the Chart.js canvas clipped sector names, and **Chart.js is no longer loaded at all**). **A matrix row or a trap bar filters the rankings table** to that sector (and flag) and scrolls to it |
+| **Factor Analytics** | **Where each sector scores** - a sector x category matrix (median or average, one hue, shading relative within each column; the old bar chart was flat at ~50 for every sector; **2026-11-05:** each factor's single highest sector is marked in the accent and its single lowest underlined, with a key - a tie marks nothing) and **Trap Rate by Sector as HTML bars** (pass 2; rate and "n of N" printed on each row - the Chart.js canvas clipped sector names, and **Chart.js is no longer loaded at all**). **A matrix row or a trap bar filters the rankings table** to that sector (and flag) and scrolls to it |
 | **Defensibility & Diagnostics** | Same two analyses; the correlation heatmap is one hue by magnitude with pairs above 0.7 outlined; status colour is only a dot. Its **Metric Coverage** card is the mean of each stock's published `cov.n / cov.of` (`generate_dashboard.average_weighted_coverage`, claim `drilldown.avg_metric_coverage`, payload flag `data_quality.coverage_basis: "weighted"`); until 2026-10-16 it averaged a legacy 18-metric list (95.5% against the engine's 98.9%) |
 | **Methodology** | Reading surface: contents rail built from its own headings, ~72-character measure. **Opens on a summary since 2026-10-27**: the Overview's first sub-sections are *If you read nothing else*, *How to use it* and *What it cannot do* (pointing into the Limitations by number), then *What it measures* and *In seven steps* (moved from the end, where it published as one run-on paragraph); the second `h2` is a glossary, **Words this page uses**. The Limitations open with the three to read first. `tests/test_overview_reading_order.py` (claims `overview.at_a_glance_flags`, `overview.at_a_glance_tested`, `overview.glossary`) |
 

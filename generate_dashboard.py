@@ -1925,6 +1925,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     """
     # Escape braces in methodology_html so f-string doesn't choke
     methodology_escaped = methodology_html.replace("{", "{{").replace("}", "}}")
+    import run_overview   # its FUNDAMENTAL set is written into the page (What moved the scores)
     version = data_version or "latest"
     ctx_version = context_version or version
     return f"""<!DOCTYPE html>
@@ -2136,7 +2137,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="seg-control" id="changed-range"></div>
                     <span class="changed-caption" id="changed-caption"></span>
                 </div>
-                <p class="changed-overview" id="changed-overview"></p>
+                <div class="changed-story">
+                    <p class="changed-overview" id="changed-overview"></p>
+                    <div class="changed-shares" id="changed-shares"></div>
+                </div>
                 <div class="movers-grid">
                     <div class="movers-col">
                         <h3 class="chart-title">Moved up the rankings</h3>
@@ -2921,10 +2925,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const sectors = Object.keys(comp).sort((a, b) => (comp[b][stat] || 0) - (comp[a][stat] || 0));
         // Shade relative to each column's own spread - otherwise a column where every
         // sector sits at 48-52 looks identical to one that varies from 20 to 80.
-        const span = {{}};
+        const span = {{}}, mark = {{}};
         cols.forEach(c => {{
             const vals = sectors.map(s => ((dist[c[0]] || {{}})[s] || {{}})[stat]).filter(v => v !== undefined && v !== null);
             span[c[0]] = vals.length ? [Math.min(...vals), Math.max(...vals)] : [0, 1];
+            // the one sector highest and the one lowest on each factor, marked so where a sector stands
+            // out can be seen at a glance; a tie marks nothing (2026-11-05)
+            mark[c[0]] = {{ hi: vals.filter(v => v === span[c[0]][1]).length === 1 ? span[c[0]][1] : null,
+                            lo: vals.filter(v => v === span[c[0]][0]).length === 1 ? span[c[0]][0] : null }};
         }});
         let h = '<table class="sm-table"><thead><tr><th>Sector</th>' + cols.map(c => '<th class="num">' + c[1] + '</th>').join('') + '<th class="num">Stocks</th></tr></thead><tbody>';
         sectors.forEach(s => {{
@@ -2937,11 +2945,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 if (v === null || v === undefined) {{ h += '<td class="' + cls + ' sm-na" data-l="' + c[1] + '">&mdash;</td>'; return; }}
                 const [lo, hi] = span[c[0]];
                 const t = hi > lo ? (v - lo) / (hi - lo) : 0.5;
-                h += '<td class="' + cls + '" data-l="' + c[1] + '" style="--t:' + t.toFixed(3) + '">' + v.toFixed(1) + '</td>';
+                const mk = mark[c[0]] || {{}};
+                const hl = c[0] === 'Composite' || lo === hi ? '' : v === mk.hi ? ' sm-hi' : v === mk.lo ? ' sm-lo' : '';
+                h += '<td class="' + cls + hl + '" data-l="' + c[1] + '" style="--t:' + t.toFixed(3) + '"' + (hl ? ' title="' + (hl === ' sm-hi' ? 'Highest' : 'Lowest') + ' sector on ' + c[1] + '"' : '') + '>' + v.toFixed(1) + '</td>';
             }});
             h += '<td class="num sm-n" data-l="Stocks">' + (comp[s] ? comp[s].count : '') + '</td></tr>';
         }});
-        host.innerHTML = h + '</tbody></table>';
+        host.innerHTML = h + '</tbody></table><div class="sm-key"><span><i class="sm-key-hi"></i>Highest sector on that factor</span><span><i class="sm-key-lo"></i>Lowest</span></div>';
     }}
 
     function setSectorStat(stat) {{
@@ -3192,6 +3202,24 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         </div>`;
     }}
 
+    // What moved the scores: the same shares the overview's sentence quotes (run_overview.category_shares),
+    // all eight, largest first. The fundamentals - run_overview.FUNDAMENTAL, written in at build - are
+    // drawn in the accent, so "Valuation, Quality and Growth together" is visible as well as stated.
+    const CHG_FUND = {json.dumps(list(run_overview.FUNDAMENTAL))};
+    function renderChangedShares(ov) {{
+        const host = document.getElementById('changed-shares');
+        if (!host) return;
+        const sh = (ov && ov.shares) || {{}};
+        const ks = Object.keys(sh).filter(k => typeof sh[k] === 'number' && isFinite(sh[k]) && CAT_LABELS[k]).sort((a, b) => sh[b] - sh[a]);
+        if (!ks.length) {{ host.innerHTML = ''; return; }}
+        const mx = Math.max(...ks.map(k => sh[k])) || 1;
+        host.innerHTML = '<div class="chs-h">What moved the scores</div><div class="chs-sub">Each category&rsquo;s share of all the movement in scores</div>' +
+            ks.map(k => '<div class="chs-row' + (CHG_FUND.includes(k) ? ' fund' : '') + '"><span class="chs-n">' + CAT_LABELS[k] + '</span>' +
+                '<span class="chs-t"><i style="width:' + chsW(sh[k] / mx) + '%"></i></span><span class="chs-v">' + pctNearZero(sh[k] * 100, 1).mag + '%</span></div>').join('') +
+            '<div class="chs-key"><i></i>Valuation, Quality and Growth, the three fundamental categories</div>';
+    }}
+    const chsW = f => Math.max(1.5, f * 100).toFixed(1);   // geometry: a bar's width, never a printed figure
+
     function renderChanged() {{
         const sec = document.getElementById('sec-changed');
         if (!H.available || !H.compare || !H.movers) return;
@@ -3220,6 +3248,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const ov = (H.overview || {{}})[changedRange];
         const ovEl = document.getElementById('changed-overview');
         if (ovEl) ovEl.textContent = ov ? ov.text.join(' ') : '';
+        renderChangedShares(ov);
 
         const up = mv.up.map(moverRow).join('') || '<div class="mover-none">No material moves up.</div>';
         const down = mv.down.map(moverRow).join('') || '<div class="mover-none">No material moves down.</div>';
@@ -6226,6 +6255,22 @@ def _css() -> str:
         .profile-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
         .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
         .changed-overview:empty { display: none; }
+        /* the overview's sentence and its picture side by side (2026-11-05) */
+        .changed-story { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px 32px; align-items: start; margin: 4px 0 18px; }
+        .changed-story .changed-overview { margin: 0; }
+        .changed-shares:empty { display: none; }
+        .chs-h { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+        .chs-sub { font-size: 11.5px; color: var(--text-muted); margin: 1px 0 8px; }
+        .chs-row { display: grid; grid-template-columns: 86px 1fr 44px; gap: 10px; align-items: center; min-height: 20px; font-size: 12px; }
+        .chs-n { color: var(--text-secondary); }
+        .chs-t { position: relative; height: 8px; border-radius: 3px; background: var(--bg-elevated); }
+        .chs-t i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--text-muted); opacity: .7; }
+        .chs-row.fund .chs-t i { background: var(--accent); opacity: 1; }
+        .chs-row.fund .chs-n { color: var(--text-primary); }
+        .chs-v { text-align: right; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        .chs-key { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+        .chs-key i { width: 10px; height: 8px; border-radius: 2px; background: var(--accent); }
+        @media (max-width: 760px) { .changed-story { grid-template-columns: 1fr; } }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
         .mover-row {
             display: grid; grid-template-columns: minmax(0,1fr) auto 58px;
@@ -9982,6 +10027,10 @@ def _css_ux() -> str:
         #stock-modal .pt-marker-mean .pt-marker-label { color: var(--accent-text); }
         #stock-modal .pt-close .pt-marker-label { bottom: auto; top: calc(100% + 4px); }
         #stock-modal .pt-range-labels span { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        /* the low label reads rightward from its tick and the high label leftward, so neither is cut at the
+           panel's edge ("ow $361.00", 2026-11-05) */
+        #stock-modal .pt-range-labels span:first-child { transform: none; }
+        #stock-modal .pt-range-labels span:last-child { transform: translateX(-100%); }
 
         /* ---- RANK HISTORY CHART ---- */
         .rank-chart-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
@@ -10721,6 +10770,24 @@ def _js_context() -> str:
             '<text x="' + L + '" y="' + (Hh - 6) + '" class="tr-tick">' + escapeHtml(cDate(S.d[0])) + '</text><text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="tr-tick" text-anchor="end">' + escapeHtml(cDate(S.d[n])) + '</text></svg>' +
             '<div class="tr-legend">' + keys.map(k => '<span><i class="tr-k ' + k[2] + '"></i>' + escapeHtml(k[1]) + '</span>').join('') + '<span><i class="tr-k tr-k-mark"></i>Methodology changelog entry (hover)</span></div>';
     }
+    // Each holding period's lead or lag against RSP: the record the "Periods ahead of RSP" figure counts,
+    // drawn one bar per period. Green where the top 25 beat RSP, by track_record's own rule (top > RSP),
+    // and the caption quotes the published count rather than a recount.
+    function trackLeadBars(T) {
+        const ps = (T.periods || []).filter(p => typeof p.top === 'number' && typeof p.RSP === 'number');
+        if (ps.length < 2) return '';
+        const mx = Math.max(...ps.map(p => Math.abs(p.top - p.RSP)), 0.0001);
+        const bars = ps.map(p => {
+            const d = p.top - p.RSP, up = p.top > p.RSP, hgt = Math.max(1.5, Math.abs(d) / mx * 38);
+            return '<div class="tr-lb" title="' + escapeHtml(cDate(p.entry) + ' to ' + cDate(p.exit)) + ': top 25 ' + cPct(p.top) + ', RSP ' + cPct(p.RSP) + '">' +
+                '<div class="tr-lb-plot"><i class="' + (up ? 'up' : 'dn') + '" style="' + (up ? 'bottom' : 'top') + ':50%;height:' + trG(hgt) + '%"></i>' +
+                '<span class="tr-lb-v ' + (up ? 'up' : 'dn') + '" style="' + (up ? 'bottom' : 'top') + ':calc(50% + ' + trG(hgt) + '% + 3px)">' + cPp(d) + '</span></div>' +
+                '<div class="tr-lb-d">' + escapeHtml(cDate(p.date)) + '</div></div>';
+        }).join('');
+        return '<div class="tr-lead"><div class="tr-lead-h"><b>Period by period</b><span>The top 25&rsquo;s return minus RSP&rsquo;s in each holding period, by the date the ranking was made. Ahead in <b>' +
+            T.beat_rsp + ' of ' + T.periods_compared + '</b>.</span></div><div class="tr-lead-bars">' + bars + '</div></div>';
+    }
+    const trG = x => (+x).toFixed(1);   // geometry: a bar's height or offset, never a printed figure
     let TR_SHOW_Q = false;
     function setTrackView(q) { TR_SHOW_Q = q; renderTrack(); }
     // One month count for the panel and the tile (they used to divide by 30 and by 30.4, so the
@@ -10758,6 +10825,7 @@ def _js_context() -> str:
             (TO ? kpi('Traded at each rebalance', cPlain(TO.mean, 0), 'one way, on average; ' + cPlain(TO.min, 0) + ' to ' + cPlain(TO.max, 0)) : '') + '</div>';
         h += '<div class="seg-control tr-seg"><button type="button" class="seg-btn' + (TR_SHOW_Q ? '' : ' active') + '" onclick="setTrackView(false)">Top 25 vs index</button><button type="button" class="seg-btn' + (TR_SHOW_Q ? ' active' : '') + '" onclick="setTrackView(true)">Top fifth vs bottom fifth</button></div>';
         h += '<div class="tr-chart">' + trackChartSvg(T, TR_SHOW_Q) + '</div>';
+        h += trackLeadBars(T);
         const hasTo = T.periods.some(p => p.turnover !== undefined);
         h += '<details class="why-panel tr-periods"><summary>Every holding period (' + T.periods.length + ')</summary><div class="tr-table-wrap"><table class="tr-table"><thead><tr><th>Ranked on</th><th>Held</th><th class="num">Top 25</th><th class="num">RSP</th><th class="num">Difference</th><th class="num">Top fifth</th><th class="num">Bottom fifth</th><th class="num">Names changed</th>' + (hasTo ? '<th class="num">Traded</th>' : '') + '</tr></thead><tbody>' +
             T.periods.map(p => '<tr><td>' + escapeHtml(cDate(p.date)) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPp(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td>' + (hasTo ? '<td class="num">' + (p.turnover === null || p.turnover === undefined ? '&mdash;' : cPlain(p.turnover, 0)) + '</td>' : '') + '</tr>').join('') +
@@ -10772,6 +10840,9 @@ def _js_context() -> str:
                 ? 'Measured day by day against RSP over ' + X.days + ' trading days, the top 25&rsquo;s lead is ' + Number(X.t).toFixed(1) + ' standard errors from zero; two is the usual minimum for telling skill from luck' +
                   (X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '') + '. '
                 : '') +
+            'This record is not used to set the methodology. A few months cannot show whether the ranking works; <a href="research.html">the ranking tested on 2012&ndash;2026 history</a> is the longer answer.</div>' +
+            // how the record is built: kept, one click away, so the two sentences that matter are not buried (2026-11-05)
+            '<details class="why-panel tr-method"><summary>How the record is measured</summary><div class="tr-caveats">' +
             'The methodology changelog has entries on ' + (T.methodology_changes || []).length + ' dates inside this window (the ticks under the chart); not every entry changed how stocks are scored. ' +
             (T.gaps && T.gaps.length ? 'There was no run the record could use for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
             (unp.length
@@ -10788,10 +10859,11 @@ def _js_context() -> str:
             ((T.after_close || []).length ? ', or the next one where the run was made after that close, read from the start time the run recorded or, for runs before 19 October 2026, from its own recorded prices (' + T.after_close.map(cDate).join(', ') + ')' : '') + '. ' +
             ((T.untimed || []).length ? 'The runs of ' + T.untimed.map(cDate).join(' and ') + ' recorded neither a start time nor any prices, so when in the day they ran cannot be checked; they enter at their own date&rsquo;s close. ' : '') +
             'Dividends are included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + '. ' +
+            ((T.days || 0) < 365 ? 'No return here is annualised, because none covers a full year. ' : '') +
             (TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' +
                   (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. '
                 : 'No trading costs or taxes are deducted. ') +
-            ((T.days || 0) < 365 ? 'No return here is annualised, because none covers a full year. ' : '') + 'This record is not used to set the methodology. A few months cannot show whether the ranking works; <a href="research.html">the ranking tested on 2012&ndash;2026 history</a> is the longer answer.</div>';
+            'The record shows what the ranking did, not what a reader should do.</div></details>';
         host.innerHTML = h;
     }
 
@@ -11186,6 +11258,14 @@ def _css_investor() -> str:
         .rank-chart .rc-band-label { fill: var(--text-muted); }
         .sm-table td.sm { background: none; font-weight: 500;
             color: color-mix(in srgb, var(--text-primary) calc(25% + var(--t) * 75%), var(--text-muted)); }
+        /* each factor's highest and lowest sector, so a standout reads without comparing columns by eye */
+        .sm-table td.sm.sm-hi { color: var(--accent-text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+        .sm-table td.sm.sm-lo { color: var(--text-muted); box-shadow: inset 0 -2px 0 var(--border-bright); }
+        .sm-key { display: flex; gap: 16px; margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+        .sm-key span { display: inline-flex; align-items: center; gap: 6px; }
+        .sm-key i { width: 14px; height: 2px; }
+        .sm-key-hi { background: var(--accent); }
+        .sm-key-lo { background: var(--border-bright); }
         .sec-meta.sec-meta-plain { color: var(--text-muted); }
         /* the table: tickers in ink, not link-blue (the row is the link); the composite as a gauge on a
            visible 0-100 track, the fill drawn against the track's own width so 71 reads as 71% */
@@ -11572,6 +11652,25 @@ def _css_context() -> str:
         .tr-kpi-v { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
         .tr-kpi-s { font-size: 11.5px; color: var(--text-muted); }
         .tr-seg { margin-bottom: 10px; }
+        /* period by period against RSP (2026-11-05) */
+        .tr-lead { margin-top: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 14px 16px 10px; }
+        .tr-lead-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: 12.5px; color: var(--text-muted); }
+        .tr-lead-h > b { font-size: 13px; color: var(--text-primary); font-weight: 600; }
+        .tr-lead-h span b { color: var(--text-primary); font-weight: 600; }
+        .tr-lead-bars { display: flex; gap: 6px; margin-top: 10px; }
+        .tr-lb { flex: 1 1 0; min-width: 0; }
+        .tr-lb-plot { position: relative; height: 130px; }
+        .tr-lb-plot::before { content: ''; position: absolute; left: -3px; right: -3px; top: 50%; border-top: 1px solid var(--border-bright); }
+        .tr-lb-plot i { position: absolute; left: 50%; width: min(44px, 56%); transform: translateX(-50%); border-radius: 3px; }
+        .tr-method { margin-top: 8px; }
+        .tr-method .tr-caveats { margin-top: 8px; }
+        .tr-lb-plot i.up { background: var(--green); }
+        .tr-lb-plot i.dn { background: var(--red); }
+        .tr-lb-v { position: absolute; left: 0; right: 0; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .tr-lb-v.up { color: var(--green); }
+        .tr-lb-v.dn { color: var(--red); }
+        .tr-lb-d { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+        @media (max-width: 760px) { .tr-lead-bars { gap: 3px; } .tr-lb-v { font-size: 9.5px; } .tr-lb-d { font-size: 9.5px; } }
         .tr-chart { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 14px 16px 10px; }
         .tr-svg { display: block; width: 100%; height: auto; overflow: visible; }
         .tr-grid { stroke: var(--border); stroke-width: 1; }

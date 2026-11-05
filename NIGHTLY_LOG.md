@@ -19442,3 +19442,59 @@ bar did the same (moved beneath).
 
 - Nothing queued from this. If the owner wants more here, the obvious next step is a longer window
   (the payload carries three years of points; the ten-year range is summarised, not drawn).
+
+## 2026-11-05 (owner-run, late morning) - "displayed to tell a story so people can understand"
+
+**Health (rule 8):** unchanged from this morning's owner-run entry an hour earlier (code session
+shipped `good/2026-11-05`; data loop PASS; `1m` evidence **44 rows, newest 2026-10-05, 5 effective**;
+`allow_auto_apply` false; top open item **0.13, The Factor Lab, 24 days**).
+
+**Owner request:** *"keep trying to make improvements on the display of things ... it needs to be
+displayed to tell a story so people can understand. go and look for improvements in that area."*
+
+### How the work was chosen
+
+Walked the live page at 1280px, every section open, plus a stock sheet. The drilldown already tells
+its story well (score tiles, How it adds up, rank history, analyst range). The gaps were all of one
+kind: **the section's main point lived only in a sentence or in a closed table**:
+
+- What changed: "Growth accounted for 21%, Valuation 20% and Quality 17%" - the eight shares were in
+  the payload and never drawn.
+- Track record: "5 of 8 periods ahead of RSP" - *which* periods, and by how much, was a closed table;
+  and the caveats were a single ~250-word paragraph that buried its two important sentences.
+- Factor analytics: the 2026-10 redesign moved the matrix to ink-only shading, so a standout sector
+  had to be found by comparing numbers by eye.
+- A defect seen on the way: the analyst-range bar cut its own end label ("ow $361.00").
+
+### Did
+
+- **What moved the scores** beside the overview sentence: all eight published shares as bars,
+  largest first, the three fundamentals in the accent (the set is `run_overview.FUNDAMENTAL`, written
+  into the page, so the bars and the sentence's "together 58%" use one definition).
+- **Period by period** under the track chart: one bar per holding period, top 25 minus RSP, green
+  exactly where `track_record` counts a period ahead (`top > RSP`; a tie is red, tested), captioned
+  with the published count. **Caveats folded:** the luck sentence and "this record is not used to set
+  the methodology" stay visible; the method notes move into *How the record is measured*. Every
+  sentence is unchanged except one plain closing line added inside the fold so the sentence sweep still
+  sees the cost sentence (*"The record shows what the ranking did, not what a reader should do."*).
+- **Sector standouts:** each factor's single highest sector in the accent, single lowest underlined,
+  with a key; a tie marks nothing.
+- **Analyst range labels** read inward from their ticks; checked geometrically.
+- Registered: the shares test on `history.run_overview`, the green-count and tie tests on
+  `context.track_record`; the sentence register (`DASHBOARD_SENTENCES`) re-keyed for the split
+  caveats. All checks assert relationships, never values; the target-label check opens its stock
+  through `tests/examples.py`.
+
+**Verified in a browser**: desktop 1280 and phone 375 (no horizontal scroll), no console errors.
+Payload byte-identical (`scripts/rebuild_page.py`).
+
+### Methodology changed
+
+- **None.**
+
+### Next
+
+- Candidates seen and not done: Reporting soon is a plain table (the implied move could be drawn as a
+  range, but its "Last quarter" column is an EPS surprise, not a price reaction, so there is no honest
+  pairing to draw yet); the Diagnostics correlation shading is by magnitude only, which is the right
+  question there (independence), so it was left.

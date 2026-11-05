@@ -1473,7 +1473,10 @@ CLAIMS: tuple[Claim, ...] = (
             "The What Changed overview counts stocks that moved the panel's material threshold or "
             "more; attributes the movement in scores to categories by summing each stock's "
             "category score change times that category's composite weight, without regard to "
-            "direction; and counts today's top 25 that were also in the top 25 at the baseline."
+            "direction; and counts today's top 25 that were also in the top 25 at the baseline. "
+            "The 'What moved the scores' bars beside it are those same published shares, all eight, "
+            "largest first, with the three fundamental categories the sentence sums drawn in the "
+            "accent (2026-11-05)."
         ),
         made_true_by="run_overview:overview",
         checked_by=(
@@ -1485,6 +1488,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_printed_figures.py::test_the_whats_changed_footnote_prints_a_hand_worked_window",
             "tests/test_dashboard_printed_figures.py::test_the_whats_changed_tile_prints_the_runs_own_counts",
             "tests/test_dashboard_printed_figures.py::test_the_whats_changed_tile_prints_a_hand_worked_window",
+            "tests/test_story_visuals.py::test_the_bars_are_the_shares_the_overview_publishes",
+            "tests/test_story_visuals.py::test_the_fundamentals_drawn_are_the_set_the_sentence_sums",
         ),
     ),
     Claim(
@@ -1503,7 +1508,10 @@ CLAIMS: tuple[Claim, ...] = (
             "runs and ending at the last run that recorded it (without dividends); a pick still "
             "unpriced is named with its share of the baskets' picks. The top-fifth-minus-bottom-fifth "
             "figure is a difference of total returns in percentage points; the ticks are dated "
-            "changelog entries, not every one a scoring change; no return is annualised."
+            "changelog entries, not every one a scoring change; no return is annualised. The "
+            "period-by-period bars draw each holding period's top-25 return minus RSP's, green "
+            "exactly where the record counts the period as ahead (top > RSP), so the green bars are "
+            "the published 'Periods ahead of RSP' count (2026-11-05)."
         ),
         made_true_by="track_record:build",
         checked_by=(
@@ -1528,6 +1536,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_the_benchmark_is_described_with_its_costs_and_not_as_like_for_like",
             "tests/test_track_record_claims.py::test_the_spread_is_printed_in_percentage_points",
             "tests/test_track_record_claims.py::test_the_changelog_ticks_are_called_entries_not_changes",
+            "tests/test_story_visuals.py::test_the_green_bars_are_the_published_count_of_periods_ahead",
+            "tests/test_story_visuals.py::test_a_tie_is_not_drawn_as_a_lead",
             "tests/test_track_record_claims.py::test_left_out_picks_are_sized_and_no_takeover_premium_is_asserted",
             "tests/test_track_record_claims.py::test_entry_sentence_names_the_late_and_the_untimed_runs",
             "tests/test_track_record_claims.py::test_the_panel_and_the_tile_count_months_the_same_way",
