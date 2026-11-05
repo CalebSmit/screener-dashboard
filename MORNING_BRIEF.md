@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 05 November 2026, 07:20
+# Morning Brief - Thursday 05 November 2026, 13:50
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -31,71 +31,77 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - 2026-11-09 (in 4 days) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
 - 2026-11-16 (in 11 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
 
+## Things that needed attention
+
+- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
+- tests/test_context_layer_claims.py::test_the_page_says_when_each_kind_of_quote_was_taken
+- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
+
 ## What changed in the repo
 
+- `8f5f791 Log the 13:00 session: the red baseline, and the defect behind it`
+- `18eeb13 The flake found: the sheet pre-warm was overwriting panels a test had just rendered`
+- `2ca17f1 A red baseline keeps its transcript, like the gates do`
+- `0081d38 Leader caption: the date never breaks across lines`
+- `d5e85b4 Leaders show how long they have led; holdings show where each name has been`
+- `0a00f0e The top-stock rank test opens the stock ranked first, not EXPE by name`
+- `061953d Polish: nothing cut short, no empty slot, and no false 'ahead of 100%'`
+- `d25bdb1 Show the story each section tells: what moved the scores, period by period, sector standouts`
+- `a0500df Market backdrop: embed the band table indented, so the page carries no template brace pair`
+- `d409e09 Market backdrop: a gauge on each reading, real charts on the ten series`
+- `6f1dff0 brief: code session 2026-11-05`
 - `9fe087c Log: the stale ledger, the check that sees it, and what the next build costs`
 - `d8f04f3 A ledger row is checked against the code it is published beside`
 - `201c21e Bring the research-engine ledger level with the code it is published beside`
 - `c58d886 Both decisions' measurement outputs, and how the baseline count was obtained`
-- `ff6b8ec Log: both open proposals decided, and the guard the first one needed`
-- `66d5343 OWNER_FOCUS: both open proposals decided; the queue is empty`
-- `c93f568 Proposal decided: the 13F holder-count log line is refused as written`
-- `dd0913f The first rate-limit position record: a contiguous wall at 352-389, not a scatter`
-- `edc71ce Proposal decided: the short-interest registration is refused as written`
-- `8b37648 The registry cannot hold an experiment v2 is unable to measure`
-- `aa5fa7f brief: data run 2026-11-05`
-- `7d7c841 data: screener run 2026-11-05 - 499 scored, top: VLO MPC EXPE MU SNDK`
-- `4eb5ebf Log: the stale agent worktrees are removed`
-- `6188976 Log: the data loop's blind spots - where the rate limit hits, a landed refusal, retention, named stocks`
-- `2780d72 Browser tests open a stock the payload carries, so an index change cannot discard a night's data`
 
 ## The session's own account
 
-> 2026-11-05 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+> 2026-11-05 (13:00) - QUEUE. A red baseline came first, and it turned out to be a real defect
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-04_130001-midday.log`
-> (completed). Data loop published? yes - `logs/datarun-2026-11-05_020000.log` (completed; HEALTH: PASS).
-> Evidence base at `1m`: **5 of 8 effective observations needed (44 rows; 112 across all horizons),
-> newest 1m run date 2026-10-05 - 31 days ago, bound 40.** Priority 0: `allow_auto_apply` **false**.
-> Top open roadmap item: **0.13, The Factor Lab** (age **24 days**); also open 0.10 (29d), 0.14 (22d).
-> No branch held back by the gates. `git stash list` carries one `auto-rescue 2026-10-28_060001` entry
-> that `git stash show` reports as empty (no diff, no stat) - left alone, as four prior sessions did.
-> **Tests:** after **3,926 passed / 1 skipped** (parallel, 3:04). **The baseline was not a separate
-> run** - it is read off the mutation check in item 2, which ran the whole suite with this session's
-> first new module excluded and reported 3,906 passed with the 2 failures the mutation itself caused,
-> i.e. **3,908 passed / 1 skipped** on the arriving tree, matching the 11-04 evening entry. The 18 new
-> tests (11 + 7) account for the difference exactly. All five gates pass on this tree: suite, dry-run,
-> both payloads parse, clean tree, and `scripts/rehearse_publish.py`.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-05_060000.log`
+> (shipped to main, `good/2026-11-05`); four owner-run sessions followed it, `good/2026-11-05-owner-1..4`.
+> Data loop published? yes - `logs/datarun-2026-11-05_020000.log` (Data loop complete; HEALTH: PASS).
+> Evidence base at `1m`: **44 rows, newest run date 2026-10-05 - 31 days ago, bound 40, 5 effective
+> observations of the 8 the engine's gate needs.** Priority 0: `allow_auto_apply` **false**. Top open
+> roadmap item: **0.13, The Factor Lab**, opened 2026-10-12 - **24 days**; also open 0.10 (29d, opened
+> 2026-10-07) and 0.14 (22d, opened 2026-10-14). No branch held back by the gates. `git stash list`
+> still carries the one `auto-rescue 2026-10-28_060001` entry that `git stash show` reports as empty -
+> left alone, as five prior sessions did.
 > 
-> **Owner queue / rotation:** `OWNER_FOCUS.md` item 1 - **decide the OPEN proposals** - outranked the
-> rotation, and both were listed in the brief at 2 days old. **Both decided; the queue is empty for the
-> first time since 2026-11-03.** Thursday's build is the guard the first decision needed, so this is a
-> build day as well as a decision day. Deferred: the implied-volatility inversion, named in the 11-04
-> 13:00 entry's Next - it is the accepted ninth proposal's build and needs a session that is not also
-> clearing two decisions; it is this entry's Next.
+> **Tests:** before **3,976 passed / 1 skipped** (parallel, 3:02 - my own run; the runner's baseline at
+> 13:03 reported 1 failure, see below), after **3,982 passed / 1 skipped** (parallel, 3:04). The six
+> new tests are 1 in `tests/test_gate_ordering.py` and 5 in `tests/test_sheet_warm_is_settled.py`.
+> All five gates pass on this tree.
+> 
+> **Owner queue / rotation:** `write_brief.open_proposals()` returns `[]` - no proposal waiting.
+> `OWNER_FOCUS.md`'s open items are the universe expansion (next: phase 1) and the 2026-10-20
+> fine-tune item. The 06:00 entry's **Next** was the implied-volatility inversion build. **Neither was
+> taken, and the reason is the first line of the prompt**: the runner reported `main` **RED on
+> arrival**, which outranks the focus - and chasing it down produced the session's work. See "Why not
+> the IV build" below; nothing was deferred silently.
 > 
 > ### Did
 > 
-> 1. **Proposal decided - `research/2026-11-03-short-interest-days-to-cover.md` section 5: REFUSED as
->    written. The experiment it asks for cannot measure anything.** It wanted a research-engine
->    experiment dropping `short_interest_ratio` from Revisions. The engine has never scored that
->    metric: `v2_config` zeroes it and the record leaves its column **NaN in 176 of 176 months**
->    (68,197 stock-months), which makes **Revisions the only category backtest v2 does not score at
->    all**. Measured over every month on file
->    (`research/measurements/2026-11-05-short-interest-registration.py`): the arm, written the way the
->    registry's own metric-level precedent writes it (`drop-revenue-growth`, `kind: config`), is
->    **dict-identical to the baseline**, and ranks **0 of 67,113 stock-months differently - maximum
->    composite difference 0.0**. Read as `drop_category revisions` it is identical too. So the row
->    would publish "no difference, not distinguishable from zero" - the note's own prediction - which
->    a reader takes as *the leg is not earning its 1.35 composite points* and is in fact an identity.
->    The third expression the registry allows (`kind: metrics`) does move the ranking, but only by
->    putting weight back on five all-NaN analyst columns.
->    **The second half is blocked by the engine's own rule, not only by the missing panel:** FINRA's
->    files begin 2017-12-29, which is **80 of 80** months after 2020 and **25 of 96** in the presample,
->    and nothing is CONFIRMED without a presample arm pointing the same way - so a built panel could
->    only be judged on 2018-2026, a `METHOD_VERSION` change that reruns everything.
->    The note's research and its verdict (the weight stays; placement inside Revisions is a synthesis
->    question) are untouched. Note section 6.
+> 1. **A red baseline now keeps its transcript, like gates 1 and 5 do.** At 13:03:29 the runner logged
+>    `BASELINE main was RED on arrival: 1 pre-existing failure(s)` and named
+>    `tests/test_context_layer_claims.py::test_the_page_says_when_each_kind_of_quote_was_taken` - a
+>    browser module that `claims.py` also puts in the 02:00 publish gate, where a failure **discards
+>    the night's data**. And nothing else: no assertion, no traceback. Gates 1 and 5 have saved their
+>    whole output beside the log since 2026-11-04, for exactly this reason ("the log said only FAIL
+>    check_published_claims"); the baseline, which the session reads *first* and which the prompt makes
+>    its first job, did not. Measured cost: about **40 minutes** of this session establishing that
+>    `main` was in fact green.
+>    `Save-GateOutput` gains a `$Level` parameter defaulting to `'ERROR'`, so gates 1 and 5 are
+>    byte-unchanged, and the baseline calls it at `WARN` - it is not a gate and decides nothing - on
+>    **both** red branches, including "could not be taken", the most opaque of the three states.
+>    `tests/test_gate_ordering.py` (1 new test, 14 total); **5 mutations, 5 caught**
+>    (`research/measurements/2026-11-05-baseline-output-mutations.py`), including the save moved inside
+>    the named-failures branch and either gate made to pass its own level.
+> 2. **Then the flake itself, found and fixed - it was a real defect in the harness, not luck.**
+>    It never reproduced: 8 runs across 4 scenarios, including **two whole-suite parallel runs of all
+>    28 Chromium modules, 737 tests each**, all green
+>    (`research/measurements/2026-11-05-context-claims-flake.py`).
 > ...
 
 ---
