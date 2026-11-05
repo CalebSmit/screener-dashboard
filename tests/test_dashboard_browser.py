@@ -31,6 +31,11 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
 
+from tests import examples  # noqa: E402
+
+# A stock with a full sheet, through tests/examples.py (row "data->red"); EXPE while it is published.
+EX = examples.stock("EXPE")
+
 pytestmark = pytest.mark.skipif(not PAGE.exists() or not PAYLOAD.exists(),
                                 reason="generated dashboard not present")
 
@@ -271,21 +276,26 @@ def _open_stock(page, ticker):
 
 def test_drilldown_is_a_sheet_with_a_header_that_stays(desktop):
     page, _ = desktop
-    _open_stock(page, "EXPE")
+    _open_stock(page, EX)
     box = page.evaluate("""() => { const r = document.querySelector('#stock-modal .modal-content').getBoundingClientRect();
         return {right: r.right, w: innerWidth, h: r.height, vh: innerHeight}; }""")
     assert abs(box["right"] - box["w"]) < 2 and abs(box["h"] - box["vh"]) < 2
     page.evaluate("document.querySelector('#stock-modal .modal-body').scrollTop = 1500")
     _frames(page)
     assert page.is_visible("#stock-modal .modal-header")
-    assert "EXPE" in page.inner_text("#modal-ticker")
+    assert EX in page.inner_text("#modal-ticker")
     page.keyboard.press("Escape")
     assert not page.is_visible("#stock-modal .modal-content")
 
 
 def test_the_rank_sentence_is_true_for_the_top_stock(desktop):
+    """The stock ranked 1st is ahead of 100% of the others, and only that stock is. Until 2026-11-05
+    this opened EXPE by name - the #1 stock when it was written - and asserted 100% for it at #3,
+    which whole-percent rounding made true on the page (496/498 = 99.6% printed as 100%) and false
+    in fact. The sentence now prints 99.6% there, and this test opens whichever stock is first."""
     page, _ = desktop
-    _open_stock(page, "EXPE")
+    first = page.evaluate("D.table_data.reduce((a, r) => r.Rank < a.Rank ? r : a).Ticker")
+    _open_stock(page, first)
     text = page.inner_text("#modal-summary-body")
     assert "ahead of 100% of the other" in text
     assert "is a percentile" not in text
@@ -310,7 +320,7 @@ def test_bank_valuation_workings_use_bank_weights_and_add_up(desktop):
 
 def test_a_metric_row_opens_its_inputs_formula_and_peers(desktop):
     page, _ = desktop
-    _open_stock(page, "EXPE")
+    _open_stock(page, EX)
     page.evaluate("openWorkings('valuation')")
     page.click("#cat-detail-valuation tr[data-metric='earnings_yield'] .wk-info")
     detail = page.inner_text("#cat-detail-valuation tr.wk-detail")
@@ -323,7 +333,7 @@ def test_a_metric_row_opens_its_inputs_formula_and_peers(desktop):
 
 def test_piotroski_row_lists_all_nine_signals(desktop):
     page, _ = desktop
-    _open_stock(page, "EXPE")
+    _open_stock(page, EX)
     page.evaluate("openWorkings('quality')")
     page.click("#cat-detail-quality tr[data-metric='piotroski_f_score'] .wk-info")
     assert page.evaluate("document.querySelectorAll('#cat-detail-quality .wk-part').length") == 9
@@ -363,7 +373,7 @@ def test_phone_table_rows_are_cards_of_a_fixed_height(phone):
 
 def test_phone_drilldown_is_a_bottom_sheet(phone):
     page, _ = phone
-    _open_stock(page, "EXPE")
+    _open_stock(page, EX)
     box = page.evaluate("""() => { const r = document.querySelector('#stock-modal .modal-content').getBoundingClientRect();
         return {bottom: r.bottom, vh: innerHeight, w: r.width}; }""")
     assert abs(box["bottom"] - box["vh"]) < 2 and box["w"] <= 376

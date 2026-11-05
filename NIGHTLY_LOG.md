@@ -19542,6 +19542,12 @@ which reads as first. Ranks 2 and 3 have printed that every run.
   now checks the decimal case and refuses an untrue extreme; 8 hand-worked edges in
   `tests/test_stock_summary.py`. **This sentence is baked at run time, so the live page shows it
   after the 02:00 run.**
+- **Gate 5 caught a test asserting the false sentence.** `tests/test_dashboard_browser.py::test_the_rank_sentence_is_true_for_the_top_stock`
+  opened EXPE by name - #1 when it was written, #3 today - and asserted "ahead of 100%", which the
+  rounding made true on the page. It now opens whichever stock is first. Its four sibling tests
+  open `examples.stock("EXPE")`, and the tripwire in `tests/test_browser_examples.py` now matches
+  `_open_stock(page, "X")`, the form that let five named opens in a publish-gate module through
+  yesterday's sweep.
 - `tests/test_layout_polish.py` (8 browser tests, geometry only): **7 of 8 fail on the page as it
   was this morning**, all pass now.
 

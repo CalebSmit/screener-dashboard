@@ -56,7 +56,9 @@ def test_a_name_search_types_what_finds_only_that_company(fake):
 # from the two whose tests assert what only that company is (JPMorgan the bank metric set and its
 # name) - both among the largest members of the index.
 ALLOWED = {"JPM", "MSFT"}
-NAMED = re.compile(r"""openStockDetail\(['"]([A-Z]{1,5})['"]\)|_sheet\(page, ['"]([A-Z]{1,5})['"]\)"""
+# `_open_stock(page, "X")` joined 2026-11-05: test_dashboard_browser opened EXPE five times that way
+# and the pattern could not see it, so one of those tests had quietly come to assert a false 100%
+NAMED = re.compile(r"""openStockDetail\(['"]([A-Z]{1,5})['"]\)|_(?:sheet|open_stock)\((?:page|pg), ['"]([A-Z]{1,5})['"]\)"""
                    r"""|D\.stock_detail\.([A-Z]{1,5})\b|#stock=([A-Z]{1,5})\b""")
 
 
