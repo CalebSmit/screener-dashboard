@@ -881,6 +881,22 @@ left:
    whether the register covers table cells, and that decision is not a thing to make in the last
    hour of a session.
 
+4. **A fifth class the sweep cannot see at all: a computed figure written as a literal in prose.**
+   Found 2026-11-05 (06:00) while deciding an unrelated proposal, so it is reported here rather
+   than worked. `computed_sentences()` walks `ast.JoinedStr` - f-strings - so it enumerates a
+   sentence only where the figure is *interpolated*. A figure the generator hard-codes, in digits
+   or in words, is outside the sweep by construction, and `KNOWN_OPEN` being empty says nothing
+   about it. The instance that turned it up: `research_page.py` line 969 tells the public the
+   engine "cannot include the analyst-based inputs (estimate revisions and forward earnings
+   growth, **about a sixth of the live weighting**)". That is a statement about `config.yaml` and
+   `backtest_v2.UNMEASURABLE_METRICS`, and it is **true today** - measured
+   **15.85 composite points, 1/6.31**, 10.0 of it the whole Revisions category - but nothing reads
+   it, and a weight change would make it false silently. The route in is the same `ast` walk over
+   plain `ast.Constant` strings in each generator, filtered to ones containing a digit or one of a
+   short list of number-words (`a third`, `a sixth`, `half`, `double`, `twice`...); expect it to
+   over-report, like the other mechanical searches, and only a reading decides. **Do not close
+   this by registering the one sentence above** - that leaves the class open with one fewer member.
+
 The two scans are not tracked (see "Method" on why harness code stays out of the repo); both
 are about 100 lines - an `ast` walk over `tests/` that resolves `import m as x` / `from m import
 X`, imports the module and keeps numeric attributes, and a closure over each registered test's

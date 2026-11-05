@@ -1,0 +1,177 @@
+{
+  "arms": {
+    "config-set-weight-0": {
+      "config_identical_to_baseline": true,
+      "factor_weight_revisions": 0.0,
+      "metric_weight": 0.0,
+      "transform": {
+        "kind": "config",
+        "set": {
+          "metric_weights.revisions.short_interest_ratio": 0
+        }
+      },
+      "weight_put_back_on_unmeasurable_metrics": []
+    },
+    "drop-category-revisions": {
+      "config_identical_to_baseline": true,
+      "factor_weight_revisions": 0.0,
+      "metric_weight": 0.0,
+      "transform": {
+        "category": "revisions",
+        "kind": "drop_category"
+      },
+      "weight_put_back_on_unmeasurable_metrics": []
+    },
+    "metrics-every-other-metric": {
+      "config_identical_to_baseline": false,
+      "factor_weight_revisions": 86.5,
+      "metric_weight": 0.0,
+      "transform": {
+        "kind": "metrics",
+        "metrics": {
+          "growth": {
+            "forward_eps_growth": 45.0,
+            "revenue_cagr_3yr": 15.0,
+            "revenue_growth": 25.0,
+            "sustainable_growth": 15.0
+          },
+          "investment": {
+            "asset_growth": 100.0
+          },
+          "momentum": {
+            "jensens_alpha": 25.0,
+            "return_12_1": 40.0,
+            "return_6m": 35.0
+          },
+          "quality": {
+            "accruals": 5.0,
+            "beneish_m_score": 8.0,
+            "gross_profit_assets": 22.0,
+            "net_debt_to_ebitda": 20.0,
+            "piotroski_f_score": 16.0,
+            "roic": 29.0
+          },
+          "revisions": {
+            "analyst_surprise": 15.0,
+            "consecutive_beat_streak": 10.0,
+            "fy1_revision_3m": 48.0,
+            "price_target_upside": 13.5
+          },
+          "risk": {
+            "beta": 28.57,
+            "max_drawdown_1y": 28.57,
+            "volatility": 42.86
+          },
+          "size": {
+            "size_log_mcap": 100.0
+          },
+          "valuation": {
+            "earnings_yield": 20.0,
+            "ev_ebitda": 25.0,
+            "ev_sales": 10.0,
+            "fcf_yield": 45.0
+          }
+        }
+      },
+      "weight_put_back_on_unmeasurable_metrics": [
+        "analyst_surprise",
+        "consecutive_beat_streak",
+        "forward_eps_growth",
+        "fy1_revision_3m",
+        "price_target_upside"
+      ]
+    }
+  },
+  "finra": {
+    "finra_first_file": "2017-12-29",
+    "months_covered": 105,
+    "months_total": 176,
+    "post_months": 80,
+    "post_months_covered": 80,
+    "presample_months": 96,
+    "presample_months_covered": 25
+  },
+  "live": {
+    "composite_points": 1.35,
+    "factor_weight_revisions": 10.0,
+    "factor_weight_total": 100.0,
+    "revisions_metrics": {
+      "analyst_rating": 0.0,
+      "analyst_surprise": 15.0,
+      "consecutive_beat_streak": 10.0,
+      "earnings_acceleration": 0.0,
+      "fy1_revision_3m": 48.0,
+      "price_target_upside": 13.5,
+      "short_interest_ratio": 13.5,
+      "short_pct_float": 0.0
+    },
+    "within_category_total": 100.0,
+    "within_category_weight": 13.5
+  },
+  "rankings": {
+    "config-set-weight-0": {
+      "max_absolute_composite_difference": 0.0,
+      "rows_only_in_one_side": 0,
+      "stock_months_with_a_different_composite": 0,
+      "stock_months_with_a_different_rank": 0
+    },
+    "drop-category-revisions": {
+      "max_absolute_composite_difference": 0.0,
+      "rows_only_in_one_side": 0,
+      "stock_months_with_a_different_composite": 0,
+      "stock_months_with_a_different_rank": 0
+    },
+    "metrics-every-other-metric": {
+      "max_absolute_composite_difference": 21.77,
+      "rows_only_in_one_side": 6943,
+      "stock_months_with_a_different_composite": 60125,
+      "stock_months_with_a_different_rank": 66514
+    },
+    "months": 176,
+    "stock_months": 67113
+  },
+  "record_column": {
+    "all_values_nan_in_every_month": true,
+    "min_nan_fraction": 1.0,
+    "months_total": 176,
+    "months_with_the_column": 176,
+    "pit_record_class": "no_free_history",
+    "short_fields_by_class": {
+      "no_free_history": [
+        "shortRatio",
+        "shortPercentOfFloat"
+      ],
+      "static": [
+        "shortName"
+      ]
+    },
+    "stock_months": 68197
+  },
+  "v2_baseline": {
+    "categories_at_zero": [
+      "revisions"
+    ],
+    "categories_with_weight": {
+      "growth": 13.0,
+      "investment": 5.0,
+      "momentum": 13.0,
+      "quality": 22.0,
+      "risk": 10.0,
+      "size": 5.0,
+      "valuation": 22.0
+    },
+    "factor_weight_revisions": 0.0,
+    "metric_in_UNMEASURABLE_METRICS": true,
+    "registry_has_only_or_drop_revisions": [],
+    "revisions_metrics": {
+      "analyst_rating": 0.0,
+      "analyst_surprise": 0.0,
+      "consecutive_beat_streak": 0.0,
+      "earnings_acceleration": 0.0,
+      "fy1_revision_3m": 0.0,
+      "price_target_upside": 0.0,
+      "short_interest_ratio": 0.0,
+      "short_pct_float": 0.0
+    }
+  }
+}

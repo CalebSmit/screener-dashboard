@@ -319,11 +319,58 @@ Two things still outrank this file, and neither is negotiable:
      construction predicts better. The inversion itself is the next session's build, order written
      in the note's section 1d. `METHODOLOGY_CHANGELOG.md` 2026-11-04 (13:00); no published number,
      score or sentence moved.
-     **Two proposals are still waiting for a decision**, read from `write_brief.open_proposals()`
-     rather than from this line: the 13F-filer log line
-     (`research/2026-11-03-following-the-smart-money.md`) and registering the `short_interest_ratio`
-     research-engine experiment (`research/2026-11-03-short-interest-days-to-cover.md`, which forces
-     a ~20-minute rerun of all 32 ledger rows - budget it). Both opened **2026-11-03**.
+     **A tenth was DECIDED 2026-11-05 (06:00) - REFUSED as written, and the rerun it was going to
+     cost is not needed, because the experiment could not have measured anything.**
+     `research/2026-11-03-short-interest-days-to-cover.md` section 5 asked a later session to
+     register a research-engine experiment **dropping `short_interest_ratio` from Revisions**. The
+     research engine has never scored that metric: `v2_config` zeroes it and the record leaves its
+     column **NaN in 176 of 176 months**, which makes **Revisions the only category v2 does not
+     score at all**. So the arm *is* the baseline - measured over every month on file,
+     **0 of 67,113 stock-months rank differently, maximum composite difference 0.0**
+     (`research/measurements/2026-11-05-short-interest-registration.py`). It would have published
+     "no difference, not distinguishable from zero", which reads as *the leg is not earning its 1.35
+     composite points* and is in fact an identity. The note's own research and its verdict (the
+     weight stays; the placement inside Revisions is a synthesis question) are untouched.
+     **The second half is blocked by the engine's own rule, not only by the missing build:** FINRA's
+     files begin 2017-12-29, which is **80 of 80** post-2020 months and **25 of 96** presample
+     months, and the registry requires a presample arm pointing the same way before anything is
+     CONFIRMED - so a built panel could only ever be judged on 2018-2026, which is a
+     `METHOD_VERSION` change.
+     **What shipped is the guard**, because this is the **third** proposal refused on the same fact
+     (2026-10-23 asked for weight *on* the metric; this one for its removal):
+     `tests/test_registry_can_measure_what_it_registers.py`, 11 tests, fails the suite on any
+     registered transform that leaves v2's configuration unchanged, weights a column the record
+     leaves NaN, or leaves nothing measurable carrying weight - with the three refused entries as
+     fixtures, and mutation-checked by appending each to the registry. **Measured: before today
+     nothing checked this.** With the entry registered and the new module excluded the suite reports
+     **2 failed, 3,906 passed** - and both failures only read the *count* of registered
+     alternatives, so both go green the moment the session regenerates the page, which the rules
+     require it to do. A runtime refusal in `v2_experiments.run` is queued in
+     `plan/research-engine.md` for a session already paying for a rerun. **No weight, metric,
+     threshold, published sentence or production line changed.**
+     **An eleventh was DECIDED the same session (2026-11-05, 06:00) - REFUSED as written, and the
+     reason is a defect in how the context layer would count it rather than anything in the note.**
+     `research/2026-11-03-following-the-smart-money.md` section 3 proposed logging each stock's 13F
+     holder count and its quarterly change as a context-log candidate. A 13F reading changes on
+     **four filing dates a year** and is the same cross-section in between; `context_eval` counts
+     effective observations over **spaced run dates**, which is right for a signal that moves daily
+     and blind to one that does not. Measured against the data loop's weekday cadence: the gate
+     would read **13 effective observations a year against 4 genuine vintages (3.25x), and 25
+     against 8 over two years** (`research/measurements/2026-11-05-quarterly-signal-accrual.py`) -
+     the 2026-08-10 independence defect (2.35x) in a form the existing count cannot see, on the one
+     number rule 4 and priority 0 exist to protect. So the counting must change **before** such a
+     signal is logged, not after; recorded in `plan/context-layer.md` under "Things not to do".
+     Counted honestly the signal's decision point is **2028-08-14** (eight vintages), for a signal
+     the note's own literature finds absent in large companies after the 45-day lag.
+     **Two further things measured.** `heldPercentInstitutions`, the field already fetched, is not a
+     substitute and should not be logged as one: median **0.9167**, 91.1% above 0.70, and **24.5% of
+     the index above 1.00**, so it is not a share of the company at all. But it does **not** settle
+     the note's "little to sort on" for the proposal's own construct - breadth is a *count*, and the
+     2016 Q1 13F probe this project already ran found a median of **598 filers per security**, so
+     that reading is left open, which is weaker than the note's. Two conditions are pre-registered
+     in the note's section 4.5 for whoever builds it; the Congress verdict and sections 1-2 stand.
+     **No proposal is waiting for a decision** as of 2026-11-05 06:00 - read
+     `write_brief.open_proposals()` rather than this line.
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error

@@ -393,3 +393,37 @@ worth at most: the gap between `fetch.tickers` (~650 s) and `sum_ticker_seconds 
 (~340 s), plus the ~140 s retry pass - roughly 7 of the run's 18 minutes. Any change to
 `factor_engine.py` stales every research-engine ledger row (`v2_experiments.RESULT_PATHS`); budget
 the ~20-minute rerun.
+
+### 8.8 Where the limit arrives: one night, and it is a wall rather than a scatter (2026-11-05, 06:00)
+
+The first night the new provenance existed. `runs/7bf31db85519/meta.json`,
+`phase_detail.fetch.tickers`, and `logs/datarun-2026-11-05_020000.screener.txt`:
+
+| | |
+|---|---|
+| tickers | 503, `workers=3`, `batch_size=30`, `inter_batch_delay=3.0` |
+| rate-limited | **38** |
+| positions | **352 .. 389 inclusive - exactly 38, perfectly contiguous** (`max - min + 1 == len`) |
+| first and last | OTIS .. RF |
+| what Yahoo answered | one message, 38 of 38: `Too Many Requests. Rate limited. Try after a while.` |
+| `fetch.tickers` | 660.1 s (`sum_ticker_seconds` 1031.4) |
+| `fetch.retry` | 120.9 s, **38 of 38 recovered** (4 batches, `workers=1`, `delay=5s`) |
+
+The sidecar shows the shape the positions imply. The first `Rate limit detected - pausing 30s`
+is logged between batch **12** and batch 13 of 17; the throttle drops to `workers=2, delay=5s`;
+a second backoff follows batch 13 (`pausing 60s`); batches **14-17 run at `workers=1, delay=7s`
+and not one further ticker is rate-limited.**
+
+**So, for this night: it is neither a burst at the start nor a scatter through the pass.** Every
+ticker from position 352 to 389 was refused and nothing before or after - the pass runs ~70% of
+the way through (at section 3.1's 12 requests per ticker, roughly **4,200 requests**) and then
+hits a wall, and the adaptive throttle clears it in two steps and holds. Of the three readings
+section 8.7 set out, that is the one pointing at **pacing the whole pass** rather than a warm-up.
+
+**One night is not the evidence.** Section 8.7 says read a week of both, and it stands: the
+contiguity could be a property of this night's wall rather than of the limit, and six prior runs
+recorded only a count (39-51), never a position. Nothing changes until there are more rows here.
+**What to add each morning:** the position range, whether it is contiguous, the error strings, and
+the batch the first backoff follows - four facts, from `meta.json` and the sidecar. Note the
+indices are the fetch's own order and do not line up exactly with `00_raw_fetch.parquet` (OTIS is
+353 there against position 352), so read the range, not an absolute ticker offset.
