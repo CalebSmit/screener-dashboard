@@ -1614,12 +1614,6 @@
     "SubIndustry": "Diversified Banks"
   },
   {
-    "Ticker": "KVUE",
-    "Company": "Kenvue",
-    "Sector": "Consumer Staples",
-    "SubIndustry": "Personal Care Products"
-  },
-  {
     "Ticker": "KDP",
     "Company": "Keurig Dr Pepper",
     "Sector": "Consumer Staples",
@@ -2080,6 +2074,12 @@
     "Company": "Occidental Petroleum",
     "Sector": "Energy",
     "SubIndustry": "Oil & Gas Exploration & Production"
+  },
+  {
+    "Ticker": "OKTA",
+    "Company": "Okta, Inc.",
+    "Sector": "Information Technology",
+    "SubIndustry": "Application Software"
   },
   {
     "Ticker": "ODFL",
