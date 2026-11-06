@@ -19920,3 +19920,16 @@ on a phone get a 10px corner rather than a pill. Display only; payload byte-iden
 words against its own published scores and in the view's rank order. Seen at 1440 and 375 with three
 stocks; no horizontal scroll, no page errors.
 
+**Caught by gate 5, and fixed before 02:00: a flake the previous push introduced.** The rehearsal failed
+`tests/test_club_readiness.py::test_a_phone_reader_reaches_the_flag_definitions_from_the_tile` - on a
+phone, "What a flag means" scrolls to the flag definitions and the test read their position at a fixed
+700 ms. Measured: **0 of 10** failures on the page before last night's Stands out / Trails change, about
+**1 in 3** after it (1 of 6 on the live `main`, 2 of 5 here). Cause, measured frame by frame: the leader
+cards grew a line of words, the phone's scroll to the ranking got ~400px longer, and at 700 ms the smooth
+scroll was still in flight (y = 703-806 against a 812 viewport); it landed at **y = 352 every time by
+1.2 s**. The reader was never affected; the test's premise was. **This module is in the 02:00 publish
+gate** (claim `dashboard.score_key`), so left alone it could have discarded tonight's data run on a bad
+roll. Fix: read the position once the page has stopped scrolling (ten unchanged frames) - the same final
+assertion, the premise of settled row paint->red. 0 of 15 failures after. It was the only test in the
+suite reading a position after a fixed wait.
+

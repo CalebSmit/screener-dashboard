@@ -407,7 +407,15 @@ def test_a_phone_reader_reaches_the_flag_definitions_from_the_tile(browser):
     try:
         page.tap("#kpi-row a.kpi-more")
         page.wait_for_function("document.getElementById('score-key').open")
-        page.wait_for_timeout(700)
+        # Read the position where the smooth scroll *ends*, not at a fixed moment during it
+        # (2026-11-06): a fixed 700 ms read a scroll still in flight once the leader cards grew a
+        # line of words and the phone's scroll got ~400px longer - it landed at y=352 every time by
+        # 1.2 s, and the test failed about one run in three. The same premise as settled row
+        # paint->red: a test may not assume the page has stopped moving. Ten unchanged frames.
+        page.evaluate("""() => new Promise(res => { let last = NaN, same = 0;
+            const tick = () => { const y = scrollY; same = (y === last) ? same + 1 : 0; last = y;
+                                 if (same >= 10) res(y); else requestAnimationFrame(tick); };
+            requestAnimationFrame(tick); })""")
         box = page.locator("#key-traps").bounding_box()
         assert box and 0 <= box["y"] < 812, box
         delta = page.inner_text("#sk-delta")
