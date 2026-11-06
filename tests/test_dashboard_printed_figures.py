@@ -38,6 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import generate_dashboard as gd  # noqa: E402
+import metric_lineage as ml  # noqa: E402
 from tests import sheet_warm  # noqa: E402 - settle the sheet pre-warm (2026-11-05)
 from factor_engine import METRIC_DIR, SECTOR_MIN_PEERS, metric_weight_profiles  # noqa: E402
 
@@ -1899,6 +1900,80 @@ def test_the_compare_sentence_is_the_composite_gap_and_its_two_largest_category_
         if not m or m.groups() != want:
             problems.append(f"{a} vs {b}: printed {lede!r}, worked out {want}")
     assert not problems, f"{len(problems)} of {len(pairs)}: {problems[:4]}"
+
+
+# ---------------------------------------------------------------------------
+# A metric row whose value the scorer clamped (2026-11-06). The row prints the figure its own
+# arithmetic gives and then the bound the scorer held it to - before this, the line read
+# "(mean target − price) ÷ price = +100.0%" for a stock whose figures give +150.9%.
+#
+# Both branches have a hand-worked fixture, so each is checked whatever the morning's data
+# did: on 2026-11-05 two of 496 stocks sat on a bound and on 2026-11-06 eleven did, and a
+# test that waited for a capped stock to turn up would be green on the days it mattered least.
+# ---------------------------------------------------------------------------
+_EQ_JS = """([s, clip]) => { const m = 'price_target_upside';
+    const meta = (D.metric_meta || {})[m] || { fmt: 'pct' };
+    const keep = D.lineage[m].clip;
+    try { if (clip) D.lineage[m].clip = clip; return equationHtml(m, s, meta); }
+    finally { if (keep === undefined) delete D.lineage[m].clip; else D.lineage[m].clip = keep; } }"""
+
+
+def _ptu_stock(target, price, uncapped=None):
+    s = {"raw": {"price_target_upside": round(min(max((target - price) / price, -0.50), 1.00), 6)},
+         "inp": {"targetMeanPrice": target, "currentPrice": price, "numberOfAnalystOpinions": 20}}
+    if uncapped is not None:
+        s["xcap"] = {"price_target_upside": uncapped}
+    return s
+
+
+def test_a_capped_metric_row_prints_the_figure_its_own_arithmetic_gives(page):
+    """The clamped branch: the arithmetic, the cap, and the value that was scored."""
+    # SNDK's shape on 2026-11-06: a mean target 2.516x the price, scored at the +100% bound
+    html = page.evaluate(_EQ_JS, [_ptu_stock(173.14, 68.80, uncapped=1.516), list(ml.PTU_CLAMP)])
+    text = _text(html)
+    assert "capped to" in text, text
+    figures = re.findall(NUM + "%", text)
+    # the equation's own result, then the bound it was held to - 151.6% capped to 100.0%
+    assert figures[-2:] == ["151.6", "100.0"], (figures, text)
+    assert "173.14" in text and "68.80" in text, text
+    # the bounds the scorer applies are named where a reader can reach them
+    assert "-50.0% .. 100.0%" in htmllib.unescape(html).replace("−", "-"), html
+
+
+def test_a_capped_row_without_published_bounds_drops_the_tooltip_not_the_step(page):
+    """A payload built before the bounds were published still gets the honest line.
+
+    Guards the fallback: the step must not read "clips this metric to - .. -", and it must
+    not vanish either - the arithmetic and the cap are what make the row checkable.
+    """
+    html = page.evaluate(_EQ_JS, [_ptu_stock(173.14, 68.80, uncapped=1.516), None])
+    assert "capped to" in _text(html) and "151.6%" in html, html
+    assert "clips this metric" not in html, html
+
+
+def test_an_uncapped_metric_row_still_prints_a_plain_equality(page):
+    """The ordinary branch is unchanged: no cap, no extra figure, a plain '='."""
+    html = page.evaluate(_EQ_JS, [_ptu_stock(115.0, 100.0), list(ml.PTU_CLAMP)])
+    text = _text(html)
+    assert "capped to" not in text, text
+    assert re.findall(NUM + "%", text)[-1] == "15.0", text
+
+
+def test_the_cap_is_shown_only_for_the_stock_the_scorer_capped(page, data):
+    """Over the published payload: every capped row says so and no other row does.
+
+    The page's own rendering, against the payload's own `xcap` - so a build that stopped
+    attaching the field, or attached it to the wrong stock, fails here as well as in
+    tests/test_metric_lineage.py.
+    """
+    sd = data["stock_detail"]
+    capped = sorted(t for t, s in sd.items() if (s.get("xcap") or {}).get("price_target_upside"))
+    plain = [t for t, s in sd.items()
+             if s["raw"].get("price_target_upside") is not None and t not in capped][:12]
+    for t in capped + plain:
+        text = _text(page.evaluate(_EQ_JS, [sd[t], list(ml.PTU_CLAMP)]))
+        assert ("capped to" in text) is (t in capped), (t, text)
+    print(f"\n  rows showing a cap in the published payload: {len(capped)} {capped[:6]}")
 
 
 # ---------------------------------------------------------------------------
