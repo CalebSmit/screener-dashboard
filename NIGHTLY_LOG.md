@@ -20032,3 +20032,63 @@ test modules for the same shape: `tests/test_page_fourth_pass.py` already guards
 Friday that is not a retrospective owes it one finished experiment, tolerances committed before the
 comparison runs; `plan/factor-lab.md` has the ordered queue. If a session reaches it sooner, the
 other standing item is experiment 19's second reader.
+
+## 2026-11-06 (owner-run, late morning) - the page says how old its prices are
+
+**Health (rule 8):** as this morning's 06:00 entry, with one change: the 02:00 data run was
+**discarded** by the publish gate (two failures, both fixed and shipped by the 06:00 session), so the
+live page is still the 2026-11-05 run. On the owner's word ("Yes, after close") a one-time task,
+`Screener Data Run catch-up 2026-11-06`, runs `scripts/data-run.ps1` at **16:00 CST** today, after
+the close, so the site does not stand on Thursday's prices all weekend; it is deleted once the run is
+read. `1m` evidence, Priority 0 and the top open item (0.13, The Factor Lab, 25 days) unchanged.
+
+**Owner:** *"keep finding improvements and updates you can make!"*
+
+**What the 02:00 run showed, which the rehearsal had predicted:** HEALTH PASS on the first run after
+the S&P 500's 4.4% fall - Spearman **0.987** against the published ranking (rehearsal 0.998; the real
+run also carries a day of estimate and filing changes), **2** new names in the top 25 (WDC, EME), **0**
+fallen below #40. The What Changed sentence read "the S&P 500 fell 4.4% with dividends included (Nov 4
+close to Nov 5 close)" from the run's own `market_closes.json`.
+
+### Built (presentation only; payload byte-identical)
+
+1. **The header names the session the prices are from.** It said "Data as of Nov 5, 2026, 2:00 AM CST"
+   and nothing else, and that run was priced at the **Nov 4 close** - the day before the fall. On the
+   one day a reader most needed to know how old the prices were, the page could not say. The eyebrow
+   and the footer now add "prices at the Nov 4 close": the `stock_detail[t].price_date` most stocks
+   carry (the field the input gate already reads), ties to the later session, and "for N of M stocks"
+   when not all of them do. `pricedSession()` in the page, `priced_session()` in Python, held to each
+   other on the payload and on hand-worked cases; claim `dashboard.priced_session`,
+   `tests/test_priced_session.py` (15).
+2. **The Diagnostics tile says what its bars are.** Eight grey bars of each weight's top-20 stability on
+   a 0-1 scale: 0.70 and 0.86 are a few pixels apart in a 40px tile, so they read as one height, and no
+   caption said what they measured. Bars at or above the 0.85 line (the view's own "Robust") are now
+   blue, and the caption reads "Top-20 overlap when each weight moves 5 points; 1 of 8 reaches the dashed
+   0.85 line, where the list barely changes". *5 points, not 5%*: `run_weight_sensitivity` adds 5 to a
+   weight out of 100. **The Diagnostics view itself still said "moved &plusmn;5%"** - the wording the
+   methodology page dropped on 2026-10-19 (claim `overview.weight_sensitivity`: for Size's 5% it reads as
+   4.75-5.25, where the run tries 0 and 10). The `FORBIDDEN` pattern only reads the methodology text and
+   the view spells it `&plusmn;`, so nothing saw it; corrected to "5 percentage points up and down, one
+   at a time, the others rescaled", pinned against `run_screener`'s own constants. Claim
+   `dashboard.stability_tile`, `tests/test_stability_tile.py` (4).
+3. **The What Changed tile carries the panel's two figures for the last run.** The owner's question on
+   the day of the fall - did the ranking hold? - was answered inside the panel and nowhere on the front
+   page. The tile now ends "Since the last run: S&P 500 &minus;4.4%, rank correlation 0.987 (typically
+   0.996)" (red for a fall, green for a rise, unsigned at 0.0%), and only the correlation where the run
+   has no market figure - which is today's live page, until the 16:00 run. Claim `history.tile_pulse`,
+   `tests/test_changed_tile_pulse.py` (7).
+
+**Looked at it** at 1440 and 375 (header, both tiles; the tile with the discarded 11-06 run's payload
+for the market figure): no page errors, no horizontal scroll; on a phone the price session sits on its
+own line under the date.
+
+**Mutation-checked:** `>=` -> `>` at the 0.85 line (both the count and the mark), the tie rule, the "for
+N of M" branch, an empty date counting as one (missed at first - it only matters where empty dates
+outnumber real ones; a case added), the tile's colours swapped, the tile reading the month instead of
+the last run, and the 0.0% sign rule - each caught.
+
+### Next
+
+- Read the 16:00 run's log and page: it is the first published run since the fall, and the first with
+  the capped-row fix and today's three lines live. Delete the one-time task afterwards.
+

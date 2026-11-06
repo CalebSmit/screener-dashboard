@@ -799,6 +799,15 @@ def _counts(history: dict, k: str) -> tuple[int, int]:
     return sum(1 for x in drs if x >= thr), sum(1 for x in drs if x <= -thr)
 
 
+def _tile_label(counts: str, history: dict) -> str:
+    """The tile's aria-label: the counts sentence, then - since 2026-11-06 (claim history.tile_pulse) -
+    the last run's market and correlation line where the history has one, so a screen reader hears
+    what the tile prints. The line itself is worked in tests/test_changed_tile_pulse.py."""
+    from tests.test_changed_tile_pulse import _want
+    pulse = _want((history.get("overview") or {}).get("prev"), (history.get("compare") or {}).get("prev"))
+    return counts + (". " + pulse.replace("−", "-") if pulse else "")
+
+
 def _history(data) -> dict:
     H = data.get("history") or {}
     if not (H.get("available") and H.get("movers")):
@@ -856,7 +865,7 @@ def test_the_whats_changed_tile_prints_the_runs_own_counts(page, data):
     got = page.evaluate(_TILE_JS, None)
     assert got, "the What Changed section drew no tile"
     label, cap = got
-    assert label == f"{up} of {N} stocks moved up materially and {down} moved down", (label, k, up, down, N)
+    assert label == _tile_label(f"{up} of {N} stocks moved up materially and {down} moved down", H), (label, k, up, down, N)
     assert _text(cap) == f"{up} up of {N} {down} down", (cap, k)
 
 
@@ -927,7 +936,7 @@ def test_the_whats_changed_tile_prints_a_hand_worked_window(page, data):
     prev = H["movers"].get("prev") or next(iter(H["movers"].values()))
     got = page.evaluate(_TILE_JS, {"prev": {**prev, "n_up": 7, "n_down": 4}})
     N = data["kpis"]["universe_size"]
-    assert got and got[0] == f"7 of {N} stocks moved up materially and 4 moved down", got
+    assert got and got[0] == _tile_label(f"7 of {N} stocks moved up materially and 4 moved down", H), got
     assert _text(got[1]) == f"7 up of {N} 4 down", got
 
 

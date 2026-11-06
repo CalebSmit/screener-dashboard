@@ -1221,6 +1221,8 @@ def dashboard_sentences() -> list[str]:
 # Insider card and by the case against), so keys are compared as a set; its verdict has to hold
 # for both printings, and says which one is pinned.
 DASHBOARD_SENTENCES: dict[str, str] = {
+    "Top-20 overlap when each weight moves 5 points; ${ok} of ${n}${(ok === 1 ? ' reaches' : ' reach')} the dashed ${STAB_LINE.toFixed(2)} line, where the list barely changes":
+        'claim:dashboard.stability_tile',
     "${CAT_LABELS[c]} ${fmt(sc[c], 'score')}. A higher ${CAT_LABELS[c]} score means ${(CAT_MEANS[c] || '')}":
         'claim:dashboard.traits',
     "${rho.toFixed(3)} Rank correlation with ${escapeHtml(prettyDate(cmp.date))}&rsquo;s ranking; 1.000 is the same order":
@@ -1372,8 +1374,8 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:drilldown.composite_distribution',
     '${mv.n_up} up of ${N} ${mv.n_down} down':
         'claim:history.run_overview',
-    '${mv.n_up} of ${N} stocks moved up materially and ${mv.n_down} moved down':
-        'claim:history.run_overview',
+    "${mv.n_up} of ${N} stocks moved up materially and ${mv.n_down} moved down${(pulse ? '. ' + pulse.replace(/<[^>]+>/g, '').replace(/&minus;/g, '-').replace(/&amp;/g, '&') : '')}":
+        'claim:history.tile_pulse',
     '${p[1]} at the ${ord(S[p[0]].pct_10y)} percentile of ten years':
         'claim:context.macro_series',
     '#1 Where they rank #${N}':

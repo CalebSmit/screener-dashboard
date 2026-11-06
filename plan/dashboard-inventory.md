@@ -172,6 +172,10 @@ Presentation and platform only (payload byte-identical). What a later session mu
   notice **and is rethrown**, so `pageerror` checks still see it - do not swallow it.
 - **`runInstant(ts)`** reads `kpis.run_timestamp` as US Central wall time (`RUN_ZONE`); the hero eyebrow and
   footer use it. `new Date(run_timestamp)` is wrong outside Central - never use it for a time of day.
+- **The priced session** (2026-11-06, `pricedSession()` / `generate_dashboard.priced_session`): the hero
+  eyebrow and the footer add "prices at the Nov 4 close" - the `stock_detail[t].price_date` most stocks
+  carry, ties to the later one, plus "for N of M stocks" when not all do. On a phone it takes its own line
+  (`.eb-px`). The run's own time never said how old its prices were. Claim `dashboard.priced_session`.
 - **`runStaleness(ts, now)`** counts weekdays after the run date whose run was due (14:00 UTC); the notice
   shows at >= 2. Claim `page.freshness`. The data loop publishes on NYSE holidays, so it is weekdays, not
   sessions - do not swap in the NYSE calendar.
@@ -255,6 +259,11 @@ through the older blocks. What a session must know before touching these:
   Market = curve, VIX and inflation at FRED's `pct_10y`; Track record = the three published totals;
   Factor analytics = `vt_by_sector` rates; Diagnostics = each weight's `avg_jaccard` against the 0.85
   line; My holdings = each saved name's rank on 1..N. Each is drawn from a published number, never a new one.
+  **Since 2026-11-06** the Diagnostics bars at or above 0.85 are marked (`.tv-stab i.ok`) under a caption
+  saying what the bars are and how many reach the line (claim `dashboard.stability_tile`; on a 0-1 scale
+  0.70 and 0.86 were a few pixels apart and the tile said nothing), and the What changed tile ends with the
+  panel's last-run figures, "Since the last run: S&P 500 -4.4%, rank correlation 0.987 (typically 0.996)"
+  (`changedTilePulse()`, `.tv-pulse`; claim `history.tile_pulse`).
 - **Heat**: `.data-table td.sc` background `rgba(57,135,229, 0.03 + 0.25 x score/100)`, ink unchanged.
 - **Phone rankings**: a 9-column card, `--row-h: 80px` (was 96): rank over its move in column 1, the
   name and composite on line 1, the eight shaded scores on line 2; a flag takes half the name's width (`:has`).

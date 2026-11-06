@@ -1954,6 +1954,61 @@ CLAIMS: tuple[Claim, ...] = (
     ),
     # --- the score key and the sheet's score note (club readiness, 2026-10-19) ---------------
     Claim(
+        id="dashboard.priced_session",
+        surface=DRILLDOWN,
+        asserts=(
+            "The header and the footer name the NYSE session the published prices are from: the "
+            "price_date most stocks carry (ties to the later session), and, when not every stock "
+            "carries it, how many of how many do (2026-11-06). Display only: it reads the published "
+            "dates and changes nothing."
+        ),
+        made_true_by="generate_dashboard:priced_session",
+        checked_by=(
+            "tests/test_priced_session.py::test_a_hand_worked_set_of_price_dates",
+            "tests/test_priced_session.py::test_the_page_and_the_python_rule_agree_on_the_published_payload",
+            "tests/test_priced_session.py::test_the_page_rule_on_the_hand_worked_dates",
+            "tests/test_priced_session.py::test_the_header_and_the_footer_name_the_published_session",
+            "tests/test_priced_session.py::test_a_partly_priced_run_says_how_many_stocks_the_session_covers",
+        ),
+    ),
+    Claim(
+        id="dashboard.stability_tile",
+        surface=DRILLDOWN,
+        asserts=(
+            "The Diagnostics tile draws each category's published top-20 stability (avg_jaccard) on a "
+            "0-1 scale under a dashed line at 0.85, the view's own 'Robust' threshold; marks each bar "
+            "at or above it; and says that the bars are the top-20 overlap when each weight moves 5 "
+            "points (factor_engine.run_weight_sensitivity) and how many of them reach the line "
+            "(2026-11-06); the Diagnostics view describes the same move as 5 percentage points, never "
+            "'±5%' (the methodology page's 2026-10-19 correction, which the view had not followed). "
+            "Display only."
+        ),
+        made_true_by="generate_dashboard:_js_page",
+        checked_by=(
+            "tests/test_stability_tile.py::test_the_line_is_the_views_own_robust_bar",
+            "tests/test_stability_tile.py::test_the_tile_prints_the_published_figures",
+            "tests/test_stability_tile.py::test_the_line_counts_at_exactly_085_and_not_below",
+            "tests/test_stability_tile.py::test_the_diagnostics_view_says_percentage_points_not_percent",
+        ),
+    ),
+    Claim(
+        id="history.tile_pulse",
+        surface=DRILLDOWN,
+        asserts=(
+            "The What Changed tile ends with the panel's two figures for the last run: the S&P 500 "
+            "total-return move between the closes the two runs were priced at (history.compare.prev."
+            "market, red for a fall and green for a rise, unsigned at 0.0%) and the two rankings' rank "
+            "correlation (history.overview.prev.rho) with the typical run-to-run figure; no line "
+            "without a correlation and no market figure where the run has none (2026-11-06)."
+        ),
+        made_true_by="generate_dashboard:_js_page",
+        checked_by=(
+            "tests/test_changed_tile_pulse.py::test_the_tile_prints_the_published_figures",
+            "tests/test_changed_tile_pulse.py::test_the_tile_on_hand_worked_figures",
+            "tests/test_changed_tile_pulse.py::test_a_fall_reads_as_a_fall",
+        ),
+    ),
+    Claim(
         id="dashboard.traits",
         surface=DRILLDOWN,
         asserts=(

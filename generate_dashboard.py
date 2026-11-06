@@ -1840,6 +1840,24 @@ TRAIT_WORDS = {
 }
 
 
+def priced_session(stock_detail: dict) -> dict | None:
+    """The NYSE session most of the published prices are from (each stock's `price_date`,
+    factor_engine.published_price_date), how many stocks carry it, and of how many. The header
+    names it, because the run's own time does not say it (2026-11-06: a page stamped "Nov 5, 2:00
+    AM" was priced at the Nov 4 close, the day before the S&P 500 fell 4.4%, and nothing on it
+    said so). Ties go to the later session. The page's pricedSession() is this function in JS.
+    Claim `dashboard.priced_session`; tests/test_priced_session.py."""
+    counts: dict[str, int] = {}
+    for d in (stock_detail or {}).values():
+        pd_ = (d or {}).get("price_date")
+        if isinstance(pd_, str) and pd_:
+            counts[pd_] = counts.get(pd_, 0) + 1
+    if not counts:
+        return None
+    best = max(counts, key=lambda k: (counts[k], k))
+    return {"date": best, "n": counts[best], "of": len(stock_detail)}
+
+
 def traits(scores: dict) -> dict:
     """The categories that stand out (score >= TRAIT_HI, highest first, at most TRAIT_MAX_HI) and
     trail (score <= TRAIT_LO, lowest first, at most TRAIT_MAX_LO); ties in the score key's order.
@@ -2330,7 +2348,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="defensibility-row">
                     <div class="chart-container" style="flex:1">
                         <h3 class="chart-title">How stable is the ranking?</h3>
-                        <p class="chart-desc">Each factor&rsquo;s weight moved &plusmn;5% and the top 20 compared with the published list by Jaccard similarity, where 1.0 is identical. Above 0.85 the list barely changes; below 0.70 it is sensitive to that weight.</p>
+                        <p class="chart-desc">Each factor&rsquo;s weight moved 5 percentage points up and down, one at a time, the others rescaled to keep the total at 100, and the top 20 compared with the published list by Jaccard similarity, where 1.0 is identical. Above 0.85 the list barely changes; below 0.70 it is sensitive to that weight.</p>
                         <div id="sensitivity-table"></div>
                     </div>
                     <div class="chart-container" style="flex:1">
@@ -2770,6 +2788,23 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
     // ISO run dates (2026-09-16) read as "Sep 16" on the page; the year is added only when it is not
     // the run's own (2026-10-16 - the summary tiles and What Changed printed the ISO form)
+    // The session the published prices are from (2026-11-06, claim dashboard.priced_session): the
+    // price_date most stocks carry, ties to the later one. generate_dashboard.priced_session() is
+    // this rule in Python; tests/test_priced_session.py runs both on the published payload.
+    function pricedSession() {{
+        const sd = D.stock_detail || {{}}, c = {{}};
+        Object.keys(sd).forEach(t => {{ const p = sd[t] && sd[t].price_date;
+            if (typeof p === 'string' && p) c[p] = (c[p] || 0) + 1; }});
+        let best = null;
+        Object.keys(c).forEach(p => {{ if (best === null || c[p] > c[best] || (c[p] === c[best] && p > best)) best = p; }});
+        return best ? {{ date: best, n: c[best], of: Object.keys(sd).length }} : null;
+    }}
+    // "prices at the Nov 4 close", and "for 497 of 499 stocks" when not every stock is from it.
+    function pricedSessionText() {{
+        const ps = pricedSession();
+        if (!ps) return '';
+        return 'prices at the ' + prettyDate(ps.date) + ' close' + (ps.n < ps.of ? ' for ' + ps.n + ' of ' + ps.of + ' stocks' : '');
+    }}
     function prettyDate(iso) {{
         const d = new Date(String(iso || '').slice(0, 10) + 'T00:00:00');
         if (!iso || isNaN(d)) return String(iso || '');
@@ -2833,10 +2868,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const fmtTime = ts ? ts.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }}) : '';
         document.getElementById('run-info').textContent = ts ? `Last updated ${{fmtDate}} at ${{fmtTime}}` : '';
         const eb = document.getElementById('hero-eyebrow');
-        if (eb && ts) eb.innerHTML = `<span class="eb-idx">S&amp;P 500 &middot; </span>data as of ${{fmtDate}}, ${{fmtTime}}`;
+        const pxs = pricedSessionText();
+        if (eb && ts) eb.innerHTML = `<span class="eb-idx">S&amp;P 500 &middot; </span>data as of ${{fmtDate}}, ${{fmtTime}}` +
+            (pxs ? '<span class="eb-px"><span class="eb-sep"> &middot; </span>' + escapeHtml(pxs) + '</span>' : '');
         // Only set gen-time via JS if it wasn't already embedded as a static value
         const genEl = document.getElementById('gen-time');
-        if (genEl && ts) genEl.textContent = `${{fmtDate}}, ${{fmtTime}}`;
+        if (genEl && ts) genEl.textContent = `${{fmtDate}}, ${{fmtTime}}` + (pxs ? ', ' + pxs : '');
     }}
 
     // The score key's two run-specific lines: the median composite (the engine's own
@@ -11620,6 +11657,8 @@ def _css_investor() -> str:
             #stock-modal .modal-nav { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
                                       mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
             .eb-idx { display: none; }
+            .eb-px { display: block; margin-top: 2px; }
+            .eb-px .eb-sep { display: none; }
         }
         @media (max-width: 360px) { #stock-modal .mt-step { min-width: 36px; } }
         /* one focus language for the keyboard. Tabbing through the page found the brand ring on half the
@@ -12419,6 +12458,32 @@ def _js_page() -> str:
     }
 
     // ---- the summary tiles: a small true chart beside each headline number -----------------------
+    // The Diagnostics tile's line: the view's own "Robust" bar (avgJ >= 0.85, renderDefensibility).
+    const STAB_LINE = 0.85;
+    function stabilityTileText(ok, n) {
+        // the engine moves each weight 5 points up and down (factor_engine.run_weight_sensitivity)
+        return 'Top-20 overlap when each weight moves 5 points; ' + ok + ' of ' + n + (ok === 1 ? ' reaches' : ' reach') + ' the dashed ' + STAB_LINE.toFixed(2) + ' line, where the list barely changes';
+    }
+    // The What Changed tile's last line (2026-11-06, claim history.tile_pulse): the panel's own two
+    // figures for the last run - the S&P 500's move between the closes the two runs were priced at
+    // (history.compare.prev.market) and the rankings' rank correlation (history.overview.prev.rho),
+    // with the typical run-to-run figure - so the front page answers "did the ranking hold when the
+    // market moved?" without opening the panel. Nothing without a correlation; no market figure
+    // where the run has none (renderChangedPulse's rules).
+    function changedTilePulse() {
+        if (typeof H === 'undefined' || !H || !H.overview || !H.compare) return '';
+        const ov = H.overview.prev, cmp = H.compare.prev;
+        const rho = ov && typeof ov.rho === 'number' && isFinite(ov.rho) ? ov.rho : null;
+        if (rho === null || !cmp) return '';
+        const m = cmp.market, typ = typeof ov.rho_typical === 'number' && isFinite(ov.rho_typical) ? ov.rho_typical : null;
+        let mkt = '';
+        if (m && typeof m.ret === 'number' && isFinite(m.ret)) {
+            const fig = (Math.abs(m.ret) * 100).toFixed(1), flat = fig === '0.0';
+            mkt = 'S&amp;P 500 <b class="' + (flat ? '' : (m.ret < 0 ? 'dn' : 'up')) + '">' + (flat ? '' : (m.ret < 0 ? '&minus;' : '+')) + fig + '%</b>, ';
+        }
+        return 'Since the last run: ' + mkt + 'rank correlation <b>' + rho.toFixed(3) + '</b>' +
+            (typ !== null ? ' (typically ' + typ.toFixed(3) + ')' : '');
+    }
     function tileViz(id, html, label) {
         const sec = document.getElementById(id);
         const head = sec && sec.querySelector && sec.querySelector(':scope > .section-header');
@@ -12450,9 +12515,12 @@ def _js_page() -> str:
             const k = H.movers.m1 ? 'm1' : 'prev', mv = H.movers[k];
             if (mv) {
                 const u = mv.n_up / N * 100, d = mv.n_down / N * 100;
+                const pulse = changedTilePulse();
                 tileViz('sec-changed', '<div class="tv-split"><i class="up" style="width:' + u.toFixed(1) + '%"></i><i class="dn" style="width:' + d.toFixed(1) + '%"></i></div>' +
-                    '<div class="tv-cap"><span>' + mv.n_up + ' up</span><span>of ' + N + '</span><span>' + mv.n_down + ' down</span></div>',
-                    mv.n_up + ' of ' + N + ' stocks moved up materially and ' + mv.n_down + ' moved down');
+                    '<div class="tv-cap"><span>' + mv.n_up + ' up</span><span>of ' + N + '</span><span>' + mv.n_down + ' down</span></div>' +
+                    (pulse ? '<p class="tv-pulse">' + pulse + '</p>' : ''),
+                    mv.n_up + ' of ' + N + ' stocks moved up materially and ' + mv.n_down + ' moved down' +
+                    (pulse ? '. ' + pulse.replace(/<[^>]+>/g, '').replace(/&minus;/g, '-').replace(/&amp;/g, '&') : ''));
             }
         }
         // Reporting soon: how many report on each of the next fourteen days, the first seven solid
@@ -12499,14 +12567,20 @@ def _js_page() -> str:
                 secs.map(s => s + ' ' + Number(vt[s].rate).toFixed(1) + '%').join(', '));
         }
         // Diagnostics: the published stability of the top 20 under each weight's +-5% move (Jaccard,
-        // 1.0 = unchanged), on a 0-1 scale with the view's own 0.85 line drawn across it
+        // 1.0 = unchanged), on a 0-1 scale with the view's own 0.85 line drawn across it. On that
+        // scale 0.70 and 0.86 differ by a few pixels, so the eight bars read as one height and the
+        // tile said nothing (2026-11-06): a bar at or above the line - the view's "Robust", where
+        // the list barely changes - is marked, and the caption says what the bars are and how many
+        // clear it. Claim dashboard.stability_tile.
         const sens = (D.weight_sensitivity || []).filter(x => typeof x.avg_jaccard === 'number');
         if (sens.length) {
             const short = { Valuation: 'Val', Quality: 'Qual', Growth: 'Grow', Momentum: 'Mom', Risk: 'Risk', Revisions: 'Rev', Size: 'Size', Investment: 'Inv' };
+            const ok = sens.filter(x => x.avg_jaccard >= STAB_LINE).length;
             tileViz('sec-defensibility', '<div class="tv-cols tv-stab">' + sens.map(x =>
-                    '<i style="height:' + Math.max(4, Math.min(1, x.avg_jaccard) * 100).toFixed(1) + '%" title="' + escapeHtml(x.category) + ' ' + x.avg_jaccard.toFixed(2) + '"></i>').join('') +
-                    '<b style="bottom:85%"></b></div><div class="tv-cap tv-cap-cols">' + sens.map(x => '<span>' + escapeHtml(short[x.category] || x.category) + '</span>').join('') + '</div>',
-                'Top-20 stability under each weight: ' + sens.map(x => x.category + ' ' + x.avg_jaccard.toFixed(2)).join(', '));
+                    '<i class="' + (x.avg_jaccard >= STAB_LINE ? 'ok' : '') + '" style="height:' + Math.max(4, Math.min(1, x.avg_jaccard) * 100).toFixed(1) + '%" title="' + escapeHtml(x.category) + ' ' + x.avg_jaccard.toFixed(2) + '"></i>').join('') +
+                    '<b style="bottom:' + (STAB_LINE * 100) + '%"></b></div><div class="tv-cap tv-cap-cols">' + sens.map(x => '<span>' + escapeHtml(short[x.category] || x.category) + '</span>').join('') + '</div>' +
+                    '<div class="tv-cap tv-stab-cap"><span>' + stabilityTileText(ok, sens.length) + '</span></div>',
+                'Top-20 stability under each weight: ' + sens.map(x => x.category + ' ' + x.avg_jaccard.toFixed(2)).join(', ') + '. ' + stabilityTileText(ok, sens.length));
         }
         // My holdings: where each saved name sits in the ranking, 1 to N
         if (typeof holdings !== 'undefined' && holdings.length && N) {
@@ -12742,6 +12816,10 @@ def _css_page() -> str:
         .tv-split i { position: absolute; top: 0; bottom: 0; }
         .tv-split .up { left: 0; background: var(--green); }
         .tv-split .dn { right: 0; background: var(--red-strong); }
+        .tv-pulse { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .tv-pulse b { font-weight: 600; color: var(--text-secondary); }
+        .tv-pulse b.dn { color: var(--red); }
+        .tv-pulse b.up { color: var(--green); }
         .tv-days, .tv-cols { display: flex; align-items: flex-end; gap: 3px; height: 34px; border-bottom: 1px solid var(--border-bright); }
         .tv-days i, .tv-cols i { flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0; }
         .tv-days .wk1 { background: var(--accent); }
@@ -12750,6 +12828,8 @@ def _css_page() -> str:
         .tv-cols i.hi { background: var(--amber); }
         .tv-stab { position: relative; height: 40px; }
         .tv-stab b { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--text-muted); }
+        .tv-stab i.ok { background: var(--accent); }
+        .tv-stab-cap { margin-top: 6px; }
         .tv-cap-cols { justify-content: space-around; gap: 3px; }
         .tv-cap-cols span { flex: 1 1 0; min-width: 0; text-align: center; }
         .tv-pct, .tv-bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; }
