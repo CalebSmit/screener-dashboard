@@ -234,7 +234,10 @@ def test_the_runs_reading_is_published_with_its_weights(tmp_path):
 
 def test_the_run_passes_its_reading_to_the_rule():
     src = (ROOT / "run_screener.py").read_text(encoding="utf-8")
-    assert 'stats["momentum_regime"] = market_panic_state(fetch_market_closes(), _rule)' in src
+    # One fetch since 2026-11-05: the rule reads the closes the run saves for What Changed
+    # (market_closes.json), so the page's market figure and the rule's reading are one series.
+    assert '_mkt_closes = fetch_market_closes()' in src
+    assert 'stats["momentum_regime"] = market_panic_state(_mkt_closes, _rule)' in src
     assert 'cfg = adjust_momentum_weight(df, cfg, str(ROOT), market_state=stats.get("momentum_regime"),' in src
     assert 'momentum_regime=fe_stats.get("momentum_regime")' in src
 
