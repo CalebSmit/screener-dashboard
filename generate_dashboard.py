@@ -9372,6 +9372,10 @@ def _js_ux() -> str:
         const compBest = best(S.map(s => s.composite));
         let body = '<tr class="cmp-comp"><th>Composite</th>' + S.map(s =>
             '<td class="' + (s.composite === compBest ? 'best' : '') + '"><strong>' + fmt(s.composite, 'score') + '</strong><span>#' + s.rank + ' of ' + D.table_data.length + '</span></td>').join('') + '</tr>';
+        // What sets each apart from its sector, in words, before the eight rows of numbers
+        // (claim dashboard.traits, 2026-11-06): two stocks told apart by kind, then by score.
+        body += '<tr class="cmp-traits"><th>What sets it apart</th>' + S.map(s =>
+            '<td>' + traitsHtml(s.cat_scores || {}, false) + '</td>').join('') + '</tr>';
         UX_CATS.forEach(c => {
             const vals = S.map(s => s.cat_scores[c]);
             const b = best(vals);
@@ -10426,6 +10430,9 @@ def _css_ux() -> str:
         .cmp-t { font-size: 18px; font-weight: 600; color: var(--text-primary); letter-spacing: -.01em; }
         .cmp-n { font-size: 12.5px; color: var(--text-secondary); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cmp-sec { font-size: 11.5px; color: var(--text-muted); }
+        .cmp-traits td, .cmp-traits th { vertical-align: top; }
+        .cmp-traits .tr-chip { font-size: 11.5px; padding: 2px 8px; }
+        .cmp-traits .tr-chip, .top5-card .tr-chip { border-radius: 10px; }  /* a phrase that wraps stays a tidy box */
         .cmp-comp td strong { font-size: 22px; font-weight: 600; letter-spacing: -.02em; display: block; }
         .cmp-comp td span { font-size: 12px; color: var(--text-muted); }
         .cmp-cell { display: grid; grid-template-columns: 40px minmax(40px, 1fr); grid-template-rows: auto auto; gap: 2px 10px; align-items: center; }

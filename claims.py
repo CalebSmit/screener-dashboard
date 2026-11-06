@@ -1944,7 +1944,7 @@ CLAIMS: tuple[Claim, ...] = (
         id="dashboard.traits",
         surface=DRILLDOWN,
         asserts=(
-            "Each leader card, each My Holdings card and the top of each stock's sheet name, in the score key's direction, the "
+            "Each leader card, each My Holdings card, each column of Compare and the top of each stock's sheet name, in the score key's direction, the "
             "categories that stand out (a published category score of 70 or more, highest first, at "
             "most three) and trail (30 or less, lowest first, at most two), ties in the key's order, "
             "an unscored category neither; the sheet prints each beside its own published score "
@@ -1961,6 +1961,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_stock_traits.py::test_a_stock_with_nothing_at_either_end_says_so",
             "tests/test_stock_traits.py::test_the_page_rule_on_the_hand_worked_scores",
             "tests/test_stock_traits.py::test_a_holding_card_carries_the_words_for_its_own_scores",
+            "tests/test_stock_traits.py::test_the_compare_view_carries_the_words_for_each_stock",
         ),
     ),
     Claim(

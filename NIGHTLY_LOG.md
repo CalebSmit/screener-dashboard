@@ -19900,6 +19900,23 @@ cards whatever the number of chips. Holdings checked with VLO, AAPL and WMB save
 ### Next
 
 - Tomorrow: read the 02:00 page and health log against the sell-off rehearsal (previous entry).
-- The same strip would fit the **Compare** view - one call to `traitsHtml` - if a session wants to
-  carry the story there.
+- ~~The same strip in **Compare**~~ - done 2026-11-06, next entry.
+
+## 2026-11-06 (owner-run, 00:00) - Compare says what sets each stock apart
+
+**Health (rule 8):** unchanged from 2026-11-05's entries; pushed well before the 02:00 data run.
+
+**Owner:** *"Do that now. Do everything you can before the 2 am run."* - the Compare view, named as the
+next place for the Stands out / Trails strip in the previous entry.
+
+**Built:** Compare (Side by side) gains a **What sets it apart** row directly under Composite, one cell
+per stock, the same `traitsHtml` strip as the leader cards, so two stocks are told apart by kind before
+the eight rows of numbers (VLO: stronger price trend, lower price for its profits; AAPL: calmer price,
+trails as a larger company with weakening analyst views; WMB: nothing at 70 or more). Chips that wrap
+on a phone get a 10px corner rather than a pill. Display only; payload byte-identical.
+
+**Checks:** `tests/test_stock_traits.py::test_the_compare_view_carries_the_words_for_each_stock`
+(added to claim `dashboard.traits`): the first, median and last stocks opened together, each column's
+words against its own published scores and in the view's rank order. Seen at 1440 and 375 with three
+stocks; no horizontal scroll, no page errors.
 

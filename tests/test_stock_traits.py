@@ -218,3 +218,23 @@ def test_a_holding_card_carries_the_words_for_its_own_scores(page, data):
         want = gd.traits(data["stock_detail"][t]["cat_scores"])
         assert got == {"hi": [gd.TRAIT_WORDS[k][0] for k in want["hi"]],
                        "lo": [gd.TRAIT_WORDS[k][1] for k in want["lo"]]}, (t, got)
+
+
+def test_the_compare_view_carries_the_words_for_each_stock(page, data):
+    """Compare sets the same strip under each stock's composite, in the view's own (rank) order."""
+    rows = sorted(data["table_data"], key=lambda r: r["Rank"])
+    pick = [rows[-1]["Ticker"], rows[0]["Ticker"], rows[len(rows) // 2]["Ticker"]]
+    got = page.evaluate("""ts => { UX.compare = ts.slice(); openCompare();
+        const cells = [...document.querySelectorAll('#cmp-body .cmp-traits td')].map(td => ({
+            hi: [...td.querySelectorAll('.tr-hi')].map(e => e.textContent),
+            lo: [...td.querySelectorAll('.tr-lo')].map(e => e.textContent),
+            none: !!td.querySelector('.tr-none') }));
+        const heads = [...document.querySelectorAll('#cmp-body .cmp-head .cmp-t')].map(e => e.textContent);
+        closeCompare(); UX.compare = []; return { cells, heads }; }""", pick)
+    order = sorted(pick, key=lambda t: data["stock_detail"][t]["rank"])
+    assert got["heads"] == order
+    for t, cell in zip(order, got["cells"]):
+        want = gd.traits(data["stock_detail"][t]["cat_scores"])
+        assert cell["hi"] == [gd.TRAIT_WORDS[k][0] for k in want["hi"]], (t, cell)
+        assert cell["lo"] == [gd.TRAIT_WORDS[k][1] for k in want["lo"]], (t, cell)
+        assert cell["none"] == (not want["hi"]), (t, cell)

@@ -128,7 +128,8 @@ Presentation only (payload byte-identical). What a session must know before touc
   30 or less, each as a short phrase in the score key's direction (`TRAIT_WORDS`, e.g. "Stronger price
   trend", "Larger company"); the key under the cards says so. The same strip opens every stock sheet's
   Scores (`.msr-traits`), there with each category's name and published score on its chip, and every
-  My Holdings card under its eight scores (`.holding-traits`). Display
+  My Holdings card under its eight scores (`.holding-traits`), and Compare's "What sets it apart" row
+  under Composite (`.cmp-traits`, 2026-11-06). Display
   only; `generate_dashboard.traits` is the rule in Python. Claim `dashboard.traits`.
 - **My Holdings cards draw where each name has been** (2026-11-05, `holdingPathSvg`, `.holding-path`):
   the published rank in every comparable run on one fixed #1-to-universe scale for every card, a dashed
