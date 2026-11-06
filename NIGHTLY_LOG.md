@@ -19933,3 +19933,102 @@ roll. Fix: read the position once the page has stopped scrolling (ten unchanged 
 assertion, the premise of settled row paint->red. 0 of 15 failures after. It was the only test in the
 suite reading a position after a fixed wait.
 
+## 2026-11-06 - THE FACTOR LAB (deferred: the data loop was not publishing)
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-05_130000-midday.log`
+(completed). Data loop published? **no** - `logs/datarun-2026-11-06_020000.log` (stopped
+deliberately; HEALTH: PASS, the publish gate refused). Evidence base at `1m`: 5 of 8 needed at the
+1m horizon (44 rows, but overlapping windows are not independent; 112 rows across all horizons),
+newest 1m run date 2026-10-05 (**32 days ago, bound 40** - inside it). Priority 0:
+`allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **25 days**);
+also open: 0.10 30d; 0.14 23d.
+**Tests:** before 4011 passed / 2 skipped (green baseline, nothing inherited), after 4020 / 2.
+**Owner queue / rotation:** no open proposal (`write_brief.open_proposals()` -> `[]`); no owner
+item taken. **Friday's lab focus deferred** - the data loop had stopped publishing, which outranks
+it (CLAUDE.md, "The two loops"). No held-back branch in the health line.
+
+### Did
+
+**The data loop was discarding its run every morning's work, and the live site was a day stale.**
+The 02:00 run passed every health check (`HEALTH: PASS - safe to publish`) and was then refused by
+`scripts/check_published_claims.py` on two tests. Both are now fixed, and
+`python scripts/rehearse_publish.py` **PASSES** on the page the next run will publish - it was red
+on both counts before. Measured in `research/measurements/2026-11-06-publish-gate-failures.py`,
+which runs each failure against the discarded run's payload and the committed one side by side.
+
+**1. The drilldown printed an equality its own figures refute** - the substantive one, and a live
+defect on the public site rather than only a test problem. `price_target_upside` is clamped to
+-50%..+100% by the scorer and its Calculation line is *exact*, so for a stock on a bound the row
+read `($2023.63 mean target - $806.43 price) / $806.43 price = 100.0%` where the arithmetic gives
+**150.9%**. That is precisely what priority 0.8 exists to stop (owner, 2026-10-06: every number on
+the page must be checkable from the page). **11 of 496 stocks** sat on a bound in the 11-06 run
+(CIEN, COHR, FLEX, LITE, MRVL, MU, NRG, ORCL, SNDK, STX, WDC) and **2 of 496** on the page that is
+live right now (NRG, FLEX).
+
+The row now shows the cap as a step - `= 150.9% capped to 100.0%`, bounds in the title - so the
+line is true and the clamp is taught where it applies instead of only in the definition beneath.
+The uncapped figure is computed once in the build (`_capped_equations` -> `stock_detail[t].xcap`),
+only for the stocks whose bound binds, and the page displays it rather than re-deriving it (0.8).
+`metric_lineage.CLIPS` is pinned against `config.yaml`'s `metric_clamps` in **both directions**, so
+a third clamp cannot reach the scorer without the page learning about it; a clamped metric has
+exactly two honest presentations and no third (exact + published bounds, or prose that says the
+value is clipped - which `forward_eps_growth` already was).
+
+**Looked at it** on the regenerated page (`logs/shot_capped_row.py`), desktop 1440 and 375px, SNDK
+capped and VLO uncapped. Desktop: one line, no overflow. 375px: wraps to two, `150.9%` in white and
+`100.0%` in blue, "capped to" in the muted label colour - so the emphasis stays on the scored
+value. The uncapped row is byte-unchanged (`= 21.6%`).
+
+**2. The holdings-strip test read a rank off a list position.** It sorted the ranked rows, took
+`rows[299]`, and asserted the strip says "#300". The composite is rounded to two decimals before
+ranking, so **ties are ordinary and the ranks are not contiguous**: that row was #300 on 11-05 and
+**#299** on 11-06. The page was right both mornings. Its premise assertion did not cover it -
+`n == len(rows) == rows[-1].Rank and rows[0].Rank == 1` are all true with ties present. Ranks now
+come from the picked rows, with an assertion that the three stand-ins are distinct. Swept the other
+test modules for the same shape: `tests/test_page_fourth_pass.py` already guards it
+(`r.Rank === 300 || r.Rank > 250`); nothing else maps a position to a rank.
+
+### Evidence / research
+
+- No literature needed: both are demonstrated, reproducible, user-facing failures, which is an
+  acceptable ending under "I know this is an improvement because ___" (a concrete failure I can
+  demonstrate; a failing test that now passes).
+- The arithmetic is measured, not argued: equation-vs-scored agreement **485/496 = 0.9778** on
+  2026-11-06 against a 0.99 bar, and **494/496 = 0.9960** on 2026-11-05 - the bar was held the
+  morning before **by two stocks**. Every one of the 11 failures sat exactly on a clamp.
+- `scripts/rehearse_publish.py`: `PASS pytest (page tests)`, `PASS check_published_claims`,
+  `PASS published files restored byte-for-byte`.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` 2026-11-06, marked plainly: **no weight, metric, threshold or score
+  moved** - the clamp is exactly what it was. What changed is a published sentence, so it is
+  recorded rather than left to the commit message.
+- `claims.drilldown.row_equation` asserted "...gives the value that was scored" full stop, which
+  **was the false sentence**. It now describes the clipped form and names nine new checks. (The
+  recurring lesson from the mutation audit again: when you correct a published claim, grep the
+  tests as well as the prose - here the claim itself asserted the defect.)
+
+### Tried and rejected
+
+- **Handling the clamp inside the test and leaving the page alone.** Rejected: `prompts/nightly.md`
+  section 3 forbids loosening the 99% bar or flipping a template to `exact=False` to get past it,
+  and more to the point it would have left a false equality on the public site for the 2-11 stocks
+  a day that hit a bound. The check was right that something did not add up; it was wrong about
+  which side was broken.
+- **A payload-reading test for the new `xcap` field.** Written, then rejected and rewritten: only a
+  full run rewrites `dashboard_data.js`, so it failed gate 1 against the committed 11-05 payload
+  while passing the rehearsal - the exact split rule 10 warns about ("assert claims against the
+  generator's output, not the committed file"). It now reads `_capped_equations` directly, plus one
+  end-to-end test that regenerates from the newest run to check the wiring.
+- **A tripwire for "a test must not map a list position to a rank".** Considered and not built: the
+  honest versions are either a brittle regex sweep or a test asserting the published ranking *has*
+  ties - which is itself a premise that could flip on a quiet day, i.e. the same bug one level up.
+  The lesson went into `CLAUDE.md`'s `data->red` row instead.
+
+### Next
+
+**The Factor Lab, 0.13 (age 25 days, deferred today and the reason is written above).** The next
+Friday that is not a retrospective owes it one finished experiment, tolerances committed before the
+comparison runs; `plan/factor-lab.md` has the ordered queue. If a session reaches it sooner, the
+other standing item is experiment 19's second reader.

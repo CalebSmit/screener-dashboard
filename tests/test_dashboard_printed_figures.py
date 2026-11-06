@@ -1911,11 +1911,17 @@ def test_the_compare_sentence_is_the_composite_gap_and_its_two_largest_category_
 # did: on 2026-11-05 two of 496 stocks sat on a bound and on 2026-11-06 eleven did, and a
 # test that waited for a capped stock to turn up would be green on the days it mattered least.
 # ---------------------------------------------------------------------------
+# `clip` is the published bounds to render with, or null for "this payload publishes none".
+# Both are set here rather than read, so each branch is reached whichever payload is installed:
+# the regenerated page carries `clip` and the committed one does not until the next full run,
+# and a test that merely declined to set it checked the wrong branch on one of the two
+# (caught by scripts/rehearse_publish.py, 2026-11-06).
 _EQ_JS = """([s, clip]) => { const m = 'price_target_upside';
     const meta = (D.metric_meta || {})[m] || { fmt: 'pct' };
-    const keep = D.lineage[m].clip;
-    try { if (clip) D.lineage[m].clip = clip; return equationHtml(m, s, meta); }
-    finally { if (keep === undefined) delete D.lineage[m].clip; else D.lineage[m].clip = keep; } }"""
+    const had = 'clip' in D.lineage[m], keep = D.lineage[m].clip;
+    try { if (clip) D.lineage[m].clip = clip; else delete D.lineage[m].clip;
+          return equationHtml(m, s, meta); }
+    finally { if (had) D.lineage[m].clip = keep; else delete D.lineage[m].clip; } }"""
 
 
 def _ptu_stock(target, price, uncapped=None):
