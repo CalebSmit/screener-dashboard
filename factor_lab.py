@@ -499,8 +499,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 #      loaded when shown or chosen, and lab_engine.js's compareReplication marks a figure whose series
 #      has not loaded as pending;
 # 29 = experiment 18, analyst revisions on Open Source Asset Pricing's REV6 deciles (a new sort part,
-#      sorts_revisions) and the Revisions group in the menu.
-ASSET_VERSION = 29
+#      sorts_revisions) and the Revisions group in the menu;
+# 30 = experiment 19, Mohanram's growth score on the same library's six MS groups (a new sort part,
+#      sorts_mohanram), the Growth group in the menu, and the scorecard's Growth row.
+ASSET_VERSION = 30
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -3179,7 +3181,18 @@ MOHANRAM_OSAP = {
             {"key": "spread", "label": "Strongest minus weakest, a year (%)", "paper": 21.4, "tolerance": 4.0, "where": "Table 4, Panel A, HIGH - LOW, mean 21.4% (PDF p. 39; text PDF p. 18)"},
         ],
     },
-    "verdict_note": "",            # written from the comparison, after the run
+    "verdict_note": ("Four of the seven figures land within the tolerances written before the run. The "
+                     "strongest group matches the paper - 16.5% a year against 17.4% - and the weakest does "
+                     "not: +3.2% against the paper's -4.0%. So the gap is 13.3% a year (t-statistic 5.0) "
+                     "against the paper's 21.4%, and outside. The reason is the end that matters least to a "
+                     "screener that only buys: the public construction does not reproduce the paper's "
+                     "losers, and the paper's own size-adjusted panel shows that is where most of its gap "
+                     "comes from (+3.3% for the strong end against -17.9% for the weak). Scores 2, 3 and 4 "
+                     "land within; score 5 does not and sits below score 4, so the step-by-step rise the "
+                     "paper reports is not reproduced in the middle. After the paper the gap is 5.0% a year "
+                     "equally weighted (t 2.3) and 3.7% by market value (t 1.5); since 2007, 6.9% and 6.0% "
+                     "(t 2.7 and 2.2) - one of the few results in this lab still distinguishable from zero "
+                     "after its own sample. The strongest group was also the calmest."),
     "sort": {
         "data": "mohanram",
         "groups": ["Score 0-1", "Score 2", "Score 3", "Score 4", "Score 5", "Score 6-8"],
@@ -3311,6 +3324,10 @@ TAKEAWAYS = {
                   "those they had cut most by about 1.4% a month in the paper's years, equally weighted - every "
                   "figure within tolerance. Since 1993 the gap has held at about 0.9% a month; weighted by market "
                   "value it has been about half that, and not distinguishable from zero."),
+    "mohanram": ("Among growth stocks, the group with the strongest fundamentals beat the weakest by 13.3% a "
+                 "year in the paper's years, equally weighted - below the paper's 21.4% and outside its "
+                 "tolerance, because the public construction's weak end lost nothing. Unusually here, the "
+                 "gap survived the paper: about 5% a year since, and 6-7% since 2007."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -3339,13 +3356,14 @@ CATEGORY_MAP = [
             "book-to-market companies. Beneish (1999), the methodology's earnings-manipulation score, "
             "cannot be rerun here: it needs each company's accounts for decades, and the accruals sort "
             "covers one of its eight inputs."},
-    {"category": "Growth", "key": "growth", "experiments": ["asset-growth"],
-     "has": "Nothing on the category's own measures. The asset-growth sort is Investment's measure, but it is "
-            "the one Growth's revenue growth moves with, and the two categories score it in opposite "
-            "directions.",
-     "gap": "The methodology's case for Growth is an argument about forward-looking information, not a "
-            "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
-            "cites, needs company accounts, and the library has no sort on sales or earnings growth."},
+    {"category": "Growth", "key": "growth", "experiments": ["mohanram", "asset-growth"],
+     "has": "Growth stocks scored on whether their fundamentals support the valuation (Mohanram 2005), the "
+            "study this methodology cites for judging them on more than growth. Plus the asset-growth sort, "
+            "Investment's measure but the one revenue growth moves with.",
+     "gap": "Nothing on the category's own measures - revenue, earnings and forward earnings growth, "
+            "operating leverage: no public sort covers them. Mohanram's score asks a related question of "
+            "the same companies - four of its eight signals the screener scores under Quality or "
+            "Investment, three it does not score at all."},
     {"category": "Momentum", "key": "momentum",
      "experiments": ["risk-managed-momentum", "momentum-crashes", "value-and-momentum", "big-and-small", "largest-fifth",
                      "replication-crisis"],
@@ -3423,7 +3441,8 @@ def screener_weights(path: Path = ROOT / "config.yaml") -> dict:
     return dict(yaml.safe_load(path.read_text(encoding="utf-8"))["factor_weights"])
 
 
-def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisions: dict) -> list[dict]:
+def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisions: dict,
+              mohanram: dict) -> list[dict]:
     """One row per category of the screener: its weight, what the lab has measured that bears
     on it among large companies, and what that leaves open."""
     whole, late, recent = (split_run(split, "196307", "209912"), split_run(split, "200001", "209912"),
@@ -3442,6 +3461,8 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisi
                           (("196807", "200306"), ("200307", "209912")))
     rev_paper, rev_ew, rev_vw = (sort_run(revisions, a, b, w)["spread"] for a, b, w in
                                  (("197701", "199212", "ew"), ("199301", "209912", "ew"), ("199301", "209912", "vw")))
+    ms_paper, ms_after = (sort_run(mohanram, a, b, "ew")["spread"] for a, b in
+                          (("197801", "200112"), ("200201", "209912")))
     measured = {
         "valuation": (f"Among big companies the value factor has averaged {big(whole, 'value')['mean']:.2f}% a month "
                       f"since 1963 (t-statistic {big(whole, 'value')['t']:.2f}), about half its "
@@ -3455,11 +3476,13 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisi
                     f"it is profitable companies beating the market "
                     f"({whole['factors']['profitability']['long']['mean']:.2f}% a month); the rest is "
                     f"unprofitable ones lagging it."),
-        "growth": (f"Nothing on the category's own measures - there is no published return premium for growth "
-                   f"to rerun. The nearest sort is Investment's asset growth, which revenue growth moves with: "
-                   f"by market value, the slowest growers beat the fastest by {ag_paper['mean']:.2f}% a month in "
-                   f"its paper's years (t-statistic {ag_paper['t']:.2f}) and by {ag_after['mean']:+.2f}% since "
-                   f"(t-statistic {ag_after['t']:.2f})."),
+        "growth": (f"Nothing on its own measures; the study behind them reruns. Growth stocks with the "
+                   f"strongest fundamentals beat the weakest by "
+                   f"{ms_paper['mean'] * 12:.1f}% a year in Mohanram's sample (t-statistic {ms_paper['t']:.2f}) "
+                   f"and {ms_after['mean'] * 12:+.1f}% since (t-statistic {ms_after['t']:.2f}). Sorted on a "
+                   f"growth rate, by market value: "
+                   f"{ag_paper['mean']:.2f}% a month in its paper's years (t-statistic {ag_paper['t']:.2f}) and "
+                   f"{ag_after['mean']:+.2f}% since (t-statistic {ag_after['t']:.2f})."),
         "momentum": (f"Among big companies momentum has averaged {big(whole, 'momentum')['mean']:.2f}% a month since "
                      f"1963 (t-statistic {big(whole, 'momentum')['t']:.2f}), under half its "
                      f"{small(whole, 'momentum')['mean']:.2f}% among small ones - and "
@@ -3541,7 +3564,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
                          ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1),
-                         ("piotroski", 1), ("revisions", 1)):
+                         ("piotroski", 1), ("revisions", 1), ("mohanram", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -3896,7 +3919,8 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "is added. Non-commercial use only, under the licence."),
         },
         "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp, double),
-        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"], sorts["revisions"]),
+        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"], sorts["revisions"],
+                               sorts["mohanram"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
