@@ -1309,6 +1309,13 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:drilldown.row_equation',
     'the same ${fmtMetric(s.raw[m], meta.fmt)} that was scored.':
         'claim:drilldown.row_equation',
+    # The clipped form of the Calculation line, 2026-11-06. Both figures are pinned on the
+    # page's own printing: test_a_capped_metric_row_prints_the_figure_its_own_arithmetic_gives
+    # asserts the bounds text and the two percentages it sits between, and
+    # test_the_cap_is_shown_only_for_the_stock_the_scorer_capped renders every capped stock in
+    # the published payload and every plain one.
+    'The scorer clips this metric to ${fmtMetric(b[0], meta.fmt)} ..':
+        'claim:drilldown.row_equation',
     "${sig.filter(c => c === '1').length} of ${sig.filter(c => c !== '-').length} testable signals passed = ${res}":
         'claim:drilldown.piotroski_beneish_parts',
     "${escapeHtml(a)} scores ${Math.abs(gap).toFixed(1)} composite points ${(gap >= 0 ? 'above' : 'below')} ${escapeHtml(b)} ${(lead.length ? '. The largest differences: ' + lead.join(' and ') + '.' : '.')}":

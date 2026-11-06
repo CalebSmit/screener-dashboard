@@ -5260,3 +5260,48 @@ surviving a construction change, which is the distinction the mask exists to kee
 write the proposal or the 11-03 measurement).
 **Rollback:** revert the commit; the tag before it is `good/2026-11-04`.
 
+## 2026-11-06 - Display: a clamped metric row shows the figure its own arithmetic gives, then the cap
+
+**Area:** published claim / drilldown presentation. **No weight, metric, threshold or score
+moved**; `price_target_upside`'s clamp is exactly what it was.
+
+**Changed:** the Calculation line on a metric row the scorer clamped. It printed the stock's
+figures through the formula and then `= <scored value>`, with nothing about the clamp - so for
+SanDisk on 2026-11-06 the page read
+
+> ($2023.63 mean target - $806.43 price) / $806.43 price = 100.0%
+
+where the reader's own arithmetic on the page's own numbers gives **150.9%**. The equality was
+false. It now reads `... = 150.9% capped to 100.0%`, with the bounds (`-50.0% .. 100.0%`) in the
+title of "capped to"; the Definition line beneath it already said "Clipped to -50% .. +100%".
+
+**Evidence:** a demonstrated, live, user-facing failure - the page asserted an equality its own
+figures refute, against CLAUDE.md priority 0.8 ("every number on the page must be checkable from
+the page", owner 2026-10-06). Measured in
+`research/measurements/2026-11-06-publish-gate-failures.py`: **11 of 496 stocks** sat on a bound
+in the 2026-11-06 run (CIEN, COHR, FLEX, LITE, MRVL, MU, NRG, ORCL, SNDK, STX, WDC) and **2 of
+496** in the published 2026-11-05 page (NRG, FLEX) - so the false line was on the live site, not
+only in a discarded run.
+
+**It also stopped the data loop.** `test_the_equation_on_the_row_gives_the_value_that_was_scored`
+evaluated the *unclamped* template against the *clamped* scored value, so its 99% bar tracked how
+many analyst targets happened to be extreme that morning: 0.9960 on 11-05 (passing by two stocks)
+and 0.9778 on 11-06 (failing). The 02:00 publish gate discarded the whole run, correctly, on a
+claim that was genuinely false - the check was right that something did not add up and wrong about
+what. The live site served 2026-11-05 data for a day.
+
+**Expected effect:** none on any score or rank. Eleven drilldown rows a day stop stating something
+untrue, and the clamp becomes visible where it applies rather than only in the definition.
+
+**Validated by:** `scripts/rehearse_publish.py` - the page the next data run will publish now
+passes the page tests and `check_published_claims` (both were red). Both branches of the line have
+hand-worked fixtures, so neither waits for a morning with an extreme target
+(`tests/test_dashboard_printed_figures.py`, 4 tests); `metric_lineage.CLIPS` is pinned against
+`config.yaml`'s `metric_clamps` in **both directions**, so a third clamp cannot reach the scorer
+without the page learning about it; and the wiring is checked against the generator's output
+rather than the committed payload (`tests/test_metric_lineage.py`, 5 tests). Claim
+`drilldown.row_equation` previously asserted the sentence that was false and now describes the
+clipped form.
+
+**Applied by:** scheduled code session, 2026-11-06 06:00 slot.
+**Rollback:** revert the commit; the tag before it is `good/2026-11-05`.

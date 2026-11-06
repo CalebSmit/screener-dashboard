@@ -26,12 +26,14 @@ import pandas as pd
 import options_cache
 from calc_trace import verify_payload
 from metric_lineage import (
+    CLIPS,
     ENGINE_KEYS,
     INPUT_KEYS,
     RECOMPUTE,
     published_lineage,
     published_not_used,
 )
+import metric_lineage as _ml
 from factor_engine import (
     METRIC_DIR,
     SECTOR_MIN_PEERS,
@@ -1042,6 +1044,31 @@ def _input_mismatches(inp: dict, raw: dict) -> list:
     return bad
 
 
+def _capped_equations(inp: dict, raw: dict) -> dict:
+    """Per metric the scorer clamps: the *uncapped* arithmetic of the inputs on the row.
+
+    Published only for the stocks whose clamp actually binds, which is a handful a day
+    (2 of 496 on 2026-11-05, 11 on 2026-11-06). Without it the row prints
+    "(mean target - price) / price = +100.0%" where its own figures give +150.9%, and the
+    reader cannot check the number from the page (CLAUDE.md priority 0.8).
+
+    Computed here, once, from the template the page is about to print - so the page shows
+    this figure rather than re-deriving it in JavaScript.
+    """
+    out = {}
+    for m in CLIPS:
+        if raw.get(m) is None:
+            continue
+        tpl = _ml.choose_template(m, inp)
+        if tpl is None or not _ml.EQUATIONS[m][0]:
+            continue                      # prose line: it already says the value is clipped
+        v = _ml.evaluate_template(tpl, inp)
+        if v is None or _ml.clip_value(m, v) == v:
+            continue                      # the clamp does not bind for this stock
+        out[m] = round(float(v), 6)
+    return out
+
+
 def _sector_stats(df, metrics) -> dict:
     """Per sector and metric: [valid count, lower quartile, median, upper quartile].
 
@@ -1303,6 +1330,10 @@ def prepare_dashboard_data(run_data: dict) -> str:
         _bad = _input_mismatches(detail["inp"], detail["raw"])
         if _bad:
             detail["inp_bad"] = _bad
+        # Where the scorer's clamp binds, the uncapped arithmetic the row prints.
+        _xcap = _capped_equations(detail["inp"], detail["raw"])
+        if _xcap:
+            detail["xcap"] = _xcap
         # Which weight table each category was scored with (omitted when it is the
         # generic one) and the coverage the composite discount actually read.
         _wp = {c: row.get("_wp_" + c) for c in
@@ -5849,6 +5880,22 @@ def _js_workings() -> str:
             html += escapeHtml(tpl.slice(last));
             const bad = (s.inp_bad || []).indexOf(m) >= 0;
             const exact = info.xe && !bad;
+            // The scorer clamps a few metrics after this arithmetic. Where the bound binds,
+            // the row shows the figure the equation gives and then the bound it was held
+            // to - otherwise the "=" states something the reader's own arithmetic refutes
+            // (SNDK, 2026-11-06: +150.9% printed as "= +100.0%"). The uncapped figure is
+            // computed in the build (stock_detail[t].xcap), never re-derived here.
+            const cap = (s.xcap || {})[m];
+            if (exact && cap !== undefined && cap !== null) {
+                const b = info.clip || [];
+                // The bounds ride the payload's lineage; a payload that predates them gets the
+                // step without the tooltip rather than a tooltip reading "to — .. —".
+                const bounds = (b.length === 2 && isFinite(b[0]) && isFinite(b[1]))
+                    ? ' title="' + escapeHtml('The scorer clips this metric to ' +
+                        fmtMetric(b[0], meta.fmt) + ' .. ' + fmtMetric(b[1], meta.fmt) + '.') + '"' : '';
+                return html + ' <span class="wk-op">=</span> <span class="wk-n">' + fmtMetric(cap, meta.fmt) +
+                    '</span> <span class="wk-l"' + bounds + '>capped to</span> ' + res;
+            }
             return html + (exact ? ' <span class="wk-op">=</span> ' : ' <span class="wk-op">&rarr;</span> ') + res +
                 (bad ? ' <span class="wk-warn" title="At least one figure the scorer used differs from the one listed; open the row for detail.">inputs differ</span>' : '');
         }

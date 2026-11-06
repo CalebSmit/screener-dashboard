@@ -1906,8 +1906,11 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "The Calculation line shown when a metric row in the workings is opened - the "
             "stock's reported figures put through the formula, '= value' - gives the value "
-            "that was scored. Where it ends in an arrow rather than '=', it lists the real "
-            "inputs of a calculation with steps one line cannot carry."
+            "that was scored. Where the scorer clips the metric and the bound binds for this "
+            "stock, the line gives the figure the formula itself produces and then the bound "
+            "it was held to ('= 151.6% capped to 100.0%'), never an '=' the reader's own "
+            "arithmetic on the page refutes. Where it ends in an arrow rather than '=', it "
+            "lists the real inputs of a calculation with steps one line cannot carry."
         ),
         made_true_by="metric_lineage:EQUATIONS",
         checked_by=(
@@ -1916,6 +1919,16 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_metric_lineage.py::test_every_weighted_metric_has_a_line_on_the_row",
             "tests/test_metric_lineage.py::test_template_slots_name_published_inputs",
             "tests/test_dashboard_navigation.py::test_every_metric_row_shows_its_own_numbers",
+            # the clipped form, added 2026-11-06 after it discarded a data run
+            "tests/test_metric_lineage.py::test_the_clamp_is_what_makes_the_exact_line_reproduce",
+            "tests/test_metric_lineage.py::test_every_clamp_the_scorer_applies_is_one_the_page_knows_about",
+            "tests/test_metric_lineage.py::test_a_clamped_metric_either_shows_the_cap_or_says_its_line_is_not_exact",
+            "tests/test_metric_lineage.py::test_the_build_names_the_uncapped_figure_for_exactly_the_stocks_on_a_bound",
+            "tests/test_metric_lineage.py::test_a_regenerated_page_attaches_the_uncapped_figure_to_the_stock",
+            "tests/test_dashboard_printed_figures.py::test_a_capped_metric_row_prints_the_figure_its_own_arithmetic_gives",
+            "tests/test_dashboard_printed_figures.py::test_a_capped_row_without_published_bounds_drops_the_tooltip_not_the_step",
+            "tests/test_dashboard_printed_figures.py::test_an_uncapped_metric_row_still_prints_a_plain_equality",
+            "tests/test_dashboard_printed_figures.py::test_the_cap_is_shown_only_for_the_stock_the_scorer_capped",
         ),
     ),
     Claim(

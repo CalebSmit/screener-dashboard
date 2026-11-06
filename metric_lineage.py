@@ -43,6 +43,23 @@ PTU_CLAMP = (-0.50, 1.00)
 PEG_CAP = 50.0
 MIN_ANALYSTS = 3
 
+# Metrics the scorer clamps *after* the arithmetic the row prints. The row has to say so,
+# or for a stock on the bound it prints an equality that is false.
+#
+# It did, until 2026-11-06. ``price_target_upside``'s line is exact, so the page renders
+# "(mean target - price) / price = <scored>" - and for SNDK that morning the arithmetic gave
+# +150.9% against a scored +100.0%. Eleven of 496 stocks sat on the +100% cap, which put
+# ``test_the_equation_on_the_row_gives_the_value_that_was_scored`` under its 99% bar and
+# discarded the whole data run. The bar had been held the morning before by two stocks.
+# Measured: research/measurements/2026-11-06-publish-gate-failures.py.
+#
+# ``CLIPS`` is pinned against ``config.yaml``'s ``metric_clamps`` in *both* directions, so a
+# third clamp cannot be added to the scorer without the page learning about it.
+CLIPS = {
+    "forward_eps_growth": FEG_CLAMP,
+    "price_target_upside": PTU_CLAMP,
+}
+
 
 def _ok(*xs):
     return all(x is not None and not (isinstance(x, float) and math.isnan(x)) for x in xs)
@@ -565,6 +582,32 @@ def evaluate_template(template: str, inp: dict):
     return v.real if isinstance(v, complex) else v
 
 
+def clip_value(metric: str, v):
+    """The scorer's clamp for this metric applied to the row's arithmetic (CLIPS above)."""
+    bounds = CLIPS.get(metric)
+    if bounds is None or v is None:
+        return v
+    return min(max(v, bounds[0]), bounds[1])
+
+
+def equation_value(metric: str, inp: dict):
+    """What the exact equation printed on the row resolves to for this stock.
+
+    The template's arithmetic put through the scorer's clamp - which is what makes the
+    printed "=" true for a stock on a bound. One function, read by the build (to decide
+    whether the row must show the cap) and by the test that holds the row to the scored
+    value, so the two can never disagree. ``None`` when no template fits this stock, or
+    when the metric's line is prose rather than arithmetic.
+    """
+    entry = EQUATIONS.get(metric)
+    if not entry or not entry[0]:
+        return None
+    tpl = choose_template(metric, inp)
+    if tpl is None:
+        return None
+    return clip_value(metric, evaluate_template(tpl, inp))
+
+
 # --------------------------------------------------------------------------- not used
 # Why a metric listed under a category carries no weight in the score a reader is looking
 # at (owner, 2026-10-07: "it should say a little bit about why something was not used in the
@@ -638,6 +681,8 @@ def published_lineage() -> dict:
         if m in EQUATIONS:
             out[m]["x"] = EQUATIONS[m][1]
             out[m]["xe"] = 1 if EQUATIONS[m][0] else 0
+        if m in CLIPS:
+            out[m]["clip"] = [CLIPS[m][0], CLIPS[m][1]]
         if m in SOURCES:
             out[m]["src"] = SOURCES[m]
     return out

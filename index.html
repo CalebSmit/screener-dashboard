@@ -9303,6 +9303,22 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             html += escapeHtml(tpl.slice(last));
             const bad = (s.inp_bad || []).indexOf(m) >= 0;
             const exact = info.xe && !bad;
+            // The scorer clamps a few metrics after this arithmetic. Where the bound binds,
+            // the row shows the figure the equation gives and then the bound it was held
+            // to - otherwise the "=" states something the reader's own arithmetic refutes
+            // (SNDK, 2026-11-06: +150.9% printed as "= +100.0%"). The uncapped figure is
+            // computed in the build (stock_detail[t].xcap), never re-derived here.
+            const cap = (s.xcap || {})[m];
+            if (exact && cap !== undefined && cap !== null) {
+                const b = info.clip || [];
+                // The bounds ride the payload's lineage; a payload that predates them gets the
+                // step without the tooltip rather than a tooltip reading "to — .. —".
+                const bounds = (b.length === 2 && isFinite(b[0]) && isFinite(b[1]))
+                    ? ' title="' + escapeHtml('The scorer clips this metric to ' +
+                        fmtMetric(b[0], meta.fmt) + ' .. ' + fmtMetric(b[1], meta.fmt) + '.') + '"' : '';
+                return html + ' <span class="wk-op">=</span> <span class="wk-n">' + fmtMetric(cap, meta.fmt) +
+                    '</span> <span class="wk-l"' + bounds + '>capped to</span> ' + res;
+            }
             return html + (exact ? ' <span class="wk-op">=</span> ' : ' <span class="wk-op">&rarr;</span> ') + res +
                 (bad ? ' <span class="wk-warn" title="At least one figure the scorer used differs from the one listed; open the row for detail.">inputs differ</span>' : '');
         }

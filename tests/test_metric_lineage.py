@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import metric_lineage as ml  # noqa: E402
+import run_context  # noqa: E402
 from factor_engine import CAT_METRICS, METRIC_DIR, SECTOR_MIN_PEERS  # noqa: E402
 
 PAYLOAD = ROOT / "dashboard_data.js"
@@ -155,6 +156,65 @@ def test_clamps_in_the_registry_match_config():
     cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
     assert tuple(cfg["metric_clamps"]["forward_eps_growth"]) == ml.FEG_CLAMP
     assert tuple(cfg["metric_clamps"]["price_target_upside"]) == ml.PTU_CLAMP
+
+
+def test_every_clamp_the_scorer_applies_is_one_the_page_knows_about():
+    """Both directions, so a third clamp cannot be added to the scorer in silence.
+
+    The failure this closes: ``price_target_upside``'s row printed its arithmetic and then
+    "= <scored value>" with nothing about the clamp, so for a stock on the +100% bound the
+    page asserted an equality its own figures refute. A clamp the page does not know about
+    is that defect waiting to happen again.
+    """
+    import yaml
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    scored = {k: tuple(v) for k, v in (cfg["metric_clamps"] or {}).items()}
+    assert {k: tuple(v) for k, v in ml.CLIPS.items()} == scored, (
+        "metric_lineage.CLIPS and config.yaml metric_clamps disagree: "
+        f"CLIPS={sorted(ml.CLIPS)}, config={sorted(scored)}")
+
+
+def test_a_clamped_metric_either_shows_the_cap_or_says_its_line_is_not_exact():
+    """A clamped metric has exactly two honest presentations, and no third.
+
+    Either its line is **exact**, in which case the build publishes the uncapped figure
+    for the stocks on a bound (``stock_detail[t].xcap``) and the row prints the cap as a
+    step; or its line is **prose**, in which case the words must say the value is clipped
+    and the row joins with an arrow rather than an "=".
+    """
+    for m, bounds in ml.CLIPS.items():
+        exact, templates = ml.EQUATIONS[m]
+        if exact:
+            assert ml.published_lineage()[m].get("clip") == [bounds[0], bounds[1]], (
+                f"{m}: an exact clamped line must publish its bounds for the row to print")
+        else:
+            assert all("clip" in t for t in templates), (
+                f"{m}: a prose line for a clamped metric must say the value is clipped: {templates}")
+
+
+def test_the_clamp_is_what_makes_the_exact_line_reproduce():
+    """equation_value applies the clamp; evaluate_template on its own does not.
+
+    Guards the direction of the fix: if ``equation_value`` ever stopped clamping, the two
+    would agree and this test would fail rather than the bar quietly drifting back under
+    99% on the next morning with a few extreme analyst targets.
+    """
+    m = "price_target_upside"
+    lo, hi = ml.CLIPS[m]
+    # a target 2.5x the price: the arithmetic gives +150%, the scorer scores the +100% cap
+    inp = {"targetMeanPrice": 250.0, "currentPrice": 100.0, "numberOfAnalystOpinions": 20}
+    tpl = ml.choose_template(m, inp)
+    assert tpl is not None
+    assert ml.evaluate_template(tpl, inp) == pytest.approx(1.5)
+    assert ml.equation_value(m, inp) == pytest.approx(hi)
+    # and on the other bound
+    inp_lo = {"targetMeanPrice": 10.0, "currentPrice": 100.0, "numberOfAnalystOpinions": 20}
+    assert ml.evaluate_template(ml.choose_template(m, inp_lo), inp_lo) == pytest.approx(-0.9)
+    assert ml.equation_value(m, inp_lo) == pytest.approx(lo)
+    # inside the bounds the clamp changes nothing
+    inp_in = {"targetMeanPrice": 115.0, "currentPrice": 100.0, "numberOfAnalystOpinions": 20}
+    assert ml.equation_value(m, inp_in) == pytest.approx(0.15)
+    assert ml.clip_value("roe", 9.9) == 9.9  # a metric with no clamp is returned untouched
 
 
 def test_published_lineage_carries_no_callables():
@@ -493,7 +553,11 @@ def test_the_equation_on_the_row_gives_the_value_that_was_scored(payload, metric
         if tpl is None:
             continue
         total += 1
-        v = ml.evaluate_template(tpl, s["inp"])
+        # equation_value is the arithmetic *and* the scorer's clamp, which is what the row
+        # prints: the figure the equation gives, then the bound it was held to. Reading the
+        # unclamped arithmetic here is what discarded the 2026-11-06 data run, on a morning
+        # when 11 of 496 analyst targets sat past the +100% cap.
+        v = ml.equation_value(metric, s["inp"])
         if v is not None and abs(v - pub) <= _tol(v):
             ok += 1
         else:
@@ -502,6 +566,75 @@ def test_the_equation_on_the_row_gives_the_value_that_was_scored(payload, metric
     assert ok / total >= 0.99, (f"{metric}: the equation printed on the row gives the scored value "
                                f"for only {ok}/{total} stocks - did the scoring formula change "
                                f"without metric_lineage.EQUATIONS? First: {worst[:3]}")
+
+
+def _binding_clamps(inp: dict, raw: dict) -> dict:
+    """The uncapped arithmetic for every clamp that binds, worked out here from the rule."""
+    want = {}
+    for m in ml.CLIPS:
+        if raw.get(m) is None or not ml.EQUATIONS[m][0]:
+            continue
+        tpl = ml.choose_template(m, inp)
+        if tpl is None:
+            continue
+        v = ml.evaluate_template(tpl, inp)
+        if v is not None and ml.clip_value(m, v) != v:
+            want[m] = v
+    return want
+
+
+def test_the_build_names_the_uncapped_figure_for_exactly_the_stocks_on_a_bound(payload):
+    """The generator's own function, over every stock in the published payload.
+
+    Read the generator rather than the committed file (CLAUDE.md rule 10): only a full run
+    rewrites the payload, so a test that reads its ``xcap`` field says nothing about what the
+    next run will publish - and passes on a hand-edit.
+
+    Both directions: a stock on a bound must get the figure its row's arithmetic gives, and a
+    stock inside the bounds must not get one (that would print "capped to" for a value the
+    scorer never capped). The number of capped stocks is a handful a day and may legitimately
+    be zero, so nothing here asserts a floor (CLAUDE.md row data->red).
+    """
+    import generate_dashboard as gd
+    wrong = []
+    binding = 0
+    for t, s in payload["stock_detail"].items():
+        inp, raw = s.get("inp") or {}, s["raw"]
+        want = _binding_clamps(inp, raw)
+        binding += len(want)
+        got = gd._capped_equations(inp, raw)
+        if set(got) != set(want) or any(got[m] != pytest.approx(want[m], abs=1e-5) for m in want):
+            wrong.append((t, got, {m: round(v, 6) for m, v in want.items()}))
+    assert not wrong, f"{len(wrong)} stocks: the build's capped figures are not the rule's: {wrong[:4]}"
+    print(f"\n  clamps binding in the published payload: {binding}")
+
+
+def test_a_regenerated_page_attaches_the_uncapped_figure_to_the_stock(payload):
+    """The wiring, end to end: regenerate from the newest run and read the detail back.
+
+    The arithmetic above can be right while nothing puts it in the payload, and the page
+    then prints "= <capped value>" with no cap shown. This is the only check that the
+    build attaches it, so it pays for one full regeneration.
+    """
+    run = run_context.latest_run_dir()
+    if not run or not Path(run).exists():
+        pytest.skip("MISSING DATA: no run under runs/ to regenerate from")
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import rehearse_publish as rp
+    try:
+        files = rp.regenerate(Path(run))
+    except SystemExit as exc:                      # the script's own "nothing to build from"
+        pytest.skip(f"MISSING DATA: {exc}")
+    body = files["dashboard_data.js"].decode("utf-8")
+    fresh = json.loads(body[body.index("=") + 1:].rstrip().rstrip(";"))
+    wrong = []
+    for t, s in fresh["stock_detail"].items():
+        want = _binding_clamps(s.get("inp") or {}, s["raw"])
+        got = s.get("xcap") or {}
+        if set(got) != set(want) or any(got[m] != pytest.approx(want[m], abs=1e-5) for m in want):
+            wrong.append((t, got, {m: round(v, 6) for m, v in want.items()}))
+    assert not wrong, (f"{len(wrong)} stocks in the regenerated payload carry the wrong capped "
+                       f"figures: {wrong[:4]}")
 
 
 def test_nearly_every_scored_value_gets_a_line(payload):
