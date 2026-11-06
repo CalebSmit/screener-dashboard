@@ -446,7 +446,8 @@ def test_on_a_phone_the_three_overview_tables_read_as_rows_with_every_row_kept(b
     row per result - its name across the width, its two figures under the two column heads, the
     drift drawn beside them; the scorecard and the category map keep every category, its weight,
     what the lab measured or covers and its experiments, and fold only the third column behind a
-    button named for it. Measured 5,615 px; the bound here holds with or without the web font."""
+    button named for it. Measured 5,615 px over 42 rows that day (134 a row); 6,123 px over 44 on
+    2026-11-06, when the bound became a per-row one - see the comment at it."""
     ctx, page, errors = _page(browser)
     try:
         _goto(page, "overview")
@@ -478,8 +479,29 @@ def test_on_a_phone_the_three_overview_tables_read_as_rows_with_every_row_kept(b
             assert page.evaluate("window.LAB_STATE().id") == "overview"
             page.click(btn)
             page.wait_for_function(f"document.getElementById('{cell}').offsetParent === null", timeout=WAIT)
-        total = page.evaluate("['t-after', 't-score', 't-map'].reduce((a, id) => a + document.getElementById(id).offsetHeight, 0)")
-        assert total < 6000, total
+        # Measure once the page has stopped changing, not at the first moment it can be read: the
+        # three tables stand 157 px taller with Inter than with the fallback, and document.fonts
+        # reports "loaded" before the faces this page uses have arrived (measured 2026-11-06,
+        # logs-only script in that session's log). Reading early is the "paint->red" family in
+        # CLAUDE.md - a test whose premise is that the page has settled when it has not - and it
+        # made this bound pass serially and fail under xdist on the same commit.
+        height = "['t-after', 't-score', 't-map'].reduce((a, id) => a + document.getElementById(id).offsetHeight, 0)"
+        total = page.evaluate(height)
+        for _ in range(40):
+            page.wait_for_timeout(100)
+            again = page.evaluate(height)
+            if again == total and _ >= 12:
+                break
+            total = again
+        # A per-row bound, not an absolute one: after the paper is one row per experiment, so a fixed
+        # ceiling can only be met by having fewer experiments, which is the opposite of what this page
+        # is for. The intent is unchanged - the overview must read as rows a phone can scroll, not as
+        # the 8,313 px of 2026-10-27 (about 198 px a row before that pass, 134 after it). Measured
+        # 2026-11-06 with 19 experiments: 6,123 px over 44 rows, 139 px a row.
+        rows = page.evaluate("""['t-after', 't-score', 't-map']
+            .reduce((a, id) => a + document.querySelectorAll('#' + id + ' tbody tr').length, 0)""")
+        assert rows == n_after + 16
+        assert total / rows < 150, (total, rows, total / rows)
         assert page.evaluate("[...document.querySelectorAll('.tablewrap')].every(w => w.scrollWidth <= w.clientWidth)")
         page.emulate_media(media="print")                       # on paper every cell is printed, no button
         assert page.evaluate("[...document.querySelectorAll('td.folds')].every(e => e.offsetParent)")

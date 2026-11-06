@@ -3358,8 +3358,8 @@ CATEGORY_MAP = [
             "covers one of its eight inputs."},
     {"category": "Growth", "key": "growth", "experiments": ["mohanram", "asset-growth"],
      "has": "Growth stocks scored on whether their fundamentals support the valuation (Mohanram 2005), the "
-            "study this methodology cites for judging them on more than growth. Plus the asset-growth sort, "
-            "Investment's measure but the one revenue growth moves with.",
+            "study cited for judging them on more than growth. Plus the asset-growth sort - Investment's "
+            "measure, but the one revenue growth moves with.",
      "gap": "Nothing on the category's own measures - revenue, earnings and forward earnings growth, "
             "operating leverage: no public sort covers them. Mohanram's score asks a related question of "
             "the same companies - four of its eight signals the screener scores under Quality or "
@@ -3476,8 +3476,8 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisi
                     f"it is profitable companies beating the market "
                     f"({whole['factors']['profitability']['long']['mean']:.2f}% a month); the rest is "
                     f"unprofitable ones lagging it."),
-        "growth": (f"Nothing on its own measures; the study behind them reruns. Growth stocks with the "
-                   f"strongest fundamentals beat the weakest by "
+        "growth": (f"Nothing on its own measures; the study behind them reruns. The growth stocks with "
+                   f"the strongest fundamentals beat the weakest by "
                    f"{ms_paper['mean'] * 12:.1f}% a year in Mohanram's sample (t-statistic {ms_paper['t']:.2f}) "
                    f"and {ms_after['mean'] * 12:+.1f}% since (t-statistic {ms_after['t']:.2f}). Sorted on a "
                    f"growth rate, by market value: "
