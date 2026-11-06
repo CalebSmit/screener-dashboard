@@ -1910,17 +1910,24 @@ def test_the_holdings_strip_prints_the_saved_names_ranks_of_the_number_ranked(pa
     n = data["kpis"]["universe_size"]
     # the premise "of N" rests on: N is the number ranked, and the ranks run 1 to N
     assert n == len(rows) == rows[-1]["Rank"] and rows[0]["Rank"] == 1, (n, len(rows), rows[-1]["Rank"])
-    saved = [rows[299]["Ticker"], rows[9]["Ticker"], "ZZZZ-NOT-RANKED", rows[0]["Ticker"]]
+    # Take each stand-in's rank from the row, never from its position in the sorted list.
+    # The composite is rounded to 2dp before ranking, so ties are ordinary and the ranks are
+    # NOT contiguous: on 2026-11-05 rows[299] ranked #300 and on 2026-11-06 it ranked #299,
+    # which discarded a whole data run on a hardcoded "#300" (CLAUDE.md, settled row data->red).
+    picked = [rows[299], rows[9], rows[0]]
+    want_ranks = sorted(r["Rank"] for r in picked)
+    assert len(set(want_ranks)) == len(picked), f"stand-ins must have distinct ranks: {want_ranks}"
+    saved = [picked[0]["Ticker"], picked[1]["Ticker"], "ZZZZ-NOT-RANKED", picked[2]["Ticker"]]
     got = page.evaluate("""(saved) => { const keep = holdings.slice();
         try { holdings = saved; renderTileViz();
               const v = document.querySelector('#sec-holdings .tile-viz');
               return [v.getAttribute('aria-label'), v.querySelector('.tv-cap').textContent,
                       [...v.querySelectorAll('.tv-strip i')].map(i => i.style.left)]; }
         finally { holdings = keep; renderTileViz(); } }""", saved)
-    assert got[0] == f"Your saved names rank #1, #10, #300 of {n}"
+    assert got[0] == "Your saved names rank " + ", ".join(f"#{r}" for r in want_ranks) + f" of {n}"
     assert got[1] == f"#1Where they rank#{n}"
     # positions on the 1-to-N scale (the browser normalises "60.0%" to "60%", so compare numbers)
-    want_left = sorted(float(_fixed_n((r - 1) / (n - 1) * 100, 1)) for r in (300, 10, 1))
+    want_left = sorted(float(_fixed_n((r - 1) / (n - 1) * 100, 1)) for r in want_ranks)
     assert sorted(float(x.rstrip("%")) for x in got[2]) == want_left, got[2]
 
 
