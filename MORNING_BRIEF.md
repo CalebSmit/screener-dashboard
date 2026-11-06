@@ -1,4 +1,4 @@
-# Morning Brief - Friday 06 November 2026, 02:20
+# Morning Brief - Friday 06 November 2026, 06:59
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -36,12 +36,13 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
-- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
-- tests/test_context_layer_claims.py::test_the_page_says_when_each_kind_of_quote_was_taken
-- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
 
 ## What changed in the repo
 
+- `4473ac7 Both branches of the capped line are reached whichever payload is installed`
+- `a9dd812 A capped metric row prints the figure its own arithmetic gives`
+- `5acfa4c The holdings strip test reads each stand-in's rank, not its position`
+- `f8af01f brief: data run 2026-11-06`
 - `50b535f Read the flag-key scroll where it ends, not 700 ms into it`
 - `9db2e4f Compare says what sets each stock apart, under its composite`
 - `ffe51b5 Say in words what sets each stock apart: leaders, sheets and holdings`
@@ -53,43 +54,55 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `2ca17f1 A red baseline keeps its transcript, like the gates do`
 - `0081d38 Leader caption: the date never breaks across lines`
 - `d5e85b4 Leaders show how long they have led; holdings show where each name has been`
-- `0a00f0e The top-stock rank test opens the stock ranked first, not EXPE by name`
-- `061953d Polish: nothing cut short, no empty slot, and no false 'ahead of 100%'`
-- `d25bdb1 Show the story each section tells: what moved the scores, period by period, sector standouts`
-- `a0500df Market backdrop: embed the band table indented, so the page carries no template brace pair`
 
 ## The session's own account
 
-> 2026-11-06 (owner-run, 00:00) - Compare says what sets each stock apart
+> 2026-11-06 - THE FACTOR LAB (deferred: the data loop was not publishing)
 > 
-> **Health (rule 8):** unchanged from 2026-11-05's entries; pushed well before the 02:00 data run.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-05_130000-midday.log`
+> (completed). Data loop published? **no** - `logs/datarun-2026-11-06_020000.log` (stopped
+> deliberately; HEALTH: PASS, the publish gate refused). Evidence base at `1m`: 5 of 8 needed at the
+> 1m horizon (44 rows, but overlapping windows are not independent; 112 rows across all horizons),
+> newest 1m run date 2026-10-05 (**32 days ago, bound 40** - inside it). Priority 0:
+> `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **25 days**);
+> also open: 0.10 30d; 0.14 23d.
+> **Tests:** before 4011 passed / 2 skipped (green baseline, nothing inherited), after 4020 / 2.
+> **Owner queue / rotation:** no open proposal (`write_brief.open_proposals()` -> `[]`); no owner
+> item taken. **Friday's lab focus deferred** - the data loop had stopped publishing, which outranks
+> it (CLAUDE.md, "The two loops"). No held-back branch in the health line.
 > 
-> **Owner:** *"Do that now. Do everything you can before the 2 am run."* - the Compare view, named as the
-> next place for the Stands out / Trails strip in the previous entry.
+> ### Did
 > 
-> **Built:** Compare (Side by side) gains a **What sets it apart** row directly under Composite, one cell
-> per stock, the same `traitsHtml` strip as the leader cards, so two stocks are told apart by kind before
-> the eight rows of numbers (VLO: stronger price trend, lower price for its profits; AAPL: calmer price,
-> trails as a larger company with weakening analyst views; WMB: nothing at 70 or more). Chips that wrap
-> on a phone get a 10px corner rather than a pill. Display only; payload byte-identical.
+> **The data loop was discarding its run every morning's work, and the live site was a day stale.**
+> The 02:00 run passed every health check (`HEALTH: PASS - safe to publish`) and was then refused by
+> `scripts/check_published_claims.py` on two tests. Both are now fixed, and
+> `python scripts/rehearse_publish.py` **PASSES** on the page the next run will publish - it was red
+> on both counts before. Measured in `research/measurements/2026-11-06-publish-gate-failures.py`,
+> which runs each failure against the discarded run's payload and the committed one side by side.
 > 
-> **Checks:** `tests/test_stock_traits.py::test_the_compare_view_carries_the_words_for_each_stock`
-> (added to claim `dashboard.traits`): the first, median and last stocks opened together, each column's
-> words against its own published scores and in the view's rank order. Seen at 1440 and 375 with three
-> stocks; no horizontal scroll, no page errors.
+> **1. The drilldown printed an equality its own figures refute** - the substantive one, and a live
+> defect on the public site rather than only a test problem. `price_target_upside` is clamped to
+> -50%..+100% by the scorer and its Calculation line is *exact*, so for a stock on a bound the row
+> read `($2023.63 mean target - $806.43 price) / $806.43 price = 100.0%` where the arithmetic gives
+> **150.9%**. That is precisely what priority 0.8 exists to stop (owner, 2026-10-06: every number on
+> the page must be checkable from the page). **11 of 496 stocks** sat on a bound in the 11-06 run
+> (CIEN, COHR, FLEX, LITE, MRVL, MU, NRG, ORCL, SNDK, STX, WDC) and **2 of 496** on the page that is
+> live right now (NRG, FLEX).
 > 
-> **Caught by gate 5, and fixed before 02:00: a flake the previous push introduced.** The rehearsal failed
-> `tests/test_club_readiness.py::test_a_phone_reader_reaches_the_flag_definitions_from_the_tile` - on a
-> phone, "What a flag means" scrolls to the flag definitions and the test read their position at a fixed
-> 700 ms. Measured: **0 of 10** failures on the page before last night's Stands out / Trails change, about
-> **1 in 3** after it (1 of 6 on the live `main`, 2 of 5 here). Cause, measured frame by frame: the leader
-> cards grew a line of words, the phone's scroll to the ranking got ~400px longer, and at 700 ms the smooth
-> scroll was still in flight (y = 703-806 against a 812 viewport); it landed at **y = 352 every time by
-> 1.2 s**. The reader was never affected; the test's premise was. **This module is in the 02:00 publish
-> gate** (claim `dashboard.score_key`), so left alone it could have discarded tonight's data run on a bad
-> roll. Fix: read the position once the page has stopped scrolling (ten unchanged frames) - the same final
-> assertion, the premise of settled row paint->red. 0 of 15 failures after. It was the only test in the
-> suite reading a position after a fixed wait.
+> The row now shows the cap as a step - `= 150.9% capped to 100.0%`, bounds in the title - so the
+> line is true and the clamp is taught where it applies instead of only in the definition beneath.
+> The uncapped figure is computed once in the build (`_capped_equations` -> `stock_detail[t].xcap`),
+> only for the stocks whose bound binds, and the page displays it rather than re-deriving it (0.8).
+> `metric_lineage.CLIPS` is pinned against `config.yaml`'s `metric_clamps` in **both directions**, so
+> a third clamp cannot reach the scorer without the page learning about it; a clamped metric has
+> exactly two honest presentations and no third (exact + published bounds, or prose that says the
+> value is clipped - which `forward_eps_growth` already was).
+> 
+> **Looked at it** on the regenerated page (`logs/shot_capped_row.py`), desktop 1440 and 375px, SNDK
+> capped and VLO uncapped. Desktop: one line, no overflow. 375px: wraps to two, `150.9%` in white and
+> `100.0%` in blue, "capped to" in the muted label colour - so the emphasis stays on the scored
+> value. The uncapped row is byte-unchanged (`= 21.6%`).
+> ...
 
 ---
 
