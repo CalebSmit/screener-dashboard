@@ -283,6 +283,13 @@ through the older blocks. What a session must know before touching these:
   **What moved the scores** (`#changed-shares`, `renderChangedShares`) draws the same published
   `shares`, all eight, largest first, the three fundamentals (`run_overview.FUNDAMENTAL`, written in as
   `CHG_FUND`) in the accent. `tests/test_story_visuals.py`.
+- **The market and the ranking side by side** (2026-11-05, `#changed-pulse`, `renderChangedPulse`): above
+  the overview, the S&P 500 total-return index's move between the closes the two runs were priced at
+  (`history.compare[k].market`, from the run's own `market_closes.json`; red for a fall, green for a
+  rise) and the two rankings' Spearman rank correlation on a 0.80-1.000 gauge, with the median
+  consecutive-run figure in words (`history.overview[k].rho` / `rho_typical`). The overview carries the
+  same two numbers as a sentence. No market figure for a run without a start time (snapshots before
+  2026-10-20) or one started mid-session. Claim `history.market_move`.
 - **Column tooltips** for the six weighted categories fill their weights at load from
   `D.weights.profiles` (`weightList`) - no weight is typed into the page any more
   (`tests/test_header_weights.py`).

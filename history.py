@@ -172,6 +172,10 @@ class RunSnapshot:
     # make many - stays valid and simply reports churn as unavailable.
     metric_cols: frozenset[str] = frozenset()
     missing_metrics: dict[str, frozenset[str]] = field(default_factory=dict)
+    # When the run started (the snapshot's ``run_started_at``, ISO with its UTC offset), so the
+    # page can say which market close each run was priced at (2026-11-05, run_overview's
+    # market sentence). None for a hand-built snapshot or one written before the column existed.
+    started_at: str | None = None
 
     @property
     def tickers(self) -> set[str]:
@@ -296,9 +300,13 @@ def _to_run_snapshot(date: str, df: pd.DataFrame) -> RunSnapshot:
                 per_cat[cat] = round(float(value), 1)
         cats[ticker] = per_cat
     metric_cols, missing = _metric_availability(df)
+    started = None
+    if "run_started_at" in df.columns and len(df):
+        v = df["run_started_at"].iloc[0]
+        started = str(v) if v is not None and v == v else None
     return RunSnapshot(date=date, ranks=ranks, composites=composites,
                        cat_scores=cats, metric_cols=metric_cols,
-                       missing_metrics=missing)
+                       missing_metrics=missing, started_at=started)
 
 
 def select_comparable_runs(
@@ -614,6 +622,7 @@ def build_history(
     current_df: pd.DataFrame | None = None,
     current_date: str | None = None,
     snapshots_dir: Path | None = None,
+    current_started_at: str | None = None,
 ) -> dict:
     """Build the dashboard's ``history`` payload block.
 
@@ -631,6 +640,8 @@ def build_history(
         # re-run), and 284 of 502 drilldowns printed a history rank 1-3 places off the
         # rank shown beside it.
         live = _to_run_snapshot(current_date, current_df)
+        if current_started_at:
+            live.started_at = str(current_started_at)
         if live.ranks:
             kept = [s for s in kept if s.date != current_date] + [live]
 
@@ -667,7 +678,8 @@ def build_history(
     delta: dict[str, dict] = {t: {"prev": e} for t, e in prev_deltas.items()}
     compare = {
         "prev": {"date": prev.date,
-                 "gap_days": (pd.Timestamp(current.date) - pd.Timestamp(prev.date)).days},
+                 "gap_days": (pd.Timestamp(current.date) - pd.Timestamp(prev.date)).days,
+                 "started_at": prev.started_at},
         "m1": None,
     }
     movers = {"prev": _movers(prev_deltas, threshold, round_trips)}
@@ -679,12 +691,14 @@ def build_history(
         compare["m1"] = {
             "date": lookback.date,
             "gap_days": (pd.Timestamp(current.date) - pd.Timestamp(lookback.date)).days,
+            "started_at": lookback.started_at,
         }
         movers["m1"] = _movers(lb_deltas, threshold, round_trips)
 
     return {
         "dates": dates,
         "current_date": current.date,
+        "current_started_at": current.started_at,
         "series": series,
         "excluded": excluded,
         "noise": noise,

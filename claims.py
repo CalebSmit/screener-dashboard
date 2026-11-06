@@ -1477,6 +1477,29 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="history.market_move",
+        surface=DRILLDOWN,
+        asserts=(
+            "What Changed states how far the S&P 500 total-return index (^SP500TR, the series the run "
+            "fetches for the momentum rule and saves as market_closes.json) moved between the closes the "
+            "two runs were priced at - each run at the last session whose 16:00 New York close came "
+            "before it started, none for a run started mid-session - to one decimal; and the Spearman "
+            "rank correlation of the two published rankings over the stocks ranked on both dates, to "
+            "three decimals, beside the median of that figure between consecutive runs (2026-11-05)."
+        ),
+        made_true_by="run_overview:overview",
+        checked_by=(
+            "tests/test_run_overview.py::test_a_run_is_priced_at_the_last_close_before_it_started",
+            "tests/test_run_overview.py::test_the_market_move_is_the_ratio_of_the_two_closes",
+            "tests/test_run_overview.py::test_the_rank_correlation_is_spearman_over_the_stocks_ranked_on_both_dates",
+            "tests/test_run_overview.py::test_the_sentence_states_the_market_and_the_correlation_it_publishes",
+            "tests/test_run_overview.py::test_the_published_market_move_is_the_runs_own_closes",
+            "tests/test_run_overview.py::test_the_published_correlation_is_the_histories_own",
+            "tests/test_dashboard_printed_figures.py::test_the_whats_changed_market_and_ranking_figures_are_the_builds_own",
+            "tests/test_dashboard_printed_figures.py::test_a_hand_worked_market_and_ranking_pair",
+        ),
+    ),
+    Claim(
         id="dashboard.reporting_soon_counts",
         surface=DRILLDOWN,
         asserts=(

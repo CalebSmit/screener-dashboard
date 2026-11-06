@@ -1774,9 +1774,23 @@ def run_factor_engine(cfg, args, ctx=None):
 
         # The momentum regime rule's reading of the market (one request). No reading -> no change.
         _rule = cfg.get("momentum_regime") or {}
+        _mkt_closes = fetch_market_closes()
         if _rule.get("enabled"):
-            stats["momentum_regime"] = market_panic_state(fetch_market_closes(), _rule)
+            stats["momentum_regime"] = market_panic_state(_mkt_closes, _rule)
             print(f"  Market state for the momentum rule: {stats['momentum_regime']['state']}")
+        # The same closes, kept with the run so the page can say how far the market moved between
+        # two runs (run_overview.market_move, 2026-11-05). Context only: nothing scores from it.
+        if ctx is not None and len(_mkt_closes):
+            try:
+                import json as _json_mc
+                _tail = _mkt_closes.iloc[-400:]
+                (ctx.run_dir / "market_closes.json").write_text(_json_mc.dumps({
+                    "source": _mkt_closes.attrs.get("source", "^SP500TR"),
+                    "closes": {pd.Timestamp(d).strftime("%Y-%m-%d"): round(float(v), 4)
+                               for d, v in _tail.items()},
+                }), encoding="utf-8")
+            except Exception as _e:  # noqa: BLE001 - context must never stop a run
+                print(f"  WARNING: market closes not saved ({type(_e).__name__}: {_e})")
         _clock.lap("fetch.market")
 
         fetch_cfg = cfg.get("fetch", {})

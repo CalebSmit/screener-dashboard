@@ -19770,3 +19770,87 @@ row forbids. Three things measured for the session that takes it, so it starts a
 - Keep adding a row to `research/2026-10-26-data-run-timing.md` section 8.8 each morning: position
   range, contiguous or not, the error strings, the batch the first backoff follows. Five more nights.
 - If another red baseline arrives, **read `logs/nightly-<stamp>.baseline.txt` first** - it exists now.
+
+## 2026-11-05 (owner-run, evening) - the S&P 500 fell 4.4%: will tomorrow's run publish?
+
+**Health (rule 8):** unchanged from today's earlier entries (data loop PASS 02:16; `1m` evidence
+unchanged; top open item **0.13, The Factor Lab**). No scheduled session runs before 02:00.
+
+**Owner:** *"the market just took a beating... excited to see if everything still holds up even when a
+bunch of stocks go down, and how the rankings change if any."*
+
+**The day:** S&P 500 -4.36% (total return), the technology sector ETF -8.0%, staples -0.8%, VIX 16.6 ->
+28.2. SanDisk -22%, Lumentum -19%, Micron -17%. The input gates (`check_run_health`, 2026-10-22) were
+replayed only over calm days - no day since 2026-07-28 moved the index by more than ~2% - so the
+first question was whether the 02:00 run's rank-continuity limits (Spearman >= 0.90, <= 8 new top-25
+names, <= 3 fallen below #40) would refuse a real market move as a scrambled run. A refused run
+leaves the published ranking standing, and every later run is compared with it.
+
+### Rehearsed before it happens
+
+`research/measurements/2026-11-05-selloff-rehearsal.py` (+ JSON): the 11-05 run's own metric table,
+re-scored with the engine's own scoring functions under its own effective weights - **the control
+reproduces all 499 published ranks exactly** - then every price-moved metric moved to the 11-05 close
+by its own definition: valuation, size and target upside through `lookahead.restate_at_price` (EV by
+the engine's own fallback where the quote has none - the first draft skipped it and dropped Pfizer
+166 places for that reason alone); volatility and beta with the day appended to the engine's own
+published moments; drawdown from the 52-week high (not `_mdd_peak`, which is the peak before the worst
+trough); Jensen's alpha from its own CAPM terms. One bulk chart request per ticker, no `.info`.
+
+**Result: PASS, by a distance.** Spearman **0.998** against the page the site serves, **1** new name in
+the top 25 (WDC), **0** fallen below #40. Mean absolute category-score change: Risk 1.3, Valuation 1.3,
+Size 0.9, Revisions 0.8, Momentum 0.6, Quality/Growth/Investment ~0.
+
+**Why so little:** both momentum measures end a month ago (the skip-month convention, metrics 13-14),
+so a one-day fall cannot reach them; and every score is a percentile within the stock's sector, so a
+fall that hits a sector together barely reorders it. The stocks that fell hardest got cheaper and
+further below their price targets at the same time as they got riskier - SanDisk, down 22%, stays 5th
+(composite 72.3 -> 72.3), Micron 4th -> 3rd. **That is the methodology working as written, and a
+teaching point rather than a defect:** the screener ranks businesses against their peers; it does not
+react to the tape. A sustained fall would reach momentum a month later.
+
+Approximations, stated: one day appended to ~250 without dropping the oldest; nothing for news that
+moves analyst estimates overnight; risk-free rate unchanged. None of these can plausibly move
+Spearman from 0.998 to the 0.90 limit. Not decision-grade for methodology (rule 5) and not used as such.
+
+### Built: the market and the ranking side by side (What Changed)
+
+The question the owner asked - did the ranking hold when the market fell? - had no answer on the page.
+Now What Changed shows, for each comparison:
+
+- **how far the S&P 500 moved between the two runs' prices** - the total-return index the run already
+  fetches for the momentum rule, now saved with each run (`runs/<id>/market_closes.json`, 400 sessions,
+  context only, nothing scores from it), from the close the comparison run was priced at to the close
+  this one was. A run is priced at the last session whose 16:00 New York close preceded its start; a
+  run started mid-session (2026-10-20, 13:21) names no close at all;
+- **how far the ranking's order moved with it** - the Spearman rank correlation of the two published
+  rankings (the statistic the publish gate and the history's acceptance test already use), on a
+  0.80-1.000 gauge, beside the median between consecutive runs (0.996 today);
+- one more sentence in the overview carrying the same two numbers.
+
+Start times come from the snapshots' `run_started_at` (present since 2026-10-20), so the market figure
+appears for "since last run" from tonight and for "~1 month" from about 2026-11-19. The correlation
+appears today. **Tonight's 02:00 run is the first to save closes, so tomorrow's page should read: the
+S&P 500 fell 4.4% (Nov 4 close to Nov 5 close), rank correlation ~0.998.**
+
+**Payload regenerated from the same run** (the 2026-10-07 precedent): diffed field by field, only
+`history` (`compare.*.started_at`, `current_started_at`, the overview sentence and `rho`) and four
+drilldown summaries differ - those four are the "ahead of 100%" fix from earlier today (MPC now "ahead
+of 99.8%"), which would otherwise have waited for tonight. `table_data`, every score and rank, and
+`dashboard_context.js` byte-identical. The run folder's own market file was *not* back-filled: the run
+did not write one, so today's page states the correlation and no market figure.
+
+**Checks:** claim `history.market_move`, 8 checks in the 02:00 publish gate - session mapping (02:00,
+evening, 16:00 exactly, 15:59, lunchtime, Sunday, holiday), the ratio, the Spearman, the median, the
+sentence word for word, the published figures against the run's own closes file and the history's own
+series, and the two printed figures in the browser (sign, colour, dot position, below-0.80 pinning,
+nothing drawn without a correlation). Mutation-checked: `<=` -> `<` at the close, dropping the
+same-session guard, swapping the colours and moving the gauge's floor are each caught; dropping the
+"ranked on both" filter is not, because pandas' Spearman already drops the missing pairs (equivalent).
+
+### Next
+
+- **Read tomorrow's page and the 02:00 health log against the rehearsal**: Spearman, new top-25 names,
+  the market sentence. If the run is refused, that refusal is the finding - read its reason before
+  anything else.
+

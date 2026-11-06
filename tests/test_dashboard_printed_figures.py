@@ -859,6 +859,67 @@ def test_the_whats_changed_tile_prints_the_runs_own_counts(page, data):
     assert _text(cap) == f"{up} up of {N} {down} down", (cap, k)
 
 
+_PULSE_JS = """([ov, cmp]) => { renderChangedPulse(ov, cmp);
+    const h = document.getElementById('changed-pulse');
+    const v = sel => { const e = h.querySelector(sel); return e ? e.textContent : null; };
+    const dot = h.querySelector('.cp-dot');
+    return { mkt: v('.cp-mkt .cp-v'), mktCls: (h.querySelector('.cp-mkt .cp-v') || {}).className || null,
+             span: v('.cp-mkt .cp-s'), rho: v('.cp-rank .cp-v'), sub: v('.cp-rank .cp-s'),
+             x: dot ? Number(dot.getAttribute('x1')) : null, empty: h.innerHTML === '' }; }"""
+
+
+def _pulse_want(ov, cmp):
+    """The two figures as the build publishes them: the index's move to one decimal with its own
+    sign, the sessions it ran between, the correlation to three decimals, the typical figure."""
+    m = cmp.get("market")
+    out = {"rho": f"{ov['rho']:.3f}"}
+    if m:
+        fig = f"{abs(m['ret']) * 100:.1f}"
+        out["mkt"] = ("" if fig == "0.0" else ("\u2212" if m["ret"] < 0 else "+")) + fig + "%"
+        out["cls"] = "cp-v" + ("" if fig == "0.0" else (" down" if m["ret"] < 0 else " up"))
+    return out
+
+
+def test_the_whats_changed_market_and_ranking_figures_are_the_builds_own(page, data):
+    """For each comparison the payload carries: the S&P 500 figure and the rank correlation printed
+    above the overview are the build's own (``compare[k].market``, ``overview[k].rho``)."""
+    H = _history(data)
+    ov_all = H.get("overview") or {}
+    pretty = lambda d: page.evaluate("d => prettyDate(d)", d)
+    checked = 0
+    for k, cmp in (H.get("compare") or {}).items():
+        ov = ov_all.get(k) or {}
+        if not cmp or ov.get("rho") is None:
+            continue
+        got, want = page.evaluate(_PULSE_JS, [ov, cmp]), _pulse_want(ov, cmp)
+        assert got["rho"] == want["rho"], (k, got)
+        if cmp.get("market"):
+            assert (got["mkt"], got["mktCls"]) == (want["mkt"], want["cls"]), (k, got)
+            assert _text(got["span"]) == f"{pretty(cmp['market']['from'])} close \u2192 {pretty(cmp['market']['to'])} close"
+        else:
+            assert got["mkt"] is None, (k, got)
+        checked += 1
+    if not checked:
+        pytest.skip("the published page states no rank correlation (a run before 2026-11-06)")
+
+
+def test_a_hand_worked_market_and_ranking_pair(page):
+    """A fall, a rise, a flat day and no market figure; the dot at its place on 0.80-1.000; nothing
+    drawn without a correlation."""
+    cmp = {"date": "2026-11-05", "market": {"ret": -0.04362, "from": "2026-11-04", "to": "2026-11-05"}}
+    g = page.evaluate(_PULSE_JS, [{"rho": 0.998, "rho_typical": 0.996}, cmp])
+    assert (g["mkt"], g["mktCls"], g["rho"]) == ("\u22124.4%", "cp-v down", "0.998"), g
+    assert "A typical run to run: 0.996" in _text(g["sub"]) and "1.000 is the same order" in g["sub"], g
+    assert abs(g["x"] - (3 + (0.998 - 0.80) / 0.20 * 194)) < 0.06, g
+    g = page.evaluate(_PULSE_JS, [{"rho": 0.871}, dict(cmp, market={"ret": 0.01582, "from": "2026-11-03", "to": "2026-11-04"})])
+    assert (g["mkt"], g["mktCls"]) == ("+1.6%", "cp-v up") and "typical" not in g["sub"], g
+    g = page.evaluate(_PULSE_JS, [{"rho": 0.5}, dict(cmp, market={"ret": 0.0004, "from": "2026-11-03", "to": "2026-11-04"})])
+    assert (g["mkt"], g["mktCls"]) == ("0.0%", "cp-v") and abs(g["x"] - 3) < 0.06, g    # below 0.80: pinned left
+    g = page.evaluate(_PULSE_JS, [{"rho": 0.95}, {"date": "2026-11-05"}])
+    assert g["mkt"] is None and g["rho"] == "0.950", g
+    assert page.evaluate(_PULSE_JS, [{"rho": None}, cmp])["empty"] is True
+
+
 def test_the_whats_changed_tile_prints_a_hand_worked_window(page, data):
     """Without a ~1-month window the tile reads the last run's: 7 up and 4 down of the universe."""
     H = _history(data)
