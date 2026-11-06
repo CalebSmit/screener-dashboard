@@ -1,4 +1,4 @@
-# Morning Brief - Friday 06 November 2026, 06:59
+# Morning Brief - Friday 06 November 2026, 13:53
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -39,6 +39,13 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `840e8a5 log: the suite count after is 4046, the same as the baseline`
+- `2e918cb nightly 2026-11-06 (13:00) - the Factor Lab, experiment 19`
+- `04237b4 lab: experiment 19 written up, and the overview's phone budget measured where it settles`
+- `3f3cb98 lab: experiment 19, Mohanram's growth score on OSAP's six MS groups - 4 of 7 within`
+- `4a55141 lab: experiment 19 tolerances, written before the comparison (Mohanram 2005, on OSAP's MS groups)`
+- `e18feaf Say how old the prices are, and make two tiles tell their story`
+- `17b85a1 brief: code session 2026-11-06`
 - `4473ac7 Both branches of the capped line are reached whichever payload is installed`
 - `a9dd812 A capped metric row prints the figure its own arithmetic gives`
 - `5acfa4c The holdings strip test reads each stand-in's rank, not its position`
@@ -47,61 +54,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `9db2e4f Compare says what sets each stock apart, under its composite`
 - `ffe51b5 Say in words what sets each stock apart: leaders, sheets and holdings`
 - `7cf7b1f Pin the momentum rule's wiring to the one market fetch it now shares`
-- `e6aab5f Rehearse the sell-off, and put the market beside the ranking in What Changed`
-- `b9097bd brief: code session 2026-11-05-midday`
-- `8f5f791 Log the 13:00 session: the red baseline, and the defect behind it`
-- `18eeb13 The flake found: the sheet pre-warm was overwriting panels a test had just rendered`
-- `2ca17f1 A red baseline keeps its transcript, like the gates do`
-- `0081d38 Leader caption: the date never breaks across lines`
-- `d5e85b4 Leaders show how long they have led; holdings show where each name has been`
 
 ## The session's own account
 
-> 2026-11-06 - THE FACTOR LAB (deferred: the data loop was not publishing)
+> 2026-11-06 (13:00 session) - QUEUE: the Factor Lab, experiment 19 (Growth's first rerun)
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-05_130000-midday.log`
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-06_060000.log`
 > (completed). Data loop published? **no** - `logs/datarun-2026-11-06_020000.log` (stopped
-> deliberately; HEALTH: PASS, the publish gate refused). Evidence base at `1m`: 5 of 8 needed at the
-> 1m horizon (44 rows, but overlapping windows are not independent; 112 rows across all horizons),
-> newest 1m run date 2026-10-05 (**32 days ago, bound 40** - inside it). Priority 0:
-> `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **25 days**);
-> also open: 0.10 30d; 0.14 23d.
-> **Tests:** before 4011 passed / 2 skipped (green baseline, nothing inherited), after 4020 / 2.
-> **Owner queue / rotation:** no open proposal (`write_brief.open_proposals()` -> `[]`); no owner
-> item taken. **Friday's lab focus deferred** - the data loop had stopped publishing, which outranks
-> it (CLAUDE.md, "The two loops"). No held-back branch in the health line.
+> deliberately by the publish gate; HEALTH: PASS; both causes were fixed and shipped by this
+> morning's 06:00 session, and the owner-run session scheduled a one-time catch-up run for **16:00
+> CST today**, after the close - reading it is the next session's first job). Evidence base at `1m`:
+> **44 rows, newest 2026-10-05 (32 days ago, bound 40), 5 effective of the 8 needed**. Priority 0:
+> `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **25 days**) -
+> **advanced today**; also open: 0.10 30d, 0.14 23d.
+> **Tests:** before 4046 passed / 2 skipped (green baseline, nothing inherited), after 4046 / 2 -
+> the same count: today added assertions inside existing tests, not new test functions.
+> **Owner queue / rotation:** no open proposal (`write_brief.open_proposals()` -> `[]`). No
+> held-back branch. Today's 06:00 entry ended "the next Friday that is not a retrospective owes the
+> lab one finished experiment" - today **is** that Friday (ISO week 45, odd), so this session
+> carried on from its Next rather than starting a fresh owner item. `git stash list` holds one
+> `auto-rescue 2026-10-28` entry: **it is empty** (`git stash show -p` prints nothing), so there is
+> nothing in it to recover.
 > 
 > ### Did
 > 
-> **The data loop was discarding its run every morning's work, and the live site was a day stale.**
-> The 02:00 run passed every health check (`HEALTH: PASS - safe to publish`) and was then refused by
-> `scripts/check_published_claims.py` on two tests. Both are now fixed, and
-> `python scripts/rehearse_publish.py` **PASSES** on the page the next run will publish - it was red
-> on both counts before. Measured in `research/measurements/2026-11-06-publish-gate-failures.py`,
-> which runs each failure against the discarded run's payload and the committed one side by side.
+> **Experiment 19: Mohanram (2005), the growth score, on Open Source Asset Pricing's `MS` groups.
+> 4 of 7 figures within tolerances committed before any return was read (`4a55141`).**
+> `research/2026-11-06-lab-mohanram.md`.
 > 
-> **1. The drilldown printed an equality its own figures refute** - the substantive one, and a live
-> defect on the public site rather than only a test problem. `price_target_upside` is clamped to
-> -50%..+100% by the scorer and its Calculation line is *exact*, so for a stock on a bound the row
-> read `($2023.63 mean target - $806.43 price) / $806.43 price = 100.0%` where the arithmetic gives
-> **150.9%**. That is precisely what priority 0.8 exists to stop (owner, 2026-10-06: every number on
-> the page must be checkable from the page). **11 of 496 stocks** sat on a bound in the 11-06 run
-> (CIEN, COHR, FLEX, LITE, MRVL, MU, NRG, ORCL, SNDK, STX, WDC) and **2 of 496** on the page that is
-> live right now (NRG, FLEX).
+> **Growth was the last of the eight categories with no rerunnable experiment - and the lab's own
+> category table said why, falsely:** "Mohanram (2005), which it cites, needs company accounts, and
+> the library has no sort on sales or earnings growth." The second half is still true; the first is
+> not. Chen & Zimmermann publish portfolio returns for exactly this score, and their construction
+> code **pools the score's ends the way the paper does** (6-8 to 6, 0-1 to 1), so their six
+> portfolios *are* the paper's six groups - which is why this comparison could be row by row where
+> experiment 17's, on deciles of a discrete score, could only be end to end. That is the lab
+> auditing the screener's own citations in the direction nobody plans for: the claim about what
+> *cannot* be checked was the thing that needed checking.
 > 
-> The row now shows the cap as a step - `= 150.9% capped to 100.0%`, bounds in the title - so the
-> line is true and the clamp is taught where it applies instead of only in the definition beneath.
-> The uncapped figure is computed once in the build (`_capped_equations` -> `stock_detail[t].xcap`),
-> only for the stocks whose bound binds, and the page displays it rather than re-deriving it (0.8).
-> `metric_lineage.CLIPS` is pinned against `config.yaml`'s `metric_clamps` in **both directions**, so
-> a third clamp cannot reach the scorer without the page learning about it; a clamped metric has
-> exactly two honest presentations and no third (exact + published bounds, or prose that says the
-> value is clipped - which `forward_eps_growth` already was).
+> **The result, and the part that matters to a screener that only buys.** The strong end reproduces
+> (16.5% a year against the paper's 17.4%); the weak end does not (+3.2% against -4.0%), so the gap
+> is 13.3% a year (t 4.96) against 21.4% and outside its tolerance. The whole shortfall is the
+> losers the public construction does not find - and the paper's own size-adjusted panel says that
+> is where its effect lives (+3.3% strong against -17.9% weak; its words, "more effective in
+> identifying potential losers ... than winners"). So the half that reproduces is the half this
+> screener could act on, and the half that does not is the half it never could. Score 5 sits below
+> score 4, so the monotonic rise is not reproduced in the middle.
 > 
-> **Looked at it** on the regenerated page (`logs/shot_capped_row.py`), desktop 1440 and 375px, SNDK
-> capped and VLO uncapped. Desktop: one line, no overflow. 375px: wraps to two, `150.9%` in white and
-> `100.0%` in blue, "capped to" in the muted label colour - so the emphasis stays on the scored
-> value. The uncapped row is byte-unchanged (`= 21.6%`).
+> **It survived its own sample, which almost nothing in this lab has:** 5.0% a year equally weighted
 > ...
 
 ---
