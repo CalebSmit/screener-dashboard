@@ -1221,6 +1221,8 @@ def dashboard_sentences() -> list[str]:
 # Insider card and by the case against), so keys are compared as a set; its verdict has to hold
 # for both printings, and says which one is pinned.
 DASHBOARD_SENTENCES: dict[str, str] = {
+    "${CAT_LABELS[c]} ${fmt(sc[c], 'score')}. A higher ${CAT_LABELS[c]} score means ${(CAT_MEANS[c] || '')}":
+        'claim:dashboard.traits',
     "${rho.toFixed(3)} Rank correlation with ${escapeHtml(prettyDate(cmp.date))}&rsquo;s ranking; 1.000 is the same order":
         'claim:history.market_move',
     "${fw.momentum > bw.momentum ? 'raised' : 'cut'} from ${fmtWeight(bw.momentum)} by the momentum regime rule this run":

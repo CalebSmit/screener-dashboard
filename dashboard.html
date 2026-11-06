@@ -3785,6 +3785,33 @@
         .guide-steps a { text-decoration: underline; text-underline-offset: 2px; }  /* in a sentence: not colour alone (axe link-in-text-block, 2026-10-27) */
         .guide-steps a:hover { text-decoration: underline; }
         .msr-note { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); }
+        /* What sets it apart (2026-11-05, dashboard.traits) */
+        .traits { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+        .tr-row { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+        .tr-lab { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: var(--text-muted); }
+        .tr-chips { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+        .tr-chip { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; padding: 3px 9px; border-radius: 999px;
+            font-size: 12px; line-height: 1.3; border: 1px solid var(--border-bright); color: var(--text-secondary); }
+        .tr-hi { color: var(--text-primary); border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+            background: color-mix(in srgb, var(--accent) 14%, transparent); }
+        .tr-cat { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .tr-hi .tr-cat { color: var(--text-secondary); }
+        .tr-none { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+        .top5-card > .traits { flex: 1 1 auto; }
+        .holding-traits { margin: 10px 0 0; }
+        .holding-traits .traits { flex-direction: row; flex-wrap: wrap; gap: 6px 18px; }
+        .holding-traits .tr-row { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 5px 8px; }  /* the bars below line up across the five cards */
+        .msr-traits { grid-column: 1 / -1; margin: 0 0 6px; padding: 14px 16px; border: 1px solid var(--border);
+            border-radius: var(--radius); background: var(--bg-card); }
+        .traits-full { gap: 10px; }
+        .traits-full .tr-row { flex-direction: row; align-items: baseline; gap: 12px; }
+        .traits-full .tr-lab { flex: none; width: 76px; font-size: 12px; }
+        .traits-full .tr-chip { font-size: 13px; padding: 4px 11px; }
+        .tr-foot { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+        @media (max-width: 560px) { .traits-full .tr-row { flex-direction: column; gap: 6px; } }
+        .t5-key-tr { display: inline-flex; align-items: center; gap: 8px; }
+        .t5-key-tr em { width: 18px; height: 10px; flex: none; border-radius: 999px;
+            border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
         .pal-empty strong { display: block; margin-bottom: 4px; color: var(--text-primary); font-weight: 600; }
         /* On a phone each row is a card with no "Trap flags" header above it, and a bare "Value" chip
            read as a style label. The word is drawn there only, so the row's text is unchanged */
@@ -4890,7 +4917,7 @@
             </div>
             <div class="section-body" id="sec-top5-body">
                 <div class="top5-row" id="top5-row"><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div></div>
-                <p class="t5-key"><span class="t5-key-a"><i aria-hidden="true"></i>Each bar is a category score from 0 to 100; the tick marks 50, near the sector median.</span><span class="t5-key-runs"><b aria-hidden="true"></b>The columns are its rank in each recent run: the taller, the higher it ranked; the line marks #25.</span></p>
+                <p class="t5-key"><span class="t5-key-a"><i aria-hidden="true"></i>Each bar is a category score from 0 to 100; the tick marks 50, near the sector median.</span><span class="t5-key-runs"><b aria-hidden="true"></b>The columns are its rank in each recent run: the taller, the higher it ranked; the line marks #25.</span><span class="t5-key-tr"><em aria-hidden="true"></em>Stands out and Trails name its categories scoring 70 or more and 30 or less against its sector, in words.</span></p>
             </div>
         </section>
 
@@ -6462,6 +6489,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     </div>
                     <div class="top5-score"><span class="top5-composite">${fmt(h.composite,'score')}</span><span class="top5-composite-label">Composite</span></div>
                 </div>
+                ${traitsHtml(h, false)}
                 <div class="t5-fp" aria-label="Category scores, 0 to 100">${cells}</div>
                 ${leaderRunsHtml(h.ticker)}
             </div>`;
@@ -7934,6 +7962,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
           +   '</span>'
           + '</div>'
           + '<div class="holding-cats">' + strip + '</div>'
+          // What sets it apart from its sector, in words (claim dashboard.traits, 2026-11-05).
+          + '<div class="holding-traits">' + traitsHtml(s.cat_scores || {}, false) + '</div>'
           + (notes ? '<div class="holding-notes">' + notes + '</div>' : '')
           + (function() {
                 // Context, never part of the score: trend, options, insiders (the drilldown's teaser line).
@@ -8268,6 +8298,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             <div class="modal-score-val">${fmt(s.composite,'score')}</div>
             <div class="modal-score-sub">Rank #${s.rank} of ${D.kpis.universe_size}</div>
         </div>`;
+        scoreHtml = '<div class="msr-traits">' + traitsHtml(s.cat_scores || {}, true) + '</div>' + scoreHtml;
         const ew = effWeights(s);
         cats.forEach(c => {
             const score = s.cat_scores[c];
@@ -8822,6 +8853,39 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // each category means (the score key's own lines, SCORE_KEY).
     const METRIC_PLAIN = {"ev_ebitda": "What the whole company would cost a buyer, its debt included, for each dollar of operating profit. The usual yardstick for comparing prices across companies that borrow very different amounts.", "fcf_yield": "The cash the business has left after paying for its equipment and buildings, set against what the whole company costs. Cash is harder to flatter with accounting choices than profit is.", "earnings_yield": "Profit set against the company's stock-market value: the price-to-earnings ratio turned upside down, so a company with a loss still gets a figure that can be compared.", "ev_sales": "What the whole company costs for each dollar of sales. Useful where profits are thin or swing from year to year, though it says nothing about how much of each sale becomes profit.", "pb_ratio": "What the stock market pays for each dollar of the company's net worth as its balance sheet records it. For a bank or insurer, most of that net worth is loans and investments carried close to their market value.", "roic": "How much profit the business makes on the money shareholders and lenders have put into it. A business that turns capital into profit well can grow without needing as much new money.", "gross_profit_assets": "The profit left after the direct cost of what the company sells, set against everything it owns: a broad measure of how productive its assets are.", "debt_equity": "How much the company owes compared with what its shareholders own.", "net_debt_to_ebitda": "Roughly how many years of operating profit it would take to pay off the company's debt after using its cash. A common test of how heavily a company borrows.", "earnings_variability": "How much the company's return on its shareholders' money has swung from year to year: a measure of how predictable its profitability has been.", "piotroski_f_score": "A checklist of basic signs of financial health from Joseph Piotroski's research: making a profit, generating cash, borrowing less, not issuing new shares, and becoming more efficient.", "accruals": "How far reported profit runs ahead of the cash the business actually brought in. A large gap is a reason to read the cash-flow statement before trusting the profit.", "operating_leverage": "How strongly operating profit moves when sales move. A business with high fixed costs sees its profit rise and fall faster than its sales.", "beneish_m_score": "A screen, from Messod Beneish's research, for the accounting patterns that came before companies were caught overstating their earnings. A flag for a closer look at the accounts, not proof of anything.", "roe": "Profit set against shareholders' equity: how much the company earns on the money its owners have in the business.", "roa": "Profit set against everything the company owns. For a bank, how much it earns on its loans and investments.", "equity_ratio": "The share of the company's assets paid for by its owners rather than borrowed. For a bank or insurer, the cushion that absorbs losses before depositors or policyholders are hurt.", "forward_eps_growth": "How much analysts expect earnings per share to grow over the coming year compared with the year just reported.", "peg_ratio": "The price-to-earnings ratio set against the earnings growth analysts expect: a way to ask whether a high price is being paid for fast growth.", "revenue_growth": "How much the company's sales grew over the past year.", "revenue_cagr_3yr": "The average yearly growth in sales over three years, which smooths out a single unusual year.", "sustainable_growth": "How fast the company could grow from the profit it keeps, without issuing new shares and with its borrowing growing only in step with its equity.", "return_12_1": "How the share price has done over roughly the past year: the classic measure of price momentum.", "return_6m": "How the share price has done over roughly the past six months: a shorter reading of price momentum.", "jensens_alpha": "The part of the stock's return over the past year that its sensitivity to the whole market does not explain: what it earned beyond what the market's move alone would predict.", "volatility": "How much the share price swings from day to day, stated as a yearly figure: the everyday meaning of a risky stock.", "beta": "How much the stock tends to move when the whole market moves. A stock with a beta of one moves with the market; above one, by more than the market.", "sharpe_ratio": "The return earned above a risk-free rate for each unit of price swing: return adjusted for the bumpiness of the ride.", "sortino_ratio": "Like the Sharpe ratio, but counting only the downward swings as risk.", "max_drawdown_1y": "The largest fall from a high to a later low over the past year: the worst loss someone who bought at the top would have sat through.", "fy1_revision_3m": "How analysts' estimates of this year's earnings have changed over the last three months, relative to the share price.", "analyst_surprise": "How far the company's reported earnings have typically come in above or below what analysts expected, over its last few quarters.", "price_target_upside": "How far the average analyst price target sits above or below the current share price.", "earnings_acceleration": "Whether the company's latest earnings surprise was bigger or smaller than the one before: are results improving against expectations?", "consecutive_beat_streak": "How consistently the company has beaten analysts' earnings estimates in recent quarters, with the most recent quarters counting most.", "short_interest_ratio": "How many days of normal trading it would take for short sellers, investors betting on a fall, to repurchase the shares they have borrowed and sold.", "size_log_mcap": "The company's size by stock-market value, on a scale where smaller companies sit higher.", "asset_growth": "How fast the company's balance sheet grew over the past year, whether by building, buying other companies or holding more cash."};
     const CAT_MEANS = {"valuation": "a lower price against cash flow, earnings and sales than its sector.", "quality": "more profitable and financially sounder than its sector.", "growth": "faster growth in sales and in expected earnings.", "momentum": "a stronger price trend over the past year.", "risk": "a calmer price: lower volatility, lower beta and smaller drawdowns. A high Risk score is low risk.", "revisions": "analysts' expectations are improving.", "size": "a smaller company than its sector peers. The largest company in each sector scores near 0.", "investment": "slower growth in total assets."};
+
+    // What sets a stock apart from its sector, in words (2026-11-05, claim dashboard.traits): the
+    // categories scoring TRAIT_HI or more and TRAIT_LO or less, highest and lowest first. The same
+    // rule as generate_dashboard.traits(); tests/test_stock_traits.py runs both on every stock.
+    const TRAIT_WORDS = {"valuation": ["Lower price for its profits", "Higher price for its profits"], "quality": ["More profitable and sounder", "Less profitable or sound"], "growth": ["Faster growth", "Slower growth"], "momentum": ["Stronger price trend", "Weaker price trend"], "risk": ["Calmer price", "More volatile price"], "revisions": ["Improving analyst views", "Weakening analyst views"], "size": ["Smaller company", "Larger company"], "investment": ["Slower asset growth", "Faster asset growth"]};
+    const TRAIT_HI = 70, TRAIT_LO = 30, TRAIT_MAX_HI = 3, TRAIT_MAX_LO = 2;
+    const TRAIT_ORDER = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"];
+    function traitsOf(sc) {
+        const live = TRAIT_ORDER.filter(c => sc && typeof sc[c] === 'number' && isFinite(sc[c])).map(c => [c, sc[c]]);
+        const by = dir => (a, b) => dir * (a[1] - b[1]) || TRAIT_ORDER.indexOf(a[0]) - TRAIT_ORDER.indexOf(b[0]);
+        return {
+            hi: live.filter(t => t[1] >= TRAIT_HI).sort(by(-1)).slice(0, TRAIT_MAX_HI).map(t => t[0]),
+            lo: live.filter(t => t[1] <= TRAIT_LO).sort(by(1)).slice(0, TRAIT_MAX_LO).map(t => t[0])
+        };
+    }
+    // full: the sheet, where each chip also names its category and score; the leader card shows
+    // the words alone, with its eight bars directly below them.
+    function traitsHtml(sc, full) {
+        const t = traitsOf(sc);
+        const chip = (c, k) => '<span class="tr-chip tr-' + k + '" title="' + escapeHtml(CAT_LABELS[c] + ' ' + fmt(sc[c], 'score') +
+                '. A higher ' + CAT_LABELS[c] + ' score means ' + (CAT_MEANS[c] || '')) + '">' +
+            (full ? '<span class="tr-cat">' + CAT_LABELS[c] + ' ' + fmt(sc[c], 'score') + '</span>' : '') +
+            escapeHtml(TRAIT_WORDS[c][k === 'hi' ? 0 : 1]) + '</span>';
+        const row = (lab, list, k) => '<div class="tr-row tr-row-' + k + '"><span class="tr-lab">' + lab + '</span>' +
+            '<span class="tr-chips">' + list.map(c => chip(c, k)).join('') + '</span></div>';
+        if (!t.hi.length && !t.lo.length)
+            return '<div class="traits' + (full ? ' traits-full' : '') + '"><p class="tr-none">No category scores ' + TRAIT_HI + ' or more, or ' + TRAIT_LO + ' or less, against its sector.</p></div>';
+        return '<div class="traits' + (full ? ' traits-full' : '') + '">' +
+            (t.hi.length ? row('Stands out', t.hi, 'hi') : '<p class="tr-none">No category scores ' + TRAIT_HI + ' or more against its sector.</p>') +
+            (t.lo.length ? row('Trails', t.lo, 'lo') : '') +
+            (full ? '<p class="tr-foot">Against its sector: a category scoring ' + TRAIT_HI + ' or more stands out, ' + TRAIT_LO + ' or less trails. Select a score below for its workings.</p>' : '') +
+            '</div>';
+    }
 
     // =====================================================================
     // WORKINGS - how a category score is built, from the published numbers.

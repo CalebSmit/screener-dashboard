@@ -19854,3 +19854,52 @@ same-session guard, swapping the colours and moving the gauge's floor are each c
   the market sentence. If the run is refused, that refusal is the finding - read its reason before
   anything else.
 
+## 2026-11-05 (owner-run, late evening) - every stock says what kind of company it is
+
+**Health (rule 8):** unchanged from today's earlier entries (data loop PASS 02:16; `1m` evidence
+unchanged; top open item **0.13, The Factor Lab**). Pushed before the 02:00 data run.
+
+**Owner:** *"Keep finding improvements, specifically more on the ui. Focus on having it always tell a
+story and is easy to understand."*
+
+**What a first-time reader could not get from the page.** Toured the live site at 1440 and 375 as a
+newcomer. Every number is explained somewhere - the key, the workings, the sentences - but nothing says
+in words what *kind* of company the eight scores describe. A leader card read "Momentum 98, Valuation
+90, Size 21"; to learn that this is a company with a strong price trend, priced low for its profits and
+larger than most of its sector, a student had to translate each number through the key, one at a time,
+and remember that Size runs backwards.
+
+**Built: Stands out / Trails.** For every stock, the categories scoring **70 or more** (highest first,
+at most three) and **30 or less** (lowest first, at most two), each as a short phrase in the score key's
+own direction (`generate_dashboard.TRAIT_WORDS`; "Lower price for its profits", "More volatile price",
+"Larger company"). 70 is the line the leader cards already highlight a bar at; 30 mirrors it about the
+sector median. Shown on the five leader cards, between the name and the bars (the key under the cards
+says what the two words mean), and opening every stock sheet's Scores, where each chip also carries its
+category and published score ("Momentum 97.6 - Stronger price trend") so the word and the number are
+read together. **My Holdings cards carry the same strip** under their eight scores, so a holder reads
+what kind of company they own before the run-to-run sentences (Apple: stands out for a calmer price and
+profitability; trails as a larger company with weakening analyst views). A stock with nothing at either
+end says so. Display only: it reads the published scores
+and changes no score, rank or weight, so no payload change (`scripts/rebuild_page.py`, payload
+byte-identical) and no changelog entry.
+
+**Checks:** claim `dashboard.traits`, 9 tests in `tests/test_stock_traits.py` (in the 02:00 publish
+gate through the claim): the JS rule against the Python one on all 499 published stocks; each leader
+card's words against its own scores; the sheet's chips (category, score as the page prints it, words)
+through `openStockDetail` for the first, median and last stocks; the hand-worked boundaries (70 and
+30 count, 69.99 and 30.01 do not), ties and unscored categories in the browser and in Python; the
+words against the score key's direction; no advice term and no digit in any phrase. Mutation-checked:
+`>=` -> `>`, the sort direction, swapped words, a rounded score on the chip and a reversed Risk pair are
+each caught; dropping the tie-break is equivalent (the list is built in the key's order and JS sort is
+stable).
+
+**Seen:** desktop and 375px, leader cards and two sheets (#1 VLO; #496 WMB, which has nothing at 70 or
+more and says so). No horizontal scroll at 375, no page errors. The bars stay aligned across the five
+cards whatever the number of chips. Holdings checked with VLO, AAPL and WMB saved, both widths.
+
+### Next
+
+- Tomorrow: read the 02:00 page and health log against the sell-off rehearsal (previous entry).
+- The same strip would fit the **Compare** view - one call to `traitsHtml` - if a session wants to
+  carry the story there.
+

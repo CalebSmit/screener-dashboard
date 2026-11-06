@@ -1783,6 +1783,47 @@ SCORE_KEY = (
 )
 
 
+# What sets a stock apart from its sector, in a few words (2026-11-05; owner: "focus on having it
+# always tell a story and is easy to understand"). Every number on a leader card and on a stock's
+# sheet was explained, but nothing said in words what *kind* of company the eight scores describe:
+# a reader met "Momentum 98, Valuation 90, Size 21" and had to translate each one through the key.
+# This names the categories that stand out (a category score of TRAIT_HI or more) and those that
+# trail (TRAIT_LO or less), highest and lowest first, in the score key's own direction. 70 is the
+# line the leader cards already highlight a bar at; 30 mirrors it about the sector median of 50.
+# Display only: it reads the published category scores and changes no score, rank or weight.
+# Each pair paraphrases its SCORE_KEY line (a higher score means ...), and the title on every chip
+# carries that line in full. Claim `dashboard.traits`; tests/test_stock_traits.py.
+TRAIT_HI = 70
+TRAIT_LO = 30
+TRAIT_MAX_HI = 3
+TRAIT_MAX_LO = 2
+TRAIT_WORDS = {
+    "valuation": ("Lower price for its profits", "Higher price for its profits"),
+    "quality": ("More profitable and sounder", "Less profitable or sound"),
+    "growth": ("Faster growth", "Slower growth"),
+    "momentum": ("Stronger price trend", "Weaker price trend"),
+    "risk": ("Calmer price", "More volatile price"),
+    "revisions": ("Improving analyst views", "Weakening analyst views"),
+    "size": ("Smaller company", "Larger company"),
+    "investment": ("Slower asset growth", "Faster asset growth"),
+}
+
+
+def traits(scores: dict) -> dict:
+    """The categories that stand out (score >= TRAIT_HI, highest first, at most TRAIT_MAX_HI) and
+    trail (score <= TRAIT_LO, lowest first, at most TRAIT_MAX_LO); ties in the score key's order.
+    An unscored category is neither. The page's traitsOf() is this function in JS."""
+    order = [k for k, *_ in SCORE_KEY]
+    live = []
+    for c in order:
+        v = (scores or {}).get(c)
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v):
+            live.append((c, float(v)))
+    hi = sorted((t for t in live if t[1] >= TRAIT_HI), key=lambda t: (-t[1], order.index(t[0])))
+    lo = sorted((t for t in live if t[1] <= TRAIT_LO), key=lambda t: (t[1], order.index(t[0])))
+    return {"hi": [c for c, _ in hi[:TRAIT_MAX_HI]], "lo": [c for c, _ in lo[:TRAIT_MAX_LO]]}
+
+
 # What each metric measures, in words a first-year investment-club member can use. Shown at the top of
 # a metric's card in The workings (and as the metric name's tooltip). Display only, and deliberately
 # *definitional*: no figure, no threshold, no direction ("lower is better" is the row's own chip, read
@@ -2096,7 +2137,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
             <div class="section-body" id="sec-top5-body">
                 <div class="top5-row" id="top5-row"><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div></div>
-                <p class="t5-key"><span class="t5-key-a"><i aria-hidden="true"></i>Each bar is a category score from 0 to 100; the tick marks 50, near the sector median.</span><span class="t5-key-runs"><b aria-hidden="true"></b>The columns are its rank in each recent run: the taller, the higher it ranked; the line marks #25.</span></p>
+                <p class="t5-key"><span class="t5-key-a"><i aria-hidden="true"></i>Each bar is a category score from 0 to 100; the tick marks 50, near the sector median.</span><span class="t5-key-runs"><b aria-hidden="true"></b>The columns are its rank in each recent run: the taller, the higher it ranked; the line marks #25.</span><span class="t5-key-tr"><em aria-hidden="true"></em>Stands out and Trails name its categories scoring {TRAIT_HI} or more and {TRAIT_LO} or less against its sector, in words.</span></p>
             </div>
         </section>
 
@@ -2870,6 +2911,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     </div>
                     <div class="top5-score"><span class="top5-composite">${{fmt(h.composite,'score')}}</span><span class="top5-composite-label">Composite</span></div>
                 </div>
+                ${{traitsHtml(h, false)}}
                 <div class="t5-fp" aria-label="Category scores, 0 to 100">${{cells}}</div>
                 ${{leaderRunsHtml(h.ticker)}}
             </div>`;
@@ -3899,6 +3941,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
           +   '</span>'
           + '</div>'
           + '<div class="holding-cats">' + strip + '</div>'
+          // What sets it apart from its sector, in words (claim dashboard.traits, 2026-11-05).
+          + '<div class="holding-traits">' + traitsHtml(s.cat_scores || {{}}, false) + '</div>'
           + (notes ? '<div class="holding-notes">' + notes + '</div>' : '')
           + (function() {{
                 // Context, never part of the score: trend, options, insiders (the drilldown's teaser line).
@@ -4233,6 +4277,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="modal-score-val">${{fmt(s.composite,'score')}}</div>
             <div class="modal-score-sub">Rank #${{s.rank}} of ${{D.kpis.universe_size}}</div>
         </div>`;
+        scoreHtml = '<div class="msr-traits">' + traitsHtml(s.cat_scores || {{}}, true) + '</div>' + scoreHtml;
         const ew = effWeights(s);
         cats.forEach(c => {{
             const score = s.cat_scores[c];
@@ -4787,6 +4832,39 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // each category means (the score key's own lines, SCORE_KEY).
     const METRIC_PLAIN = {json.dumps(METRIC_PLAIN, ensure_ascii=False)};
     const CAT_MEANS = {json.dumps({k: text for k, _s, _n, text in SCORE_KEY}, ensure_ascii=False)};
+
+    // What sets a stock apart from its sector, in words (2026-11-05, claim dashboard.traits): the
+    // categories scoring TRAIT_HI or more and TRAIT_LO or less, highest and lowest first. The same
+    // rule as generate_dashboard.traits(); tests/test_stock_traits.py runs both on every stock.
+    const TRAIT_WORDS = {json.dumps(TRAIT_WORDS, ensure_ascii=False)};
+    const TRAIT_HI = {TRAIT_HI}, TRAIT_LO = {TRAIT_LO}, TRAIT_MAX_HI = {TRAIT_MAX_HI}, TRAIT_MAX_LO = {TRAIT_MAX_LO};
+    const TRAIT_ORDER = {json.dumps([k for k, *_ in SCORE_KEY])};
+    function traitsOf(sc) {{
+        const live = TRAIT_ORDER.filter(c => sc && typeof sc[c] === 'number' && isFinite(sc[c])).map(c => [c, sc[c]]);
+        const by = dir => (a, b) => dir * (a[1] - b[1]) || TRAIT_ORDER.indexOf(a[0]) - TRAIT_ORDER.indexOf(b[0]);
+        return {{
+            hi: live.filter(t => t[1] >= TRAIT_HI).sort(by(-1)).slice(0, TRAIT_MAX_HI).map(t => t[0]),
+            lo: live.filter(t => t[1] <= TRAIT_LO).sort(by(1)).slice(0, TRAIT_MAX_LO).map(t => t[0])
+        }};
+    }}
+    // full: the sheet, where each chip also names its category and score; the leader card shows
+    // the words alone, with its eight bars directly below them.
+    function traitsHtml(sc, full) {{
+        const t = traitsOf(sc);
+        const chip = (c, k) => '<span class="tr-chip tr-' + k + '" title="' + escapeHtml(CAT_LABELS[c] + ' ' + fmt(sc[c], 'score') +
+                '. A higher ' + CAT_LABELS[c] + ' score means ' + (CAT_MEANS[c] || '')) + '">' +
+            (full ? '<span class="tr-cat">' + CAT_LABELS[c] + ' ' + fmt(sc[c], 'score') + '</span>' : '') +
+            escapeHtml(TRAIT_WORDS[c][k === 'hi' ? 0 : 1]) + '</span>';
+        const row = (lab, list, k) => '<div class="tr-row tr-row-' + k + '"><span class="tr-lab">' + lab + '</span>' +
+            '<span class="tr-chips">' + list.map(c => chip(c, k)).join('') + '</span></div>';
+        if (!t.hi.length && !t.lo.length)
+            return '<div class="traits' + (full ? ' traits-full' : '') + '"><p class="tr-none">No category scores ' + TRAIT_HI + ' or more, or ' + TRAIT_LO + ' or less, against its sector.</p></div>';
+        return '<div class="traits' + (full ? ' traits-full' : '') + '">' +
+            (t.hi.length ? row('Stands out', t.hi, 'hi') : '<p class="tr-none">No category scores ' + TRAIT_HI + ' or more against its sector.</p>') +
+            (t.lo.length ? row('Trails', t.lo, 'lo') : '') +
+            (full ? '<p class="tr-foot">Against its sector: a category scoring ' + TRAIT_HI + ' or more stands out, ' + TRAIT_LO + ' or less trails. Select a score below for its workings.</p>' : '') +
+            '</div>';
+    }}
 {_js_workings()}
 {_js_ux()}
 {_js_context()}
@@ -11602,6 +11680,33 @@ def _css_investor() -> str:
         .guide-steps a { text-decoration: underline; text-underline-offset: 2px; }  /* in a sentence: not colour alone (axe link-in-text-block, 2026-10-27) */
         .guide-steps a:hover { text-decoration: underline; }
         .msr-note { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); }
+        /* What sets it apart (2026-11-05, dashboard.traits) */
+        .traits { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+        .tr-row { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+        .tr-lab { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: var(--text-muted); }
+        .tr-chips { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+        .tr-chip { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; padding: 3px 9px; border-radius: 999px;
+            font-size: 12px; line-height: 1.3; border: 1px solid var(--border-bright); color: var(--text-secondary); }
+        .tr-hi { color: var(--text-primary); border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+            background: color-mix(in srgb, var(--accent) 14%, transparent); }
+        .tr-cat { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .tr-hi .tr-cat { color: var(--text-secondary); }
+        .tr-none { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+        .top5-card > .traits { flex: 1 1 auto; }
+        .holding-traits { margin: 10px 0 0; }
+        .holding-traits .traits { flex-direction: row; flex-wrap: wrap; gap: 6px 18px; }
+        .holding-traits .tr-row { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 5px 8px; }  /* the bars below line up across the five cards */
+        .msr-traits { grid-column: 1 / -1; margin: 0 0 6px; padding: 14px 16px; border: 1px solid var(--border);
+            border-radius: var(--radius); background: var(--bg-card); }
+        .traits-full { gap: 10px; }
+        .traits-full .tr-row { flex-direction: row; align-items: baseline; gap: 12px; }
+        .traits-full .tr-lab { flex: none; width: 76px; font-size: 12px; }
+        .traits-full .tr-chip { font-size: 13px; padding: 4px 11px; }
+        .tr-foot { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+        @media (max-width: 560px) { .traits-full .tr-row { flex-direction: column; gap: 6px; } }
+        .t5-key-tr { display: inline-flex; align-items: center; gap: 8px; }
+        .t5-key-tr em { width: 18px; height: 10px; flex: none; border-radius: 999px;
+            border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
         .pal-empty strong { display: block; margin-bottom: 4px; color: var(--text-primary); font-weight: 600; }
         /* On a phone each row is a card with no "Trap flags" header above it, and a bare "Value" chip
            read as a style label. The word is drawn there only, so the row's text is unchanged */

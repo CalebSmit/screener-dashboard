@@ -1941,6 +1941,29 @@ CLAIMS: tuple[Claim, ...] = (
     ),
     # --- the score key and the sheet's score note (club readiness, 2026-10-19) ---------------
     Claim(
+        id="dashboard.traits",
+        surface=DRILLDOWN,
+        asserts=(
+            "Each leader card, each My Holdings card and the top of each stock's sheet name, in the score key's direction, the "
+            "categories that stand out (a published category score of 70 or more, highest first, at "
+            "most three) and trail (30 or less, lowest first, at most two), ties in the key's order, "
+            "an unscored category neither; the sheet prints each beside its own published score "
+            "(2026-11-05). Display only: it reads the scores and changes none."
+        ),
+        made_true_by="generate_dashboard:traits",
+        checked_by=(
+            "tests/test_stock_traits.py::test_a_hand_worked_set_of_scores",
+            "tests/test_stock_traits.py::test_the_words_run_the_score_keys_way",
+            "tests/test_stock_traits.py::test_every_category_has_words_for_both_ends_and_none_is_advice",
+            "tests/test_stock_traits.py::test_the_page_and_the_python_rule_agree_on_every_published_stock",
+            "tests/test_stock_traits.py::test_each_leader_card_prints_the_words_for_its_own_scores",
+            "tests/test_stock_traits.py::test_the_sheet_prints_each_named_category_with_its_published_score",
+            "tests/test_stock_traits.py::test_a_stock_with_nothing_at_either_end_says_so",
+            "tests/test_stock_traits.py::test_the_page_rule_on_the_hand_worked_scores",
+            "tests/test_stock_traits.py::test_a_holding_card_carries_the_words_for_its_own_scores",
+        ),
+    ),
+    Claim(
         id="dashboard.score_key",
         surface=DRILLDOWN,
         asserts=(

@@ -123,6 +123,13 @@ Presentation only (payload byte-identical). What a session must know before touc
   `.t5-runs`): one column per comparable run for the last 20 (`LEAD_RUNS`), height = published rank on a
   #1-#50 scale, filled in the accent where the rank was 25 or better, a dashed line at #25, and the
   caption "Top 25 in N of K runs since D". Claim `history.recent_ranks`.
+  **And, since 2026-11-05 (late), what sets it apart, in words** (`traitsHtml` / `traitsOf`, `.traits`):
+  "Stands out" names up to three categories scoring 70 or more (highest first), "Trails" up to two at
+  30 or less, each as a short phrase in the score key's direction (`TRAIT_WORDS`, e.g. "Stronger price
+  trend", "Larger company"); the key under the cards says so. The same strip opens every stock sheet's
+  Scores (`.msr-traits`), there with each category's name and published score on its chip, and every
+  My Holdings card under its eight scores (`.holding-traits`). Display
+  only; `generate_dashboard.traits` is the rule in Python. Claim `dashboard.traits`.
 - **My Holdings cards draw where each name has been** (2026-11-05, `holdingPathSvg`, `.holding-path`):
   the published rank in every comparable run on one fixed #1-to-universe scale for every card, a dashed
   line at #25, the end dot coloured only for a change past the material threshold (the movers' rule).
