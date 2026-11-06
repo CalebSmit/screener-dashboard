@@ -20102,7 +20102,8 @@ CST today**, after the close - reading it is the next session's first job). Evid
 **44 rows, newest 2026-10-05 (32 days ago, bound 40), 5 effective of the 8 needed**. Priority 0:
 `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **25 days**) -
 **advanced today**; also open: 0.10 30d, 0.14 23d.
-**Tests:** before 4046 passed / 2 skipped (green baseline, nothing inherited), after 4051 / 2.
+**Tests:** before 4046 passed / 2 skipped (green baseline, nothing inherited), after 4046 / 2 -
+the same count: today added assertions inside existing tests, not new test functions.
 **Owner queue / rotation:** no open proposal (`write_brief.open_proposals()` -> `[]`). No
 held-back branch. Today's 06:00 entry ended "the next Friday that is not a retrospective owes the
 lab one finished experiment" - today **is** that Friday (ISO week 45, odd), so this session
