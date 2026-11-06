@@ -133,6 +133,18 @@ SORTS = {
     "revisions": {"source": "osap", "signal": "REV6",
                   "columns": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"],
                   "vw": "PredictorAltPorts_DecilesVW.parquet", "ew": "PredictorAltPorts_DecilesEW.zip"},
+    # The same library's Mohanram G-score, signal "MS" (Mohanram 2005). A discrete signal, so the
+    # library gives one portfolio per value of the score rather than deciles - and its code pools
+    # the ends exactly as the paper does (scores 6-8 -> 6, scores 0-1 -> 1), so port "01" is the
+    # paper's low group and port "06" its high group, with four single-score groups between.
+    # The portfolios of a discrete signal are in the library's own cut ("Full Sets OP"), not in the
+    # decile set the two sorts above read, which holds the 179 continuous signals only.
+    # "ew" is the paper's weighting and the library's documented one for this signal; "vw" is the
+    # same portfolios forced to market-value weights (the release's VWforce set).
+    "mohanram": {"source": "osap", "signal": "MS",
+                 "columns": ["01", "02", "03", "04", "05", "06"],
+                 "ew": "PredictorPortsFull.parquet",
+                 "vw": "PredictorAltPorts_LiqScreen_VWforce.parquet"},
 }
 # Chen & Zimmermann (2022), "Open source cross-sectional asset pricing", Critical Finance Review
 # 11(2), 207-264. Portfolio returns are a free download (Google Drive, linked from the data page);
@@ -152,6 +164,11 @@ OSAP_DRIVE_IDS = {                    # the release's own files, as its Google D
 OSAP_HF_BASE = "https://huggingface.co/datasets/OpenSourceAP/CrossSection/resolve/2025.10/"
 OSAP_HF_FILES = {
     "PredictorAltPorts_DecilesVW.parquet": "Portfolios/Full%20Sets%20Alt/PredictorAltPorts_DecilesVW.parquet",
+    # The library's own cut for every signal, and the same portfolios forced to market-value
+    # weights: the only sets that carry a discrete signal's groups (experiment 19's "MS").
+    "PredictorPortsFull.parquet": "Portfolios/Full%20Sets%20OP/PredictorPortsFull.parquet",
+    "PredictorAltPorts_LiqScreen_VWforce.parquet":
+        "Portfolios/Full%20Sets%20Alt/PredictorAltPorts_LiqScreen_VWforce.parquet",
 }
 # Jensen, Kelly & Pedersen's global factor library (experiment 15). Licensed CC BY-NC 4.0 by its
 # authors (the licence is printed at the foot of jkpfactors.com/data and in DATA_LICENSE of
@@ -482,8 +499,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 #      loaded when shown or chosen, and lab_engine.js's compareReplication marks a figure whose series
 #      has not loaded as pending;
 # 29 = experiment 18, analyst revisions on Open Source Asset Pricing's REV6 deciles (a new sort part,
-#      sorts_revisions) and the Revisions group in the menu.
-ASSET_VERSION = 29
+#      sorts_revisions) and the Revisions group in the menu;
+# 30 = experiment 19, Mohanram's growth score on the same library's six MS groups (a new sort part,
+#      sorts_mohanram), the Growth group in the menu, and the scorecard's Growth row.
+ASSET_VERSION = 30
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -3078,6 +3097,173 @@ REVISIONS_OSAP = {
 EXPERIMENTS.append(REVISIONS_OSAP)
 
 
+# Experiment 19 (2026-11-06): the Growth category's first rerunnable result - and a correction to
+# this lab's own claim that the paper Growth cites could not be rerun on free data.
+MOHANRAM_OSAP = {
+    "id": "mohanram",
+    "group": "Growth",
+    "kind": "sort",
+    "topic": "Growth",
+    "title": "Among growth stocks, do the strongest fundamentals earn more?",
+    "tab": "Mohanram G-score",
+    "paper": {
+        "authors": "Partha S. Mohanram",
+        "year": 2005,
+        "title": ("Separating winners from losers among low book-to-market stocks using financial "
+                  "statement analysis"),
+        "journal": "Review of Accounting Studies 10(2-3), 133-170",
+        "doi": "10.1007/s11142-005-1526-4",
+    },
+    "claim": ("Among the fifth of companies with the lowest book-to-market ratios - growth stocks - a score "
+              "counting eight signs that the growth is well founded (profits and cash flow above the "
+              "industry's, cash flow above profits, steadier earnings and sales growth than the industry's, "
+              "and heavier spending on research, capital and advertising) separated later winners from "
+              "losers: companies scoring 6 to 8 returned 17.4% over the following year and those scoring 0 "
+              "or 1 returned -4.0%, a difference of 21.4% (t-statistic 10.71), firms formed 1979-1999."),
+    "reference": {
+        "source": ("Table 4, Panel A (one-year raw returns, each firm held for a year from four months after "
+                   "its fiscal year end), the nine G_SCORE rows pooled as the paper pools them - LOW (0,1), "
+                   "2, 3, 4, 5, HIGH (6,7,8) - and the HIGH-LOW row, 20,866 low book-to-market firm-years, "
+                   "read with pypdf from the accepted manuscript (April 2004 draft) in the University of "
+                   "Toronto's TSpace repository, PDF page 39. The paper's figures are means of equally "
+                   "weighted firm returns over a year; here they are compared with twelve times the average "
+                   "month of the authors' six score groups, in percent a year."),
+        "start": "197801", "end": "200112", "weighting": "ew", "scale": 12,
+        # Written 2026-11-06 BEFORE any Open Source Asset Pricing MS return had been read. What HAD
+        # been read: the paper itself; OSAP's signal documentation (SignalDoc.csv) and its
+        # construction code for MS (Signals/pyCode/Predictors/MS.py at tag v2.0.0); and, of the two
+        # portfolio files, only their metadata - which signals, which ports, which months, and the
+        # median number of companies a port holds (logs/ms_coverage.py, logs/get_op_ports.py,
+        # logs/get_vwforce.py print no return). The period is OSAP's documented sample for this
+        # paper (1978-2001); the paper itself forms portfolios on fiscal years 1979-1999.
+        # DISCLOSED, because it weakens how blind this pre-registration is: SignalDoc.csv's own
+        # summary columns for MS were read while reading the documentation - a long-short return of
+        # 1.575% a month and a t-statistic of 9.14 over the library's whole sample, not the window
+        # compared here. Twelve times that is 18.9% a year against the paper's 21.4%, so the spread
+        # was expected to land inside its tolerance before the comparison was run. The ends were
+        # not: nothing had been seen about either group's level.
+        # The comparison is NOT like for like, in four ways known beforehand, all on the page:
+        # (1) the groups DO match, unusually - OSAP's code pools scores 6-8 into 6 and 0-1 into 1,
+        #     exactly as the paper does, so its six ports are the paper's six groups rather than
+        #     deciles of a discrete score (which is what made experiment 17 miss);
+        # (2) the paper holds each firm for a year from four months after its fiscal year end; the
+        #     public portfolios fix the score at the month six months after the fiscal year end and
+        #     re-weight monthly, so a twelve-times monthly average is not a buy-and-hold year, and
+        #     compounding puts the paper's levels a point or two above a scaled average;
+        # (3) OSAP builds the score from quarterly accounts (four-quarter sums over average assets)
+        #     and measures the two volatility signals as 48-month standard deviations of quarterly
+        #     ROA and quarterly sales growth, where the paper uses annual accounts and the variance
+        #     of annual ROA and annual sales growth over three to five years; its comparisons with
+        #     the industry median are strict where the paper's are "at or above";
+        # (4) CRSP and Compustat have been revised in the 20 years since.
+        # Expected beforehand: the direction reproduces and rises group by group; the spread lands
+        # within tolerance (see the disclosure above); the two ends are the open question, and the
+        # scaled-average/buy-and-hold difference points to both landing above the paper's levels.
+        # Tolerance for every percent-a-year figure: 4.0, two standard errors of the paper's own
+        # spread (21.4 / 10.71 = 1.998), which is also about the sampling error of a 24-year
+        # average of monthly spreads. The paper gives no standard error for a single group, so each
+        # group takes the spread's. The t-statistic is deliberately NOT compared: the paper's 10.71
+        # is a two-sample t across 5,585 firm-years and anything computed here is a t across
+        # monthly spreads - a different quantity, not a wider version of the same one. It is
+        # reported beside the comparison instead.
+        # Plan rule 8, checked from the record before committing: a result of no effect - every
+        # group at the whole sample's 8.2% a year - matches 3 of these 7 figures (the 2, 3 and 4
+        # score groups, whose paper means are 5.1%, 7.8% and 11.6%) and misses both ends, the 5
+        # group and the spread.
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "mean1", "label": "Score 0-1 (weakest fundamentals): average a year (%)", "paper": -4.0, "tolerance": 4.0, "where": "Table 4, Panel A, LOW (0,1), mean one-year raw return -4.0% (PDF p. 39)"},
+            {"key": "mean2", "label": "Score 2: average a year (%)", "paper": 5.1, "tolerance": 4.0, "where": "Table 4, Panel A, G_SCORE 2, mean 5.1% (PDF p. 39)"},
+            {"key": "mean3", "label": "Score 3: average a year (%)", "paper": 7.8, "tolerance": 4.0, "where": "Table 4, Panel A, G_SCORE 3, mean 7.8% (PDF p. 39)"},
+            {"key": "mean4", "label": "Score 4: average a year (%)", "paper": 11.6, "tolerance": 4.0, "where": "Table 4, Panel A, G_SCORE 4, mean 11.6% (PDF p. 39)"},
+            {"key": "mean5", "label": "Score 5: average a year (%)", "paper": 16.5, "tolerance": 4.0, "where": "Table 4, Panel A, G_SCORE 5, mean 16.5% (PDF p. 39)"},
+            {"key": "mean6", "label": "Score 6-8 (strongest fundamentals): average a year (%)", "paper": 17.4, "tolerance": 4.0, "where": "Table 4, Panel A, HIGH (6,7,8), mean one-year raw return 17.4% (PDF p. 39)"},
+            {"key": "spread", "label": "Strongest minus weakest, a year (%)", "paper": 21.4, "tolerance": 4.0, "where": "Table 4, Panel A, HIGH - LOW, mean 21.4% (PDF p. 39; text PDF p. 18)"},
+        ],
+    },
+    "verdict_note": ("Four of the seven figures land within the tolerances written before the run. The "
+                     "strongest group matches the paper - 16.5% a year against 17.4% - and the weakest does "
+                     "not: +3.2% against the paper's -4.0%. So the gap is 13.3% a year (t-statistic 5.0) "
+                     "against the paper's 21.4%, and outside. The reason is the end that matters least to a "
+                     "screener that only buys: the public construction does not reproduce the paper's "
+                     "losers, and the paper's own size-adjusted panel shows that is where most of its gap "
+                     "comes from (+3.3% for the strong end against -17.9% for the weak). Scores 2, 3 and 4 "
+                     "land within; score 5 does not and sits below score 4, so the step-by-step rise the "
+                     "paper reports is not reproduced in the middle. After the paper the gap is 5.0% a year "
+                     "equally weighted (t 2.3) and 3.7% by market value (t 1.5); since 2007, 6.9% and 6.0% "
+                     "(t 2.7 and 2.2) - one of the few results in this lab still distinguishable from zero "
+                     "after its own sample. The strongest group was also the calmest."),
+    "sort": {
+        "data": "mohanram",
+        "groups": ["Score 0-1", "Score 2", "Score 3", "Score 4", "Score 5", "Score 6-8"],
+        "ends": ["weakest fundamentals", "strongest"],
+        "low": "group with the weakest fundamentals", "high": "group with the strongest",
+        "spread": "Strongest fundamentals minus weakest",
+        "accent": [5],
+        "key_accent": "The strongest fundamentals - the end the screener's Quality and Growth categories favour",
+        "key_rest": "The other five groups",
+        "chart": "by Mohanram's growth score, weakest first",
+        "presets": [["The paper · 1978–2001", "197801", "200112"],
+                    ["After the paper · 2002–2024", "200201", "LAST"],
+                    ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+        "weightings": [["ew", "Equally · paper"], ["vw", "By market value"]],
+    },
+    "conditions": [
+        ["Portfolios", "Each month, companies in the lowest fifth by book-to-market - growth stocks - are "
+                       "scored 0 to 8 on Mohanram's eight signals from their accounts, against the median of "
+                       "their two-digit industry among growth stocks, and held in one of six groups: scores "
+                       "0-1, each of 2, 3, 4 and 5, and scores 6-8. The paper pools its ends the same way, "
+                       "because very few companies reach 0 or 8."],
+        ["Data", "Chen and Zimmermann's Open Source Asset Pricing, " + OSAP_RELEASE + ": the published "
+                 "portfolio returns for their signal \"MS\", which the authors built from CRSP and "
+                 "Compustat. Cite: Chen, A. Y. and T. Zimmermann (2022), \"Open source cross-sectional "
+                 "asset pricing\", Critical Finance Review 11(2), 207-264."],
+        ["What this checks", "A rerun of the authors' published portfolio returns, not of the score: this "
+                             "lab cannot see a single company's accounts. It checks that a careful public "
+                             "construction of the score earns what the paper reports, and what it has earned "
+                             "since; it does not check the paper's own firm-by-firm numbers."],
+        ["Weighting", "Equally weighted, as the paper's averages of firm returns are, and as the library "
+                      "documents for this signal. The same groups weighted by market value - closer to the "
+                      "large companies the screener ranks - are one click away."],
+        ["Returns", "Raw monthly returns. The comparison sets twelve times the average month against the "
+                    "paper's average one-year return."],
+        ["Costs", "None. These are paper portfolios."],
+    ],
+    "open_details": [
+        "The paper holds each company for a year from four months after its fiscal year end; the public "
+        "portfolios fix the score at the month six months after the fiscal year end, carry it forward, and "
+        "re-weight every month. Twelve times an average month is not a compounded year.",
+        "The public construction builds the score from quarterly accounts - four-quarter sums over average "
+        "total assets - and measures the two steadiness signals as 48-month standard deviations of "
+        "quarterly return on assets and quarterly sales growth. The paper uses annual accounts and the "
+        "variance of annual figures over the past three to five years.",
+        "The paper's signals fire at or above the industry median; the public construction's fire strictly "
+        "above it.",
+        "The figures are read from the accepted manuscript (April 2004), not the published article, and a "
+        "journal's revision can change a table.",
+        "The paper reports size-adjusted returns in its Panel B, where the strongest group earns 3.3% and "
+        "the weakest -17.9%: most of the 21.4% gap is the weak end falling behind, not the strong end "
+        "pulling ahead. A screener that only buys can use the second half of that and not the first.",
+        "The paper finds the effect among companies of every size (its Table 5 partitions by size, analyst "
+        "following and exchange), but the public files carry no size cut for this signal. The market-value "
+        "weighting is the nearest view of the large companies the screener ranks.",
+    ],
+    "in_the_screener": (
+        "Mohanram (2005) is the study the methodology cites for scoring growth companies on more than their "
+        "growth rates, and until this experiment the lab's own category table said it could not be rerun on "
+        "free data. It still does not rerun the Growth category's measures: Growth is 13% of the composite "
+        "and scores revenue and earnings growth, forward earnings growth and operating leverage, where this "
+        "score asks whether a growth company's fundamentals support its valuation - profitability, steadier "
+        "earnings and sales, and spending on research, capital and advertising. Four of its eight signals "
+        "are things the screener scores in Quality or Investment; the two steadiness signals and the "
+        "research-intensity signal are not in the screener at all. What it puts behind Growth is the "
+        "evidence that sorting growth stocks on fundamental strength paid, which is the argument the "
+        "category rests on."),
+}
+
+EXPERIMENTS.append(MOHANRAM_OSAP)
+
+
 # One sentence per experiment for the lab's front page. Each is a statement about what the
 # published data shows, and tests/test_factor_lab.py checks every one against that data, so a
 # rebuild that makes one untrue fails the suite instead of leaving it on the page.
@@ -3138,6 +3324,10 @@ TAKEAWAYS = {
                   "those they had cut most by about 1.4% a month in the paper's years, equally weighted - every "
                   "figure within tolerance. Since 1993 the gap has held at about 0.9% a month; weighted by market "
                   "value it has been about half that, and not distinguishable from zero."),
+    "mohanram": ("Among growth stocks, the group with the strongest fundamentals beat the weakest by 13.3% a "
+                 "year in the paper's years, equally weighted - below the paper's 21.4% and outside its "
+                 "tolerance, because the public construction's weak end lost nothing. Unusually here, the "
+                 "gap survived the paper: about 5% a year since, and 6-7% since 2007."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -3166,13 +3356,14 @@ CATEGORY_MAP = [
             "book-to-market companies. Beneish (1999), the methodology's earnings-manipulation score, "
             "cannot be rerun here: it needs each company's accounts for decades, and the accruals sort "
             "covers one of its eight inputs."},
-    {"category": "Growth", "key": "growth", "experiments": ["asset-growth"],
-     "has": "Nothing on the category's own measures. The asset-growth sort is Investment's measure, but it is "
-            "the one Growth's revenue growth moves with, and the two categories score it in opposite "
-            "directions.",
-     "gap": "The methodology's case for Growth is an argument about forward-looking information, not a "
-            "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
-            "cites, needs company accounts, and the library has no sort on sales or earnings growth."},
+    {"category": "Growth", "key": "growth", "experiments": ["mohanram", "asset-growth"],
+     "has": "Growth stocks scored on whether their fundamentals support the valuation (Mohanram 2005), the "
+            "study cited for judging them on more than growth. Plus the asset-growth sort - Investment's "
+            "measure, but the one revenue growth moves with.",
+     "gap": "Nothing on the category's own measures - revenue, earnings and forward earnings growth, "
+            "operating leverage: no public sort covers them. Mohanram's score asks a related question of "
+            "the same companies - four of its eight signals the screener scores under Quality or "
+            "Investment, three it does not score at all."},
     {"category": "Momentum", "key": "momentum",
      "experiments": ["risk-managed-momentum", "momentum-crashes", "value-and-momentum", "big-and-small", "largest-fifth",
                      "replication-crisis"],
@@ -3250,7 +3441,8 @@ def screener_weights(path: Path = ROOT / "config.yaml") -> dict:
     return dict(yaml.safe_load(path.read_text(encoding="utf-8"))["factor_weights"])
 
 
-def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisions: dict) -> list[dict]:
+def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisions: dict,
+              mohanram: dict) -> list[dict]:
     """One row per category of the screener: its weight, what the lab has measured that bears
     on it among large companies, and what that leaves open."""
     whole, late, recent = (split_run(split, "196307", "209912"), split_run(split, "200001", "209912"),
@@ -3269,6 +3461,8 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisi
                           (("196807", "200306"), ("200307", "209912")))
     rev_paper, rev_ew, rev_vw = (sort_run(revisions, a, b, w)["spread"] for a, b, w in
                                  (("197701", "199212", "ew"), ("199301", "209912", "ew"), ("199301", "209912", "vw")))
+    ms_paper, ms_after = (sort_run(mohanram, a, b, "ew")["spread"] for a, b in
+                          (("197801", "200112"), ("200201", "209912")))
     measured = {
         "valuation": (f"Among big companies the value factor has averaged {big(whole, 'value')['mean']:.2f}% a month "
                       f"since 1963 (t-statistic {big(whole, 'value')['t']:.2f}), about half its "
@@ -3282,11 +3476,13 @@ def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict, revisi
                     f"it is profitable companies beating the market "
                     f"({whole['factors']['profitability']['long']['mean']:.2f}% a month); the rest is "
                     f"unprofitable ones lagging it."),
-        "growth": (f"Nothing on the category's own measures - there is no published return premium for growth "
-                   f"to rerun. The nearest sort is Investment's asset growth, which revenue growth moves with: "
-                   f"by market value, the slowest growers beat the fastest by {ag_paper['mean']:.2f}% a month in "
-                   f"its paper's years (t-statistic {ag_paper['t']:.2f}) and by {ag_after['mean']:+.2f}% since "
-                   f"(t-statistic {ag_after['t']:.2f})."),
+        "growth": (f"Nothing on its own measures; the study behind them reruns. The growth stocks with "
+                   f"the strongest fundamentals beat the weakest by "
+                   f"{ms_paper['mean'] * 12:.1f}% a year in Mohanram's sample (t-statistic {ms_paper['t']:.2f}) "
+                   f"and {ms_after['mean'] * 12:+.1f}% since (t-statistic {ms_after['t']:.2f}). Sorted on a "
+                   f"growth rate, by market value: "
+                   f"{ag_paper['mean']:.2f}% a month in its paper's years (t-statistic {ag_paper['t']:.2f}) and "
+                   f"{ag_after['mean']:+.2f}% since (t-statistic {ag_after['t']:.2f})."),
         "momentum": (f"Among big companies momentum has averaged {big(whole, 'momentum')['mean']:.2f}% a month since "
                      f"1963 (t-statistic {big(whole, 'momentum')['t']:.2f}), under half its "
                      f"{small(whole, 'momentum')['mean']:.2f}% among small ones - and "
@@ -3368,7 +3564,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
                          ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1),
-                         ("piotroski", 1), ("revisions", 1)):
+                         ("piotroski", 1), ("revisions", 1), ("mohanram", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -3723,7 +3919,8 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "is added. Non-commercial use only, under the licence."),
         },
         "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp, double),
-        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"], sorts["revisions"]),
+        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"], sorts["revisions"],
+                               sorts["mohanram"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},

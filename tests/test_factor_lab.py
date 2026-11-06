@@ -166,11 +166,13 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
     totals = {x["id"]: x["result"]["total"] for x in published["experiments"]}
-    assert [totals[x["id"]] for x in fl.EXPERIMENTS if x["id"] not in ("size-given-profitability", "piotroski", "revisions")] == [
+    assert [totals[x["id"]] for x in fl.EXPERIMENTS
+            if x["id"] not in ("size-given-profitability", "piotroski", "revisions", "mohanram")] == [
         14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24, 10]
     assert totals["size-given-profitability"] == 17
     assert totals["piotroski"] == 4
     assert totals["revisions"] == 3
+    assert totals["mohanram"] == 7                       # six score groups and the gap between its ends
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -841,6 +843,21 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert 0.85 <= ew["mean"] < 0.95 and ew["t"] > 2
     assert 0.4 < vw["mean"] / ew["mean"] < 0.65 and abs(vw["t"]) < 2
 
+    # 19. "beat the weakest by 13.3% a year in the paper's years, equally weighted - below the paper's
+    #     21.4% and outside its tolerance, because the public construction's weak end lost nothing.
+    #     Unusually here, the gap survived the paper: about 5% a year since, and 6-7% since 2007."
+    ms = published["sorts"]["mohanram"]
+    built = next(x for x in published["experiments"] if x["id"] == "mohanram")["result"]
+    rows = {r["key"]: r for r in built["rows"]}
+    assert (built["within"], built["total"]) == (4, 7) and not rows["spread"]["within"]
+    inside = fl.sort_run(ms, "197801", "200112", "ew")
+    assert 13.0 <= inside["spread"]["mean"] * 12 < 13.5 < 21.4 and inside["spread"]["t"] > 2
+    assert inside["groups"][0]["mean"] > 0 > -4.0                     # "the weak end lost nothing"
+    after = fl.sort_run(ms, "200201", "209912", "ew")["spread"]
+    assert 4.5 <= after["mean"] * 12 < 5.5 and after["t"] > 2         # "about 5% a year since"
+    late = {w: fl.sort_run(ms, "200701", "209912", w)["spread"] for w in ("ew", "vw")}
+    assert all(6.0 <= s["mean"] * 12 < 7.0 and s["t"] > 2 for s in late.values())
+
     # 15. "of the 119 ... 83% ... to 2020, and 76% inside the mega caps alone - close to the paper's 77%.
     #      Since 2014 only 9 of them clear that bar among mega caps, over a period too short to settle it."
     jk = published["jkp"]
@@ -970,7 +987,8 @@ def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(publish
     card = published["scorecard"]
     assert [(r["key"], r["weight"]) for r in card] == list(cfg["factor_weights"].items())
     assert card == json.loads(json.dumps(fl.scorecard(published["split"], published["size"], cfg["factor_weights"],
-                                                      published["sorts"]["asset-growth"], published["sorts"]["revisions"])))
+                                                      published["sorts"]["asset-growth"], published["sorts"]["revisions"],
+                                                      published["sorts"]["mohanram"])))
     assert all(r["measured"] and r["open"] for r in card) and set(fl.SCORECARD_OPEN) == set(cfg["factor_weights"])
     assert advice_terms_in(json.dumps(card)) == []
     sp = published["split"]
@@ -998,8 +1016,15 @@ def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(publish
     assert f"by {paper['mean']:.2f}% a month in the paper's years, equally weighted (t-statistic {paper['t']:.2f})" in m
     assert f"by {ew['mean']:.2f}% since 1993 (t-statistic {ew['t']:.2f})" in m
     assert f"the gap since 1993 is {vw['mean']:.2f}% (t-statistic {vw['t']:.2f})" in m
-    assert by_key["growth"]["experiments"] == ["asset-growth"]
-    assert by_key["growth"]["measured"].startswith("Nothing on the category's own measures")
+    # growth has nothing on its own measures, and points at the study behind them (experiment 19)
+    # and at the asset-growth sort; all four figures are rebuilt here
+    assert by_key["growth"]["experiments"] == ["mohanram", "asset-growth"]
+    assert by_key["growth"]["measured"].startswith("Nothing on its own measures")
+    ms = published["sorts"]["mohanram"]
+    ms_paper, ms_after = (fl.sort_run(ms, a, b, "ew")["spread"] for a, b in
+                          (("197801", "200112"), ("200201", "209912")))
+    assert f"by {ms_paper['mean'] * 12:.1f}% a year in Mohanram's sample (t-statistic {ms_paper['t']:.2f})" in by_key["growth"]["measured"]
+    assert f"{ms_after['mean'] * 12:+.1f}% since (t-statistic {ms_after['t']:.2f})" in by_key["growth"]["measured"]
     ag = published["sorts"]["asset-growth"]
     inside, after = (fl.sort_run(ag, a, b, "vw")["spread"] for a, b in (("196807", "200306"), ("200307", "209912")))
     assert f"{inside['mean']:.2f}% a month in its paper's years" in by_key["growth"]["measured"]
@@ -1741,7 +1766,11 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
         "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
         "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3, "asset-growth": 6,
         "replication-crisis": 0, "size-given-profitability": 0, "piotroski": 0,
-        "revisions": 0}
+        "revisions": 0,
+        # experiment 19: a null at the paper's own average across its six score groups matches the
+        # 2, 3 and 4 groups and misses both ends, the 5 group and the spread - the count its record
+        # worked out by hand before the comparison was run
+        "mohanram": 3}
     # every sort whose paper claims an effect: the null misses the spread between the ends
     for exp in fl.EXPERIMENTS:
         if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"

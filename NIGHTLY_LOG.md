@@ -20092,3 +20092,137 @@ the last run, and the 0.0% sign rule - each caught.
 - Read the 16:00 run's log and page: it is the first published run since the fall, and the first with
   the capped-row fix and today's three lines live. Delete the one-time task afterwards.
 
+## 2026-11-06 (13:00 session) - QUEUE: the Factor Lab, experiment 19 (Growth's first rerun)
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-06_060000.log`
+(completed). Data loop published? **no** - `logs/datarun-2026-11-06_020000.log` (stopped
+deliberately by the publish gate; HEALTH: PASS; both causes were fixed and shipped by this
+morning's 06:00 session, and the owner-run session scheduled a one-time catch-up run for **16:00
+CST today**, after the close - reading it is the next session's first job). Evidence base at `1m`:
+**44 rows, newest 2026-10-05 (32 days ago, bound 40), 5 effective of the 8 needed**. Priority 0:
+`allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **25 days**) -
+**advanced today**; also open: 0.10 30d, 0.14 23d.
+**Tests:** before 4046 passed / 2 skipped (green baseline, nothing inherited), after 4046 / 2 -
+the same count: today added assertions inside existing tests, not new test functions.
+**Owner queue / rotation:** no open proposal (`write_brief.open_proposals()` -> `[]`). No
+held-back branch. Today's 06:00 entry ended "the next Friday that is not a retrospective owes the
+lab one finished experiment" - today **is** that Friday (ISO week 45, odd), so this session
+carried on from its Next rather than starting a fresh owner item. `git stash list` holds one
+`auto-rescue 2026-10-28` entry: **it is empty** (`git stash show -p` prints nothing), so there is
+nothing in it to recover.
+
+### Did
+
+**Experiment 19: Mohanram (2005), the growth score, on Open Source Asset Pricing's `MS` groups.
+4 of 7 figures within tolerances committed before any return was read (`4a55141`).**
+`research/2026-11-06-lab-mohanram.md`.
+
+**Growth was the last of the eight categories with no rerunnable experiment - and the lab's own
+category table said why, falsely:** "Mohanram (2005), which it cites, needs company accounts, and
+the library has no sort on sales or earnings growth." The second half is still true; the first is
+not. Chen & Zimmermann publish portfolio returns for exactly this score, and their construction
+code **pools the score's ends the way the paper does** (6-8 to 6, 0-1 to 1), so their six
+portfolios *are* the paper's six groups - which is why this comparison could be row by row where
+experiment 17's, on deciles of a discrete score, could only be end to end. That is the lab
+auditing the screener's own citations in the direction nobody plans for: the claim about what
+*cannot* be checked was the thing that needed checking.
+
+**The result, and the part that matters to a screener that only buys.** The strong end reproduces
+(16.5% a year against the paper's 17.4%); the weak end does not (+3.2% against -4.0%), so the gap
+is 13.3% a year (t 4.96) against 21.4% and outside its tolerance. The whole shortfall is the
+losers the public construction does not find - and the paper's own size-adjusted panel says that
+is where its effect lives (+3.3% strong against -17.9% weak; its words, "more effective in
+identifying potential losers ... than winners"). So the half that reproduces is the half this
+screener could act on, and the half that does not is the half it never could. Score 5 sits below
+score 4, so the monotonic rise is not reproduced in the middle.
+
+**It survived its own sample, which almost nothing in this lab has:** 5.0% a year equally weighted
+since 2002 (t 2.3), 6.9% since 2007 (t 2.7), and 6.0% by market value since 2007 (t 2.2). Against
+experiment 14's asset-growth sort - a *growth rate* - at -0.07% a month (t -0.29) since its paper.
+
+**No weight proposed and none moved.** What this sharpens is the open **Growth** question, which
+CLAUDE.md already states is composition rather than weight: the category scores growth *rates*,
+and the evidence it cites is about sorting growth companies on fundamental strength. Note section
+6 lists the three things a Monday would have to answer first (where the steadiness signals belong,
+whether any of it holds inside the S&P 500, and what practitioners do - they disagree).
+
+**Two defects fixed in the test that bounds the overview's three tables on a phone.** They cost
+most of the session's second half and both are families CLAUDE.md already names:
+
+1. **It measured before the page had stopped changing** ("paint->red"). The three tables stand
+   **157 px taller once Inter has loaded**, and `document.fonts.status` reports "loaded" before
+   the faces this page uses have arrived - measured three runs in a row. The same commit passed
+   serially (5,966) and failed under xdist (6,123). It now polls until the height holds still.
+2. **The bound was absolute where the content is not.** After-the-paper is one row per experiment,
+   so a fixed 6,000 px ceiling can only be met by having **fewer experiments** - the opposite of
+   what the page is for, and it would have failed on experiment 20 whatever the prose said. It is
+   now **150 px a row**, against a measured 139 (6,123 over 44 rows) and the 198 a row the
+   2026-10-27 pass started from. The intent - the overview reads as rows a phone can scroll - is
+   unchanged, and the Growth cells were shortened first, before the bound was touched.
+
+**Looked at the page** at 1440 and 375 px (`logs/shot_exp19.py`): the GROWTH group in the index
+with "19 Mohanram G-score 4/7", the verdict box with its four-of-seven meter and the published
+null line ("A result of no effect at all would match 3 of these 7" - the build computes that
+count, and it agrees with the one the record worked out by hand before the run), all seven
+comparison rows and the six-bar chart at both widths, no page errors, no sideways scroll.
+
+**Moved together, as the lab's rules require:** `EXPERIMENTS`, `TAKEAWAYS`, `CATEGORY_MAP`, the
+methodology's "Rerun the research" paragraph (**regenerated** from `build_screener_overview`,
+never hand-edited - rule 10), `ASSET_VERSION` 30 with both `?v=` tags, the scorecard's Growth row,
+a Growth group in the menu, and `index.html` / `dashboard.html` rebuilt with
+`scripts/rebuild_page.py` (payload byte-identical).
+
+### Evidence / research
+
+- **Mohanram, P. S. (2005)**, "Separating winners from losers among low book-to-market stocks
+  using financial statement analysis", *Review of Accounting Studies* 10(2-3), 133-170,
+  doi:10.1007/s11142-005-1526-4. Read with `pypdf` from the **accepted manuscript** (University of
+  Toronto TSpace, April 2004 draft, 47 pages); Table 4 Panel A, PDF p. 39; the pooling rule and
+  the "torpedo stocks" caveat from pp. 18-19. **The version of record was not obtained** and that
+  is said on the page and in the note.
+- **Chen, A. Y. and T. Zimmermann (2022)**, "Open source cross-sectional asset pricing",
+  *Critical Finance Review* 11(2), 207-264 - the portfolio returns. Their `MS.py` and
+  `01_PortfolioFunction.R` at tag **v2.0.0** were read before the tolerances were written; the two
+  portfolio files only had their metadata looked at (signals, ports, months, how many companies a
+  port holds).
+- **Tolerance 4.0 percentage points a year**, two standard errors of the paper's own spread
+  (21.4 / 10.71 = 1.998). The t-statistic is **deliberately not compared**: the paper's 10.71 is a
+  two-sample t across 5,585 firm-years, and anything computed here is a t across monthly spreads.
+- **Rule 8, from the record before the run:** a null matches **3 of 7**. `fl.null_within` computes
+  3 independently.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or published score moved. What changed on the public
+  methodology page is one sentence of the "Rerun the research" paragraph, which now names
+  experiment 19 - regenerated from the generator, with `SCREENER_OVERVIEW.md` rewritten by it.
+
+### Tried and rejected
+
+- **Comparing the paper's t-statistic, as experiment 17 did.** Rejected before the run: a
+  cross-sectional two-sample t and a time-series t on monthly spreads are different quantities,
+  and pairing them with a tolerance buys a guaranteed miss that says nothing. Reported beside the
+  comparison instead (4.96).
+- **Trimming prose until the phone budget passed.** Tried first, and it is why the Growth cells
+  are as short as they are - but it does not work: the last two trims moved the settled height by
+  0 px, because the overage is a whole new table row, and the next experiment would meet the same
+  wall. The budget's *shape* was the defect, not the sentences.
+- **A peek that turned out not to be one.** The record discloses that `SignalDoc.csv`'s summary
+  for `MS` (1.575%/month, t 9.14) was read while reading the documentation, and says the spread
+  was therefore expected inside tolerance. It was not: 13.3% measured. Checking afterwards against
+  `PS` (1.958333 x 12 = 23.5%, Piotroski's published spread exactly) shows that column holds
+  **the paper's** figure as the library transcribed it, not a measured one - so the
+  pre-registration was blinder than its own disclosure claimed. The committed comment stands as
+  written; the correction is in the note (section 4), not in the pre-registration.
+
+### Next
+
+- **Read the 16:00 catch-up data run's log and page** (the owner-run session's standing Next): it
+  is the first published run since the 4.4% fall, and the first carrying the capped-row fix and
+  this morning's three presentation lines. Delete the one-time task afterwards.
+- **Experiment 19 needs its second reader** - a session that did not write it: the published
+  article's Table 4 Panel A if a copy can be had, every measured figure recomputed without
+  importing `factor_lab`, and the section-4 claim about `SignalDoc`'s `Return` column tested on
+  two or three more signals.
+- The lab's next experiment is **`EarningsSurprise`** (Foster, Olsen & Shevlin's SUE), which puts
+  a rerun behind the Revisions category's 25 surprise points.

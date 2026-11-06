@@ -817,12 +817,22 @@ read the brief's `context_eval` line. Three constraints survive it, beyond settl
 
 **0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
 `plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day** - the next one
-that is not a retrospective - one finished experiment a session. **Eighteen experiments as of
-2026-11-02, 148 of 220 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
-("0.13, the lab's first thirteen experiments" and "experiments 14-18"). Every new experiment needs
-a **second reader** before it counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2) -
-experiment 18 (analyst revisions) had its second reading on 2026-11-02
-(`research/2026-11-02-lab-revisions.md`, "Second reading").
+that is not a retrospective - one finished experiment a session. **Nineteen experiments as of
+2026-11-06, 152 of 227 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
+("0.13, the lab's first thirteen experiments" and "experiments 14-18", which now runs to 19).
+**All eight categories now have one** - Growth's arrived 2026-11-06 (Mohanram 2005 on Open Source
+Asset Pricing's `MS` groups) and corrected the lab's own claim that it could not be rerun on free
+data. Every new experiment needs a **second reader** before it counts as checked
+(`OWNER_FOCUS.md`, 2026-10-20 item 2) - experiment 18 (analyst revisions) had its second reading
+on 2026-11-02 (`research/2026-11-02-lab-revisions.md`, "Second reading"); **19 has not been
+second-read.**
+
+**The overview's phone budget is per row since 2026-11-06, and the measurement waits for the
+page to settle.** After-the-paper is one row per experiment, so the old fixed 6,000 px ceiling
+could only be met by having fewer experiments. It is now 150 px a row (measured: 6,123 over 44
+rows, 139); and the three tables stand 157 px taller once Inter has actually loaded, which
+`document.fonts.status` reports before it is true - reading early made the same commit pass
+serially and fail under xdist. `tests/test_lab_reading_and_access.py`.
 
 **The rules, which do not move:**
 

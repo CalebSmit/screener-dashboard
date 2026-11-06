@@ -953,9 +953,9 @@ larger disagreements examined are definitional - bank revenue, minority interest
 
 ## 0.13, experiments 14-18 (moved out of `CLAUDE.md` 2026-10-30)
 
-Five more after the thirteen below, each with its note and its entry in `plan/factor-lab.md`.
+Six more after the thirteen below, each with its note and its entry in `plan/factor-lab.md`.
 Seventeen in all as of 2026-10-20, **145 of 217 figures within tolerance**; eighteen as of
-2026-11-02, **148 of 220**.
+2026-11-02, **148 of 220**; nineteen as of 2026-11-06, **152 of 227**.
 
 | # | Paper | Result |
 |---|---|---|
@@ -964,6 +964,7 @@ Seventeen in all as of 2026-10-20, **145 of 217 figures within tolerance**; eigh
 | 16 | size inside each profitability fifth | 10 of 17; Size's pre-registered rule **not refuted**, which is what kept the weight at 5% |
 | 17 | Piotroski 2000 on Open Source Asset Pricing's published portfolios | 1 of 4, the miss explained by the decile cut of a ten-value score (`research/2026-10-20-lab-osap.md`) |
 | 18 | Chan, Jegadeesh & Lakonishok 1996, analyst revisions, on OSAP's `REV6` deciles | 3 of 3 within tolerances committed before any REV6 return was read (`4e1f6a7`); the Revisions category's first rerun. Since 1993 0.90% a month equally weighted (t 4.54), 0.50% by market value (t 1.79). Figures from the NBER working paper, the published table not obtained. **No weight proposed; second-read 2026-11-02** - every reference figure exact, every measured figure reproduced without `factor_lab`, the pre-registration verified; nothing on the page changed (`research/2026-11-02-lab-revisions.md`, "Second reading") |
+| 19 | Mohanram 2005, the growth score among low book-to-market companies, on OSAP's `MS` groups | 4 of 7 within tolerances committed before any MS return was read (`4a55141`); a null matches 3, as the record predicted. **The Growth category's first rerun**, and it corrects the lab's own table, which had said this paper could not be rerun on free data. A discrete signal is not in the decile sets, and the library pools scores 6-8 and 0-1 exactly as the paper does, so its six portfolios *are* the paper's six groups. Strong end 16.5% a year against 17.4%; weak end **+3.2% against -4.0%**, so the gap is 13.3% (t 4.96) against 21.4% - the whole shortfall is the losers the public construction does not find, which the paper itself says is where its effect lives and is the half a long-only screener cannot use. **It survived its sample**: 5.0% a year since 2002 (t 2.3), 6.0% by market value since 2007 (t 2.2). Figures from the accepted manuscript; the version of record not obtained. **No weight proposed**, and the open Growth question (composition, not weight) is sharpened in the note's section 6 (`research/2026-11-06-lab-mohanram.md`). **Not yet second-read** |
 
 **Every new experiment needs a second reader before it counts as checked** (`OWNER_FOCUS.md`,
 2026-10-20 item 2). The 2026-10-23 13:00 session did that for 16 and 17: all 21 reference figures
