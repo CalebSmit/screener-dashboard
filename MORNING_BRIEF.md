@@ -1,4 +1,4 @@
-# Morning Brief - Friday 06 November 2026, 13:53
+# Morning Brief - Friday 06 November 2026, 16:01
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -17,10 +17,8 @@ history is in `NIGHTLY_LOG.md`.
 | Ranking's lean on growth | +0.060 (OUTSIDE the review's +-0.05 band; 2026-10-13 read -0.009) |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (44 rows, but overlapping windows are not independent; 112 rows across all horizons), newest 1m run date 2026-10-05 (32 days ago, bound 40) |
 | Context signals | 19 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 357/358 within 0.5%; operating cash flow 329/346 within 0.5%; net income 326/357 within 0.5%; market value 446/485 within 5%; 4 scored a quarter behind a filing over 30 days old; filings cached 4 days ago |
-| Top 25, worth a look | EXPE (#2: equity 4.2% of assets); HST (#6: net income 1.46x after-tax operating income); DXCM (#7: operating cash flow 36% off the filing); PSX (#8: net income 1.28x after-tax operating income); TPR (#12: equity 5.2% of assets); CF (#15: net income 16% off the filing); WDC (#19: net income 2.13x after-tax operating income) |
-| Data run timing | **18 min** total; slowest `fetch.tickers` 628 s, `fetch.retry` 156 s, `context.sec_insider` 103 s; **51 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (27 days) |
+| Data run timing | **2 min** total; slowest `snapshot` 49 s, `context.track_record` 31 s, `dashboard` 5 s |
+| Code-session login | 2026-12-03 09:01 (26 days) |
 | Context coverage | options usable 476/499 (23 quotes-closed) - insider from SEC 499/499 - earnings variability 439 |
 
 ## Coming up
@@ -33,12 +31,12 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## Things that needed attention
 
-- The regenerated artifacts contradict claims this project asserts about them.
-- Refusing to publish. The live site keeps the last good version.
-- Run discarded: published-claims check failed - fix the generator, not the file.
+- Health check could not evaluate this run (exit 2).
+- Run discarded - could not verify it was healthy.
 
 ## What changed in the repo
 
+- `f450757 brief: code session 2026-11-06-midday`
 - `840e8a5 log: the suite count after is 4046, the same as the baseline`
 - `2e918cb nightly 2026-11-06 (13:00) - the Factor Lab, experiment 19`
 - `04237b4 lab: experiment 19 written up, and the overview's phone budget measured where it settles`
@@ -53,7 +51,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `50b535f Read the flag-key scroll where it ends, not 700 ms into it`
 - `9db2e4f Compare says what sets each stock apart, under its composite`
 - `ffe51b5 Say in words what sets each stock apart: leaders, sheets and holdings`
-- `7cf7b1f Pin the momentum rule's wiring to the one market fetch it now shares`
 
 ## The session's own account
 
