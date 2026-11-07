@@ -20478,6 +20478,48 @@ every ledger row. All 32 were rerun with `--jobs 4` in four foreground chunks (~
 `RESULTS.md` are the run count (616 -> 648) and the provenance line's code hash; `summary.json` and
 `research.html` are byte-identical, so the public research page says exactly what it said.
 
+### Also did - Factor Lab experiment 19, second-read (owner item 2026-10-20, sub-item 2)
+
+The universe plan says one stage a session, so the phase-1 stage stopped where it stopped. The
+remaining time went to the other open owner sub-item: **experiment 19 (`mohanram`) had not been
+second-read**, and `OWNER_FOCUS.md` item 2 says an experiment is not checked until someone who
+did not build it has read it. All three of the note's own open items were taken.
+**It stands - nothing needed correcting.** Record: `research/2026-11-06-lab-mohanram.md` section
+8; `research/measurements/2026-11-07-lab-mohanram-second-reading.py`, committed, which does not
+import `factor_lab`.
+
+- **The pre-registration is genuine.** `4a55141` (13:14) adds 173 lines to `factor_lab.py` and
+  nothing else - no `lab_data.js`, so no return had been written - with `verdict_note` empty;
+  the result is `3f3cb98` at 13:26. All seven paper figures and tolerances are byte-identical
+  across the two commits. **Twelve minutes is the shortest gap of any experiment** (16 and 17
+  had 24 and 90); the ordering is sound and the gap itself carries little weight. Said so.
+- **All seven reference figures exact**, re-read from PDF bytes - and in **two independent
+  manuscripts**, Columbia's as well as the TSpace one the record cites, whose Table 4 Panel A is
+  character-identical. The **version of record is still not obtained** (Springer's PDF link
+  returns HTML), so that caveat stands rather than closing. Panel B's two ends (+3.3%, -17.9%)
+  and the 5,585 firm-years behind the paper's two-sample t are exact too.
+- **Every measured figure reproduces to the second decimal** from the parquet files: +3.22,
+  +5.40, +6.48, +12.75, +7.58, +16.48, spread +13.26, t 4.96, 4 of 7 within; the four
+  later-window spreads and their t-statistics; and the strongest group the calmest (6.24 against
+  7.18-7.89). A cross-check the note did not have: the library's own `LS` port averages
+  1.1047%/month = 13.26% a year, so the lab's spread *is* the library's.
+- **The note's weakest claim is now its strongest.** Section 4 said `SignalDoc.csv`'s `Return`
+  column is the paper's figure rather than a measured one, resting on one check. Tested on seven
+  signals, **five differ from the library's own measured long-short** by more than 0.05%/month,
+  two by over 40% - and the values are recognisable as published headlines: `Mom12m` at
+  **1.31% a month** is Jegadeesh & Titman's own number.
+- **One slip found, and it is the paper's.** Mohanram's text on PDF p. 26 cites "the 21.2%
+  difference reported in Table 4" while discussing raw returns. 21.2% is **Panel B's** spread;
+  Panel A's is 21.4%, which is what the record uses. Close enough that a reader meeting only
+  p. 26 would carry away the wrong number.
+- **One observation, not a defect:** the library's six `MS` ports do not start together (port 06
+  only from 1974-09), so 163 months before 1976-07 have no high group. None is inside the
+  compared window - 1978-01 onward is complete for all six - but the page's
+  "Everything · FIRST-LAST" preset draws each group over its own span while the spread uses the
+  587 months both ends exist.
+
+No weight, metric, threshold, tolerance, verdict or published sentence changed.
+
 ### Evidence / research
 
 - Pre-registration 3 of `research/2026-11-02-universe-expansion-phase0.md`, decided and pinned
@@ -20522,5 +20564,8 @@ every ledger row. All 32 were rerun with `--jobs 4` in four foreground chunks (~
   `overview.glossary` all still say a thin sector falls back "across the universe". True today
   because the band *is* the universe; the session that publishes a second band must reword all
   three in the same commit.
-- Experiment 19 (Growth / Mohanram) **has not been second-read** - the next Friday or a session
-  with an hour spare.
+- The **next** lab experiment built needs its own second reader; 19 was read this session and
+  stands, so that sub-item is clear.
+- If a copy of Mohanram (2005) as published (Springer, *Review of Accounting Studies* 10(2-3))
+  ever becomes reachable, re-read Table 4 Panel A from it: two manuscripts agree, the version
+  of record is still unseen.
