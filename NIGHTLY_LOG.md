@@ -20285,9 +20285,21 @@ again (passed - which also confirms the 06:00 fixes clear the 02:00 run's data).
 - **None.** No weight, metric or score moved; the cache window sentence on the methodology page is
   still true (a hand run may reuse the day's cache; the data loop now never does).
 
+### Verified - the data loop rerun with the fix (18:34, `logs/datarun-2026-11-06_183427.log`)
+
+With the fix on `main`, the standing `Screener Data Run` task was run once by hand (the owner's
+after-close approval, which the 16:00 run had failed to deliver). It ran `run_screener.py --fresh`,
+fetched (run `84a6a8b4c9dd`, `00_raw_fetch.parquet` present), and **published at 18:59**:
+HEALTH: PASS - price dates **499/499 on the 2026-11-06 session**, rank continuity Spearman 0.979
+against the 11-05 page with 2 new names in the top 25, 1 of 503 unscored (VYLR); PUBLISHED CLAIMS:
+PASS (2252 passed); `signals.json` names the same `run_id` and `run_timestamp` as `kpis`. Evidence
+at `1m` is now 45 rows, 5 effective. The live page reads "PRICES AT THE NOV 6 CLOSE"; What Changed
+reads "S&P 500 −4.0%, rank correlation 0.979 (typically 0.996)" (11-04 to 11-06 closes); the live
+page's own `equationHtml` prints "capped to 100.0%" for all 11 stocks the scorer capped and for no
+other.
+
 ### Next
 
-- **Read the next data run's log** for the line `--fresh: not reusing ...` (only printed when a
-  same-day cache exists) or an ordinary fetch, and HEALTH: PASS.
+- Monday's 02:00 run is ordinary (no same-day cache exists then); nothing to watch for.
 - The same-day cache is still unsafe after a *code* change: its key is the config hash, so a hand
   rerun after a scoring fix reuses scores from the old code. Hand runs only; not urgent.
