@@ -467,8 +467,8 @@ class TestDataLoopGitHygiene:
 
     def test_the_pull_and_its_check_come_before_the_screener_runs(self):
         code = _code(DATA_RUN)
-        assert code.index("'pull', '--ff-only'") < code.index("$args = @('run_screener.py')")
-        assert code.index("'origin/main..HEAD'") < code.index("$args = @('run_screener.py')")
+        assert code.index("'pull', '--ff-only'") < code.index("$args = @('run_screener.py'")
+        assert code.index("'origin/main..HEAD'") < code.index("$args = @('run_screener.py'")
 
     def test_a_main_ahead_of_origin_stops_the_run(self):
         code = _code(DATA_RUN)

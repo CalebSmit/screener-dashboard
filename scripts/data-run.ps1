@@ -271,7 +271,11 @@ try {
     }
 
     # --- Run the screener ---------------------------------------------------
-    $args = @('run_screener.py')
+    # --fresh (2026-11-06): never reuse the day's scored cache. A run that loads it fetched nothing
+    # and carries none of the internal columns the page rebuilds its scores from, so it can never
+    # publish - and its prices are the earlier run's. That is how the owner-approved 16:00 catch-up
+    # run that day was discarded. tests/test_same_day_rerun.py.
+    $args = @('run_screener.py', '--fresh')
     if ($Tickers) { $args += @('--tickers', $Tickers) }
     if ($Refresh) { $args += '--refresh' }
     Write-Log "Running: python $($args -join ' ')  (expect this to take a while)"

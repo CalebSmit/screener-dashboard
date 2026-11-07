@@ -20226,3 +20226,68 @@ a Growth group in the menu, and `index.html` / `dashboard.html` rebuilt with
   two or three more signals.
 - The lab's next experiment is **`EarningsSurprise`** (Foster, Olsen & Shevlin's SUE), which puts
   a rerun behind the Revisions category's 25 surprise points.
+
+## 2026-11-06 (owner-run, evening) - the catch-up run could not publish, by construction. Fixed.
+
+**Health (rule 8, all five):** last code session ran? yes - the 13:00 session shipped to main.
+Data loop published? **no, twice** - 02:00 stopped by the publish gate (fixed by the 06:00
+session), and the 16:00 catch-up run discarded as below; the live page is still the 2026-11-05
+02:00 run. Evidence base at `1m`: **44 rows, newest 2026-10-05 (32 days ago, bound 40), 5
+effective of the 8 needed** (unchanged since 13:00: neither run today recorded a snapshot that
+survived). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor
+Lab** (age **25 days**).
+**Tests:** before 4046 passed / 2 skipped (13:00's count); after **4057 passed / 2 skipped** (+11:
+`tests/test_same_day_rerun.py`, and one fixture line in `tests/test_rehearse_publish.py`).
+
+### What happened at 16:00
+
+The owner approved a one-time after-close data run so the site would not sit on Wednesday's
+close all weekend. It ran at 16:00:01 and took 90 seconds, because it never fetched: it loaded the
+02:00 run's scored cache (`[CACHE HIT] Loading scores from factor_scores_3ed2aee7f770_20261106`).
+Dashboard generation then refused it - `CalculationMismatch: 286 of 499 stocks do not reproduce
+their published scores` (ALL valuation 63.3 published, 93.3 recomputed, "profile generic") - and
+the health check discarded the run for having no payload of its own. **The gate was right.**
+
+**Cause.** `factor_engine.write_scores_parquet` drops every column whose name begins with `_`
+(since Phase 0, 2026-02-17; the overview even says so). Among them is `_is_bank_like`, which the
+generator's weight resolution reads, so every insurer was checked against the generic weights.
+The scores themselves were byte-identical to 02:00's. And because the run fetched nothing it had
+no `00_raw_fetch.parquet` either - which `check_run_health` requires - and its prices were the
+02:00 fetch's, the previous session's close. **So a second full run on the same day could never
+publish, and could never bring after-close prices even if it had.** Proposing the catch-up run
+without checking this was this session's mistake.
+
+**A second-order fault, the one that mattered for the weekend.** The discarded run was now the
+newest folder in `runs/`, and `scripts/rehearse_publish.py` (gate 5) rehearses from the newest
+full run - so every rehearsal failed with the same `CalculationMismatch`, whatever the branch.
+Every weekend session's work would have been held off `main`. Confirmed by running the rehearsal
+(failed), moving the folder to `logs/discarded-run-bce9b3ce6629` (not deleted), and running it
+again (passed - which also confirms the 06:00 fixes clear the 02:00 run's data).
+
+### Did
+
+- **`run_screener.py --fresh`**: fetch and score afresh even when today's scored cache exists,
+  keeping every cache file (`--refresh` would delete all `factor_scores_*.parquet`, which
+  `backtest.py` reads as its rolling history). The decision is one function,
+  `reuse_score_cache()`.
+- **`scripts/data-run.ps1` always passes `--fresh`.** The publishing run never reuses the cache;
+  hand runs and trials still may.
+- **`rehearse_publish.newest_full_run` skips a run without `00_raw_fetch.parquet`** - a run that
+  fetched nothing is not what the next data run will publish.
+- `tests/test_same_day_rerun.py`, 11 tests; each of the three fixes reverted in turn fails one.
+  `tests/test_input_gates.py` anchored on the literal `@('run_screener.py')`; it now anchors on
+  the call's prefix, asserting the same ordering.
+- Deleted the one-time task `Screener Data Run catch-up 2026-11-06`; `schtasks /query` confirms it
+  is gone and the five standing tasks are untouched.
+
+### Methodology changed
+
+- **None.** No weight, metric or score moved; the cache window sentence on the methodology page is
+  still true (a hand run may reuse the day's cache; the data loop now never does).
+
+### Next
+
+- **Read the next data run's log** for the line `--fresh: not reusing ...` (only printed when a
+  same-day cache exists) or an ordinary fetch, and HEALTH: PASS.
+- The same-day cache is still unsafe after a *code* change: its key is the config hash, so a hand
+  rerun after a scoring fix reuses scores from the old code. Hand runs only; not urgent.

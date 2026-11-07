@@ -50,6 +50,7 @@ def test_a_ticker_trial_is_never_mistaken_for_the_universe(tmp_path):
         d.mkdir()
         pd.DataFrame({"Ticker": [f"T{i}" for i in range(rows)]}).to_parquet(d / "05_final_scored.parquet")
         (d / "effective_weights.json").write_text("{}")
+        (d / "00_raw_fetch.parquet").write_bytes(b"")
     assert rp.newest_full_run(tmp_path).name == "full_old"
     with pytest.raises(SystemExit):
         rp.newest_full_run(tmp_path / "nothing-here")

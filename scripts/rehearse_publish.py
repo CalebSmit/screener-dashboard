@@ -73,12 +73,22 @@ def changed_since(base: str) -> list[str]:
 
 
 def newest_full_run(runs: Path) -> Path:
-    """The most recent run that scored the whole universe (a `--tickers` trial does not count)."""
+    """The most recent run that fetched and scored the whole universe.
+
+    Two kinds of run do not count. A ``--tickers`` trial scores too few stocks. And a run that
+    reused the day's scored cache (``[CACHE HIT]``) fetched nothing: it has no
+    ``00_raw_fetch.parquet``, and the cache keeps none of the internal columns the page rebuilds
+    its scores from, so no data run could ever publish what it holds. On 2026-11-06 the 16:00
+    catch-up run was such a run; it was discarded correctly, but as the newest folder it made this
+    rehearsal fail with ``CalculationMismatch`` for any branch until it was moved aside - it would
+    have kept every weekend session's work off ``main`` (``tests/test_same_day_rerun.py``)."""
     import pandas as pd
     full = []
     for d in runs.iterdir() if runs.exists() else []:
         scored = d / "05_final_scored.parquet"
-        if scored.exists() and (d / "effective_weights.json").exists() and len(pd.read_parquet(scored)) >= MIN_UNIVERSE:
+        if (scored.exists() and (d / "effective_weights.json").exists()
+                and (d / "00_raw_fetch.parquet").exists()
+                and len(pd.read_parquet(scored)) >= MIN_UNIVERSE):
             full.append(d)
     if not full:
         raise SystemExit("no full run under runs/ to regenerate from; run the screener once first")

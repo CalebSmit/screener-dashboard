@@ -109,6 +109,10 @@ def parse_args():
                         "exactly like analysis. Pipeline testing only.")
     p.add_argument("--refresh", action="store_true",
                    help="Force-clear all cache and re-fetch everything")
+    p.add_argument("--fresh", action="store_true",
+                   help="Fetch and score afresh even when today's scored cache exists, "
+                        "and keep every cache file. The data loop always passes it: a "
+                        "run that reuses the cache cannot be published")
     p.add_argument("--tickers", type=str, default="",
                    help="Comma-separated tickers for quick testing "
                         "(e.g. AAPL,MSFT,GOOGL)")
@@ -1554,6 +1558,28 @@ def should_write_score_cache(args) -> bool:
     return not getattr(args, "tickers", None)
 
 
+def reuse_score_cache(cached_dt, fresh_days: int, args, now=None) -> bool:
+    """May this run load today's scored cache instead of fetching? (2026-11-06)
+
+    Only a full run that did not ask for ``--fresh`` (or ``--refresh``), and only within the
+    cache's window (:func:`factor_engine.cache_is_usable`).
+
+    ``--fresh`` exists because a run that reuses the cache **cannot be published**, and the data
+    loop is the run that publishes. The cache keeps no column whose name begins with an
+    underscore - among them ``_is_bank_like``, which says which stocks are scored on the bank
+    weights - and the run fetched nothing, so it has no ``00_raw_fetch.parquet``. On 2026-11-06
+    the owner-approved 16:00 catch-up run loaded the 02:00 run's cache: dashboard generation
+    refused it (``CalculationMismatch``: 286 of 499 stocks, insurers checked against the generic
+    weights, ALL's valuation 63.3 published against 93.3 recomputed), and it would have carried
+    the 02:00 run's prices - the previous session's close - even had it published. The cache
+    stays for hand runs and trials; it is never the publishing path.
+    ``tests/test_same_day_rerun.py``."""
+    from factor_engine import cache_is_usable
+    if getattr(args, "refresh", False) or getattr(args, "fresh", False) or getattr(args, "tickers", None):
+        return False
+    return cache_is_usable(cached_dt, fresh_days, now=now)
+
+
 def rate_limit_detail(tickers: list, raw: list[dict]) -> dict:
     """Where in the fetch Yahoo's rate limit hit, for ``meta.json`` (2026-11-04). Provenance only.
 
@@ -1681,10 +1707,13 @@ def run_factor_engine(cfg, args, ctx=None):
         stats["cache_status"] = "COLD"
     elif cached_path is not None:
         age_days = cache_age_days(cached_dt)
-        if cache_is_usable(cached_dt, fresh_days) and not args.tickers:
+        if reuse_score_cache(cached_dt, fresh_days, args):
             use_cache = True
             stats["cache_status"] = "HOT"
             stats["tickers_cache"] = universe_size
+        elif getattr(args, "fresh", False):
+            print(f"  --fresh: not reusing {cached_path.name} - fetching and scoring afresh")
+            stats["cache_status"] = "COLD"
         else:
             print(
                 f"  Cache {cached_path.name} is {age_days} day(s) old "
