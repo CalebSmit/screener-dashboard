@@ -14,6 +14,10 @@ had lost the cascade - found by sweeping every media-query rule against what the
 a **printed sheet** opens the workings' category tables (`preparePrint`) and leaves the peer search,
 remove buttons, Calculation toggles and teaser off paper; **printed rankings** put the five leaders in
 one row (`tests/test_page_shell.py` now prints at 1010 px, a landscape page's width).
+Last batch: summaries name inputs from the stock's own weight table (`stock_metric_weights`);
+`history.last` (a departed name's last rank and date) and `history.renamed` (old symbol -> the symbol
+its SEC registrant trades under now) feed search (`notInRunText`), links (`stockFromHash`,
+`renamedTo`) and the holdings card; `#sec-...` in the URL opens that section (`openSectionFromHash`).
 
 **2026-10-29 (owner-run):** context panels' percents keep their sign when they round to zero
 (`cPlain`; `tests/test_every_panel_reads_clean.py` opens all ~500 sheets and fails on any

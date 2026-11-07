@@ -20382,6 +20382,14 @@ NaN/undefined, and any percentage of 500% or more.
     sentences change, nothing else. Claims `summary.best_inputs`/`worst_input` updated.
 11. **Links**: `#stock=GOOG`/`FOX`/`NWS` open the company's ranked line and say why; a link to an
     unscored member gives its reason; `#sec-...` opens the section, as the header's links do.
+12. **Renamed and departed names** - MMC, BK, EQR, SATS were told they had "left the S&P 500" while
+    ranked as MRSH, BNY, VMRK, ECHO. `history.renamed` (by SEC registrant, the track record's own
+    `renamed_symbols`) routes links, search and saved holdings to the new line; `history.last`
+    gives a departed name's last rank ("It last ranked #55 on Jul 29"), which the holdings card's
+    code had always tried to print and never could. Claim `dashboard.departed_names`. Payload
+    diffed: those two keys only (~1 KB).
+13. **The five-year panel's method note** now names the share-unit bound, tied to the constant.
+    Both methodology-adjacent changes are in `METHODOLOGY_CHANGELOG.md` (2026-11-06, owner-run, night).
 
 ### Looked at and left, with the reason
 
