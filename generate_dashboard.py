@@ -5301,7 +5301,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (!rows) return '';
             const dr = entry.dr;
             const drTxt = dr === 0 ? 'unchanged'
-                : `${{dr > 0 ? '▲' : '▼'}}${{Math.abs(dr)}} ranks`;
+                : `${{dr > 0 ? '▲' : '▼'}}${{Math.abs(dr)}} ${{Math.abs(dr) === 1 ? 'rank' : 'ranks'}}`;
             return `<div class="modal-hist-block">
                 <div class="modal-hist-head">${{label}} <span class="muted">${{escapeHtml(prettyDate(date))}}</span>
                     <span class="${{dr > 0 ? 'pos' : (dr < 0 ? 'neg' : 'muted')}}">${{drTxt}}</span></div>
