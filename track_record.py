@@ -381,6 +381,21 @@ def max_drawdown(series: pd.Series) -> float | None:
     return float((series / peak - 1).min())
 
 
+TITLE_MAX = 120
+
+
+def changelog_title(raw: str, limit: int = TITLE_MAX) -> str:
+    """A changelog heading as a reader sees it (2026-11-06, when the titles left hover text for a
+    list on the page): no session tag ("(13:00 session) - "), no markdown backticks, and a long
+    title cut at a word with an ellipsis rather than mid-word ("undocumente", "the buil")."""
+    t = re.sub(r"^\([^)]*\)\s*[-—:]\s*", "", (raw or "").strip())
+    t = t.replace("`", "").strip()
+    if len(t) <= limit:
+        return t
+    cut = t[:limit].rsplit(" ", 1)[0].rstrip(" ,;:-—")
+    return cut + "…"
+
+
 def methodology_dates(path: Path | None = None) -> list[dict]:
     """Dated headings in METHODOLOGY_CHANGELOG.md - the moments the ranking's rules changed."""
     path = path or (ROOT / "METHODOLOGY_CHANGELOG.md")
@@ -389,7 +404,7 @@ def methodology_dates(path: Path | None = None) -> list[dict]:
         for line in path.read_text(encoding="utf-8").splitlines():
             m = re.match(r"^##\s+(\d{4}-\d{2}-\d{2})\s*[-—:]?\s*(.*)", line)
             if m:
-                out.append({"date": m.group(1), "title": m.group(2).strip()[:120]})
+                out.append({"date": m.group(1), "title": changelog_title(m.group(2))})
     except OSError:
         pass
     seen, uniq = set(), []

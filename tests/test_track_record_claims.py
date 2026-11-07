@@ -299,7 +299,9 @@ def test_the_periods_are_not_called_monthly_and_their_count_is_set_against_chanc
 
 def test_the_changelog_ticks_are_called_entries_not_changes():
     js = gd._js_context()
-    assert "Methodology change (hover)" not in js and "Methodology changelog entry (hover)" in js
+    assert "Methodology change (hover)" not in js and "Methodology changelog entry, listed under How the record is measured" in js
+    # and the list is there to be read where nothing hovers (2026-11-06)
+    assert "changelog entries</summary>" in js and "(hover)" not in js
     assert "not every entry changed how stocks are scored" in _render_js()
 
 
@@ -380,3 +382,19 @@ def test_the_panel_renders_every_corrected_sentence_from_a_record():
     assert "1 of the" in text and "top-fifth baskets" in text
     assert "pp" in text and "No return here is annualised" in text
     assert not stock_summary.advice_terms_in(text)
+
+
+@pytest.mark.parametrize("raw, want", [
+    ("(13:00 session) - Proposal ACCEPTED: one reading", "Proposal ACCEPTED: one reading"),
+    ("(owner-run) - `operating_leverage` leaves the Quality score", "operating_leverage leaves the Quality score"),
+    ("(evening) - Context: the move", "Context: the move"),
+    ("Plain title", "Plain title"),
+])
+def test_a_changelog_title_reads_as_a_title(raw, want):
+    """The titles left hover text for a list on the page (2026-11-06): no session tag, no backticks."""
+    assert tr.changelog_title(raw) == want
+
+
+def test_a_long_changelog_title_is_cut_at_a_word():
+    t = tr.changelog_title("word " * 40, limit=50)
+    assert t.endswith("…") and len(t) <= 51 and not t[:-1].endswith(" ") and t[:-1].split()[-1] == "word"

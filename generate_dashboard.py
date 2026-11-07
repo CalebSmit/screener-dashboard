@@ -11206,7 +11206,7 @@ def _js_context() -> str:
         ends.forEach(e => { labels += '<text x="' + (W - R + 8) + '" y="' + (e.y + 4).toFixed(1) + '" class="tr-end ' + e.cls + '">' + cPct((e.v - 100) / 100, 1) + '</text>'; });
         return '<svg class="tr-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Growth of 100 since ' + escapeHtml(T.start) + '">' + g + marks + lines + labels +
             '<text x="' + L + '" y="' + (Hh - 6) + '" class="tr-tick">' + escapeHtml(cDate(S.d[0])) + '</text><text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="tr-tick" text-anchor="end">' + escapeHtml(cDate(S.d[n])) + '</text></svg>' +
-            '<div class="tr-legend">' + keys.map(k => '<span><i class="tr-k ' + k[2] + '"></i>' + escapeHtml(k[1]) + '</span>').join('') + '<span><i class="tr-k tr-k-mark"></i>Methodology changelog entry (hover)</span></div>';
+            '<div class="tr-legend">' + keys.map(k => '<span><i class="tr-k ' + k[2] + '"></i>' + escapeHtml(k[1]) + '</span>').join('') + '<span><i class="tr-k tr-k-mark"></i>Methodology changelog entry, listed under How the record is measured</span></div>';
     }
     // Each holding period's lead or lag against RSP: the record the "Periods ahead of RSP" figure counts,
     // drawn one bar per period. Green where the top 25 beat RSP, by track_record's own rule (top > RSP),
@@ -11306,7 +11306,14 @@ def _js_context() -> str:
             (TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' +
                   (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. '
                 : 'No trading costs or taxes are deducted. ') +
-            'The record shows what the ranking did, not what a reader should do.</div></details>';
+            'The record shows what the ranking did, not what a reader should do.</div>' +
+            // The chart's changelog ticks carry their titles on hover only - 2px lines, 37 of them in 315px
+            // on a phone, where nothing hovers. The same entries, readable anywhere (2026-11-06).
+            ((T.methodology_changes || []).length
+                ? '<details class="why-panel tr-marks"><summary>The ' + T.methodology_changes.length + ' changelog entries</summary><ul class="tr-mark-list">' +
+                  T.methodology_changes.slice().reverse().map(m => '<li><span class="tr-mark-d">' + escapeHtml(cDate(m.date)) + '</span>' + escapeHtml(m.title) + '</li>').join('') +
+                  '</ul></details>' : '') +
+            '</details>';
         host.innerHTML = h;
     }
 
@@ -12161,6 +12168,10 @@ def _css_context() -> str:
         .tr-end { font: 600 12px var(--font-body); font-variant-numeric: tabular-nums; }
         .tr-end.tr-top, .tr-end.tr-q1 { fill: var(--accent-text); } .tr-end.tr-rsp { fill: var(--text-secondary); } .tr-end.tr-spy, .tr-end.tr-q5 { fill: var(--text-muted); }
         .tr-mark { stroke: var(--amber); stroke-width: 2; cursor: help; }
+        .tr-marks { margin-top: 10px; }
+        .tr-mark-list { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13px; color: var(--text-secondary); }
+        .tr-mark-list li { display: grid; grid-template-columns: 4.5em 1fr; gap: 10px; padding: 5px 0; border-top: 1px solid var(--border); }
+        .tr-mark-d { color: var(--text-muted); font-variant-numeric: tabular-nums; }
         .tr-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-top: 6px; }
         .tr-k { display: inline-block; width: 16px; height: 2px; vertical-align: middle; margin-right: 6px; }
         .tr-k.tr-top, .tr-k.tr-q1 { background: var(--accent); } .tr-k.tr-rsp { background: var(--text-secondary); } .tr-k.tr-spy, .tr-k.tr-q5 { background: var(--text-muted); }

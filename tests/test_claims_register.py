@@ -1356,6 +1356,8 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:context.track_luck',
     'The methodology changelog has entries on ${(T.methodology_changes || []).length} dates inside this window (the ticks under the chart); not every entry changed how stocks are scored.':
         'claim:context.track_record',
+    'The ${T.methodology_changes.length} changelog entries':
+        'claim:context.track_record',
     "${((T.days || 0) < 365 ? 'No return here is annualised, because none covers a full year. ' : '')}${(TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' + (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. ' : 'No trading costs or taxes are deducted. ')}The record shows what the ranking did, not what a reader should do.":
         'claim:context.track_turnover',
     "Measured day by day against RSP over ${X.days} trading days, the top 25&rsquo;s lead is ${Number(X.t).toFixed(1)} standard errors from zero; two is the usual minimum for telling skill from luck${(X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '')}.":
