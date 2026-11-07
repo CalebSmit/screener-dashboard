@@ -10236,8 +10236,12 @@ def _css_ux() -> str:
             #modal-categories .wk-table tr.metric-row .wk-points { grid-area: pts; font-size: 15px; }
             #modal-categories .wk-table tr.metric-row .wk-more-c { grid-area: more; }
             #modal-categories .wk-table .metric-pct-bar { display: block; }
-            .wk-more { padding: 0; width: 30px; height: 30px; justify-content: center; }
-            .wk-more-t { display: none; }
+            /* A chevron alone on a phone (its aria-label names the metric). Scoped as `.wk-info.wk-more`:
+               the bare selectors lost to `.wk-info.wk-more {width:auto}` and `.wk-info span
+               {display:inline-block}`, so every row carried an 82px "Calculation" pill and the metric
+               names wrapped (2026-11-06). */
+            .wk-info.wk-more { padding: 0; width: 30px; height: 30px; justify-content: center; }
+            .wk-info.wk-more .wk-more-t { display: none; }
             .wk-hint { width: 100%; margin: 0 0 4px; }
             #modal-categories .wk-table tr.wk-detail { display: block; }
             #modal-categories .wk-table tr.wk-detail td { display: block; padding: 0 4px 12px; }

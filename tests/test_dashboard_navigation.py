@@ -310,6 +310,27 @@ def test_the_tray_shows_chips_or_a_count_never_both(browser, w, chips):
 
 
 @needs_browser
+@pytest.mark.parametrize("w, label", [(375, False), (1280, True)])
+def test_the_calculation_button_is_a_chevron_on_a_phone(browser, w, label):
+    """Below 760px each metric row's toggle is the chevron alone; its aria-label names the metric.
+    2026-11-06: two more specific rules beat the phone ones, so every row carried an 82px
+    "Calculation" pill and the metric names wrapped."""
+    ctx, page, _ = _open(browser, w, 812)
+    try:
+        page.evaluate(f"openStockDetail({EX!r}); toggleAllWorkings(true)")
+        page.wait_for_selector("#modal-categories .wk-more", state="visible")
+        got = page.evaluate("""() => [...document.querySelectorAll('#modal-categories .wk-more')].map(b => ({
+            label: getComputedStyle(b.querySelector('.wk-more-t')).display !== 'none',
+            w: b.getBoundingClientRect().width, name: b.getAttribute('aria-label') || '' }))""")
+        assert got and all(g["label"] is label for g in got), got[:3]
+        assert all(g["name"].startswith("Show how ") for g in got), got[:3]
+        if not label:
+            assert max(g["w"] for g in got) <= 48, got[:3]
+    finally:
+        ctx.close()
+
+
+@needs_browser
 def test_the_guide_dismisses_and_stays_dismissed(browser):
     ctx, page, _ = _open(browser)
     try:
