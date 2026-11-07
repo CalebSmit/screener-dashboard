@@ -124,6 +124,31 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-07 (06:00 weekend session): the `size_band` bullet, shipped.**
+`universe.Universe` carries a `size_band` and `universe.assign_size_bands()` sets the column;
+`run_screener` calls it once the universe is settled, so every artifact from `01_raw_metrics`
+onward carries it. `factor_engine.compute_sector_percentiles` groups by `(Sector, size_band)`
+with the **band**-wide fallback below `SECTOR_MIN_PEERS` (unchanged at 10), and `Composite_Pct`
+is ranked within band. One universe, so one band, so nothing published moved - **measured, not
+argued**: `tests/test_size_bands.py` (13 tests) compares the production function with a
+transcription of the sector-only code it replaced, on the published run - **0 of 23,092
+percentile values differ** - and a half-and-half cap split moves **20,140** of them, so the
+identity cannot pass vacuously. (Phase 0's script reported 20,151 for the same split on the
+2026-11-03 run; the figure is a property of that morning's data, not a constant.) The composite
+percentile gets the same pair: unchanged with one band, **492 of 499** moved by the split.
+Verified beyond the suite:
+a five-ticker live run through `run_screener.py` (the band reaches all three artifacts, calc
+trace reproduces, overview byte-identical) and `scripts/rehearse_publish.py` (all four published
+files unchanged byte for byte).
+`universe.py` joined `v2_experiments.RESULT_PATHS` the same session - it now decides what each
+stock is ranked against, so an edit there moves every engine number - and the 32 ledger rows were
+rerun: **no statistic moved**, only the run count and the code hash.
+**Still not started:** the `config.yaml` block, the per-band gates, and the `stock_detail` shard.
+**A phase-3 obligation this created:** three registered claims still say a thin sector falls back
+"across the universe" (`drilldown.peer_rank`, `overview.percentile_rule`, `overview.glossary`).
+They are true today because the band *is* the universe; the session that publishes a second band
+must reword all three in the same commit.
+
 **Progress, 2026-11-03 night (owner-run): the first slice of the first bullet.** `universe.py` defines
 the S&P 500 (`members 495-515`, `ranked >= 490`) and `check_run_health.MIN_SCORED`,
 `rehearse_publish.MIN_UNIVERSE`, `universe_history.MIN/MAX_PLAUSIBLE_MEMBERS` and two tests' floors

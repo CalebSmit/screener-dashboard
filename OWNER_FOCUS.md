@@ -69,8 +69,17 @@ Two things still outrank this file, and neither is negotiable:
   byte-identical today and needs no special case.
   **Left open on purpose:** section 4's choice of coverage rule for a stock with no analysts. It
   is a present-day methodology change (one S&P 500 stock today, Loews) and gets its own changelog
-  entry, not a side effect of phase 3. **Next: phase 1** (make the universe a parameter; no
-  published change, S&P 500 payload byte-identical).
+  entry, not a side effect of phase 3.
+  **Phase 1, the `size_band` slice: SHIPPED 2026-11-07 (06:00 weekend session).** Percentiles are
+  now ranked within `(Sector, size_band)` with a band-wide fallback, and `Composite_Pct` within
+  band - pre-registration 3, in code. One universe means one band, so **nothing published moved,
+  measured rather than argued**: 0 of 23,092 percentile values differ from the sector-only code
+  it replaced, against 20,140 moved by a genuine cap split, so the zero is not vacuous; a
+  five-ticker live run and `rehearse_publish.py` confirm it end to end. `universe.py` joined the
+  research engine's `RESULT_PATHS` (it decides what a stock is ranked against) and all 32 ledger
+  rows were rerun - no statistic moved. `plan/universe-expansion.md` has the record.
+  **Next in phase 1:** the `config.yaml` `universe:` block, the per-band health gates, and the
+  `stock_detail` shard (the one that keeps first paint flat as the universe grows).
 
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test
