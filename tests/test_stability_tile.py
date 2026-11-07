@@ -132,3 +132,28 @@ def test_the_line_counts_at_exactly_085_and_not_below(page):
     assert got["cap"] == _caption(2, 3)
     one = _tile(page, sens[:2])
     assert one["cap"] == _caption(1, 2)
+
+
+def test_the_view_prints_overlap_on_the_scale_of_its_own_bars(page, data):
+    """The badge and every row read on the 0-1 scale the 0.85 and 0.70 bars are stated in, and a
+    weight's move is in percentage points - the table read "+5%: 82%" until 2026-11-06."""
+    sens = [s for s in data.get("weight_sensitivity") or [] if isinstance(s.get("avg_jaccard"), (int, float))]
+    if not sens:
+        pytest.skip("MISSING DATA: no weight_sensitivity in the published payload")
+    got = page.evaluate("""() => { renderDefensibility && renderDefensibility();
+        return { badge: document.querySelector('#defensibility-summary .def-badge').textContent.trim(),
+                 rows: [...document.querySelectorAll('#sensitivity-table .sens-bar-labels')].map(e => e.textContent.trim()) }; }""")
+    mean = sum(s["avg_jaccard"] for s in sens) / len(sens)
+    verdict = "robust" if mean >= 0.85 else "moderate" if mean >= 0.70 else "sensitive"
+    assert got["badge"] == f"Stability {verdict} ({_jsfixed(mean, 2)})", got["badge"]
+    import run_screener as rs
+    pts = rs._pts(rs.SENSITIVITY_PERTURBATION_PTS)
+    want = [f"+{pts}pp: {_jsfixed(s['plus_jaccard'], 2)}−{pts}pp: {_jsfixed(s['minus_jaccard'], 2)}"
+            for s in data["weight_sensitivity"] if s.get("avg_jaccard") is not None]
+    assert got["rows"] == want, (got["rows"], want)
+
+
+def _jsfixed(x: float, n: int) -> str:
+    from decimal import Decimal, ROUND_HALF_UP
+    # the double's exact value, as toFixed rounds it (0.825 is 0.82499... and prints 0.82)
+    return str(Decimal(float(x)).quantize(Decimal(1).scaleb(-n), rounding=ROUND_HALF_UP))

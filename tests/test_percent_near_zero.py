@@ -212,10 +212,7 @@ EXEMPT: dict[str, str] = {
     "c.turnover_ceiling.toFixed(0)": "turnover ceiling from the literature",
     "(hi.v * 100).toFixed(0)": "the panic rule's volatility bar, a fixed 20.6%",
     "(dq.avg_metric_coverage * 100).toFixed(0)": "metric coverage share",
-    "s.plus_jaccard": "category stability share",
-    "s.minus_jaccard": "category stability share",
     "fl.beta_overlap_pct.toFixed(0)": "trading-day overlap share, against a printed 80% bar",
-    "(avgJ * 100)": "category stability share",
     "secs.map(s => s + ' ' + Number(vt[s].rate).toFixed(1) + '%')": "trap rate per sector",
     # -- a weight: "whole when whole, else one decimal", and no weight in config.yaml is small
     #    enough to round to zero (the smallest is Size at 5%)

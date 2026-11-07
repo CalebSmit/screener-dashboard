@@ -5146,7 +5146,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (avgJ !== null) {{
                 const jColor = avgJ >= 0.85 ? '#0ca30c' : avgJ >= 0.70 ? '#fab219' : '#e66767';
                 const jLabel = avgJ >= 0.85 ? 'Robust' : avgJ >= 0.70 ? 'Moderate' : 'Sensitive';
-                summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + jColor + '"></i>Stability ' + String(jLabel).toLowerCase() + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
+                summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + jColor + '"></i>Stability ' + String(jLabel).toLowerCase() + ' (' + avgJ.toFixed(2) + ')</span>';   // the 0-1 scale of its own 0.85/0.70 bars; it printed "77%" (2026-11-06)
             }}
         }}
         if (dq.eps_mismatch_count !== undefined) {{
@@ -5184,13 +5184,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 const verdict = aj !== null ? (aj >= 0.85 ? 'Robust' : aj >= 0.70 ? 'Moderate' : 'Sensitive') : '\u2014';
                 const barPct = aj !== null ? Math.round(aj * 100) : 0;
                 const barColor = aj !== null ? (aj >= 0.85 ? '#0ca30c' : aj >= 0.70 ? '#fab219' : '#e66767') : '#4a4a48';
-                const pj = s.plus_jaccard !== null ? (s.plus_jaccard * 100).toFixed(0) + '%' : '\u2014';
-                const mj = s.minus_jaccard !== null ? (s.minus_jaccard * 100).toFixed(0) + '%' : '\u2014';
+                // Each weight moved 5 percentage points (never "5%"), and the overlap on the same 0-1
+                // scale as the 0.85 and 0.70 bars above it - it read "+5%: 82%" (2026-11-06)
+                const pj = s.plus_jaccard !== null ? s.plus_jaccard.toFixed(2) : '\u2014';
+                const mj = s.minus_jaccard !== null ? s.minus_jaccard.toFixed(2) : '\u2014';
                 tHtml += '<tr>';
                 tHtml += '<td style="font-weight:600">' + s.category + '</td>';
                 tHtml += '<td>' + (s.original_weight !== null ? fmtWeight(s.original_weight) : '\u2014') + '</td>';
                 tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
-                tHtml += '<span class="sens-bar-labels"><span>+5%: ' + pj + '</span><span>-5%: ' + mj + '</span></span></td>';
+                tHtml += '<span class="sens-bar-labels"><span>+5pp: ' + pj + '</span><span>&minus;5pp: ' + mj + '</span></span></td>';
                 tHtml += '<td class="' + jClass + '" style="font-weight:600">' + verdict + '</td>';
                 tHtml += '</tr>';
             }});
