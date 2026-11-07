@@ -20394,6 +20394,11 @@ NaN/undefined, and any percentage of 500% or more.
     the source's last-trade implied volatilities sat beside that sentence unmarked (HST 90% implied
     vs 25% realised). Measured: IV/realised median 1.43 (partial) vs 1.19 (ok); >2x in 9% vs 1%;
     |skew| > 15 pts in 21% vs 2%. One caveat line; the figures stay (logged, never scored).
+15. **research.html's share preview** said "26 pre-registered alternatives" (hardcoded) under a page
+    saying 27 (from the ledger); both read `summary['alternatives']` now.
+16. **Track record's changelog entries are listed** under "How the record is measured" (the ticks'
+    hover titles were unreadable on a phone); `track_record.changelog_title` cleans session tags,
+    backticks and mid-word cuts. `data/track_record.json` re-titled in place (dates asserted equal).
     Both methodology-adjacent changes are in `METHODOLOGY_CHANGELOG.md` (2026-11-06, owner-run, night).
 
 ### Looked at and left, with the reason
@@ -20405,8 +20410,9 @@ NaN/undefined, and any percentage of 500% or more.
   1594%): real data, scored by percentile.
 - "Reporting soon" lists the run's own day as upcoming; right for the 02:00 run, odd only for an
   evening rerun.
-- Track record's changelog ticks are 2px lines with hover titles - unreadable on a phone (no hover,
-  37 ticks in 315px). Not fixable by wording; a list would be the fix. Left.
+- 320px (smallest phones, 400% zoom) and all 499 sheets at 375: no horizontal overflow anywhere.
+- Tap targets the sweep flagged at 375 (Hide, Show more) already get 40px+ under `pointer: coarse`;
+  the sweep ran without touch emulation.
 - Every lab control in all 19 experiments clicked: no page error, no NaN/undefined. Every in-page
   link resolves (the methodology's slug links via `methodAnchorClick`, the lab's via its router).
 - Focus is visible on every focusable control on the page and in the sheet.
