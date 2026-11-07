@@ -3412,6 +3412,9 @@
         .tr-method .tr-caveats { margin-top: 8px; }
         .tr-lb-plot i.up { background: var(--green); }
         .tr-lb-plot i.dn { background: var(--red); }
+        .tr-lb-so { display: block; }
+        @media (max-width: 520px) { .tr-lb .tr-lb-d { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; } }
+        .tr-lb.open .tr-lb-plot i { opacity: 0.55; background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0,0,0,0.35) 4px 7px); }
         .tr-lb-v { position: absolute; left: 0; right: 0; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
         .tr-lb-v.up { color: var(--green); }
         .tr-lb-v.dn { color: var(--red); }
@@ -10990,16 +10993,21 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const ps = (T.periods || []).filter(p => typeof p.top === 'number' && typeof p.RSP === 'number');
         if (ps.length < 2) return '';
         const mx = Math.max(...ps.map(p => Math.abs(p.top - p.RSP)), 0.0001);
+        const last = ps[ps.length - 1], open = trPeriodOpen(T, last);
         const bars = ps.map(p => {
-            const d = p.top - p.RSP, up = p.top > p.RSP, hgt = Math.max(1.5, Math.abs(d) / mx * 38);
-            return '<div class="tr-lb" title="' + escapeHtml(cDate(p.entry) + ' to ' + cDate(p.exit)) + ': top 25 ' + cPct(p.top) + ', RSP ' + cPct(p.RSP) + '">' +
+            const d = p.top - p.RSP, up = p.top > p.RSP, hgt = Math.max(1.5, Math.abs(d) / mx * 38), so = open && p === last;
+            return '<div class="tr-lb' + (so ? ' open' : '') + '" title="' + escapeHtml(cDate(p.entry) + ' to ' + cDate(p.exit)) + (so ? ', so far' : '') + ': top 25 ' + cPct(p.top) + ', RSP ' + cPct(p.RSP) + '">' +
                 '<div class="tr-lb-plot"><i class="' + (up ? 'up' : 'dn') + '" style="' + (up ? 'bottom' : 'top') + ':50%;height:' + trG(hgt) + '%"></i>' +
                 '<span class="tr-lb-v ' + (up ? 'up' : 'dn') + '" style="' + (up ? 'bottom' : 'top') + ':calc(50% + ' + trG(hgt) + '% + 3px)">' + cPp(d) + '</span></div>' +
-                '<div class="tr-lb-d">' + escapeHtml(cDate(p.date)) + '</div></div>';
+                '<div class="tr-lb-d">' + escapeHtml(cDate(p.date)) + (so ? '<span class="tr-lb-so">so far</span>' : '') + '</div></div>';
         }).join('');
         return '<div class="tr-lead"><div class="tr-lead-h"><b>Period by period</b><span>The top 25&rsquo;s return minus RSP&rsquo;s in each holding period, by the date the ranking was made. Ahead in <b>' +
-            T.beat_rsp + ' of ' + T.periods_compared + '</b>.</span></div><div class="tr-lead-bars">' + bars + '</div></div>';
+            T.beat_rsp + ' of ' + T.periods_compared + '</b>' + (open ? ', counting the last, ranked ' + escapeHtml(cDate(last.date)) + ', which is still running (hatched)' : '') + '.</span></div><div class="tr-lead-bars">' + bars + '</div></div>';
     }
+    // A record's last period has no successor yet: it ends on the record's own last day and is still
+    // being held. 2026-11-06: the Nov 3 period, three trading days old, was drawn and counted like the
+    // month-long ones with nothing to say so.
+    function trPeriodOpen(T, p) { return !!(p && T && T.periods && p === T.periods[T.periods.length - 1] && p.exit && p.exit === T.end); }
     const trG = x => (+x).toFixed(1);   // geometry: a bar's height or offset, never a printed figure
     let TR_SHOW_Q = false;
     function setTrackView(q) { TR_SHOW_Q = q; renderTrack(); }
@@ -11041,7 +11049,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         h += trackLeadBars(T);
         const hasTo = T.periods.some(p => p.turnover !== undefined);
         h += '<details class="why-panel tr-periods"><summary>Every holding period (' + T.periods.length + ')</summary><div class="tr-table-wrap"><table class="tr-table"><thead><tr><th>Ranked on</th><th>Held</th><th class="num">Top 25</th><th class="num">RSP</th><th class="num">Difference</th><th class="num">Top fifth</th><th class="num">Bottom fifth</th><th class="num">Names changed</th>' + (hasTo ? '<th class="num">Traded</th>' : '') + '</tr></thead><tbody>' +
-            T.periods.map(p => '<tr><td>' + escapeHtml(cDate(p.date)) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPp(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td>' + (hasTo ? '<td class="num">' + (p.turnover === null || p.turnover === undefined ? '&mdash;' : cPlain(p.turnover, 0)) + '</td>' : '') + '</tr>').join('') +
+            T.periods.map(p => '<tr><td>' + escapeHtml(cDate(p.date)) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + (trPeriodOpen(T, p) ? ', so far' : '') + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPp(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td>' + (hasTo ? '<td class="num">' + (p.turnover === null || p.turnover === undefined ? '&mdash;' : cPlain(p.turnover, 0)) + '</td>' : '') + '</tr>').join('') +
             '</tbody></table></div></details>';
         const unp = T.unpriced ? (T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i) : [];
         const picks = T.picks || {};
