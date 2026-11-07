@@ -5305,3 +5305,42 @@ clipped form.
 
 **Applied by:** scheduled code session, 2026-11-06 06:00 slot.
 **Rollback:** revert the commit; the tag before it is `good/2026-11-05`.
+
+## 2026-11-06 (owner-run, night) - Context: a share count filed in the wrong units no longer makes a five-year yield range; summaries name inputs from the stock's own weight table
+
+**Area:** display / context only. No weight, metric, threshold, score or rank moved.
+
+**Changed (1), "Against its own five years" (context, added 2026-10-09):** a past month whose filed
+diluted share count is more than 10 times today's verified count, or under a tenth of it, now gets
+no market value (`valuation_history.SHARE_UNIT_RATIO`). Before, the self-check covered only today's
+count, so a filing that tagged shares in thousands made those months' market values 1,000x too
+small: the live page printed HST's five-year earnings-yield range as -84764.2% to 5455967.6%.
+
+**Evidence (1):** measured over all 28,511 stock-months the panel uses
+(`research/measurements/2026-11-06-valhist-share-units.py`): genuine departures from today's
+count stop at 4.24x (EchoStar after its 2023 DISH merger), unit errors start at 914x (COP), and
+**no stock-month lies between 5x and 100x** - the bound sits in an empty gap, so it does not
+depend on where in that gap it is set. 15 stocks carried such months.
+
+**Expected effect (1):** rebuilt from the same caches, 428 of 428 blocks kept, absurd ranges 10 ->
+1 (EXE remains: its share counts are in bounds; the range reflects Chesapeake's 2021 fresh-start
+accounting); 14 blocks' own-history percentile moves by up to 6 points. That percentile is logged
+as a context signal (`_ctx_vh_ey_pct`), and this lands before its first `1m` reading - noted so a
+later reader of `context_eval` knows the 15 stocks' logs before 2026-11-09 carry the old values.
+
+**Changed (2), the per-stock summary:** the "strongest inputs" and "lowest-ranked input" sentences
+read the generic metric weights for every stock; they now read the table the stock was scored
+with, looked up from the engine's published profiles and the stock's `wp`
+(`stock_summary.stock_metric_weights`; CLAUDE.md row 0.8 - looked up, never re-derived). Banks and
+insurers score Quality 75% on ROE, ROA and the equity ratio, so JPM's "strongest inputs" were
+Piotroski at the 14th and Accruals at the 2nd sector percentile; now ROE at the 64th and ROA at the
+45th. Claims `summary.best_inputs` and `summary.worst_input` now say "the stock's own weight
+table".
+
+**Validated by:** `tests/test_valuation_history.py` (unit bound, 10x boundary both ways, the
+panel's sentence tied to the constant), `tests/test_stock_summary.py` (bank table, generic
+fallback, every published non-generic stock names only weighted inputs). The payload was
+regenerated from the same run and diffed: 43 bank-scored stocks' sentences changed, nothing else.
+
+**Applied by:** owner-run session, 2026-11-06 night.
+**Rollback:** `good/2026-11-06-owner-6` (before both).
