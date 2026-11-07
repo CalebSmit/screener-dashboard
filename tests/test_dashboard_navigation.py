@@ -408,6 +408,34 @@ def test_a_saved_name_that_left_says_where_it_last_ranked(browser):
 
 
 @needs_browser
+def test_a_renamed_company_is_found_under_its_old_symbol(browser):
+    """A saved holding, a link or a search for a symbol the company has since changed was told it
+    "has left the S&P 500" while it sat ranked under its new one (2026-11-06). history.renamed maps
+    old -> new by SEC registrant (track_record.renamed_symbols). Read from today's payload."""
+    ren = _payload_map("history").get("renamed") or {}
+    if not ren:
+        pytest.skip("MISSING DATA: no renamed company in the published history")
+    old, new = sorted(ren.items())[0]
+    assert not set(ren) & set(_payload_map("share_classes")), "a second share class is not a rename"
+    ctx, page, errors = _open(browser, hash_="#stock=" + old)
+    try:
+        page.wait_for_function("UX.current !== null", timeout=15000)
+        got = page.evaluate("({cur: UX.current, toast: document.getElementById('toast').textContent})")
+        assert got == {"cur": new, "toast": f"{old} now trades as {new}"}, got
+        page.evaluate("closeModal()")
+        rank = page.evaluate(f"D.stock_detail[{new!r}].rank")
+        assert page.evaluate(f"notInRunText({old!r})").startswith(f"It now trades as <strong>{new}</strong>, ranked #{rank} of ")
+        page.evaluate(f"holdings = [{old!r}]; renderHoldings()")
+        assert page.evaluate("document.querySelector('.holding-unscored .holding-rank').textContent") == f"#{rank}"
+        page.evaluate("document.querySelector('.holding-note .link-btn').click()")
+        page.wait_for_function(f"UX.current === {new!r}", timeout=10000)
+        assert errors == []
+    finally:
+        page.evaluate("closeModal(); holdings = []; renderHoldings()")
+        ctx.close()
+
+
+@needs_browser
 def test_the_guide_dismisses_and_stays_dismissed(browser):
     ctx, page, _ = _open(browser)
     try:

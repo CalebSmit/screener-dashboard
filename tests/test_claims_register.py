@@ -1237,8 +1237,10 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:dashboard.score_key',
     'Show the next ${next}':
         'claim:dashboard.phone_table_pages',
-    'The ranking covers the ${n} S&amp;P 500 companies this run scored.':
-        'claim:dashboard.score_key',
+    'It now trades as ${escapeHtml(nu)} , ranked #${D.stock_detail[nu].rank} of ${(D.table_data || []).length}:':
+        'claim:dashboard.departed_names',
+    "${(gone ? 'It last ranked #' + gone[0] + ' on ' + escapeHtml(prettyDate(gone[1])) + '. ' : '')}The ranking covers the ${n} S&amp;P 500 companies this run scored.":
+        'claim:dashboard.departed_names',
     "It trades ${pctNearZero(sc.price_gap_pct, 1).mag}% ${(sc.price_gap_pct < 0 ? 'below ' : 'above ')}${escapeHtml(sc.scored_as)} for the same claim on the same earnings.":
         'claim:drilldown.share_class_second_line',
     ', the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).':

@@ -32,7 +32,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=a8d41b4af63f" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=e3ce394e8950" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -111,7 +111,7 @@
         .profile-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
         .profile-note strong { color: var(--text-primary); font-weight: 600; }
         .profile-note[hidden] { display: none; }
-        .profile-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .profile-note .link-btn, .holding-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
         .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
         .changed-overview:empty { display: none; }
         /* the overview's sentence and its picture side by side (2026-11-05) */
@@ -6291,7 +6291,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
          the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
          failed download is recorded so the page can say which of the failures it was. -->
     <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () { var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }, 4000);</script>
-    <script src="./dashboard_data.js?v=a8d41b4af63f" onerror="window.SCREENER_DATA_FAILED = true"></script>
+    <script src="./dashboard_data.js?v=e3ce394e8950" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -7076,10 +7076,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // A member the run could not score has its own true reason too.
         const um = unscoredMemberText(t);
         if (um) return um;
+        // A renamed company is in the ranking under its new symbol (history.renamed, 2026-11-06).
+        const nu = renamedTo(t);
+        if (nu) return 'It now trades as <strong>' + escapeHtml(nu) + '</strong>, ranked #' + D.stock_detail[nu].rank + ' of ' + (D.table_data || []).length + ': the same SEC registrant under a new symbol.';
         const rows = D.table_data || [], ql = t.toLowerCase();
         if (rows.some(r => r.Ticker.toLowerCase().startsWith(ql) || (r.Company || '').toLowerCase().includes(ql))) return '';
         const n = (D.kpis && D.kpis.universe_size) || rows.length;
-        return 'The ranking covers the ' + n + ' S&amp;P 500 companies this run scored. A company that has left the index, or whose data could not be fetched, is not in it.';
+        // A name an earlier comparable run ranked says where it last stood (history.last, 2026-11-06).
+        const gone = (typeof H !== 'undefined' && H && H.last) ? H.last[t] || H.last[t.replace(/\./g, '-')] : null;
+        return (gone ? 'It last ranked #' + gone[0] + ' on ' + escapeHtml(prettyDate(gone[1])) + '. ' : '') +
+            'The ranking covers the ' + n + ' S&amp;P 500 companies this run scored. A company that has left the index, or whose data could not be fetched, is not in it.';
     }
 
     // One company, one ranked line (share_classes.py). D.share_classes maps each second
@@ -7766,6 +7772,19 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
               + '</div>'
               + '<div class="holding-notes"><p class="holding-note holding-note-unscored">'
               +   shareClassText(t, sc) + '</p></div>'
+              + '</div>';
+        }
+        const nu = (typeof renamedTo === 'function') ? renamedTo(t) : '';
+        if (nu) {
+            return '<div class="holding-card holding-unscored">'
+              + '<div class="holding-head">'
+              +   '<span class="holding-rank">#' + D.stock_detail[nu].rank + '</span>'
+              +   '<span class="holding-ticker holding-ticker-static">' + escapeHtml(t) + '</span>'
+              +   '<span class="holding-spacer"></span>'
+              +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list" aria-label="Remove ' + escapeHtml(t) + ' from your list">&times;</button>'
+              + '</div>'
+              + '<div class="holding-notes"><p class="holding-note holding-note-unscored">' + escapeHtml(t) + ' is not in this run&rsquo;s ranking under that symbol. '
+              +   notInRunText(t) + ' <button type="button" class="link-btn" onclick="openStockDetail(&quot;' + escapeHtml(nu) + '&quot;)">Open ' + escapeHtml(nu) + '</button></p></div>'
               + '</div>';
         }
         let last = '';
@@ -9499,7 +9518,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // A second listed share class (GOOG, FOX, NWS) opens the company's one ranked line: a link
         // naming it said "No stock GOOG in this run" while Alphabet sat at GOOGL (2026-11-06).
         const sc = shareClassOf(t);
-        return sc && D.stock_detail[sc.scored_as] ? sc.scored_as : null;
+        if (sc && D.stock_detail[sc.scored_as]) return sc.scored_as;
+        // A renamed company opens under its current symbol (history.renamed, by SEC registrant).
+        const nu = renamedTo(t);
+        return nu || null;
+    }
+    // The symbol a renamed company trades under now, if this run ranks it; '' otherwise.
+    function renamedTo(t) {
+        const m = (typeof H !== 'undefined' && H && H.renamed) || {};
+        const k = String(t || '').trim().toUpperCase(), nu = m[k] || m[k.replace(/\./g, '-')];
+        return nu && D.stock_detail[nu] ? nu : '';
     }
     // What to say when a link named a share class and its company's ranked line opened instead.
     function shareClassHashNote() {
@@ -9508,9 +9536,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const raw = decodeURIComponent(m[1]).toUpperCase();
         if (D.stock_detail[raw] || D.stock_detail[raw.replace(/\./g, '-')]) return '';
         const sc = shareClassOf(raw);
-        return sc && D.stock_detail[sc.scored_as]
-            ? raw + ' is a second share class of ' + String(sc.company || sc.scored_as) + ', ranked once as ' + sc.scored_as
-            : '';
+        if (sc && D.stock_detail[sc.scored_as])
+            return raw + ' is a second share class of ' + String(sc.company || sc.scored_as) + ', ranked once as ' + sc.scored_as;
+        const nu = renamedTo(raw);
+        return nu ? raw + ' now trades as ' + nu : '';
     }
     // A #stock= link naming nothing in this run used to do nothing at all. It now says so and
     // clears the hash, so the address bar does not keep claiming a stock that is not shown.

@@ -1686,6 +1686,16 @@ def prepare_dashboard_data(run_data: dict) -> str:
         )
         import run_overview as _ro
         history_block = _ro.with_market(history_block, run_data.get("market_closes"))
+        # A departed symbol whose SEC registrant now trades under a symbol this run ranks (MMC ->
+        # MRSH): the track record's own rule (the CIK survives a rename). Display only - a saved
+        # holding, a link or a search for the old symbol says where the company is now (2026-11-06).
+        if history_block.get("last"):
+            import track_record as _tr
+            _sc = set(((run_data.get("share_classes") or {}).get("secondary") or {}))   # their own route
+            _ren = {o: n for o, n in _tr.renamed_symbols(list(history_block["last"]), set(df["Ticker"])).items()
+                    if o not in _sc}
+            if _ren:
+                history_block["renamed"] = _ren
     except Exception as exc:  # noqa: BLE001
         print(f"WARNING: history unavailable ({type(exc).__name__}: {exc})")
         history_block = {"available": False, "dates": [], "series": {},
@@ -3765,6 +3775,19 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
               + '</div>'
               + '<div class="holding-notes"><p class="holding-note holding-note-unscored">'
               +   shareClassText(t, sc) + '</p></div>'
+              + '</div>';
+        }}
+        const nu = (typeof renamedTo === 'function') ? renamedTo(t) : '';
+        if (nu) {{
+            return '<div class="holding-card holding-unscored">'
+              + '<div class="holding-head">'
+              +   '<span class="holding-rank">#' + D.stock_detail[nu].rank + '</span>'
+              +   '<span class="holding-ticker holding-ticker-static">' + escapeHtml(t) + '</span>'
+              +   '<span class="holding-spacer"></span>'
+              +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list" aria-label="Remove ' + escapeHtml(t) + ' from your list">&times;</button>'
+              + '</div>'
+              + '<div class="holding-notes"><p class="holding-note holding-note-unscored">' + escapeHtml(t) + ' is not in this run&rsquo;s ranking under that symbol. '
+              +   notInRunText(t) + ' <button type="button" class="link-btn" onclick="openStockDetail(&quot;' + escapeHtml(nu) + '&quot;)">Open ' + escapeHtml(nu) + '</button></p></div>'
               + '</div>';
         }}
         let last = '';
@@ -6306,10 +6329,16 @@ def _js_table() -> str:
         // A member the run could not score has its own true reason too.
         const um = unscoredMemberText(t);
         if (um) return um;
+        // A renamed company is in the ranking under its new symbol (history.renamed, 2026-11-06).
+        const nu = renamedTo(t);
+        if (nu) return 'It now trades as <strong>' + escapeHtml(nu) + '</strong>, ranked #' + D.stock_detail[nu].rank + ' of ' + (D.table_data || []).length + ': the same SEC registrant under a new symbol.';
         const rows = D.table_data || [], ql = t.toLowerCase();
         if (rows.some(r => r.Ticker.toLowerCase().startsWith(ql) || (r.Company || '').toLowerCase().includes(ql))) return '';
         const n = (D.kpis && D.kpis.universe_size) || rows.length;
-        return 'The ranking covers the ' + n + ' S&amp;P 500 companies this run scored. A company that has left the index, or whose data could not be fetched, is not in it.';
+        // A name an earlier comparable run ranked says where it last stood (history.last, 2026-11-06).
+        const gone = (typeof H !== 'undefined' && H && H.last) ? H.last[t] || H.last[t.replace(/\./g, '-')] : null;
+        return (gone ? 'It last ranked #' + gone[0] + ' on ' + escapeHtml(prettyDate(gone[1])) + '. ' : '') +
+            'The ranking covers the ' + n + ' S&amp;P 500 companies this run scored. A company that has left the index, or whose data could not be fetched, is not in it.';
     }
 
     // One company, one ranked line (share_classes.py). D.share_classes maps each second
@@ -6536,7 +6565,7 @@ def _css() -> str:
         .profile-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
         .profile-note strong { color: var(--text-primary); font-weight: 600; }
         .profile-note[hidden] { display: none; }
-        .profile-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .profile-note .link-btn, .holding-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
         .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
         .changed-overview:empty { display: none; }
         /* the overview's sentence and its picture side by side (2026-11-05) */
@@ -9090,7 +9119,16 @@ def _js_ux() -> str:
         // A second listed share class (GOOG, FOX, NWS) opens the company's one ranked line: a link
         // naming it said "No stock GOOG in this run" while Alphabet sat at GOOGL (2026-11-06).
         const sc = shareClassOf(t);
-        return sc && D.stock_detail[sc.scored_as] ? sc.scored_as : null;
+        if (sc && D.stock_detail[sc.scored_as]) return sc.scored_as;
+        // A renamed company opens under its current symbol (history.renamed, by SEC registrant).
+        const nu = renamedTo(t);
+        return nu || null;
+    }
+    // The symbol a renamed company trades under now, if this run ranks it; '' otherwise.
+    function renamedTo(t) {
+        const m = (typeof H !== 'undefined' && H && H.renamed) || {};
+        const k = String(t || '').trim().toUpperCase(), nu = m[k] || m[k.replace(/\./g, '-')];
+        return nu && D.stock_detail[nu] ? nu : '';
     }
     // What to say when a link named a share class and its company's ranked line opened instead.
     function shareClassHashNote() {
@@ -9099,9 +9137,10 @@ def _js_ux() -> str:
         const raw = decodeURIComponent(m[1]).toUpperCase();
         if (D.stock_detail[raw] || D.stock_detail[raw.replace(/\./g, '-')]) return '';
         const sc = shareClassOf(raw);
-        return sc && D.stock_detail[sc.scored_as]
-            ? raw + ' is a second share class of ' + String(sc.company || sc.scored_as) + ', ranked once as ' + sc.scored_as
-            : '';
+        if (sc && D.stock_detail[sc.scored_as])
+            return raw + ' is a second share class of ' + String(sc.company || sc.scored_as) + ', ranked once as ' + sc.scored_as;
+        const nu = renamedTo(raw);
+        return nu ? raw + ' now trades as ' + nu : '';
     }
     // A #stock= link naming nothing in this run used to do nothing at all. It now says so and
     // clears the hash, so the address bar does not keep claiming a stock that is not shown.

@@ -247,7 +247,11 @@ def test_the_claims_are_registered():
 def _new_copy(html: str) -> dict[str, str]:
     js_table, js_ux, js_ctx = gd._js_table(), gd._js_ux(), gd._js_context()
     note = re.search(r"msr-note\">([^']+)</p>", html).group(1)
-    gone = re.search(r"return 'The ranking covers[^\n]+", js_table).group(0)
+    # every sentence the not-in-run message can say (2026-11-06: a rename and a last rank joined it)
+    body = js_table[js_table.index("function notInRunText"):]
+    body = body[:body.index("\n    }\n")]
+    gone = " ".join(re.findall(r"'([^']*(?:ranking covers|now trades as|last ranked|SEC registrant)[^']*)'", body))
+    assert "The ranking covers" in gone and "now trades as" in gone and "last ranked" in gone, gone
     market = re.search(r"The macro backdrop for this run[^<]+", js_ctx).group(0)
     guide = html[html.index('<section class="guide"'):html.index("<!-- Top 5 Stocks -->")]
     return {"key": _text(_key(html)), "sheet note": _text(note), "not in run": gone,

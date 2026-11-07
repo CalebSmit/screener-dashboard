@@ -2016,6 +2016,20 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="dashboard.departed_names",
+        surface=DRILLDOWN,
+        asserts=("A name this run does not rank, typed in search, saved in My Holdings or named in a link: "
+                 "if its SEC registrant now trades under a symbol this run ranks, the page says so and opens "
+                 "that line ('It now trades as X, ranked #N of M'); otherwise, if an earlier comparable run "
+                 "ranked it, 'It last ranked #N on <date>' - the last such run, from history.last."),
+        made_true_by="history:build_history",
+        checked_by=(
+            "tests/test_history.py::test_a_name_that_left_keeps_only_its_last_rank_and_date",
+            "tests/test_dashboard_navigation.py::test_a_renamed_company_is_found_under_its_old_symbol",
+            "tests/test_dashboard_navigation.py::test_a_saved_name_that_left_says_where_it_last_ranked",
+        ),
+    ),
+    Claim(
         id="dashboard.traits",
         surface=DRILLDOWN,
         asserts=(
