@@ -1,5 +1,15 @@
 # Dashboard inventory (as of 2026-10-07, pass 2)
 
+**2026-11-06 (owner-run night, the UI audit):** the **insider list** marks where its 90 days end - a
+"Before the 90 days" divider (or "Latest trades on file, all before the 90 days") and dimmed older
+rows, cut by `insWindowStart` exactly as `summarise_rows` cuts (`tests/test_context_cards_printed.py`);
+the **five-year yield panel** drops a month whose filed share count is over 10x from today's
+(`valuation_history.SHARE_UNIT_RATIO`; reaches the page with the next data run); the **track record**
+marks its last, still-running period (hatched bar, "so far", caption and table; `trPeriodOpen`,
+`tests/test_track_open_period.py`) and its period dates wrap rather than truncate on a phone;
+**Diagnostics** prints overlap on its own 0-1 scale ("+5pp: 0.82", "Stability moderate (0.77)");
+and a rank change of one reads "1 rank".
+
 **2026-10-29 (owner-run):** context panels' percents keep their sign when they round to zero
 (`cPlain`; `tests/test_every_panel_reads_clean.py` opens all ~500 sheets and fails on any
 undefined/NaN/signed zero); the methodology glossary spells out its abbreviations; unscored
