@@ -3249,6 +3249,8 @@
         .ctx-ins td:first-child { color: var(--text-muted); white-space: nowrap; padding-right: 10px; }
         .ctx-who { display: block; color: var(--text-primary); }
         .ctx-role { display: block; font-size: 11.5px; color: var(--text-muted); }
+        .ctx-ins tr.ctx-ins-before td { padding: 12px 0 6px; font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); white-space: normal; }
+        .ctx-ins tr.ctx-ins-old td, .ctx-ins tr.ctx-ins-old .ctx-who { color: var(--text-secondary); }
         .ctx-buy { color: var(--accent-text) !important; font-weight: 500; }
         .ctx-sell { color: var(--text-secondary) !important; }
         .holding-ctx { margin: 8px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
@@ -10409,6 +10411,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const t = new Date(d + 'T00:00:00');
         return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
+    // The first day an insider summary counts: the run date minus its window, as
+    // insider_activity.summarise_rows computes `since` (a trade on that day is inside).
+    function insWindowStart(windowDays) {
+        const run = String((D.kpis || {}).run_timestamp || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(run)) return null;
+        const t = new Date(run + 'T00:00:00Z');
+        t.setUTCDate(t.getUTCDate() - (windowDays || 90));
+        return t.toISOString().slice(0, 10);
+    }
     function daysUntil(d) {
         if (!d) return null;
         const run = new Date(String((D.kpis || {}).run_timestamp || '').slice(0, 10) + 'T00:00:00');
@@ -10612,8 +10623,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 i += '<p class="ctx-line">Holders of 10% or more who are not officers or directors - usually another company or a fund - ' + hb.join(' and ') + ' in 90 days. They are listed below and not counted above.</p>';
             }
             if (ins.recent && ins.recent.length) {
-                i += '<table class="ctx-table ctx-ins"><tbody>' + ins.recent.slice(0, 5).map(r =>
-                    '<tr><td>' + (r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" title="The Form 4 filing">' + escapeHtml(cDate(r.date)) + '</a>' : escapeHtml(cDate(r.date))) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
+                // The list is the latest trades on file, whatever their age, so it can reach back
+                // before the 90 days the two figures above count. Said where it happens (2026-11-06):
+                // 253 of 444 published lists held such rows unmarked, 70 of them under "None" and
+                // "None". The cut is summarise_rows' own: on or after run date minus the window.
+                const rows = ins.recent.slice(0, 5), since = insWindowStart(ins.window);
+                const firstOld = since ? rows.findIndex(r => r.date < since) : -1;
+                const oldLabel = '<tr class="ctx-ins-before"><td colspan="4">' + (firstOld === 0 ? 'Latest trades on file, all before the ' + (ins.window || 90) + ' days' : 'Before the ' + (ins.window || 90) + ' days') + '</td></tr>';
+                i += '<table class="ctx-table ctx-ins"><tbody>' + rows.map((r, k) => (k === firstOld ? oldLabel : '') +
+                    '<tr' + (firstOld >= 0 && k >= firstOld ? ' class="ctx-ins-old"' : '') + '><td>' + (r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" title="The Form 4 filing">' + escapeHtml(cDate(r.date)) + '</a>' : escapeHtml(cDate(r.date))) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
                     '<td class="' + (r.code === 'P' ? 'ctx-buy' : 'ctx-sell') + '">' + (r.code === 'P' ? 'Bought' : 'Sold') + (r.plan ? '<span class="ctx-plan" title="The filing says this trade was made under a Rule 10b5-1 plan set up in advance">plan</span>' : '') + '</td><td class="num">' + cMoney(r.value) + '</td></tr>').join('') + '</tbody></table>';
             }
             i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative; sales mostly have not, because executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). The evidence is strongest in smaller companies. Among the largest, which includes the whole S&amp;P 500, Lakonishok &amp; Lee found the market barely reacted to insider trades and the signal was weak. Grants, gifts and option exercises are left out.' +

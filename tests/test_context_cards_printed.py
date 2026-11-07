@@ -308,3 +308,72 @@ def test_a_hand_worked_market_tile(page, pcts):
     series = {k: {"pct_10y": v} for k, v in pcts.items()}
     got = page.evaluate(_MACRO_JS, {"series": series})
     assert got == _expected_tile(series)
+
+
+# ---- The trades list says where the 90 days end (2026-11-06) -----------------------------------
+# The list under the two figures is the latest trades on file, whatever their age. 253 of 444
+# published lists reached back before the window unmarked, 70 of them under "None" and "None".
+# The cut must be summarise_rows' own: on or after run date minus the window.
+
+_LIST_JS = """(args) => { const [t, ins] = args; const s = JSON.parse(JSON.stringify(D.stock_detail[t]));
+    s.ctx = Object.assign({}, s.ctx || {}, {ins: ins}); renderContext(t, s);
+    return [...document.querySelectorAll('#modal-context .ctx-ins tr')].map(tr =>
+        tr.classList.contains('ctx-ins-before') ? 'LABEL:' + tr.textContent.trim()
+        : (tr.classList.contains('ctx-ins-old') ? 'old:' : 'new:') + tr.querySelector('td').textContent.trim()); }"""
+
+
+def _since(window: int = 90) -> str:
+    import datetime as _dt
+    run = _payload("dashboard_data.js")["kpis"]["run_timestamp"][:10]
+    return (_dt.date.fromisoformat(run) - _dt.timedelta(days=window)).isoformat()
+
+
+def _shift(iso: str, days: int) -> str:
+    import datetime as _dt
+    return (_dt.date.fromisoformat(iso) + _dt.timedelta(days=days)).isoformat()
+
+
+def _trade(date: str) -> dict:
+    return {"date": date, "code": "S", "name": "A Person", "role": "Director", "value": 1000.0}
+
+
+def _ins(dates: list[str]) -> dict:
+    return {"window": 90, "buy_n": 0, "buy_value": 0, "buy_people": 0, "sell_n": 0, "sell_value": 0,
+            "sell_people": 0, "recent": [_trade(d) for d in dates]}
+
+
+def test_the_divider_falls_exactly_where_the_window_begins(page, ctx):
+    t = next(iter(ctx))
+    since = _since()
+    # the boundary day itself is inside (summarise_rows keeps date >= since)
+    got = page.evaluate(_LIST_JS, [t, _ins([_shift(since, 3), since, _shift(since, -1), _shift(since, -40)])])
+    assert [g.split(":")[0] for g in got] == ["new", "new", "LABEL", "old", "old"], got
+    assert got[2] == "LABEL:Before the 90 days", got
+
+
+def test_a_list_wholly_before_the_window_says_so_first(page, ctx):
+    t = next(iter(ctx))
+    got = page.evaluate(_LIST_JS, [t, _ins([_shift(_since(), -1), _shift(_since(), -30)])])
+    assert got[0] == "LABEL:Latest trades on file, all before the 90 days", got
+    assert all(g.startswith("old:") for g in got[1:]), got
+
+
+def test_a_list_wholly_inside_the_window_has_no_divider(page, ctx):
+    t = next(iter(ctx))
+    got = page.evaluate(_LIST_JS, [t, _ins([_shift(_since(), 10), _since()])])
+    assert got and all(g.startswith("new:") for g in got), got
+
+
+def test_every_published_list_marks_its_older_trades(page, ctx):
+    """Over the published payload: a row is marked old exactly when its date is before the window."""
+    since = _since()
+    bad = []
+    for t, c in ctx.items():
+        rows = ((c.get("ins") or {}).get("recent") or [])[:5]
+        if not rows:
+            continue
+        got = [g for g in page.evaluate(_LIST_JS, [t, c["ins"]]) if not g.startswith("LABEL:")]
+        want = ["old" if r["date"] < since else "new" for r in rows]
+        if [g.split(":")[0] for g in got] != want:
+            bad.append((t, got, want))
+    assert not bad, bad[:5]
