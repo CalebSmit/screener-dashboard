@@ -351,6 +351,11 @@ def test_a_link_to_a_second_share_class_opens_the_ranked_line(browser):
         got = page.evaluate("({cur: UX.current, hash: location.hash, toast: document.getElementById('toast').textContent})")
         assert got["cur"] == sc["scored_as"] and got["hash"] == "#stock=" + sc["scored_as"], got
         assert got["toast"] == f"{second} is a second share class of {sc['company']}, ranked once as {sc['scored_as']}", got
+        # a saved second class opens its company's line from the holdings card, as a renamed one does
+        page.evaluate(f"closeModal(); holdings = [{second!r}]; renderHoldings()")
+        page.evaluate("document.querySelector('.holding-note .link-btn').click()")
+        page.wait_for_function(f"UX.current === {sc['scored_as']!r}", timeout=10000)
+        page.evaluate("closeModal(); holdings = []; renderHoldings()")
         assert errors == []
     finally:
         ctx.close()

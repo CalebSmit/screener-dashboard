@@ -3774,7 +3774,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
               +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list" aria-label="Remove ' + escapeHtml(t) + ' from your list">&times;</button>'
               + '</div>'
               + '<div class="holding-notes"><p class="holding-note holding-note-unscored">'
-              +   shareClassText(t, sc) + '</p></div>'
+              +   shareClassText(t, sc)
+              +   (D.stock_detail[sc.scored_as] ? ' <button type="button" class="link-btn" onclick="openStockDetail(&quot;' + escapeHtml(sc.scored_as) + '&quot;)">Open ' + escapeHtml(sc.scored_as) + '</button>' : '')
+              +   '</p></div>'
               + '</div>';
         }}
         const nu = (typeof renamedTo === 'function') ? renamedTo(t) : '';
