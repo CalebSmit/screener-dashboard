@@ -373,6 +373,21 @@ def test_a_link_to_an_unscored_member_says_why(browser):
 
 
 @needs_browser
+def test_a_link_to_a_section_opens_it(browser):
+    """A pasted .../#sec-track landed on the closed tile (2026-11-06); the header's links already
+    opened their section. On load, and on a hash change while the page is open."""
+    ctx, page, errors = _open(browser, hash_="#sec-track")
+    try:
+        page.wait_for_function("!document.getElementById('sec-track').classList.contains('collapsed')", timeout=10000)
+        assert page.evaluate("document.getElementById('sec-market').classList.contains('collapsed')")
+        page.evaluate("location.hash = '#sec-market'")
+        page.wait_for_function("!document.getElementById('sec-market').classList.contains('collapsed')", timeout=10000)
+        assert page.evaluate("UX.current") is None and errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
 def test_the_guide_dismisses_and_stays_dismissed(browser):
     ctx, page, _ = _open(browser)
     try:

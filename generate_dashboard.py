@@ -9996,7 +9996,17 @@ def _js_ux() -> str:
         }
         const note = shareClassHashNote(), t = stockFromHash();
         if (t) { openStockDetail(t, { replace: true }); if (note) toast(note); }
-        else rejectStockHash();
+        else if (!openSectionFromHash()) rejectStockHash();
+        if (window.addEventListener) window.addEventListener('hashchange', openSectionFromHash);
+    }
+    // A link to a section opens it, as the header's own links do: a pasted .../#sec-track landed
+    // on the closed tile, so a shared "look at the track record" showed a summary card (2026-11-06).
+    function openSectionFromHash() {
+        const m = /^#(sec-[a-z0-9-]+)$/.exec(location.hash || '');
+        const sec = m && document.getElementById(m[1]);
+        if (!sec || !sec.classList.contains('collapsible-section')) return false;
+        goToSection(m[1]);
+        return true;
     }
 """
 
