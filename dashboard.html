@@ -32,7 +32,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=8191363f3e17" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=86afbbe5f1a0" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -6272,7 +6272,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
          the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
          failed download is recorded so the page can say which of the failures it was. -->
     <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () { var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }, 4000);</script>
-    <script src="./dashboard_data.js?v=8191363f3e17" onerror="window.SCREENER_DATA_FAILED = true"></script>
+    <script src="./dashboard_data.js?v=86afbbe5f1a0" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)

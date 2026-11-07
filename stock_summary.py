@@ -136,7 +136,7 @@ def _fmt_metric(value, fmt: str) -> str:
     if value is None:
         return "n/a"
     if fmt == "pct":
-        return f"{value * 100:.1f}%"
+        return _pct_plain(value)
     if fmt == "bp":
         return f"{value * 10000:.0f} bp"
     if fmt == "int":
@@ -144,6 +144,23 @@ def _fmt_metric(value, fmt: str) -> str:
     if fmt == "score":
         return f"{value:.0f}" if abs(value - round(value)) < 1e-9 else f"{value:.1f}"
     return f"{value:.2f}"
+
+
+def _pct_plain(value: float, d: int = 1) -> str:
+    """Mirror of ``pctNearZero``/``pctPlain`` in the emitted JS (2026-11-06).
+
+    The page's rule for a percentage near zero: a value that is not zero takes one more decimal
+    rather than printing as a zero, and one still zero at that precision prints unsigned. The JS
+    formatters were brought under it on 2026-11-03; this prose mirror was not, and the 18:34 run
+    on 2026-11-06 printed LNT's 12-1 month return as "(-0.0%)" in its summary sentence - gate 1
+    red on the published payload (``tests/test_every_panel_reads_clean.py``)."""
+    pct = value * 100
+    dd = d
+    if pct != 0 and float(f"{pct:.{d}f}") == 0:
+        dd = d + 1
+    if float(f"{pct:.{dd}f}") == 0:
+        return f"{0:.{d}f}%"
+    return f"{pct:.{dd}f}%"
 
 
 def _fmt_money(value) -> str:
