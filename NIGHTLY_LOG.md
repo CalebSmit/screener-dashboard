@@ -20569,3 +20569,139 @@ No weight, metric, threshold, tolerance, verdict or published sentence changed.
 - If a copy of Mohanram (2005) as published (Springer, *Review of Accounting Studies* 10(2-3))
   ever becomes reachable, re-read Table 4 Panel A from it: two manuscripts agree, the version
   of record is still unseen.
+
+## 2026-11-07 (13:00 session) - QUEUE: the per-band health gate, and the one of its three thresholds that is a methodology decision rather than engineering
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-07_060001-weekend.log` (completed). Data loop published? yes - `logs/datarun-2026-11-06_183427.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **26 days**); also open: 0.10 31d; 0.14 24d.
+**Tests:** before 4130 passed / 1 skipped (211 s, parallel); after 4194 passed / 1 skipped.
+**Owner queue / rotation:** `write_brief.open_proposals()` is empty - no proposal waiting.
+Second session today. Read the 06:00 entry and **carried on from its `Next`**, which named phase
+1's remaining bullets "in this order: the per-band health gates ... then the `stock_detail`
+shard". Took the per-band gates. Nothing deferred for a gate or a stalled loop. The stash
+`auto-rescue 2026-10-28_060001` still holds an empty diff (`git stash show -p` prints nothing) -
+left alone, as this morning did. 0.13 (the Factor Lab, 26 days) deferred again: the owner queue
+outranks the roadmap, and this morning cleared the lab's one outstanding sub-item (experiment
+19's second reading), so the lab has nothing waiting on a reader.
+**Did not reverse this morning's decision** to leave the `config.yaml` `universe:` block alone -
+it is still a knob with one legal value, and nothing today needed it.
+
+### Did
+
+**`check_run_health.MIN_TARGET_COVERAGE` (0.50) now applies inside each size band as well as to
+the universe.** This is the first of phase 1's three remaining bullets
+(`plan/universe-expansion.md`: per band, "because a universe-wide average hides a thin bottom
+band"). `check_target_coverage_by_band` fails a run naming any band below the floor; the band is
+read from the run's **own** `01_raw_metrics.parquet` (`run_size_bands`), an artifact this gate
+already requires as fetch evidence, so the check needs no new input.
+
+- **The band is not published.** Phase 1's exit test is a byte-identical S&P 500 payload, so the
+  band stays out of it and the gate reads a parquet - which is also the rule the rest of the
+  module has followed since 2026-10-16: judge the run's own artifacts, never the last published
+  ones.
+- **A run with no band column is a note, never a failure** - every run before this morning. Same
+  trade as the unreadable-weights case beside it and the node/pytest fallbacks in both publish
+  paths: a gate that can only fail closed jams an unattended loop.
+- **It is strictly stronger than the universe-wide check it sits beside, and that is what let it
+  ship with no shadow run behind it.** The universe rate is a weighted mean of the band rates, so
+  a universe-wide failure implies some band below the same floor. `TestDominance` parametrises
+  that over five splits x seven coverage rates rather than asserting it in a comment.
+
+**`MIN_PRICE_COVERAGE` and `MIN_CATEGORY_COVERAGE` stay universe-wide, and the reason is not
+caution.** Analyst coverage is the one input to this screener whose *availability* is a function
+of company size. A price is served for every listed stock and a price history for every one with
+a year of trading, so both of those guard a **feed failure** - which appears across the whole
+universe or not at all. Banding them would add ways to fail and no ability to see anything. Two
+tests pin the scope, so it reads as a decision rather than an oversight.
+
+**`CATEGORY_AUTO_DISABLE_PCT` (30) is measured per band and still triggered universe-wide. That
+is the part of the bullet I did not build, on purpose.** The plan lists it beside the health gate,
+but the two are not the same kind of thing: the health gate's action is *discard the run*, so per
+band is engineering. The auto-disable's action is *change the weights*, and there are three
+incompatible per-band rules - **(a)** the universe mean decides, one weighting for everyone;
+**(b)** any band below the floor disables the category for the whole run, throwing a category away
+for 500 well-covered large companies because 600 small ones lack it; **(c)** disable per band,
+which gives the bands different weight vectors, so a composite means something different in each,
+on top of percentiles that are already within band. Which is right depends on how far Revisions
+and Investment coverage actually falls in the S&P 400 and 600 - **phase 2's** measurement, which
+does not exist yet. So `run_screener.weighted_coverage_pct_by_band` records the per-band figures
+now (into `stats`, printed only from the band a second one exists, so no run log gains a duplicate
+line), and choosing between (a)/(b)/(c) is a methodology change with its own
+`METHODOLOGY_CHANGELOG.md` entry. `test_the_trigger_takes_no_band_and_so_cannot_have_become_per_band`
+fails if it arrives as a keyword argument instead.
+
+**Nothing published moved**, and the rehearsal says so rather than me: `scripts/rehearse_publish.py`
+regenerated the page with this tree's code and all four published files came out **unchanged byte
+for byte** (380 page tests, 2,323 claim checks green).
+
+### Evidence / research
+
+- **Why analyst targets and not the other two.** Analyst following is increasing in firm size:
+  Bhushan 1989, "Firm characteristics and analyst following", *Journal of Accounting and
+  Economics* 11(2-3), 255-274 - market value is among the strongest determinants of the number of
+  analysts; and Hong, Lim & Stein 2000, "Bad News Travels Slowly", *Journal of Finance* 55(1),
+  265-295, whose design rests on small firms being the thinly-covered ones (their
+  residual-analyst-coverage sort is taken within size groups for exactly that reason). Both cited
+  from their published bibliographic details - **not read this session**; what they support is the
+  uncontroversial direction of the relation, not an effect size. The screener's own number is the
+  one that decides anything here.
+- **Measured on the published run** (`research/measurements/2026-11-07-target-coverage-by-band.py`,
+  committed): analyst-target coverage by market-cap decile of today's S&P 500 is 98-100%, the
+  **thinnest decile 98.0% - 1.96x the 50% floor**. So the gate cannot fire on the universe we
+  publish however it is banded, which is what phase 4 needs to be true before it bands the 500
+  itself by NYSE breakpoints. And it is **not vacuous**: with the 40 smallest stocks stripped of
+  their targets and made their own band, the universe-wide check passes at **91.6%** while the
+  per-band check fails.
+- **The mutation standard, because a test module written the same day as its feature is the
+  easiest place for a check to read as coverage and not be one** (`plan/claims-mutation-audit.md`,
+  nine passes). Six mutations a reader could plausibly ship - the check as a no-op, the floor
+  becoming exclusive, every run taking the one-band door, blank bands kept as bands, `df` for `g`
+  in the per-band figure (one character), and the auto-disable gaining a `by_band=` argument -
+  **6 of 6 caught** (`research/measurements/2026-11-07-per-band-gate-mutations.py`, committed; it
+  restores both files in a `finally`, and refuses to run on a dirty tree). And the figure that
+  says what the module is worth: with it deselected, the whole suite reports **4,130 passed, 1
+  skipped** against the feature being a complete no-op. Nothing else in the project can see it.
+- **Verified past the suite**, because unit tests use synthetic frames: the published run copied
+  to a temp directory with two *real* bands written into its own `01_raw_metrics.parquet` (the
+  bottom 40 by market cap against the other 462), run through `check_run_health.py --run-dir`.
+  Both bands were judged, and **457/459 + 40/40 = 497/499** reconciles exactly with the
+  universe-wide line - so no stock is lost between the two checks, which is the failure a
+  `groupby` on a band column invites. (Exit 2 there is the copied directory having no snapshot of
+  its own, not a coverage verdict.) Temp directory removed; the tree was clean afterwards.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or published sentence moved. The gate gained a check
+  that is strictly stronger and that cannot fire on today's universe (1.96x headroom, measured).
+  The auto-disable's threshold and trigger are untouched - see above for why that is the decision
+  and not the unfinished half.
+
+### Tried and rejected
+
+- **Making the auto-disable per band in this commit**, which is what the plan's bullet literally
+  asks for. It changes the weights, so under (b) or (c) it would be a methodology change shipped
+  as a phase-1 refactor with no number behind the choice: the thing that would decide between them
+  is the S&P 400/600 coverage phase 2 exists to measure. Did the measurement half, wrote the three
+  options into the plan and the docstring, and left the trigger alone with a tripwire on it.
+- **Putting the per-band rule on the methodology page.** `SCREENER_OVERVIEW.md` says the gate
+  "refuses a run with ... analyst-target coverage below 50%", which is exactly true today because
+  the band *is* the universe. Adding "per band" would publish a sentence describing a rule with no
+  effect, to a reader who has one universe. Recorded as a phase-3 obligation in the plan instead,
+  beside the three claims this morning flagged.
+- **`universe_history.MIN/MAX_PLAUSIBLE_MEMBERS` per index**, the bullet's third threshold. The
+  bound is already a property of a `Universe` (2026-11-03); what is missing is an S&P 400 and an
+  S&P 600 `Universe` to carry one, and those arrive with phase 2's constituent-list source. Giving
+  `validate_membership` a `universe=` argument today would edit `universe_history.py`, which is in
+  `v2_experiments.RESULT_PATHS` - a 32-row, ~25-minute research-engine rerun for a parameter with
+  one legal value, and a second rerun when phase 2 defines the universes. Do it in that commit and
+  pay the rerun once. Written into the plan so the next session does not have to infer it.
+
+### Next
+
+- **The `stock_detail` shard** - phase 1's last bullet, and the one that keeps first paint flat as
+  the universe grows (the Factor Lab's `LAZY_KEYS` pattern). It wants a session of its own, and the
+  bot's `stock_detail[t].price` has to stay where `tests/test_bot_payload_contract.py` says it is,
+  or move with the bot's tests.
+- Then phase 2: the S&P 400/600 constituent source. That is also the commit that should carry
+  `universe_history`'s per-index bounds (one rerun for both) and the S&P 400/600 `Universe`
+  objects the per-band gate will then see real bands from.
+- The next lab experiment built needs its own second reader; 19 was read this morning and stands.
