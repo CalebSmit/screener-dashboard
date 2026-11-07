@@ -13251,6 +13251,9 @@ def _css_page() -> str:
             html.print-page .brand-mark .bm-bg { fill: #fff; }
             html.print-page .top5-row { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 8px !important; }
             html.print-page .top5-card { break-inside: avoid; padding: 10px !important; font-size: 11px; }
+            /* one column each: a landscape page falls in the mid-width layout's 3-and-2 spans, which laid five
+               cards across ten-plus columns of a five-column grid - two wide rows, a page and a half (2026-11-06) */
+            html.print-page .top5-row > .top5-card { grid-column: auto !important; }
             html.print-page .print-caption { display: block; margin: 0 0 6px; font-size: 11px; color: #333; }
             html.print-page .table-section { overflow: visible !important; max-height: none !important; border: 0 !important; }
             /* A browser lays a printed page out at the paper's portrait width whatever @page says, which

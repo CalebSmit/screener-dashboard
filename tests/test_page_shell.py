@@ -406,7 +406,8 @@ def test_inter_fallback_carries_inters_vertical_metrics(browser, server):
 
 
 @needs_browser
-@pytest.mark.parametrize("width", [375, 1280])
+# 1010: the width a landscape Letter page lays out at, inside the 761-1100 px mid-width layout
+@pytest.mark.parametrize("width", [375, 1010, 1280])
 def test_on_paper_the_rankings_are_every_row_as_a_light_table(browser, server, width):
     ctx = _context(browser, width=width, height=812 if width < 700 else 900, touch=width < 700)
     page, errors = _page(ctx)
@@ -430,6 +431,12 @@ def test_on_paper_the_rankings_are_every_row_as_a_light_table(browser, server, w
             assert not page.is_visible(sel), sel
         # a collapsed section stays off the paper; an open one prints
         assert page.is_visible("#sec-top5")
+        # the five leaders sit one to a column, in one row (2026-11-06: the mid-width layout's 3-and-2
+        # spans survived into print and laid them across two wide rows, a page and a half)
+        cards = page.evaluate("""() => [...document.querySelectorAll('#top5-row > .top5-card')].map(c => {
+            const r = c.getBoundingClientRect(); return [Math.round(r.top), r.width]; })""")
+        assert len(cards) == 5 and len({t for t, _ in cards}) == 1, cards
+        assert max(w for _, w in cards) - min(w for _, w in cards) < 1.0, cards
         # the window comes back afterwards
         page.emulate_media(media="screen")
         page.evaluate("window.dispatchEvent(new Event('afterprint'))")
