@@ -158,6 +158,25 @@ printed from the band a second one exists) and **choosing between (a), (b) and (
 methodology change with its own `METHODOLOGY_CHANGELOG.md` entry**, never a side effect of
 phase 2 or 3. `tests/test_per_band_gates.py` fails if the trigger becomes per-band without it.
 
+**Measured against the mutation standard, because a test module written the same day as its
+feature is the easiest place for a check to read as coverage and not be one
+(`plan/claims-mutation-audit.md`, nine passes):** six mutations a reader could plausibly ship -
+the per-band check as a no-op, the floor becoming exclusive, every run taking the one-band door,
+blank bands kept as bands, `df` for `g` in the per-band figure (one character), and the
+auto-disable gaining a `by_band=` argument - **6 of 6 caught**
+(`research/measurements/2026-11-07-per-band-gate-mutations.py`). And the number that says what
+the module is worth: with it deselected, the whole suite reports **4,130 passed, 1 skipped**
+against the feature being a complete no-op. Nothing else in the project can see it.
+**Verified past the suite:** the published run copied to a temp directory with two real bands
+written into its own `01_raw_metrics.parquet` (bottom 40 by market cap against the other 462),
+through `check_run_health.py --run-dir`: both bands judged, and **457/459 + 40/40 = 497/499**
+reconciles with the universe-wide line, so no stock is lost between the two checks.
+
+**A phase-3 obligation this creates**, beside the three claims the 06:00 session recorded:
+`SCREENER_OVERVIEW.md`'s fetch-reliability paragraph says the gate "refuses a run with ... 
+analyst-target coverage below 50%". True today, and exactly true, because the band is the
+universe. The session that publishes a second band says *per band* there, in the same commit.
+
 **Not done, and why:** `universe_history.MIN/MAX_PLAUSIBLE_MEMBERS` per index. The bound is
 already a property of a `Universe` (`CURRENT.min_members`/`max_members`, 2026-11-03); what is
 missing is an S&P 400 and an S&P 600 `Universe` to carry one, and those arrive with phase 2's
