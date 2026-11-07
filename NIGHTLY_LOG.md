@@ -20313,8 +20313,19 @@ published one: exactly one difference**, that sentence, now "(-0.01%)"; `dashboa
 byte-identical; the page differs only in the payload's `?v=` hash; `signals.json` untouched (same
 `run_id`, timestamp and ranking). Suite after: **4067 passed, 1 skipped.**
 
+**Pages did not deploy it.** Commit `84a4cd4` built fine, but its `pages-build-deployment` deploy
+step hung in `syncing_files` and timed out at 10 minutes - three times (the original, a rerun, and
+a fresh `POST /pages/builds`), while the five deploys before it that day took ~50 s. The uploaded
+artifact was the same size as the last good one (37,180,568 bytes against 37,178,882), and
+githubstatus.com showed Pages operational with no open incident - so GitHub's side, not the
+commit. The live page therefore still served `9f92130` (the 18:59 publish: right data, LNT's one
+"-0.0%" sentence) when this was written; this log commit is the next deploy attempt.
+
 ### Next
 
+- **Check the live site serves `main`**: `D.stock_detail.LNT.summary` should read "(-0.01%)". If
+  Pages is still timing out, the data is right and only that sentence is stale - not worth more
+  than a rerun of the latest `pages-build-deployment`.
 - Monday's 02:00 run is ordinary (no same-day cache exists then); nothing to watch for.
 - The same-day cache is still unsafe after a *code* change: its key is the config hash, so a hand
   rerun after a scoring fix reuses scores from the old code. Hand runs only; not urgent.
