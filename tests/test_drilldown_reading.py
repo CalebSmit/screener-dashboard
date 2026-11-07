@@ -301,6 +301,8 @@ def test_printing_with_a_sheet_open_prints_the_sheet_and_puts_it_back(browser):
         _sheet(page, EX)
         before = page.evaluate("[...document.querySelectorAll('#stock-modal .collapsible.collapsed')].map(s => s.id)")
         assert before, "some sections start folded"
+        cats_before = page.evaluate("document.querySelectorAll('#modal-categories .cat-detail-section.collapsed').length")
+        assert cats_before, "the workings' category tables start folded"
         page.evaluate("window.print = () => {}; printSheet()")
         page.emulate_media(media="print")
         page.wait_for_function("document.documentElement.classList.contains('print-sheet')", timeout=WAIT)
@@ -309,18 +311,25 @@ def test_printing_with_a_sheet_open_prints_the_sheet_and_puts_it_back(browser):
             others: [...document.querySelectorAll('.dashboard-container > :not(#stock-modal), body > :not(.dashboard-container)')]
                 .filter(e => getComputedStyle(e).display !== 'none').map(e => e.id || e.className),
             folded: document.querySelectorAll('#stock-modal .collapsible.collapsed').length,
+            // "every section open" includes the workings' metric tables (2026-11-06: paper had headers only)
+            catsFolded: document.querySelectorAll('#modal-categories .cat-detail-section.collapsed').length,
+            // and no control with nothing to do on paper
+            controls: [...document.querySelectorAll('#stock-modal .peer-add-bar, #stock-modal .peer-remove-btn, #stock-modal .wk-more, #stock-modal .ctx-teaser')]
+                .filter(e => getComputedStyle(e).display !== 'none').map(e => e.className),
             tools: getComputedStyle(document.querySelector('#stock-modal .modal-tools')).display,
             tabs: getComputedStyle(document.querySelector('#stock-modal .mnav-wrap')).display,
             body: getComputedStyle(document.querySelector('#stock-modal .modal-body')).overflowY,
             bg: getComputedStyle(document.querySelector('#stock-modal .modal-content')).backgroundColor })""")
         assert got["sheet"] == "block" and got["others"] == [], got
         assert got["folded"] == 0 and got["tools"] == "none" and got["tabs"] == "none", got
+        assert got["catsFolded"] == 0 and got["controls"] == [], got
         assert got["body"] == "visible" and got["bg"] == "rgb(255, 255, 255)", got
         page.emulate_media(media="screen")
         page.evaluate("window.dispatchEvent(new Event('afterprint'))")
         page.wait_for_function("!document.documentElement.classList.contains('print-sheet')", timeout=WAIT)
         after = page.evaluate("[...document.querySelectorAll('#stock-modal .collapsible.collapsed')].map(s => s.id)")
         assert after == before
+        assert page.evaluate("document.querySelectorAll('#modal-categories .cat-detail-section.collapsed').length") == cats_before
         # with no sheet open, printing is the page's own business
         page.evaluate("closeModal(); window.dispatchEvent(new Event('beforeprint'))")
         assert page.evaluate("document.documentElement.classList.contains('print-sheet')") is False

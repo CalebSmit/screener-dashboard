@@ -13713,7 +13713,9 @@ def _js_drilldown() -> str:
     function preparePrint() {
         if (PRINT_STATE || !sheetOpen()) return;
         const sheet = document.querySelector('#stock-modal .modal-content');
-        const opened = [...document.querySelectorAll('#stock-modal .collapsible.collapsed')];
+        // The workings' eight category tables collapse with their own class: the button promises "every
+        // section open", and paper got the category headers without a metric under them (2026-11-06).
+        const opened = [...document.querySelectorAll('#stock-modal .collapsible.collapsed, #modal-categories .cat-detail-section.collapsed')];
         opened.forEach(s => s.classList.remove('collapsed'));
         const why = [...document.querySelectorAll('#stock-modal .ctx-why:not(.open)')];
         why.forEach(p => p.classList.add('open'));
@@ -14215,7 +14217,11 @@ def _css_drilldown() -> str:
             html.print-sheet #stock-modal .mnav-wrap, html.print-sheet #stock-modal .modal-tools, html.print-sheet #stock-modal .modal-close,
             html.print-sheet #stock-modal .modal-content::before, html.print-sheet #stock-modal .collapsible-chevron,
             html.print-sheet #stock-modal .wk-chevron, html.print-sheet #stock-modal .about-toggle, html.print-sheet #stock-modal .ctx-why-more,
-            html.print-sheet #stock-modal .wk-controls, html.print-sheet #stock-modal .case-go { display: none !important; }
+            html.print-sheet #stock-modal .wk-controls, html.print-sheet #stock-modal .case-go,
+            /* controls with nothing to do on paper: the peer search and its remove buttons, each metric's
+               Calculation toggle, and the teaser that only jumps to "Before you decide" (2026-11-06) */
+            html.print-sheet #stock-modal .peer-add-bar, html.print-sheet #stock-modal .peer-remove-btn,
+            html.print-sheet #stock-modal .wk-more, html.print-sheet #stock-modal .ctx-teaser { display: none !important; }
             html.print-sheet #stock-modal .ctx-why, html.print-sheet #stock-modal .about-text {
                 display: block !important; -webkit-line-clamp: unset !important; line-clamp: none !important; overflow: visible !important; max-height: none !important;
             }
