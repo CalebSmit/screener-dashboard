@@ -213,3 +213,46 @@ def test_the_price_cache_never_holds_a_part_month():
     src = (ROOT / "valuation_history.py").read_text(encoding="utf-8")
     i = src.index("close = close[close.index < today.to_period")
     assert i < src.index("close.to_parquet(PRICE_PATH)")
+
+
+# ---- A share count filed in the wrong units (2026-11-06) ---------------------------------------
+# The live page printed HST's five-year earnings-yield range as -84764.2% to 5455967.6%: one
+# year's diluted shares were tagged in thousands, so those month-ends' market values were 1,000x
+# too small. Measured over 28,511 stock-months: genuine departures from today's count stop at
+# 4.24x and unit errors start at 914x (research/measurements/2026-11-06-valhist-share-units.py).
+
+def _history_with_shares(year_shares: dict):
+    rows = []
+    for y in range(2019, 2027):
+        rows.append(("X", NI, f"{y - 1}-01-01", f"{y - 1}-12-31", f"{y}-02-15", "10-K", "FY", 50.0))
+        rows.append(("X", SH, f"{y - 1}-01-01", f"{y - 1}-12-31", f"{y}-02-15", "10-K", "FY",
+                     year_shares.get(y, 100.0)))
+    f = _facts(rows)
+    idx = pd.date_range("2021-09-01", periods=60, freq="MS")
+    return f, pd.Series(np.linspace(5, 20, 60), index=idx)
+
+
+def test_a_year_filed_in_thousands_gives_those_months_no_yield():
+    f, closes = _history_with_shares({2023: 0.1})          # 1,000x too few, filed 2023-02-15
+    b = vh.for_ticker(f, closes, [], 10.0, 1000.0, TODAY, fcf=False)
+    ey = b["ey"]
+    months = closes.index[-vh.MONTHS:]
+    for m, x in zip(months, ey["s"]):
+        filed_in_2023 = pd.Timestamp("2023-02-15") <= m + pd.offsets.MonthEnd(0) < pd.Timestamp("2024-02-15")
+        assert (x is None) is filed_in_2023, (m, x)
+    # and the range is a yield range again: 50 / (price 5..20 x 100 shares) = 2.5% .. 10%
+    assert 0.02 < ey["lo"] <= ey["hi"] < 0.11, ey
+
+
+def test_a_real_fourfold_change_in_shares_is_kept():
+    f, closes = _history_with_shares({2023: 25.0})          # a quarter of today's count: real
+    ey = vh.for_ticker(f, closes, [], 10.0, 1000.0, TODAY, fcf=False)["ey"]
+    assert all(x is not None for x in ey["s"]), ey["s"]
+
+
+@pytest.mark.parametrize("ratio, kept", [(9.99, True), (10.0, True), (10.01, False),
+                                         (0.1001, True), (0.1, True), (0.0999, False)])
+def test_the_unit_bound_is_ten_times_either_way(ratio, kept):
+    f, closes = _history_with_shares({2023: 100.0 * ratio})
+    ey = vh.for_ticker(f, closes, [], 10.0, 1000.0, TODAY, fcf=False)["ey"]
+    assert all(x is not None for x in ey["s"]) is kept, (ratio, ey["s"])

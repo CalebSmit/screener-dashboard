@@ -26,7 +26,10 @@ Three construction rules, each the answer to a way this goes wrong:
    weighted-average shares, split-adjusted.
 
 **The self-check that decides whether a stock is shown at all:** today's market value built this
-way must agree with the data provider's own market capitalisation within ``MCAP_TOLERANCE``. A
+way must agree with the data provider's own market capitalisation within ``MCAP_TOLERANCE``. **And
+each past month's share count must sit within ``SHARE_UNIT_RATIO`` of today's verified one**, or
+that month has no market value (2026-11-06: a count filed in thousands made HST's range read
+-84764% to 5455968% on the live page). A
 company whose filed share count does not reproduce its market value today (several share classes
 reported separately, an unusual tag) cannot be trusted for the past either, so it gets nothing.
 """
@@ -54,6 +57,13 @@ SHARES = ("WeightedAverageNumberOfDilutedSharesOutstanding",       # preference 
 MONTHS = 60                 # five years of month-ends
 MIN_MONTHS = 36             # fewer and the range is not shown
 MCAP_TOLERANCE = 0.15       # |our market value / provider's - 1| above this -> not shown
+# A past month's filed share count more than this many times today's verified count, either way,
+# is a unit error in the filing, not a change in the company; that month gets no market value.
+# Measured 2026-11-06 over 28,511 stock-months (research/measurements/2026-11-06-valhist-share-units.py):
+# the largest genuine departure is 4.24x (ECHO, the 2023 DISH merger) and the smallest error 914x
+# (COP); nothing lies between 5x and 100x. Without it the live page printed HST's five-year
+# earnings-yield range as -84764.2% to 5455967.6%, and 14 more stocks carried such months.
+SHARE_UNIT_RATIO = 10.0
 MAX_TTM_AGE_DAYS = 460      # a TTM whose period ended longer ago than this is stale
 # "Today's" yield must rest on a recent period: VTRS's filings carry only annual figures, so the
 # 460-day bound let a fiscal-year-old TTM stand as today's (-17.1% against Yahoo's -2.0%).
@@ -209,6 +219,8 @@ def for_ticker(f: pd.DataFrame, closes: pd.Series, splits: list, price_now: floa
         # trading day, so "filed by then" is judged at the month's end.
         px, md = closes.get(m), _day(m + pd.offsets.MonthEnd(0))
         s = _shares_as_of(sh, md, splits)
+        if s and not (1 / SHARE_UNIT_RATIO <= s / shares_now <= SHARE_UNIT_RATIO):
+            s = None            # a filing's unit error (SHARE_UNIT_RATIO), never a real month
         mv = px * s if (px is not None and s and np.isfinite(px)) else None
         n = _as_of(ni, md)
         ey.append(n / mv if (mv and n is not None) else None)
