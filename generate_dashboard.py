@@ -10336,9 +10336,12 @@ def _css_ux() -> str:
         .cmp-gaps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 0 40px; }
         .cmp-gaps .gap-rows { max-width: none; }
         .cmp-count { display: none; font-size: 13px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        /* Below 420px the count replaces the chips. Scoped to the tray: the bare `.cmp-chips {display:flex}`
+           comes later in the sheet and won at equal specificity, so a phone showed both - the second
+           chip cut to "MI" under "3 stocks" and the third hidden (2026-11-06). */
         @media (max-width: 420px) {
-            .cmp-chips { display: none; }
-            .cmp-count { display: inline; margin-right: auto; }
+            .cmp-tray .cmp-chips { display: none; }
+            .cmp-tray .cmp-count { display: inline; margin-right: auto; }
         }
 
         details.holdings-concentration { padding: 0; }

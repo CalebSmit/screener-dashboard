@@ -290,6 +290,26 @@ def test_phone_compare_and_sheet_do_not_scroll_the_page_sideways(browser):
 
 
 @needs_browser
+@pytest.mark.parametrize("w, chips", [(375, False), (1280, True)])
+def test_the_tray_shows_chips_or_a_count_never_both(browser, w, chips):
+    """Below 420px the count replaces the chips. 2026-11-06: a later bare `.cmp-chips` rule won the
+    cascade, so a phone showed both - the second chip cut to "MI" under "3 stocks", the third hidden."""
+    ctx, page, _ = _open(browser, w, 812)
+    try:
+        page.evaluate(f"UX.compare = {[EX, CMP2, CMP3]!r}; saveCompare()")
+        got = page.evaluate("""() => { const v = s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; };
+            const kids = [...document.querySelectorAll('#cmp-tray > *')].filter(e => getComputedStyle(e).display !== 'none')
+                .map(e => e.getBoundingClientRect()).sort((a, b) => a.left - b.left);
+            return { chips: v('#cmp-chips'), count: v('#cmp-count'),
+                     overlap: kids.some((r, i) => i && r.left < kids[i - 1].right - 0.5 && r.top < kids[i - 1].bottom && kids[i - 1].top < r.bottom) }; }""")
+        assert got["chips"] is chips and got["count"] is (not chips), got
+        assert not got["overlap"], got
+    finally:
+        page.evaluate("clearCompare()")
+        ctx.close()
+
+
+@needs_browser
 def test_the_guide_dismisses_and_stays_dismissed(browser):
     ctx, page, _ = _open(browser)
     try:
