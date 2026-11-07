@@ -330,6 +330,48 @@ def test_the_calculation_button_is_a_chevron_on_a_phone(browser, w, label):
         ctx.close()
 
 
+def _payload_map(key: str) -> dict:
+    import json
+    t = (ROOT / "dashboard_data.js").read_text(encoding="utf-8")
+    return json.loads(t[t.index("{"):t.rindex("}") + 1]).get(key) or {}
+
+
+@needs_browser
+def test_a_link_to_a_second_share_class_opens_the_ranked_line(browser):
+    """#stock=GOOG said "No stock GOOG in this run" while Alphabet sat at GOOGL (2026-11-06). The
+    pair is read from today's payload, so the test asserts the rule, not which classes exist."""
+    classes = {k: v for k, v in _payload_map("share_classes").items() if v.get("scored_as")}
+    if not classes:
+        pytest.skip("MISSING DATA: no second share class in the published payload")
+    second, sc = sorted(classes.items())[0]
+    ctx, page, errors = _open(browser, hash_="#stock=" + second.lower())
+    try:
+        page.wait_for_function("UX.current !== null", timeout=15000)
+        got = page.evaluate("({cur: UX.current, hash: location.hash, toast: document.getElementById('toast').textContent})")
+        assert got["cur"] == sc["scored_as"] and got["hash"] == "#stock=" + sc["scored_as"], got
+        assert got["toast"] == f"{second} is a second share class of {sc['company']}, ranked once as {sc['scored_as']}", got
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_a_link_to_an_unscored_member_says_why(browser):
+    unscored = _payload_map("unscored")
+    if not unscored:
+        pytest.skip("MISSING DATA: every member was scored in the published run")
+    t, name = sorted(unscored.items())[0]
+    ctx, page, _ = _open(browser, hash_="#stock=" + t)
+    try:
+        page.wait_for_function("document.getElementById('toast').textContent.length > 0", timeout=15000)
+        msg = page.evaluate("document.getElementById('toast').textContent")
+        assert msg.startswith(f"{name or t} is in the S&P 500, but this run left it unscored"), msg
+        assert "&amp;" not in msg
+        assert page.evaluate("UX.current") is None
+    finally:
+        ctx.close()
+
+
 @needs_browser
 def test_the_guide_dismisses_and_stays_dismissed(browser):
     ctx, page, _ = _open(browser)

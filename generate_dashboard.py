@@ -9084,7 +9084,22 @@ def _js_ux() -> str:
         const t = decodeURIComponent(m[1]).toUpperCase();
         if (D.stock_detail[t]) return t;
         const dashed = t.replace(/\./g, '-');
-        return D.stock_detail[dashed] ? dashed : null;
+        if (D.stock_detail[dashed]) return dashed;
+        // A second listed share class (GOOG, FOX, NWS) opens the company's one ranked line: a link
+        // naming it said "No stock GOOG in this run" while Alphabet sat at GOOGL (2026-11-06).
+        const sc = shareClassOf(t);
+        return sc && D.stock_detail[sc.scored_as] ? sc.scored_as : null;
+    }
+    // What to say when a link named a share class and its company's ranked line opened instead.
+    function shareClassHashNote() {
+        const m = /^#stock=([A-Za-z0-9.\-]{1,12})$/.exec(location.hash || '');
+        if (!m) return '';
+        const raw = decodeURIComponent(m[1]).toUpperCase();
+        if (D.stock_detail[raw] || D.stock_detail[raw.replace(/\./g, '-')]) return '';
+        const sc = shareClassOf(raw);
+        return sc && D.stock_detail[sc.scored_as]
+            ? raw + ' is a second share class of ' + String(sc.company || sc.scored_as) + ', ranked once as ' + sc.scored_as
+            : '';
     }
     // A #stock= link naming nothing in this run used to do nothing at all. It now says so and
     // clears the hash, so the address bar does not keep claiming a stock that is not shown.
@@ -9094,7 +9109,10 @@ def _js_ux() -> str:
         let t = m[1];
         try { t = decodeURIComponent(t); } catch (e) { /* keep it raw */ }
         t = String(t).toUpperCase().slice(0, 16);
-        toast(t ? 'No stock ' + t + ' in this run' : 'No stock named in this link');
+        // A member the run could not score has its own true reason (the one search gives); the toast
+        // is plain text, so the shared sentence's one entity is put back (2026-11-06).
+        const um = t ? unscoredMemberText(t).replace(/&amp;/g, '&') : '';
+        toast(um || (t ? 'No stock ' + t + ' in this run' : 'No stock named in this link'));
         try { history.replaceState(null, '', baseUrl()); } catch (e) { /* ignore */ }
         return true;
     }
@@ -9152,8 +9170,8 @@ def _js_ux() -> str:
     };
 
     if (window.addEventListener) window.addEventListener('popstate', () => {
-        const t = stockFromHash();
-        if (t) openStockDetail(t, { fromHistory: true });
+        const note = shareClassHashNote(), t = stockFromHash();
+        if (t) { openStockDetail(t, { fromHistory: true }); if (note) toast(note); }
         else if (sheetOpen()) closeModal({ fromHistory: true });
         else rejectStockHash();
     });
@@ -9976,8 +9994,8 @@ def _js_ux() -> str:
             const _rh = renderHoldings;
             renderHoldings = function() { _rh.apply(this, arguments); updateSectionMeta(); if (UX.current) updateSheetTools(); };
         }
-        const t = stockFromHash();
-        if (t) openStockDetail(t, { replace: true });
+        const note = shareClassHashNote(), t = stockFromHash();
+        if (t) { openStockDetail(t, { replace: true }); if (note) toast(note); }
         else rejectStockHash();
     }
 """
