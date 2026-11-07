@@ -206,8 +206,9 @@ note would have to answer before anything moved:
 - The page was opened at 1440 px and 375 px: no page errors, no sideways scroll, the six bars and
   all seven comparison rows present at both widths.
 
-**Still open for a second reader** (`OWNER_FOCUS.md` 2026-10-20 item 2 - an experiment is not
-checked until someone who did not write it has read it):
+**Taken by a second reader on 2026-11-07 - see section 8 below.** The three items as they were
+written (`OWNER_FOCUS.md` 2026-10-20 item 2 - an experiment is not checked until someone who did
+not write it has read it):
 
 - The **version of record** was not obtained; only the accepted manuscript. Table 4 Panel A should
   be re-read from the published article if a copy can be had.
@@ -216,3 +217,95 @@ checked until someone who did not write it has read it):
 - The claim in section 4 that `SignalDoc`'s `Return` column is the paper's figure rather than a
   measured one rests on one check (`PS` = 23.5%). A second reader should test it on two or three
   more signals.
+
+## 8. Second reading (2026-11-07, 06:00 weekend session - not the session that wrote this note)
+
+`OWNER_FOCUS.md` 2026-10-20 item 2: an experiment is not checked until someone who did not write
+it has read it. All three of section 7's open items were taken. **Nothing needed correcting -
+every reference figure is exact and every measured figure reproduces** - and the third item is
+answered more strongly than the note could answer it.
+
+Measured by `research/measurements/2026-11-07-lab-mohanram-second-reading.py`, committed, which
+does not import `factor_lab`.
+
+**(a) The pre-registration is genuine, checked in `git log`.** Commit `4a55141` (2026-11-06 13:14)
+adds 173 lines to `factor_lab.py` and **nothing else** - no `lab_data.js`, so no return had been
+written - with `verdict_note` empty and the comment "written from the comparison, after the run"
+standing in its place. The result commit is `3f3cb98` at 13:26, twelve minutes later. All seven
+`paper` figures and all seven tolerances are byte-identical between the two commits, so nothing
+was adjusted once the answer was known. Twelve minutes is the shortest gap of any experiment so
+far (16 and 17 had 24 and 90); the ordering is sound, and a reader who wants the gap itself to
+carry weight should know it is thin.
+
+**(b) The paper's figures: all seven exact, and in two independent copies.** The version of
+record is behind Springer's paywall (the PDF link returns HTML), so it is **still not obtained** -
+that caveat stands. What was obtained instead is a *second* manuscript, from Columbia Business
+School's faculty pages (46 pages, against TSpace's 47), read with `pypdf`. Its Table 4 Panel A is
+**character-identical** to TSpace's on every row. Re-read from the bytes:
+
+| | Paper, Table 4 Panel A | In the record |
+|---|---|---|
+| LOW (0,1), n 3,295 | **-4.0%** | -4.0 |
+| G_SCORE 2, n 4,430 | **5.1%** | 5.1 |
+| G_SCORE 3, n 4,514 | **7.8%** | 7.8 |
+| G_SCORE 4, n 3,590 | **11.6%** | 11.6 |
+| G_SCORE 5, n 2,747 | **16.5%** | 16.5 |
+| HIGH (6,7,8), n 2,290 | **17.4%** | 17.4 |
+| HIGH - LOW | **21.4%**, t **10.71*** | 21.4, t 10.71 |
+| ALL | 20,866 firm-years, 8.2% | 20,866; 8.2% (rule 8's null) |
+
+Three further figures the record relies on are exact too: Panel B's ends (**3.3%** strong,
+**-17.9%** weak, which is section 6's "most of the gap is the weak end"), and the two-sample t's
+base - HIGH 2,290 + LOW 3,295 = **5,585 firm-years**, exactly as section 4 says.
+
+**One thing found in the paper that is not an error here.** Mohanram's own text on PDF p. 26 says
+"the 21.2% difference reported in Table 4" while discussing raw returns. 21.2% is **Panel B's**
+spread (size-adjusted); Panel A's is 21.4%, as p. 18 and the table both state. The record cites
+Panel A and is right; the slip is the paper's, and it is worth knowing because 21.2 and 21.4 are
+close enough that a reader meeting only p. 26 would register the wrong number.
+
+**(c) Every measured figure recomputed independently - all reproduce.** From
+`PredictorPortsFull.parquet` and `PredictorAltPorts_LiqScreen_VWforce.parquet`, pivoting the `MS`
+rows by month and port, with no `factor_lab` import: the paper window is 288 months (1978-01 to
+2001-12) and the six groups give **+3.22, +5.40, +6.48, +12.75, +7.58, +16.48** per cent a year,
+spread **+13.26%**, t **4.96** - the note's section 5 table to the second decimal, and **4 of 7**
+within tolerance, the count the page publishes. After the paper: **+5.04% (t 2.32)** and
+**+6.94% since 2007 (t 2.72)** equally weighted, **+3.67% (t 1.52)** and **+6.01% (t 2.21)** by
+market value. The monthly standard deviations are **6.24** for the strongest group against
+**7.18-7.89** for the other five, so "the strongest group was also the calmest" holds.
+
+A cross-check the note did not have: the library's own `LS` port for `MS` averages 1.1047% a
+month over the window, and 1.1047 x 12 = **13.26%** - the same number as port 06 minus port 01.
+The lab's construction of the spread is the library's.
+
+**(d) The `SignalDoc` claim, tested on seven signals instead of one - it holds, and the
+transcription is visible in the ratios.** Section 4 says the `Return` column is the *paper's*
+figure as the library recorded it, not a measured one, and rests that on `PS` alone. Comparing
+each entry with the library's own measured long-short mean over that signal's documented sample:
+
+| Signal | `SignalDoc` `Return` | Library's measured LS | ratio |
+|---|---|---|---|
+| Accruals | 0.8667 | 0.6865 | 1.26 |
+| AssetGrowth | 1.7300 | 1.4947 | 1.16 |
+| GP | 0.3100 | 0.3011 | 1.03 |
+| Mom12m | 1.3100 | 1.3407 | 0.98 |
+| MS | 1.5750 | 1.1047 | 1.43 |
+| NetEquityFinance | 0.9300 | 0.7117 | 1.31 |
+| PS | 1.9583 | 1.0480 | 1.87 |
+
+Five of the seven differ by more than 0.05% a month, two of them by over 40%. And the column's
+values are recognisable as published headline figures rather than anything a rebuild produces:
+`Mom12m` at **1.31% a month** is Jegadeesh & Titman's own number, and `PS` at 1.9583 x 12 =
+**23.5%** is Piotroski's, which is the one check the note made. So the note's reading is right,
+and the pre-registration was blinder than its own disclosure claimed - the disclosure stays in the
+record, because what a session *believed* it had seen is the honest thing to publish.
+
+**(e) One observation, not a defect.** The library's six `MS` ports do not all start together -
+port 01 runs from 1962-07 and port 06 only from 1974-09, so 163 months before 1976-07 have no
+high group. **None of them is in the compared window**: 1978-01 onward is complete for all six.
+The "Everything · FIRST-LAST" preset on the page therefore shows each group over its own span
+while the spread uses the months both ends exist (587 of 750). That is the only way to draw it
+without discarding history, and the paper comparison is unaffected.
+
+**Verdict: experiment 19 stands as published.** No figure, tolerance, verdict or published
+sentence changed.
