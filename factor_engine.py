@@ -33,6 +33,8 @@ import pandas as pd
 import yaml
 from openpyxl import Workbook
 
+import universe
+
 # Phase 13 (F15): do NOT blanket-suppress warnings. A bare
 # filterwarnings("ignore") silenced the screener's OWN schema-drift and
 # staleness alerts (_stmt_val label misses, _stale_data), so a yfinance schema
@@ -3309,22 +3311,43 @@ def _directed_pct(s: pd.Series, higher_is_better: bool) -> pd.Series:
 
 
 def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
+    """Rank every metric within ``(Sector, size_band)``, falling back band-wide below ten peers.
+
+    The band is pre-registration 3 of ``plan/universe-expansion.md``, adopted 2026-11-03: once
+    small companies are in the pool, "cheap for a utility" has to mean cheap against utilities
+    *of about this size*, because the size effect runs through most of these metrics. Today
+    there is one band and it is the whole universe, so this is exactly the sector ranking it
+    replaces - measured, not argued: 0 of 23,092 percentile values move
+    (``tests/test_size_bands.py``, and ``research/measurements/2026-11-03-band-percentiles-identity.py``
+    before it), against 20,151 for a genuine two-band split, which is what makes the zero mean
+    something.
+
+    The fallback moved with it: a sector-band group below ``SECTOR_MIN_PEERS`` falls back to its
+    **band**, not to the whole universe. Falling back across bands would put exactly the stocks
+    with the thinnest peer group - small companies in a small sector - back in a distribution
+    dominated by mega caps, which is the size mixing the split exists to remove.
+    """
+    band_col = universe.SIZE_BAND_COL
+    universe.assign_size_bands(df)
+
     pct = {c: f"{c}_pct" for c in METRIC_COLS}
     for c in pct.values():
         df[c] = np.nan
 
-    # Pre-compute universe-wide ranks for small-sector fallback.
-    # When a sector has < 10 valid values for a metric, we fall back
-    # to universe-wide percentile ranking instead of assigning a flat
+    # Pre-compute band-wide ranks for the small-sector fallback.
+    # When a sector has < 10 valid values for a metric within its band, we fall
+    # back to band-wide percentile ranking instead of assigning a flat
     # 50th percentile (which penalizes good stocks and rewards bad
     # ones in small sectors).
-    universe_ranks = {}
-    for col in METRIC_COLS:
-        if col not in df.columns:
-            continue
-        universe_ranks[col] = _directed_pct(df[col], METRIC_DIR.get(col, True))
+    band_ranks: dict[object, dict[str, pd.Series]] = {}
+    for band, bgrp in df.groupby(band_col):
+        band_ranks[band] = {
+            col: _directed_pct(bgrp[col], METRIC_DIR.get(col, True))
+            for col in METRIC_COLS
+            if col in df.columns
+        }
 
-    for _, grp in df.groupby("Sector"):
+    for (_sector, band), grp in df.groupby(["Sector", band_col]):
         for col in METRIC_COLS:
             pc = pct[col]
             if col not in df.columns:
@@ -3332,9 +3355,10 @@ def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
                 continue
             valid = grp[col].dropna()
             if len(valid) < SECTOR_MIN_PEERS:
-                # Fall back to universe-wide ranking for this metric
-                if col in universe_ranks:
-                    df.loc[grp.index, pc] = universe_ranks[col].loc[grp.index]
+                # Fall back to band-wide ranking for this metric
+                ranks = band_ranks.get(band, {}).get(col)
+                if ranks is not None:
+                    df.loc[grp.index, pc] = ranks.loc[grp.index]
                 else:
                     df.loc[grp.index, pc] = 50.0
                 continue
@@ -3971,7 +3995,12 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         # Cross-sectional percentile rank as the DISPLAY column: 98.5 means
         # "better than 98.5% of the universe". Meaningful across runs, but it is
         # NOT the ranking key (that is the cardinal weighted-average below).
-        df["Composite_Pct"] = (df["Composite"].rank(pct=True) * 100).round(2)
+        # Ranked within the stock's size band, for the reason the metric percentiles are
+        # (compute_sector_percentiles): with the S&P 600 in the pool, "better than 98.5% of
+        # the universe" would mostly be saying the stock is large. One band today, so the
+        # figure is unchanged - pinned by tests/test_size_bands.py.
+        bands = universe.assign_size_bands(df)[universe.SIZE_BAND_COL]
+        df["Composite_Pct"] = (df.groupby(bands)["Composite"].rank(pct=True) * 100).round(2)
 
     # === Composite Confidence Score ===
     # Confidence is based on:

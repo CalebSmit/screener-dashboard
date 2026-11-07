@@ -110,8 +110,12 @@ MIN_STOCKS_A_MONTH = 50          # a month enters a comparison only with this ma
 # ``universe_history`` is on the list for the same reason ``pit_record`` is, though item 8b names
 # only the latter: both run at build time rather than at run time, and both decide what a month
 # contains - who was a member, and what their filings said.
+# ``universe`` joined 2026-11-07, when ``compute_sector_percentiles`` started grouping by
+# ``(Sector, size_band)`` and taking the band from it: that module now decides which stocks each
+# metric is ranked against, so an edit there moves every number below it. It carried one constant
+# string when it was added and would still have been invisible to this hash.
 RESULT_PATHS = ("v2_experiments.py", "backtest_v2.py", "backtest_v2_returns.py", "factor_engine.py",
-                "pit_record.py", "universe_history.py", "config.yaml",
+                "pit_record.py", "universe_history.py", "universe.py", "config.yaml",
                 "research/experiments/registry.yaml")
 
 # What the monthly records were built from, by content. The member list (``data_fingerprint``) says
