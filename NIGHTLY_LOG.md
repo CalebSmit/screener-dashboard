@@ -20389,6 +20389,11 @@ NaN/undefined, and any percentage of 500% or more.
     code had always tried to print and never could. Claim `dashboard.departed_names`. Payload
     diffed: those two keys only (~1 KB).
 13. **The five-year panel's method note** now names the share-unit bound, tied to the constant.
+14. **Partial option readings say where their figures come from** - 64 stocks' at-the-money bid and
+    ask failed, so no move is shown "rather than built from a quote that would not stand up", while
+    the source's last-trade implied volatilities sat beside that sentence unmarked (HST 90% implied
+    vs 25% realised). Measured: IV/realised median 1.43 (partial) vs 1.19 (ok); >2x in 9% vs 1%;
+    |skew| > 15 pts in 21% vs 2%. One caveat line; the figures stay (logged, never scored).
     Both methodology-adjacent changes are in `METHODOLOGY_CHANGELOG.md` (2026-11-06, owner-run, night).
 
 ### Looked at and left, with the reason
@@ -20400,6 +20405,11 @@ NaN/undefined, and any percentage of 500% or more.
   1594%): real data, scored by percentile.
 - "Reporting soon" lists the run's own day as upcoming; right for the 02:00 run, odd only for an
   evening rerun.
+- Track record's changelog ticks are 2px lines with hover titles - unreadable on a phone (no hover,
+  37 ticks in 315px). Not fixable by wording; a list would be the fix. Left.
+- Every lab control in all 19 experiments clicked: no page error, no NaN/undefined. Every in-page
+  link resolves (the methodology's slug links via `methodAnchorClick`, the lab's via its router).
+- Focus is visible on every focusable control on the page and in the sheet.
 
 ### Next
 
