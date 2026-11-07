@@ -20329,3 +20329,71 @@ commit. The live page therefore still served `9f92130` (the 18:59 publish: right
 - Monday's 02:00 run is ordinary (no same-day cache exists then); nothing to watch for.
 - The same-day cache is still unsafe after a *code* change: its key is the config hash, so a hand
   rerun after a scoring fix reuses scores from the old code. Hand runs only; not urgent.
+
+## 2026-11-06 (owner-run, night) - a UI audit of every surface: ten fixes, each found by measuring
+
+**Health (rule 8, all five):** last code session ran? yes - 13:00 shipped to main. Data loop
+published? **yes** - the 18:34 rerun (`logs/datarun-2026-11-06_183427.log`, HEALTH: PASS, claims
+PASS, the Nov 6 close). Evidence base at `1m`: **45 rows, newest 2026-10-06 (31 days ago, bound
+40), 5 effective of the 8 needed**. Priority 0: `allow_auto_apply` **false**. Top open roadmap
+item: **0.13, The Factor Lab** (age **25 days**).
+**Tests:** before 4067 passed / 1 skipped; after **4106+ passed** (each batch gated in full).
+**Owner direction (chat):** *"keep finding as many improvements as you can. Specifically to the ui
+and frontend of everything... Check every single thing."* Owner-run, so the rule against nightly
+design work does not bind; every change below is display-only unless it says otherwise.
+
+### How the audit was run (re-runnable; the scripts were scratch, the method is the point)
+
+Screenshots of every surface at 375, 768, 1024 and 1440 (page, all 499 sheets' text, every
+panel, dialogs, lab, research, print), plus five automated sweeps: contrast/labels/tap targets/
+overflow on every element; **every media-query rule compared with what the browser computes**
+(this found two phone layouts that had never applied); truncated text without its full form;
+focus visibility on every control (all pass); and all 499 sheets' text for "1 <plural>",
+NaN/undefined, and any percentage of 500% or more.
+
+### Shipped (tags good/2026-11-06-owner-5, -6, -7 and the next)
+
+1. **Insider list marks its 90 days** - 253 of 444 lists showed older trades unmarked, 70 under
+   "None"/"None". Divider at `summarise_rows`' own cut (`insWindowStart`).
+2. **Five-year yield panel: share counts filed in the wrong units** - HST's range read
+   -84764.2% to 5455967.6%; 15 stocks had such months. `valuation_history.SHARE_UNIT_RATIO = 10`,
+   from a measured gap (genuine <= 4.24x, errors >= 914x, nothing in 5-100x;
+   `research/measurements/2026-11-06-valhist-share-units.py`). Rebuilt from the same caches: 428
+   of 428 blocks kept, absurd ranges 10 -> 1 (EXE: Chesapeake's 2021 fresh-start accounting, shares
+   in bounds, left). **Reaches the page with Monday's data run.** Context only, but it is a
+   logged context signal: 14 blocks' own-history percentiles move by up to 6 points, before any
+   `1m` reading of that signal exists.
+3. **"1 ranks" -> "1 rank".** A sweep of all 499 sheets finds no other count-of-one plural.
+4. **Track record's open period** - the Nov 3 period (3 days) was drawn and counted like the
+   month-long ones; now hatched, "so far", and the caption says the count includes it. Period
+   dates wrap on a phone instead of truncating.
+5. **Diagnostics on its own scale** - "+5%: 82%" -> "+5pp: 0.82"; badge "(0.77)".
+6. **Phone comparison tray** - a later bare rule beat the phone rule; the second chip read "MI".
+7. **Phone workings rows** - two more specific rules beat the phone ones; every row carried an
+   82px "Calculation" pill. Now the chevron, as designed.
+8. **Printed sheet** - "every section open" printed the workings' category headers with no
+   metric under them; now the tables print and on-screen controls do not.
+9. **Printed rankings** - a landscape page lays out at ~1010px, inside the 3-and-2 card spans;
+   the five leaders now take one row (the print test now runs at 1010).
+10. **Summaries name inputs from the stock's own weight table** - JPM's "strongest inputs" were
+    Piotroski at the 14th and Accruals at the 2nd percentile; banks score Quality 75% on ROE,
+    ROA, equity ratio. `stock_summary.stock_metric_weights` looks up the published profiles and
+    `wp` (row 0.8). Payload regenerated from the same run and diffed: 43 bank-scored stocks'
+    sentences change, nothing else. Claims `summary.best_inputs`/`worst_input` updated.
+11. **Links**: `#stock=GOOG`/`FOX`/`NWS` open the company's ranked line and say why; a link to an
+    unscored member gives its reason; `#sec-...` opens the section, as the header's links do.
+
+### Looked at and left, with the reason
+
+- Tap targets under 24px on phones: all pass WCAG 2.2's spacing exception or sit in sentences.
+- Mixed `-`/`−` in negative numbers across the sheet (762 true minus vs hyphens in the workings,
+  targets, rank deltas and baked sentences): cosmetic, and dozens of tests pin the characters.
+- Very large real readings (SNDK/MRNA 12-1M returns > 700%, VRSN ROIC 699%, ECHO surprise
+  1594%): real data, scored by percentile.
+- "Reporting soon" lists the run's own day as upcoming; right for the 02:00 run, odd only for an
+  evening rerun.
+
+### Next
+
+- **Monday 02:00:** HST, CCL, CHD, EG, COP, GRMN, WRB, TER, BRO five-year ranges should read as
+  yields (EXE excepted). If any still reads over 100%, the bound missed a case - investigate.
