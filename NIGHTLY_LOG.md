@@ -20236,8 +20236,9 @@ session), and the 16:00 catch-up run discarded as below; the live page is still 
 effective of the 8 needed** (unchanged since 13:00: neither run today recorded a snapshot that
 survived). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor
 Lab** (age **25 days**).
-**Tests:** before 4046 passed / 2 skipped (13:00's count); after **4057 passed / 2 skipped** (+11:
-`tests/test_same_day_rerun.py`, and one fixture line in `tests/test_rehearse_publish.py`).
+**Tests:** before 4046 passed / 2 skipped (13:00's count); after **4067 passed / 1 skipped** (+11
+`tests/test_same_day_rerun.py`, +9 `tests/test_summary_percent_near_zero.py`, and one fixture line
+in `tests/test_rehearse_publish.py`; the skip count moved with the new run's data).
 
 ### What happened at 16:00
 
@@ -20297,6 +20298,20 @@ at `1m` is now 45 rows, 5 effective. The live page reads "PRICES AT THE NOV 6 CL
 reads "S&P 500 −4.0%, rank correlation 0.979 (typically 0.996)" (11-04 to 11-06 closes); the live
 page's own `equationHtml` prints "capped to 100.0%" for all 11 stocks the scorer capped and for no
 other.
+
+### The run turned `main` red - fixed the same evening
+
+Gate 1 on the log commit after it: **1 failed** - `tests/test_every_panel_reads_clean.py`, LNT's
+summary "the 60th on 12-1M Return (-0.0%)". Not inherited and not a flake: a return of about
+-0.01% met a formatter with no near-zero rule. `stock_summary._fmt_metric` is the Python mirror of
+the page's `fmtMetric`, and when the JS formatters were brought under `pctNearZero` on 2026-11-03
+the mirror was not. It now follows the same rule (`_pct_plain`: not zero -> one more decimal; still
+zero -> unsigned); `tests/test_summary_percent_near_zero.py`, 9 cases worked by hand, 6 of which
+fail on the old line. The payload was regenerated from the same run (`84a6a8b4c9dd`, via
+`rehearse_publish.regenerate` into an ignored folder) and **diffed field by field against the
+published one: exactly one difference**, that sentence, now "(-0.01%)"; `dashboard_context.js`
+byte-identical; the page differs only in the payload's `?v=` hash; `signals.json` untouched (same
+`run_id`, timestamp and ranking). Suite after: **4067 passed, 1 skipped.**
 
 ### Next
 
