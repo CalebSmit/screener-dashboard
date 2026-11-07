@@ -1036,3 +1036,14 @@ def test_the_paragraph_says_nothing_when_the_screens_months_are_missing(tmp_path
     para = _overlap_fixture(tmp_path, monkeypatch, common=None)
     assert 'ranked <span class="num">440</span> stocks a month' in para
     assert "in the overlap" not in para and "unique to it" not in para
+
+
+def test_the_share_preview_counts_the_alternatives_the_page_counts():
+    """The meta and og descriptions said "26 pre-registered alternatives" (hardcoded) while the page's
+    first paragraph said 27 from the ledger (2026-11-06). Both now read summary['alternatives']."""
+    import re
+    page = (ROOT / "research.html").read_text(encoding="utf-8")
+    metas = re.findall(r'<meta (?:name="description"|property="og:description") content="[^"]*?(\d+) pre-registered alternatives', page)
+    body = re.search(r"tests the screener's weighting, and (\d+) alternatives", page)
+    assert len(metas) == 2 and body, (metas, body)
+    assert set(metas) == {body.group(1)}, (metas, body.group(1))
