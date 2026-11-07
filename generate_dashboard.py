@@ -3769,7 +3769,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
         let last = '';
         const ser = H.series && H.series[t] && H.series[t].r;
-        if (ser && H.dates) {{
+        const gone = H.last && H.last[t];
+        if (gone) last = ' It last ranked #' + gone[0] + ' on ' + escapeHtml(prettyDate(gone[1])) + '.';
+        else if (ser && H.dates) {{
             for (let i = ser.length - 1; i >= 0; i--) {{
                 if (ser[i] !== null && ser[i] !== undefined && H.dates[i]) {{
                     last = ' It last ranked #' + ser[i] + ' on ' + escapeHtml(prettyDate(H.dates[i])) + '.';

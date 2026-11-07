@@ -331,6 +331,21 @@ def test_series_is_restricted_to_the_current_universe(tmp_path):
     assert "T002" in out["series"]
 
 
+def test_a_name_that_left_keeps_only_its_last_rank_and_date(tmp_path):
+    """No series for a departed name, but its last rank and the run that gave it (2026-11-06): a
+    saved holding that has left can then say where it last stood. Taken from the latest comparable
+    run that ranked it, not the first; a current name never appears."""
+    _write(tmp_path, "2026-05-01", _ranks(UNIVERSE + ["GONE", "EARLY"]))
+    _write(tmp_path, "2026-05-04", _ranks(UNIVERSE[:-1] + ["GONE", UNIVERSE[-1]]))
+    _write(tmp_path, "2026-05-05", _ranks(_shift(UNIVERSE, {"T002": 6})))
+    out = H.build_history(snapshots_dir=tmp_path)
+    assert "GONE" not in out["series"]
+    gone_rank = UNIVERSE[:-1].__len__() + 1          # its position in the 05-04 list, 1-based
+    assert out["last"]["GONE"] == [gone_rank, "2026-05-04"], out["last"]
+    assert out["last"]["EARLY"][1] == "2026-05-01", out["last"]
+    assert not set(out["last"]) & set(out["series"])
+
+
 def test_new_ticker_is_marked_rather_than_shown_as_a_mover(tmp_path):
     _write(tmp_path, "2026-05-01", _ranks(UNIVERSE))
     _write(tmp_path, "2026-05-04", _ranks(UNIVERSE + ["NEWCO"]))

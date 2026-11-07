@@ -389,6 +389,25 @@ def test_a_link_to_a_section_opens_it(browser):
 
 
 @needs_browser
+def test_a_saved_name_that_left_says_where_it_last_ranked(browser):
+    """history.last carries each departed name's last rank and date (2026-11-06); the holdings card
+    for one now prints it. Read from today's payload, so the test asserts the rule, not the name."""
+    gone = _payload_map("history").get("last") or {}
+    if not gone:
+        pytest.skip("MISSING DATA: no departed name in the published history")
+    t, (rank, date) = sorted(gone.items())[0]
+    ctx, page, _ = _open(browser)
+    try:
+        page.evaluate(f"holdings = [{t!r}]; renderHoldings()")
+        note = page.evaluate("document.querySelector('.holding-note-unscored').textContent")
+        pretty = page.evaluate(f"prettyDate({date!r})")
+        assert note.endswith(f"It last ranked #{rank} on {pretty}."), note
+    finally:
+        page.evaluate("holdings = []; renderHoldings()")
+        ctx.close()
+
+
+@needs_browser
 def test_the_guide_dismisses_and_stays_dismissed(browser):
     ctx, page, _ = _open(browser)
     try:

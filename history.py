@@ -667,6 +667,15 @@ def build_history(
         series[ticker] = {"r": [s.ranks.get(ticker) for s in kept],
                           "c": [s.composites.get(ticker) for s in kept]}
 
+    # A name the current run does not rank, with the last rank a comparable run gave it - so a saved
+    # holding that has left can say where it last stood (2026-11-06: the card's "It last ranked" line
+    # never printed, because the series above carries current tickers only). Two numbers a name.
+    last: dict[str, list] = {}
+    for s in reversed(kept[:-1]):
+        for ticker, rank in s.ranks.items():
+            if ticker not in current.tickers and ticker not in last and rank is not None:
+                last[ticker] = [rank, s.date]
+
     noise = rank_change_noise(kept)
     threshold = noise["material_threshold"]
     round_trips = round_trip_tickers(kept, threshold)
@@ -700,6 +709,7 @@ def build_history(
         "current_date": current.date,
         "current_started_at": current.started_at,
         "series": series,
+        "last": last,
         "excluded": excluded,
         "noise": noise,
         "turnover": review_turnover(kept),
