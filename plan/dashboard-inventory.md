@@ -8,7 +8,12 @@ the **five-year yield panel** drops a month whose filed share count is over 10x 
 marks its last, still-running period (hatched bar, "so far", caption and table; `trPeriodOpen`,
 `tests/test_track_open_period.py`) and its period dates wrap rather than truncate on a phone;
 **Diagnostics** prints overlap on its own 0-1 scale ("+5pp: 0.82", "Stability moderate (0.77)");
-and a rank change of one reads "1 rank".
+and a rank change of one reads "1 rank". Later the same night: on a phone the **comparison tray** shows
+"3 stocks" instead of a clipped chip strip and each **workings row** ends in a chevron (two phone rules
+had lost the cascade - found by sweeping every media-query rule against what the browser computes);
+a **printed sheet** opens the workings' category tables (`preparePrint`) and leaves the peer search,
+remove buttons, Calculation toggles and teaser off paper; **printed rankings** put the five leaders in
+one row (`tests/test_page_shell.py` now prints at 1010 px, a landscape page's width).
 
 **2026-10-29 (owner-run):** context panels' percents keep their sign when they round to zero
 (`cPlain`; `tests/test_every_panel_reads_clean.py` opens all ~500 sheets and fails on any
