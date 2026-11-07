@@ -338,8 +338,9 @@ def _payload_map(key: str) -> dict:
 
 @needs_browser
 def test_a_link_to_a_second_share_class_opens_the_ranked_line(browser):
-    """#stock=GOOG said "No stock GOOG in this run" while Alphabet sat at GOOGL (2026-11-06). The
-    pair is read from today's payload, so the test asserts the rule, not which classes exist."""
+    """A link naming a company's second listed class said "No stock ... in this run" while the
+    company sat ranked under its other class (2026-11-06). The pair is read from today's payload,
+    so the test asserts the rule, not which classes exist."""
     classes = {k: v for k, v in _payload_map("share_classes").items() if v.get("scored_as")}
     if not classes:
         pytest.skip("MISSING DATA: no second share class in the published payload")
