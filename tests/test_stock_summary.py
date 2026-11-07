@@ -804,3 +804,89 @@ def test_metric_formatting_matches_the_front_end(value, fmt, expected):
     """Mirrors ``fmtMetric`` in the emitted JS: the prose and the metric table
     below it must not disagree about the same number."""
     assert ss._fmt_metric(value, fmt) == expected
+
+
+# ---- A stock scored on its own weight table (2026-11-06) ---------------------------------------
+# The sentences read the generic table for every stock. For the 46 banks and insurers, whose
+# Quality rests 75% on ROE, ROA and the equity ratio, JPM's "strongest inputs" were Piotroski at
+# the 14th sector percentile and Accruals at the 2nd. The table is looked up from the engine's
+# published profiles and the stock's own `wp`, as the drilldown's workings do.
+
+_BANK_META = {**METRIC_META,
+              "roe": {"label": "ROE", "fmt": "pct", "category": "quality"},
+              "roa": {"label": "ROA", "fmt": "pct", "category": "quality"},
+              "equity_ratio": {"label": "Equity Ratio", "fmt": "pct", "category": "quality"},
+              "accruals": {"label": "Accruals", "fmt": "pct", "category": "quality", "dir": "lower"}}
+_PROFILES = {"quality": {
+    "generic": {"roic": 27, "piotroski_f_score": 15, "accruals": 5, "roe": 0, "roa": 0, "equity_ratio": 0},
+    "bank": {"roic": 0, "piotroski_f_score": 15, "accruals": 10, "roe": 35, "roa": 25, "equity_ratio": 15}}}
+
+
+def _bank(**overrides):
+    d = _detail(
+        contrib={"valuation": 5.0, "quality": 18.0, "growth": 3.0, "momentum": 4.0, "risk": 3.0,
+                 "revisions": 2.0, "size": 1.0, "investment": 1.0},
+        raw={"piotroski_f_score": 4.0, "accruals": 0.029, "roe": 0.17, "roa": 0.013,
+             "equity_ratio": 0.08, "beta": 0.9, "volatility": 0.22},
+        pct={"piotroski_f_score": 14.0, "accruals": 2.0, "roe": 91.0, "roa": 83.0,
+             "equity_ratio": 40.0, "beta": 30.0, "volatility": 60.0},
+        wp={"quality": "bank"})
+    d.update(overrides)
+    return d
+
+
+def test_a_banks_strongest_inputs_come_from_the_bank_table():
+    fact = _fact(_build(_bank(), metric_meta=_BANK_META, weight_profiles=_PROFILES), "best_inputs")
+    assert "Inside Quality" in fact
+    assert "ROE (17.0%)" in fact and "ROA (1.3%)" in fact, fact
+    assert "Piotroski" not in fact and "Accruals" not in fact, fact
+
+
+def test_a_banks_weakest_input_is_weighted_in_its_own_table():
+    """Accruals carries weight for a bank too (10%), and at the 2nd percentile it is the floor."""
+    fact = _fact(_build(_bank(), metric_meta=_BANK_META, weight_profiles=_PROFILES), "worst_input")
+    assert "Accruals" in fact and "2nd sector percentile" in fact, fact
+
+
+def test_without_a_wp_the_generic_table_stands():
+    d = _bank(); d.pop("wp")
+    fact = _fact(_build(d, metric_meta=_BANK_META, weight_profiles=_PROFILES), "best_inputs")
+    assert "ROE" not in fact and "Piotroski" in fact, fact
+
+
+def test_the_lookup_is_the_published_tables_and_nothing_else():
+    got = ss.stock_metric_weights({"wp": {"quality": "bank", "valuation": "nonexistent"}},
+                                  METRIC_WEIGHTS, _PROFILES)
+    assert got["quality"] == _PROFILES["quality"]["bank"]
+    assert got["valuation"] == METRIC_WEIGHTS["valuation"]       # no table published: generic stands
+    assert ss.stock_metric_weights({}, METRIC_WEIGHTS, None) == METRIC_WEIGHTS
+
+
+def test_every_published_bank_names_only_inputs_its_own_table_weights():
+    """Over the published payload, rebuilt with the published profiles: a stock scored on another
+    table never has a zero-weight metric of that table named as an input."""
+    import json
+    p = REPO / "dashboard_data.js"
+    if not p.exists():
+        pytest.skip("MISSING DATA: no published dashboard_data.js")
+    s = p.read_text(encoding="utf-8")
+    D = json.loads(s[s.index("{"):s.rindex("}") + 1])
+    W = D.get("weights") or {}
+    profiles = W.get("profiles")
+    if not profiles:
+        pytest.skip("MISSING DATA: the payload predates published weight profiles")
+    meta = D.get("metric_meta") or {}
+    checked = 0
+    for t, d in D["stock_detail"].items():
+        if not d.get("wp"):
+            continue
+        weights = ss.stock_metric_weights(d, W.get("metric_weights") or {}, profiles)
+        zero = {m for c in weights for m, w in (weights[c] or {}).items() if not w}
+        summary = ss.build_summary(d, universe_size=len(D["stock_detail"]), metric_meta=meta,
+                                   metric_weights=W.get("metric_weights") or {}, weight_profiles=profiles)
+        for kind in ("best_inputs", "worst_input"):
+            txt = next((f["t"] for f in summary if f["k"] == kind), "")
+            named = [m for m in zero if (meta.get(m) or {}).get("label") and (meta[m]["label"] + " (") in txt]
+            assert not named, (t, kind, named, txt)
+        checked += 1
+    assert checked, "no stock in the payload is scored on a non-generic table"

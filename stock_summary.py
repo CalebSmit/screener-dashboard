@@ -780,10 +780,29 @@ def _sentence_confidence(detail: dict) -> str | None:
 # Public entry point
 # ---------------------------------------------------------------------------
 
+def stock_metric_weights(detail: dict, metric_weights: dict, weight_profiles: dict | None) -> dict:
+    """The metric weights this stock was scored with, per category (2026-11-06).
+
+    A lookup, never a re-derivation (CLAUDE.md row 0.8): ``weight_profiles`` is the engine's own
+    published tables (``weights.profiles``, from ``factor_engine.metric_weight_profiles``) and
+    ``detail["wp"]`` names the table each category used where it is not the generic one - the
+    same lookup the drilldown's workings make (``weightProfile`` in the page). Without it the
+    sentences read the generic table for every stock: for the 46 banks and insurers, whose
+    Quality rests 75% on ROE, ROA and the equity ratio, JPM's "strongest inputs" were Piotroski
+    at the 14th sector percentile and Accruals at the 2nd."""
+    out = dict(metric_weights or {})
+    for cat, pid in (detail.get("wp") or {}).items():
+        table = ((weight_profiles or {}).get(cat) or {}).get(pid)
+        if table:
+            out[cat] = table
+    return out
+
+
 def build_summary(detail: dict, *, universe_size: int, metric_meta: dict,
                   metric_weights: dict, history_delta: dict | None = None,
                   history_compare: dict | None = None,
-                  run_date: str | None = None) -> list[dict]:
+                  run_date: str | None = None,
+                  weight_profiles: dict | None = None) -> list[dict]:
     """Build the ordered fact list for one stock.
 
     Returns ``[{"k": kind, "t": sentence}, ...]``. ``kind`` lets the front end
@@ -794,6 +813,7 @@ def build_summary(detail: dict, *, universe_size: int, metric_meta: dict,
     analyst coverage and one scored category still gets a valid - shorter -
     summary.
     """
+    metric_weights = stock_metric_weights(detail, metric_weights, weight_profiles)
     facts: list[tuple[str, str | None]] = [
         ("rank", _sentence_rank(detail, universe_size)),
         ("drivers", _sentence_drivers(detail)),

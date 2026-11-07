@@ -222,8 +222,10 @@ CLAIMS: tuple[Claim, ...] = (
         surface=SUMMARY,
         asserts=(
             "Inside the highest-contributing category, the two weighted metrics "
-            "with the highest **sector** percentiles. Percentiles are "
-            "direction-adjusted, so inverted metrics carry 'lower is better'."
+            "with the highest **sector** percentiles - weighted in the table this "
+            "stock was scored with (a bank's or the Piotroski-conditional one where "
+            "it applies). Percentiles are direction-adjusted, so inverted metrics "
+            "carry 'lower is better'."
         ),
         made_true_by="stock_summary:_sentence_best_inputs",
         checked_by=(
@@ -236,7 +238,7 @@ CLAIMS: tuple[Claim, ...] = (
         surface=SUMMARY,
         asserts=(
             "The single lowest sector percentile among all weighted metrics with a "
-            "value, across every scored category."
+            "value, across every scored category, in the stock's own weight tables."
         ),
         made_true_by="stock_summary:_sentence_worst_input",
         checked_by=(

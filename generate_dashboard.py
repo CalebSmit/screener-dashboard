@@ -1710,6 +1710,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
                 universe_size=kpis.get("universe_size", len(stock_detail)),
                 metric_meta=metric_meta,
                 metric_weights=weights.get("metric_weights", {}),
+                weight_profiles=weights.get("profiles"),
                 history_delta=(history_block.get("delta") or {}).get(_ticker),
                 history_compare=history_block.get("compare"),
                 run_date=_run_date_for_history(meta),
