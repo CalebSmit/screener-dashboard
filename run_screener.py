@@ -2127,6 +2127,12 @@ def run_factor_engine(cfg, args, ctx=None):
     # fy1_revision_3m, the category's heaviest metric.
     # (Extracted into auto_disable_sparse_category 2026-10-19 so the methodology page's
     # threshold and the rule it describes are one thing - claim overview.auto_disable.)
+    # Per band as well as universe-wide, because a universe mean hides a thin bottom band
+    # (universe-expansion phase 1). Measured and recorded here; the trigger below stays
+    # universe-wide - weighted_coverage_pct_by_band says why, and what phase 2 has to decide.
+    stats["rev_coverage_by_band"] = weighted_coverage_pct_by_band(df, cfg, "revisions")
+    stats["inv_coverage_by_band"] = weighted_coverage_pct_by_band(df, cfg, "investment")
+
     rev_disabled, rev_pct = auto_disable_sparse_category(df, cfg, "revisions")
     if rev_disabled:
         print(f"\n!! Revisions coverage {rev_pct:.1f}% < {CATEGORY_AUTO_DISABLE_PCT}%; auto-disabled")
@@ -2143,6 +2149,16 @@ def run_factor_engine(cfg, args, ctx=None):
                              inv_pct, CATEGORY_AUTO_DISABLE_PCT)
 
     stats["inv_disabled"] = inv_disabled
+
+    # One band today, so the per-band figures are the universe-wide ones and printing them
+    # would be a duplicate line in every run log. Printed from the band a second one exists.
+    for _cat, _by in (("Revisions", stats["rev_coverage_by_band"]),
+                      ("Investment", stats["inv_coverage_by_band"])):
+        if len(_by) > 1:
+            _parts = ", ".join(f"{b} {p:.1f}%" for b, p in sorted(_by.items()))
+            print(f"  {_cat} coverage by size band: {_parts} "
+                  f"(reported; the {CATEGORY_AUTO_DISABLE_PCT}% trigger is universe-wide)")
+            pipeline_log.info("%s coverage by size band: %s", _cat, _parts)
 
     # The metric-level drift alert's list is fixed here, before the auto-reduce below can
     # zero a weight: a metric reduced for being mostly missing is exactly one to alert on.
@@ -2607,8 +2623,44 @@ def weighted_coverage_pct(df: pd.DataFrame, cfg: dict, cat: str) -> float:
     return avail / total * 100
 
 
+def weighted_coverage_pct_by_band(df: pd.DataFrame, cfg: dict, cat: str) -> dict:
+    """``{size_band: weighted_coverage_pct}`` - the auto-disable's coverage, per size band.
+
+    **Measured and recorded; it does not decide anything.** The auto-disable below still fires
+    on the universe-wide figure, and that is deliberate rather than unfinished.
+
+    ``plan/universe-expansion.md`` phase 1 lists ``CATEGORY_AUTO_DISABLE_PCT`` beside
+    ``check_run_health.MIN_TARGET_COVERAGE`` as a threshold to make per band, "because a
+    universe-wide average hides a thin bottom band". For the health gate that is engineering:
+    the action is "discard the run", so applying the floor per band is strictly stronger and
+    changes no score. For the auto-disable it is not, because the action is **to change the
+    weights** - and there are three incompatible ways to do it per band:
+
+    (a) keep today's rule: the universe mean decides, one weighting for everyone;
+    (b) any band below the floor disables the category for the whole run - which throws a
+        category away for 500 well-covered large companies because 600 small ones lack it;
+    (c) disable per band - which gives the bands different weight vectors, so a composite
+        means something different in each, and the percentiles are already within band.
+
+    Which is right depends on numbers that do not exist yet: phase 2's shadow run of the S&P
+    400 and 600 is what measures how far Revisions and Investment coverage actually falls. So
+    this function is the *measurement* half, available now so phase 2 has it by construction,
+    and the choice between (a), (b) and (c) is a **methodology change with its own
+    ``METHODOLOGY_CHANGELOG.md`` entry**, decided on phase 2's numbers. Pinned by
+    ``tests/test_per_band_gates.py`` so (b) or (c) cannot arrive as a side effect.
+
+    ``{}`` where the frame carries no band column - every run before 2026-11-07.
+    """
+    if universe.SIZE_BAND_COL not in df.columns:
+        return {}
+    return {str(band): weighted_coverage_pct(g, cfg, cat)
+            for band, g in df.groupby(universe.SIZE_BAND_COL, dropna=False)}
+
+
 # A category whose weighted metrics hold fewer than this share of their values across the
 # universe is switched off for the run and its weight shared out (Revisions and Investment).
+# Universe-wide on purpose - see weighted_coverage_pct_by_band above for why the per-band
+# figures are measured and reported but do not fire it.
 CATEGORY_AUTO_DISABLE_PCT = 30
 
 

@@ -60,6 +60,10 @@ FETCH_EVIDENCE = ["00_raw_fetch.parquet", "01_raw_metrics.parquet"]
 # Thresholds. Deliberately loose: this catches collapse, not normal drift.
 MIN_PRICE_COVERAGE = 0.90     # >=90% of stocks must have a price
 MIN_TARGET_COVERAGE = 0.50    # analyst coverage is genuinely patchy; 0% is not
+
+# The artifact the size band is read from: the run's own, and one this gate already requires
+# (``FETCH_EVIDENCE``), so the per-band check needs no new input and cannot read another run's.
+RAW_METRICS = "01_raw_metrics.parquet"
 MAX_DISPERSION_DROP = 0.20    # >20% below trailing median = collapse
 MIN_HISTORY_FOR_CHECK = 3     # need a few prior runs before comparing
 
@@ -168,7 +172,107 @@ def payload_run_mismatch(payload: dict, run_dir: Path) -> str | None:
     return None
 
 
-def check_coverage(payload: dict, res: Result) -> None:
+def run_size_bands(run_dir: Path) -> dict[str, str] | None:
+    """``{ticker: size_band}`` from the run's **own** ``01_raw_metrics.parquet``, or ``None``.
+
+    ``None`` means the band could not be read: the artifact is absent, unreadable, or does not
+    carry the column - which is true of every run before 2026-11-07, when
+    ``universe.assign_size_bands`` started setting it. The caller turns that into a **note**, not
+    a failure, the same trade as the unreadable-weights case in ``check_metric_availability`` and
+    the node/pytest fallbacks in both publish paths: a gate that can only fail closed jams an
+    unattended loop.
+
+    The band is read from an artifact rather than from the payload on purpose. Phase 1's exit
+    test is that the S&P 500 payload comes out **byte-identical**, so the band is deliberately
+    not published; and reading the run's own parquet is the same rule the rest of this module
+    follows since 2026-10-16 - judge the run's own artifacts, never the last published ones.
+    """
+    path = run_dir / RAW_METRICS
+    if not path.exists():
+        return None
+    try:
+        import universe
+
+        df = pd.read_parquet(path, columns=["Ticker", universe.SIZE_BAND_COL])
+    except (OSError, ValueError, KeyError, ImportError):
+        return None
+    col = df[universe.SIZE_BAND_COL].astype(str).str.strip()
+    ok = col.notna() & ~col.isin(("", "nan", "None"))
+    if not ok.any():
+        return None
+    return dict(zip(df.loc[ok, "Ticker"].astype(str), col[ok]))
+
+
+def check_target_coverage_by_band(payload: dict, bands: dict[str, str] | None,
+                                  res: Result) -> None:
+    """``MIN_TARGET_COVERAGE`` applied **inside each size band**, not to the universe mean.
+
+    Analyst coverage is the one input to this screener whose *availability* is a documented
+    function of company size: the number of analysts following a firm rises with its market
+    value (Bhushan 1989, *JAE* 11(2-3), 255-274; Hong, Lim & Stein 2000, *JF* 55(1), 265-295,
+    whose whole design rests on small firms being the thinly-covered ones). So when the S&P 400
+    and 600 join the pool, the universe mean is the wrong statistic: 500 well-covered large
+    companies can carry a bottom band that has almost none, and the gate would pass a run whose
+    smallest stocks are scored on a Revisions category resting on nothing. That is the specific
+    failure ``plan/universe-expansion.md`` phase 1 names - "a universe-wide average hides a thin
+    bottom band".
+
+    **This is strictly stronger than the universe-wide check it sits beside, never weaker.** The
+    universe rate is a weighted mean of the band rates, so a universe-wide failure implies at
+    least one band below the same floor. The universe-wide line above is kept anyway: it is what
+    every run log since 2026-08 has printed, and with one band it *is* the band's line.
+
+    Price coverage and ``MIN_CATEGORY_COVERAGE`` stay universe-wide, deliberately. Neither is a
+    function of size - a price is served for every listed stock and a price history for every
+    one with a year of trading - so both guard a feed failure, which shows up across the whole
+    universe or not at all.
+    """
+    detail = payload.get("stock_detail") or {}
+    if not detail:
+        return
+    if not bands:
+        res.note("analyst target coverage not checked per size band - the run carries no "
+                 f"{RAW_METRICS} size_band column (every run before 2026-11-07)")
+        return
+
+    by_band: dict[str, list[int]] = {}
+    unbanded = 0
+    for t, v in detail.items():
+        band = bands.get(str(t))
+        if band is None:
+            unbanded += 1
+            continue
+        got, tot = by_band.setdefault(band, [0, 0])
+        by_band[band] = [got + (1 if v.get("pt_mean") else 0), tot + 1]
+
+    if not by_band:
+        res.note("analyst target coverage not checked per size band - no scored stock's band "
+                 f"could be matched in {RAW_METRICS}")
+        return
+    if unbanded:
+        res.note(f"{unbanded} scored stock(s) carry no size band and are outside the per-band "
+                 f"analyst-target check (they remain in the universe-wide one)")
+
+    if len(by_band) == 1:
+        band = next(iter(by_band))
+        res.note(f"one size band ({band}) - the per-band analyst-target floor is the "
+                 f"universe-wide one")
+        return
+
+    for band in sorted(by_band):
+        got, tot = by_band[band]
+        cov = got / tot
+        if cov < MIN_TARGET_COVERAGE:
+            res.fail(
+                f"only {got}/{tot} stocks in the {band} band have an analyst target "
+                f"({cov:.0%}, need >={MIN_TARGET_COVERAGE:.0%}) - a universe-wide average "
+                f"hides a thin band"
+            )
+        else:
+            res.note(f"analyst target coverage {got}/{tot} ({cov:.0%}) in the {band} band")
+
+
+def check_coverage(payload: dict, res: Result, bands: dict[str, str] | None = None) -> None:
     detail = payload.get("stock_detail") or {}
     if not detail:
         res.fail("stock_detail is empty")
@@ -197,6 +301,7 @@ def check_coverage(payload: dict, res: Result) -> None:
     else:
         res.note(f"analyst target coverage {targeted}/{n} ({target_cov:.0%})")
 
+    check_target_coverage_by_band(payload, bands, res)
     check_price_derived_coverage(payload, res)
 
 
@@ -987,7 +1092,7 @@ def main() -> int:
         print(f"HEALTH: cannot evaluate - {mismatch}")
         return 2
 
-    check_coverage(payload, res)
+    check_coverage(payload, res, bands=run_size_bands(run_dir))
     check_metric_availability(res, run_dir)
     check_dispersion(payload, res)
     # The trading bot's inputs (2026-10-22): against the ranking the site last published.

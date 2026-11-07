@@ -124,6 +124,48 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-07 (13:00 session): the per-band gates bullet - the health gate shipped, the
+auto-disable's trigger deliberately not moved.**
+`check_run_health.MIN_TARGET_COVERAGE` (0.50) is now applied **inside each size band** as well as
+to the universe (`check_target_coverage_by_band`), with the band read from the run's own
+`01_raw_metrics.parquet` so the payload stays byte-identical and a run that carries no band column
+produces a **note**, never a failure. It is strictly stronger than the universe-wide check it sits
+beside and never weaker - the universe rate is a weighted mean of the band rates, so a
+universe-wide failure implies some band below the same floor - and measured on the published run
+(`research/measurements/2026-11-07-target-coverage-by-band.py`): the **thinnest market-cap decile
+of today's S&P 500 is 98.0% covered, 1.96x the floor**, so the gate cannot fire on this universe
+however it is banded; and with the 40 smallest stocks stripped of their targets and made their own
+band the universe-wide check passes at **91.6%** while the per-band check fails, so the band path
+is not decoration. `tests/test_per_band_gates.py` (64 tests).
+
+**`MIN_PRICE_COVERAGE` and `MIN_CATEGORY_COVERAGE` stay universe-wide, and the reason is not
+caution.** Analyst coverage is the one input here whose *availability* is a function of company
+size (Bhushan 1989; Hong, Lim & Stein 2000). A price and a price history are served for every
+listed stock, so both of those guard a **feed failure**, which appears across the whole universe
+or not at all; banding them would only add ways to fail.
+
+**`CATEGORY_AUTO_DISABLE_PCT` (30) is measured per band and still triggered universe-wide, on
+purpose.** For the health gate "per band" is engineering - the action is to discard the run. For
+the auto-disable the action is **to change the weights**, and there are three incompatible
+per-band rules: **(a)** keep the universe mean deciding, one weighting for everyone; **(b)** any
+band below the floor disables the category for the whole run - throwing a category away for 500
+well-covered large companies because 600 small ones lack it; **(c)** disable per band - which
+gives the bands different weight vectors, so a composite means something different in each, on top
+of percentiles that are already within band. Which is right depends on how far Revisions and
+Investment coverage actually falls, which is **phase 2's** measurement and does not exist yet. So
+`run_screener.weighted_coverage_pct_by_band` records the per-band figures now (`stats`,
+printed from the band a second one exists) and **choosing between (a), (b) and (c) is a
+methodology change with its own `METHODOLOGY_CHANGELOG.md` entry**, never a side effect of
+phase 2 or 3. `tests/test_per_band_gates.py` fails if the trigger becomes per-band without it.
+
+**Not done, and why:** `universe_history.MIN/MAX_PLAUSIBLE_MEMBERS` per index. The bound is
+already a property of a `Universe` (`CURRENT.min_members`/`max_members`, 2026-11-03); what is
+missing is an S&P 400 and an S&P 600 `Universe` to carry one, and those arrive with phase 2's
+constituent-list source. Making `validate_membership` take a `universe=` argument before there is
+a second universe to pass would also edit `universe_history.py`, which is in
+`v2_experiments.RESULT_PATHS` - a 32-row, ~25-minute research-engine rerun for a parameter with
+one legal value. Do it in the commit that defines those two universes, and pay the rerun once.
+
 **Progress, 2026-11-07 (06:00 weekend session): the `size_band` bullet, shipped.**
 `universe.Universe` carries a `size_band` and `universe.assign_size_bands()` sets the column;
 `run_screener` calls it once the universe is settled, so every artifact from `01_raw_metrics`
@@ -172,7 +214,10 @@ the `config.yaml` block (the definition lives in Python until a second universe 
   `run_screener.CATEGORY_AUTO_DISABLE_PCT` (30), because a universe-wide average hides a thin
   bottom band. `universe_history.MIN/MAX_PLAUSIBLE_MEMBERS` become per index (~400 and ~600 with
   the same tolerance). `MIN_CATEGORY_COVERAGE` (0.90) stays universe-wide: it guards a feed
-  failure, not a band.
+  failure, not a band. **(The health gate shipped 2026-11-07; the auto-disable's *trigger* is a
+  methodology decision for phase 2, with its three options written down in the progress note
+  above - the per-band figures are measured and recorded now. The membership bounds wait for
+  phase 2's S&P 400/600 `Universe` objects, so one research-engine rerun pays for both.)**
 - **The input gates are re-derived per universe from that universe's own replay, never copied** -
   `RANK_MIN_SPEARMAN` (0.90), `RANK_MAX_NEW_IN_TOP` (8) and the top-25/40 rules were set by
   replaying S&P 500 pages (`research/measurements/2026-10-22-input-gates-replay.py`). For phase 4
