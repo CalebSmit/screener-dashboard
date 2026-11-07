@@ -1670,7 +1670,9 @@ CLAIMS: tuple[Claim, ...] = (
                  "yield: operating cash flow minus capital spending) over the month-end price times diluted "
                  "shares adjusted for splits, at each month-end using only figures filed with the SEC by then, "
                  "as first reported; the percentile is the share of the past month-ends with a lower yield; a "
-                 "stock is shown only where today's figures reproduce its market value within 15%."),
+                 "stock is shown only where today's figures reproduce its market value within 15%; a month "
+                 "whose filed share count is more than 10 times today's, or under a tenth of it, is left out "
+                 "(SHARE_UNIT_RATIO, 2026-11-06)."),
         made_true_by="valuation_history:for_ticker",
         checked_by=(
             "tests/test_valuation_history.py::test_ttm_is_last_year_plus_this_ytd_minus_last_ytd",
@@ -1678,6 +1680,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_valuation_history.py::test_shares_filed_before_a_split_are_scaled_to_todays_units",
             "tests/test_valuation_history.py::test_a_stock_whose_shares_do_not_reproduce_its_market_value_is_not_shown",
             "tests/test_valuation_history.py::test_the_percentile_is_against_the_stocks_own_month_ends",
+            "tests/test_valuation_history.py::test_a_year_filed_in_thousands_gives_those_months_no_yield",
+            "tests/test_valuation_history.py::test_the_unit_bound_is_ten_times_either_way",
+            "tests/test_valuation_history.py::test_the_panel_states_the_unit_bound_the_code_applies",
             "tests/test_dashboard_printed_figures.py::test_every_valuation_history_row_prints_its_own_series",
             "tests/test_dashboard_printed_figures.py::test_a_valuation_history_row_worked_by_hand",
         ),

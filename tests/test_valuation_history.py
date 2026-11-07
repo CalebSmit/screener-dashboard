@@ -256,3 +256,14 @@ def test_the_unit_bound_is_ten_times_either_way(ratio, kept):
     f, closes = _history_with_shares({2023: 100.0 * ratio})
     ey = vh.for_ticker(f, closes, [], 10.0, 1000.0, TODAY, fcf=False)["ey"]
     assert all(x is not None for x in ey["s"]) is kept, (ratio, ey["s"])
+
+
+def test_the_panel_states_the_unit_bound_the_code_applies():
+    """The panel's method note names the bound, from the generator's own page, and the number in it
+    is the constant the build applies - a sentence that says how a number is built is checked."""
+    import generate_dashboard as gd
+    html = gd.generate_html(methodology_html="<p>m</p>", data_timestamp="t", data_version="v")
+    n = vh.SHARE_UNIT_RATIO
+    assert n == int(n)
+    assert f"a month whose filed share count is more than {int(n)} times today&rsquo;s or less than a tenth of it is left out" in html
+    assert int(n) == 10, "the sentence says 'a tenth': rewrite it with the new bound"
