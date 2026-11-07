@@ -377,3 +377,33 @@ def test_every_published_list_marks_its_older_trades(page, ctx):
         if [g.split(":")[0] for g in got] != want:
             bad.append((t, got, want))
     assert not bad, bad[:5]
+
+
+# ---- A partial option reading says where its figures came from (2026-11-06) ---------------------
+# "partial": the at-the-money bid and ask did not stand up (no move is shown, and the card says the
+# number "is left out rather than built from a quote that would not stand up"), yet the source's own
+# implied volatilities - worked from last trades - were printed beside that sentence unmarked.
+# Measured that night: IV/realised median 1.43 in partial readings against 1.19 in ok ones.
+
+_OPT_JS = """(args) => { const [t, patch] = args; const s = JSON.parse(JSON.stringify(D.stock_detail[t]));
+    s.ctx = Object.assign({}, s.ctx || {}, patch); if (!('om' in patch)) delete s.ctx.om; renderContext(t, s);
+    const card = [...document.querySelectorAll('#modal-context .ctx-card')].find(c => /What options imply/.test(c.textContent));
+    return { caveat: !!card.querySelector('.ctx-caveat'), iv: /Implied volatility/.test(card.textContent) }; }"""
+
+
+def _opt(status, move):
+    base = {"os": status, "ox": "2026-12-18", "od": 41, "oe": False, "oi": 0.9, "osk": -0.33,
+            "oskp": 0.59, "oskps": 23.0, "oskc": 0.92, "oskcs": 25.0, "osp": 24.62,
+            "oqd": "2026-11-06", "oqt": "19:51", "oqi": False}
+    if move:
+        base["om"] = 0.08
+    return base
+
+
+@pytest.mark.parametrize("status, move, caveat", [("partial", False, True), ("ok", True, False),
+                                                  ("partial", True, False)])
+def test_a_partial_reading_marks_its_figures(page, ctx, status, move, caveat):
+    t = next(iter(ctx))
+    got = page.evaluate(_OPT_JS, [t, _opt(status, move)])
+    assert got["iv"] is True, got
+    assert got["caveat"] is caveat, (status, move, got)

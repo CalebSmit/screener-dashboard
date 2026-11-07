@@ -10664,6 +10664,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const mv = moveShown(c), an = optAnchored(c);
             if (mv) o += '<div class="ctx-big">&plusmn;' + cPlain(c.om) + '</div><p class="ctx-line">The average move options are paying for by <b>' + escapeHtml(cDate(c.ox)) + '</b> (' + c.od + ' days)' + (c.oe && earn ? ', an expiry that <b>spans the ' + escapeHtml(cDate(earn)) + ' report</b>' : '') + '. The figure is a size; options do not imply a direction.</p>';
             else o += '<p class="ctx-line">' + (!an && (c.onsp || c.om !== undefined || c.oi !== undefined || c.osk !== undefined) ? 'No option figures: this reading did not record the stock price its quotes were measured against - the price the move is divided by and that &ldquo;at the money&rdquo; and the 95% put are measured from - so the expected move, implied volatility and skew are left out rather than shown against a price they may not have been computed from.' : 'No expected move: the at-the-money bid and ask this run received were missing, or too far apart to price a straddle from. The number is left out rather than built from a quote that would not stand up.') + '</p>';
+            // A partial reading has implied volatilities but no at-the-money bid and ask that stood up:
+            // the figures below are the source's own, which it derives from each option's last trade.
+            // Measured 2026-11-06 over one run: implied over realised volatility has a median of 1.43
+            // in these readings against 1.19 where the quotes stood up, and 9% sit above 2x against 1%.
+            if (an && c.os === 'partial' && !mv && (c.oi !== undefined || c.osk !== undefined))
+                o += '<p class="ctx-line ctx-caveat">The figures below are the data source&rsquo;s own, worked out from each option&rsquo;s last trade rather than from a bid and ask that stood up, so read them loosely.</p>';
             o += '<table class="ctx-table"><tbody>';
             if (an && c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
             const rv = (s.raw || {}).volatility;
