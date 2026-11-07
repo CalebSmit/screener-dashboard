@@ -37,6 +37,7 @@ warnings.filterwarnings("ignore", category=ResourceWarning)  # yfinance sqlite c
 warnings.filterwarnings("ignore", message=".*urllib3.*")
 
 from run_context import RunContext
+import universe
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -2093,6 +2094,12 @@ def run_factor_engine(cfg, args, ctx=None):
         for t in sorted(pre_filter_tickers - set(df["Ticker"].tolist())):
             dq_log(t, "universe_filter", "Medium",
                    "Below minimum market cap", "Excluded from scoring")
+
+    # ---- The size band each stock is ranked inside (universe-expansion phase 1) ----
+    # Set here, once the universe is settled, so every artifact from 01 onward carries it and
+    # the percentiles below group on a column rather than on a default. One universe today, so
+    # one band: nothing published moves (plan/universe-expansion.md, pre-registration 3).
+    df = universe.assign_size_bands(df)
 
     # ---- Save raw metrics artifact (data lineage) ----
     if ctx is not None:

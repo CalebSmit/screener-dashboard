@@ -20421,3 +20421,151 @@ NaN/undefined, and any percentage of 500% or more.
 
 - **Monday 02:00:** HST, CCL, CHD, EG, COP, GRMN, WRB, TER, BRO five-year ranges should read as
   yields (EXE excepted). If any still reads over 100%, the bound missed a case - investigate.
+
+## 2026-11-07 (06:00 weekend session) - the universe becomes a parameter where it decides what a stock is compared with
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-06_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-06_183427.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **26 days**); also open: 0.10 31d; 0.14 24d.
+**Tests:** before 4117 passed / 1 skipped (195 s, parallel); after 4130 passed / 1 skipped.
+**Owner queue / rotation:** `write_brief.open_proposals()` is empty - no proposal waiting. Took
+the **top open owner item** (2026-10-28, beyond the S&P 500), whose named plan is
+`plan/universe-expansion.md` and whose Progress line said phase 1, `size_band` bullet. One stage,
+finished end to end. Nothing deferred for a gate or a stalled loop. The stash `auto-rescue
+2026-10-28_060001` holds an empty diff (`git stash show -p` prints nothing) - left alone.
+0.13 (the Factor Lab, 26 days) deferred: Friday is the lab's day and the owner queue outranks the
+roadmap; experiment 19 still wants its second reader.
+
+### Did
+
+**Percentiles are ranked within `(Sector, size_band)`, with a band-wide fallback.** This is
+pre-registration 3 of the universe expansion, adopted 2026-11-03 and until today only written
+down. Once the S&P 400 and 600 are in the pool, "cheap for a utility" has to mean cheap against
+utilities *of about this size* - the size effect runs through most of these metrics - and a
+sector-band group below `SECTOR_MIN_PEERS` has to fall back to its **band**, because falling back
+across bands puts exactly the stocks with the thinnest peer group (small companies in a small
+sector) back in a distribution of mega caps.
+
+- `universe.Universe` carries a `size_band`; `universe.assign_size_bands()` sets the column,
+  never overwriting one a caller set, and fills blanks because `groupby` drops a NaN key and a
+  stock dropped out of its own distribution is the failure this whole exercise is meant to catch.
+- `run_screener` calls it once the universe is settled, so `01_raw_metrics` onward carry it.
+- `factor_engine.compute_sector_percentiles` groups by `(Sector, size_band)`; the fallback rank
+  table is per band. `SECTOR_MIN_PEERS` stays 10 - only its scope changed.
+- `Composite_Pct` is ranked within band.
+- `universe.py` joined `v2_experiments.RESULT_PATHS`: it now decides what each stock is ranked
+  against, so an edit there can move every engine number, and the hash could not see it.
+
+**Nothing published moved, and that is measured rather than argued** - `tests/test_size_bands.py`,
+13 tests. The module keeps a transcription of the sector-only code it replaced and compares the
+two on the published run: **0 of 23,092 percentile values differ**. Its floor is a half-and-half
+cap split, which moves **20,140** - so the zero means something. (Phase 0's script reported 20,151
+on the 2026-11-03 run; that figure is a property of a morning's data, not a constant, which is
+worth knowing before someone treats it as one.) The composite percentile has the same pair:
+unchanged with one band, **492 of 499** moved by the split. The band-wide fallback has a fixture
+built so the two fallbacks *disagree* - a thin cell that is the bottom of its own band and the top
+of the universe - because with one band or one sector nothing can tell them apart, which is how a
+universe-wide fallback could have shipped under this name.
+
+**Verified past the suite, because unit tests cannot see a shape assumption:** a five-ticker live
+`run_screener.py` (the band reaches `01`/`02`/`05`, the calc trace reproduces 40 category scores
+and 5 composites, `SCREENER_OVERVIEW.md` regenerates byte-identical), the run directory and the
+cache files it wrote deleted afterwards and the four touched tracked files restored; then
+`scripts/rehearse_publish.py` - all four published files unchanged byte for byte, 380 page tests
+and 2,323 claim checks green.
+
+**The rerun this cost, paid in full:** editing `factor_engine.py` (and `v2_experiments.py`) stales
+every ledger row. All 32 were rerun with `--jobs 4` in four foreground chunks (~25 min) and
+`python v2_experiments.py report` regenerated. **No statistic moved** - the only changes in
+`RESULTS.md` are the run count (616 -> 648) and the provenance line's code hash; `summary.json` and
+`research.html` are byte-identical, so the public research page says exactly what it said.
+
+### Also did - Factor Lab experiment 19, second-read (owner item 2026-10-20, sub-item 2)
+
+The universe plan says one stage a session, so the phase-1 stage stopped where it stopped. The
+remaining time went to the other open owner sub-item: **experiment 19 (`mohanram`) had not been
+second-read**, and `OWNER_FOCUS.md` item 2 says an experiment is not checked until someone who
+did not build it has read it. All three of the note's own open items were taken.
+**It stands - nothing needed correcting.** Record: `research/2026-11-06-lab-mohanram.md` section
+8; `research/measurements/2026-11-07-lab-mohanram-second-reading.py`, committed, which does not
+import `factor_lab`.
+
+- **The pre-registration is genuine.** `4a55141` (13:14) adds 173 lines to `factor_lab.py` and
+  nothing else - no `lab_data.js`, so no return had been written - with `verdict_note` empty;
+  the result is `3f3cb98` at 13:26. All seven paper figures and tolerances are byte-identical
+  across the two commits. **Twelve minutes is the shortest gap of any experiment** (16 and 17
+  had 24 and 90); the ordering is sound and the gap itself carries little weight. Said so.
+- **All seven reference figures exact**, re-read from PDF bytes - and in **two independent
+  manuscripts**, Columbia's as well as the TSpace one the record cites, whose Table 4 Panel A is
+  character-identical. The **version of record is still not obtained** (Springer's PDF link
+  returns HTML), so that caveat stands rather than closing. Panel B's two ends (+3.3%, -17.9%)
+  and the 5,585 firm-years behind the paper's two-sample t are exact too.
+- **Every measured figure reproduces to the second decimal** from the parquet files: +3.22,
+  +5.40, +6.48, +12.75, +7.58, +16.48, spread +13.26, t 4.96, 4 of 7 within; the four
+  later-window spreads and their t-statistics; and the strongest group the calmest (6.24 against
+  7.18-7.89). A cross-check the note did not have: the library's own `LS` port averages
+  1.1047%/month = 13.26% a year, so the lab's spread *is* the library's.
+- **The note's weakest claim is now its strongest.** Section 4 said `SignalDoc.csv`'s `Return`
+  column is the paper's figure rather than a measured one, resting on one check. Tested on seven
+  signals, **five differ from the library's own measured long-short** by more than 0.05%/month,
+  two by over 40% - and the values are recognisable as published headlines: `Mom12m` at
+  **1.31% a month** is Jegadeesh & Titman's own number.
+- **One slip found, and it is the paper's.** Mohanram's text on PDF p. 26 cites "the 21.2%
+  difference reported in Table 4" while discussing raw returns. 21.2% is **Panel B's** spread;
+  Panel A's is 21.4%, which is what the record uses. Close enough that a reader meeting only
+  p. 26 would carry away the wrong number.
+- **One observation, not a defect:** the library's six `MS` ports do not start together (port 06
+  only from 1974-09), so 163 months before 1976-07 have no high group. None is inside the
+  compared window - 1978-01 onward is complete for all six - but the page's
+  "Everything · FIRST-LAST" preset draws each group over its own span while the spread uses the
+  587 months both ends exist.
+
+No weight, metric, threshold, tolerance, verdict or published sentence changed.
+
+### Evidence / research
+
+- Pre-registration 3 of `research/2026-11-02-universe-expansion-phase0.md`, decided and pinned
+  2026-11-03 (`tests/test_universe_expansion_preregistration.py`). Fama & French, Hou/Xue/Zhang and
+  Jensen/Kelly/Pedersen all form portfolios inside size breakpoints rather than across them; MSCI,
+  FTSE Russell and S&P rank within size segment. This session implements that decision; it does not
+  reopen it.
+- The *failure* this prevents is the one phase 0 measured: with a genuine two-band split, 20,140 of
+  23,092 percentile values change (up to ~69 points). A universe-wide fallback would have left the
+  thinnest cells - the ones most in need of a sensible peer group - ranked against mega caps.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or published sentence moved. The grouping is a different
+  expression of today's rule, byte-identical on today's universe, which is the phase's exit test.
+  It becomes a methodology change on the day a second band is published, and
+  `METHODOLOGY_CHANGELOG.md` gets its entry then, one change at a time.
+
+### Tried and rejected
+
+- **Pinning `Composite_Pct` by recomputing it from the published composite.** It fails, and the
+  claim is wrong rather than the code: the percentile is taken *before* `compute_composite` rounds
+  the composite to 2dp (factor_engine.py:4059), and **58 of 499** stocks on the 2026-11-06 run are
+  tied after that rounding and not before. The settled row `data->red` says a premise is not
+  asserted until it is asserted; this is the same thing a level down - a test that recomputes a
+  published figure is asserting a *pipeline order* it has not checked. The test now pins the claim
+  the edit actually rests on (ranking inside one constant group is the ungrouped ranking, with a
+  check that the run really does carry ties), and the production path is pinned by the two-band
+  floor test instead.
+- **Starting the `config.yaml` `universe:` block.** The 2026-11-03 session left it deliberately -
+  the definition lives in Python until a second universe needs a switch - and nothing today needed
+  it. Adding a config knob with one legal value is a surface to maintain, not a step forward.
+
+### Next
+
+- **Phase 1's remaining bullets**, in this order: the per-band health gates
+  (`check_run_health.MIN_TARGET_COVERAGE`, `run_screener.CATEGORY_AUTO_DISABLE_PCT`, per-index
+  `universe_history.MIN/MAX_PLAUSIBLE_MEMBERS`) - only the last touches `RESULT_PATHS`, so most of
+  it costs no rerun - then the `stock_detail` shard, which is the one that keeps first paint flat
+  as the universe grows and wants a session of its own.
+- **A phase-3 obligation recorded today:** `drilldown.peer_rank`, `overview.percentile_rule` and
+  `overview.glossary` all still say a thin sector falls back "across the universe". True today
+  because the band *is* the universe; the session that publishes a second band must reword all
+  three in the same commit.
+- The **next** lab experiment built needs its own second reader; 19 was read this session and
+  stands, so that sub-item is clear.
+- If a copy of Mohanram (2005) as published (Springer, *Review of Accounting Studies* 10(2-3))
+  ever becomes reachable, re-read Table 4 Panel A from it: two manuscripts agree, the version
+  of record is still unseen.

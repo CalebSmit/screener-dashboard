@@ -69,8 +69,17 @@ Two things still outrank this file, and neither is negotiable:
   byte-identical today and needs no special case.
   **Left open on purpose:** section 4's choice of coverage rule for a stock with no analysts. It
   is a present-day methodology change (one S&P 500 stock today, Loews) and gets its own changelog
-  entry, not a side effect of phase 3. **Next: phase 1** (make the universe a parameter; no
-  published change, S&P 500 payload byte-identical).
+  entry, not a side effect of phase 3.
+  **Phase 1, the `size_band` slice: SHIPPED 2026-11-07 (06:00 weekend session).** Percentiles are
+  now ranked within `(Sector, size_band)` with a band-wide fallback, and `Composite_Pct` within
+  band - pre-registration 3, in code. One universe means one band, so **nothing published moved,
+  measured rather than argued**: 0 of 23,092 percentile values differ from the sector-only code
+  it replaced, against 20,140 moved by a genuine cap split, so the zero is not vacuous; a
+  five-ticker live run and `rehearse_publish.py` confirm it end to end. `universe.py` joined the
+  research engine's `RESULT_PATHS` (it decides what a stock is ranked against) and all 32 ledger
+  rows were rerun - no statistic moved. `plan/universe-expansion.md` has the record.
+  **Next in phase 1:** the `config.yaml` `universe:` block, the per-band health gates, and the
+  `stock_detail` shard (the one that keeps first paint flat as the universe grows).
 
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test
@@ -401,6 +410,30 @@ Two things still outrank this file, and neither is negotiable:
      number. `research/2026-10-20-lab-osap.md` section 8.
      Both pre-registrations were verified in `git log` as genuine: tolerances committed with an
      empty `verdict_note` and no `lab_data.js`, 24 and 90 minutes before the result commits.
+     **Experiment 19 (`mohanram`, Mohanram 2005 on OSAP's MS groups): DONE 2026-11-07 (06:00
+     weekend session, which did not build it) - it stands, nothing needed correcting**, so this
+     sub-item is clear again until the next experiment is built.
+     `research/2026-11-06-lab-mohanram.md` section 8;
+     `research/measurements/2026-11-07-lab-mohanram-second-reading.py`, committed, which does not
+     import `factor_lab`. The pre-registration is genuine (`4a55141` 13:14, +173 lines to
+     `factor_lab.py` and nothing else, `verdict_note` empty; result `3f3cb98` 13:26 - **twelve
+     minutes**, the shortest gap of any experiment, with all seven figures and tolerances
+     byte-identical across the two). **All seven reference figures exact**, re-read from the PDF
+     bytes - and in **two independent manuscripts**, Columbia's as well as TSpace's, whose Table 4
+     Panel A is character-identical; the *version of record* is still behind Springer's paywall,
+     so that caveat stands. Panel B's two ends and the 5,585 firm-years behind the paper's t are
+     exact too. **Every measured figure reproduces to the second decimal** (+3.22, +5.40, +6.48,
+     +12.75, +7.58, +16.48, spread +13.26, t 4.96; 4 of 7 within; the four later-window spreads
+     and their t's; the strongest group the calmest at 6.24 against 7.18-7.89), and the library's
+     own `LS` port averages 1.1047%/month = 13.26% a year, so the lab's spread is the library's.
+     **The note's weakest claim is now its strongest:** section 4 said `SignalDoc.csv`'s `Return`
+     column is the *paper's* figure rather than a measured one, on one check (`PS`). Tested on
+     seven signals, **five differ from the library's own measured long-short** by more than
+     0.05%/month, two by over 40% - and the column's values are recognisable as published
+     headlines (`Mom12m` at **1.31%/month** is Jegadeesh & Titman's own number). **One slip found,
+     and it is the paper's:** Mohanram's text on PDF p. 26 cites "the 21.2% difference reported in
+     Table 4" while discussing raw returns - 21.2% is Panel B's spread, and Panel A's is 21.4%,
+     which is what the record uses.
   3. **Test the tests.** Pick three registered claims a session (`claims.py`), break the code each
      one describes in a scratch copy, and confirm its `checked_by` test fails. A check that still
      passes is checking plumbing, not the claim (CLAUDE.md, 0.11's lesson) - fix it, and keep a
