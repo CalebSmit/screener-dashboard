@@ -188,6 +188,21 @@ def _sheet(page, t):
     page.wait_for_function("document.getElementById('stock-modal').style.display === 'flex'", timeout=WAIT)
 
 
+def _detail_in(page, probe="JPM"):
+    """Wait until ``dashboard_detail.js`` has arrived *and been merged* into ``D.stock_detail``.
+
+    A test that writes into the payload and then opens a sheet has to do this first, because the
+    sheet-only fields are fetched on demand (2026-11-08) and the loader's merge would otherwise
+    put back exactly what the test deleted - which is a flake, not a failure: the pre-warm
+    usually wins the race on a local file:// page and loses it under load.
+
+    Both halves are waited on deliberately. ``DETAIL_LOADED`` says the script evaluated;
+    ``financials`` being present on a stock says the *merge* ran, which is the step that would
+    undo the write. Every stock has a ``financials`` block on a good run."""
+    page.wait_for_function("typeof DETAIL_LOADED !== 'undefined' && DETAIL_LOADED", timeout=WAIT)
+    page.wait_for_function("(t) => !!(D.stock_detail[t] || {}).financials", arg=probe, timeout=WAIT)
+
+
 def _settled(page):
     """The context payload is in (its arrival re-renders Before you decide, which moves every section
     below it) and the sheet's body has stopped scrolling for ten frames."""
@@ -354,14 +369,56 @@ def test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history(browser
 
 
 def test_empty_sections_say_so(browser):
+    """The three panels that can have nothing to show say so rather than drawing an empty box.
+
+    The peers panel is emptied by removing the nine figures its table prints, not by removing a
+    block that holds them: since 2026-11-08 the open stock's row is built by `buildPeerRow` from
+    `raw` + `financials`, the same function every peer's row goes through, so there is no longer
+    a `self_metrics` block to delete. Nulling `financials` alone leaves six of the nine columns,
+    and a panel that can still print a P/E and a D/E must not claim nothing was published -
+    which is what the previous version of this test would have asserted."""
     ctx, page, errors = _open(browser)
     try:
-        page.evaluate("""() => { const s = D.stock_detail.JPM; s.pt_mean = s.pt_high = s.pt_low = null; s.financials = null; s.self_metrics = null; }""")
+        _detail_in(page)
+        page.evaluate("""() => { const s = D.stock_detail.JPM;
+            s.pt_mean = s.pt_high = s.pt_low = null; s.financials = null;
+            ['revenue_growth', 'earnings_yield', 'roic', 'roe', 'debt_equity', 'fcf_yield']
+                .forEach(k => { s.raw[k] = null; }); }""")
         _sheet(page, "JPM")
         got = page.evaluate("['modal-price-targets', 'modal-snapshot', 'modal-peers'].map(id => document.getElementById(id).textContent.trim())")
         assert got == ["No analyst price target was published for this stock in this run.",
                        "No financial figures were published for this stock in this run.",
                        "No peer figures were published for this stock in this run."]
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_the_peers_panel_still_prints_the_columns_it_has(browser):
+    """The other half of the sentence above: `financials` alone missing is not "nothing published".
+
+    Mkt Cap, Net Margin and Div Yield come from `financials`; the other six columns come from
+    `raw`. With `financials` gone the panel must still draw the table with those six - the
+    2026-11-08 unification is what makes this distinction visible, because the empty state now
+    asks whether any of the nine columns exists rather than whether one payload block does.
+
+    The em-dash is the point, not an ellipsis: `financials` ships on demand since 2026-11-08, so
+    a cell still *waiting* for it says so. This is the other state - the file has landed and the
+    figure is not in it - which is why ``_detail_in`` comes first."""
+    ctx, page, errors = _open(browser)
+    try:
+        _detail_in(page)
+        page.evaluate("""() => { Object.keys(D.stock_detail).forEach(t => { D.stock_detail[t].financials = null; }); }""")
+        _sheet(page, "JPM")
+        page.wait_for_selector("#modal-peers .peer-table", state="attached", timeout=WAIT)
+        cells = page.evaluate("""() => { const r = document.querySelector('#modal-peers tr.peer-row-self');
+            return [...r.querySelectorAll('td')].map(e => e.textContent.trim()); }""")
+        # the three financials-fed columns are em-dashes, and the P/E and D/E are not
+        assert cells.count("—") >= 3, cells
+        assert "…" not in cells, cells
+        assert any(c.endswith("x") for c in cells), cells
+        assert "No peer figures were published" not in page.evaluate(
+            "document.getElementById('modal-peers').textContent")
         assert errors == []
     finally:
         ctx.close()

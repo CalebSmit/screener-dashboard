@@ -112,6 +112,15 @@ def page(browser, tmp_path_factory):
     # The sheet pre-warm would otherwise rewrite #modal-context from an idle
     # callback, between a render and its read - see tests/sheet_warm.py.
     sheet_warm.settle(pg)
+    # `financials` ships in dashboard_detail.js since 2026-11-08, so the Company snapshot and the
+    # peer table render a waiting state until the loader has merged it, and the tests here call
+    # those renderers directly for every stock. The fetch has to be asked for explicitly: the only
+    # trigger is a sheet being laid out, and `settle()` above *stops* the pre-warm that would have
+    # done it - so waiting without this call waits for ever. The query string is cache-busting
+    # only. Both halves are then awaited: the script evaluated, and a stock carrying the block.
+    pg.evaluate("loadDetail('./dashboard_detail.js')")
+    pg.wait_for_function("typeof DETAIL_LOADED !== 'undefined' && DETAIL_LOADED", timeout=60000)
+    pg.wait_for_function("() => Object.values(D.stock_detail).some(s => s.financials)", timeout=60000)
     yield pg
     pg.close()
     assert not errors, errors

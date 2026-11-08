@@ -58,10 +58,20 @@ def cfg() -> dict:
 
 @pytest.fixture(scope="module")
 def payload() -> dict:
+    """The payload as the open sheet sees it: first paint merged with ``dashboard_detail.js``.
+
+    The sheet-only fields ship in a second file since 2026-11-08 and `financials` joined them
+    the same day (`plan/universe-expansion.md` phase 1). The page merges that file into
+    ``D.stock_detail``; a test asking what the sheet shows has to do the same, or
+    ``v["financials"]`` is suddenly absent for every stock."""
     if not PAYLOAD.exists():
         pytest.skip("no published payload")
     s = PAYLOAD.read_text(encoding="utf-8")
-    return json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))
+    data = json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))
+    from tests import examples
+    for t, v in data["stock_detail"].items():
+        v.update(examples._detail().get(t) or {})
+    return data
 
 
 def _text(fragment: str) -> str:

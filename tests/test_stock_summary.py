@@ -371,12 +371,18 @@ def test_the_low_score_glosses_are_advice_free_and_plain():
 
 
 def _published_detail():
+    """Each stock as the open sheet has it - first paint merged with ``dashboard_detail.js``,
+    which has carried `financials` since 2026-11-08 (`plan/universe-expansion.md` phase 1)."""
     import json
     p = REPO / "dashboard_data.js"
     if not p.exists():
         pytest.skip("no published payload")
     s = p.read_text(encoding="utf-8")
-    return json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))["stock_detail"]
+    sd = json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))["stock_detail"]
+    from tests import examples
+    for t, v in sd.items():
+        v.update(examples._detail().get(t) or {})
+    return sd
 
 
 def test_a_low_score_in_an_inverted_category_says_what_it_means():

@@ -140,10 +140,22 @@ class TestOneDerivationOnly:
         """Not available means it cannot be re-derived by the next editor."""
         assert '("dividendRate", "_dividend_rate")' not in GEN
 
-    def test_both_payload_fields_read_the_engines_column(self):
+    def test_the_one_payload_field_reads_the_engines_column(self):
+        """There is **one** published dividend yield, and it is the engine's column.
+
+        Until 2026-11-08 there were two - `financials.dividend_yield` and
+        `self_metrics.div_yield` - and this test's job was to hold both of them to
+        ``row["dividend_yield"]``. The peer table's rows are all built by ``buildPeerRow`` now
+        (`tests/test_peer_row_one_path.py`), which reads `financials.dividend_yield`, so the
+        second field is gone and the duplication this guarded against cannot be expressed.
+        The assertion that remains is the one that still has teeth: the single field is the
+        engine's number, and there is no second copy anywhere in the generator."""
         assert '"dividend_yield": round(_div_yield, 4)' in GEN
-        assert '"div_yield": round(_div_yield, 4)' in GEN
         assert '_div_yield = _safe(row.get("dividend_yield"))' in GEN
+        assert GEN.count("_div_yield = ") == 1, "a second derivation of the yield is back"
+        assert '"div_yield"' not in GEN, (
+            "a second published dividend-yield field is back; hold it to the engine's column "
+            "here, or (better) have its reader go through buildPeerRow")
 
 
 class TestThePageSaysWhichBasis:
