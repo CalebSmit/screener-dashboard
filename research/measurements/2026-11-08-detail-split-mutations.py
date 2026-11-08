@@ -23,6 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 GEN = ROOT / "generate_dashboard.py"
 RUNNER = ROOT / "scripts" / "nightly-screener.ps1"
+DATA_RUNNER = ROOT / "scripts" / "data-run.ps1"
 MODULE = "tests/test_detail_payload_split.py"
 PARSE_GATE = "tests/test_payload_parse_gate.py"
 
@@ -47,14 +48,23 @@ MUTATIONS = [
     ("the loader stops merging into stock_detail", GEN,
      'Object.keys(P).forEach(t => { if (D.stock_detail[t]) Object.assign(D.stock_detail[t], P[t]); });',
      'Object.keys(P).forEach(t => { if (false) Object.assign(D.stock_detail[t], P[t]); });', MODULE),
-    ("the code runner never names the new payload file", RUNNER,
+    # The one that got through on the first pass, and the reason this harness exists: the file
+    # is still *named* in the runner, so both the direct test and the 2026-10-16 tripwire pass -
+    # while '' makes both runners skip the header check and `node --check` for it. Caught now by
+    # test_both_runners_check_each_payload_by_its_assignment_not_only_by_its_name.
+    ("the code runner keeps the file but turns its parse and header check off", RUNNER,
      "        @($detPath,   100000, '^window\\.SCREENER_DETAIL=')",
      "        @($detPath,   100000, '')", f"{MODULE} {PARSE_GATE}"),
+    ("the data runner keeps the file but turns its parse and header check off",
+     DATA_RUNNER,
+     "        @($detPath,  100000, '^window\\.SCREENER_DETAIL=')",
+     "        @($detPath,  100000, '')", f"{MODULE} {PARSE_GATE}"),
 ]
 
 
 def dirty() -> bool:
-    out = subprocess.run(["git", "status", "--porcelain", "--", str(GEN), str(RUNNER)],
+    out = subprocess.run(["git", "status", "--porcelain", "--",
+                           str(GEN), str(RUNNER), str(DATA_RUNNER)],
                          cwd=ROOT, capture_output=True, text=True).stdout.strip()
     return bool(out)
 
@@ -69,9 +79,9 @@ def run(tests: str) -> tuple[bool, str]:
 def main() -> int:
     if dirty():
         print("refusing to run on a dirty tree: commit or stash generate_dashboard.py and "
-              "scripts/nightly-screener.ps1 first")
+              "both runners first")
         return 2
-    originals = {p: p.read_text(encoding="utf-8") for p in (GEN, RUNNER)}
+    originals = {p: p.read_text(encoding="utf-8") for p in (GEN, RUNNER, DATA_RUNNER)}
     caught = 0
     try:
         for name, path, before, after, tests in MUTATIONS:
