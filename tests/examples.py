@@ -21,13 +21,36 @@ import functools
 import json
 from pathlib import Path
 
-PAYLOAD = Path(__file__).resolve().parent.parent / "dashboard_data.js"
+ROOT = Path(__file__).resolve().parent.parent
+PAYLOAD = ROOT / "dashboard_data.js"
+DETAIL = ROOT / "dashboard_detail.js"
 
 
 @functools.lru_cache(maxsize=1)
 def _payload() -> dict:
     txt = PAYLOAD.read_text(encoding="utf-8")
     return json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+
+
+@functools.lru_cache(maxsize=1)
+def _detail() -> dict:
+    """``dashboard_detail.js``'s per-stock part, or ``{}`` if the file is not there.
+
+    The sheet-only fields have shipped in a second file since 2026-11-08
+    (`plan/universe-expansion.md` phase 1), and `financials` joined them the same day. A premise
+    about what the *sheet* has must therefore read the union, exactly as the page does when the
+    loader merges the file into ``D.stock_detail`` - otherwise the premise below goes false for
+    every stock at once and the four browser modules in the 02:00 publish gate fail, which
+    discards the night's data (CLAUDE.md settled row "data->red")."""
+    if not DETAIL.exists():
+        return {}
+    txt = DETAIL.read_text(encoding="utf-8")
+    return (json.loads(txt[txt.index("{"):txt.rindex("}") + 1]) or {}).get("detail") or {}
+
+
+def sheet(ticker: str) -> dict:
+    """Everything the open sheet has for ``ticker``: first-paint payload plus the detail file."""
+    return {**(_payload()["stock_detail"].get(ticker) or {}), **(_detail().get(ticker) or {})}
 
 
 def _full_sheet(s: dict) -> bool:
@@ -46,7 +69,7 @@ def stock(preferred: str, exclude: tuple[str, ...] = ()) -> str:
     ranked = sorted((r for r in _payload()["table_data"] if r.get("Rank")), key=lambda r: (r["Rank"], r["Ticker"]))
     for r in ranked:
         t = r["Ticker"]
-        if t not in exclude and _full_sheet(sd.get(t) or {}):
+        if t not in exclude and _full_sheet(sheet(t)):
             return t
     raise LookupError("the payload carries no ranked stock with a full sheet")
 

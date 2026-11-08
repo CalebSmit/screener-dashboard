@@ -32,7 +32,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=092984769729" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=f219ab92362d" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -6295,7 +6295,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
          the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
          failed download is recorded so the page can say which of the failures it was. -->
     <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () { var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }, 4000);</script>
-    <script src="./dashboard_data.js?v=092984769729" onerror="window.SCREENER_DATA_FAILED = true"></script>
+    <script src="./dashboard_data.js?v=f219ab92362d" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -8233,7 +8233,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // block says which state it is in, because an empty gap here reads as "this company has no
     // description" - which is true of none of them.
     function renderAbout(ticker, s) {
-        loadDetail("./dashboard_detail.js?v=44cfb71d3db7");
+        loadDetail("./dashboard_detail.js?v=c5ecba45090b");
         const box = document.getElementById('modal-about');
         const txt = document.getElementById('modal-about-text');
         const btn = document.getElementById('modal-about-toggle');
@@ -8596,6 +8596,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const container = document.getElementById('modal-snapshot');
         if (!container) return;
         const f = s.financials;
+        // `financials` ships in dashboard_detail.js since 2026-11-08, so "not here yet" and
+        // "never published" are different states and the panel says which. For a wall of
+        // figures an unexplained empty box is worse than for prose: it reads as a company that
+        // files nothing, which is true of none of them.
+        if (!f && !DETAIL_LOADED) {
+            container.innerHTML = '<p class="modal-note sheet-empty">' +
+                (DETAIL_FAILED ? 'The financial figures could not be loaded.'
+                               : 'Loading the financial figures…') + '</p>';
+            return;
+        }
         if (!f) { container.innerHTML = '<p class="modal-note sheet-empty">No financial figures were published for this stock in this run.</p>'; return; }
 
         const fmtShares = (v) => {
@@ -8678,7 +8688,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // of em-dashes while claiming to be published data.
         const self = buildPeerRow(ticker);
         if (!self || !PEER_COLS.some(k => self[k] !== null && self[k] !== undefined)) {
-            container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }
+            // Three of the nine columns arrive with dashboard_detail.js, so an empty row can
+            // mean "not here yet". Six come from `raw` at first paint, so on a good run this
+            // branch is unreachable either way - but it must not claim a run published nothing
+            // while a fetch it started is still outstanding.
+            const pend = !DETAIL_LOADED && !DETAIL_FAILED;
+            container.innerHTML = '<p class="modal-note sheet-empty">' + (pend
+                ? 'Loading the comparison figures…'
+                : 'No peer figures were published for this stock in this run.') + '</p>';
+            return; }
 
         // Initialize peer state on first render for this ticker
         if (peerState.currentTicker !== ticker) {
@@ -8695,6 +8713,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const fmtPE = (v) => v !== null && v !== undefined ? v.toFixed(1) + 'x' : '—';
         const fmtPct1 = (v) => v !== null && v !== undefined ? pctPlain(v, 1) : '—';
         const fmtDE = (v) => v !== null && v !== undefined ? v.toFixed(2) + 'x' : '—';
+        // Market cap, net margin and dividend yield come from `financials`, which ships in
+        // dashboard_detail.js since 2026-11-08. Until it lands those three cells say they are
+        // waiting rather than printing an em-dash, which in a column of figures means "this
+        // run published none". One character, so the three columns do not change width when
+        // the file arrives. The other six come from `raw` and are there at first paint.
+        const detailPending = !DETAIL_LOADED && !DETAIL_FAILED;
+        const waiting = (v, f) => ((v === null || v === undefined) && detailPending)
+            ? '…' : f(v);
 
         // No green/red verdicts on peers' figures. They used to colour a peer green when it
         // "beat" this stock on a rule of the table's own (a lower P/E, a higher dividend yield,
@@ -8757,13 +8783,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     ${r.isSelf ? '<span class="peer-you">YOU</span>' : ''}
                 </td>
                 <td class="peer-td-num peer-td-rank">${r.rank ? '#' + r.rank : '—'}</td>
-                <td class="peer-td-num">${fmtBig(r.mcap)}</td>
+                <td class="peer-td-num">${waiting(r.mcap, fmtBig)}</td>
                 <td class="peer-td-num">${fmtPE(r.pe_ratio)}</td>
                 <td class="peer-td-num">${fmtRG(r.rev_growth)}</td>
-                <td class="peer-td-num">${fmtPct1(r.net_margin)}</td>
+                <td class="peer-td-num">${waiting(r.net_margin, fmtPct1)}</td>
                 <td class="peer-td-num">${fmtPct1(profitMetric)}</td>
                 <td class="peer-td-num">${fmtDE(r.debt_equity)}</td>
-                <td class="peer-td-num">${fmtPct1(r.div_yield)}</td>
+                <td class="peer-td-num">${waiting(r.div_yield, fmtPct1)}</td>
                 <td class="peer-td-num">${fmtPct1(r.fcf_yield)}</td>
                 <td class="peer-td-action">${r.isSelf ? '' : `<button type="button" class="peer-remove-btn" onclick="removePeer('${escapeHtml(r.ticker)}')" title="Remove from the comparison" aria-label="Remove ${escapeHtml(r.ticker)} from the comparison">&times;</button>`}</td>
             </tr>`;
@@ -8776,13 +8802,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             html += `<tr class="peer-row-median">
                 <td class="peer-td-ticker"><span class="peer-ticker">Peer median</span></td>
                 <td class="peer-td-num"></td>
-                <td class="peer-td-num">${fmtBig(med('mcap'))}</td>
+                <td class="peer-td-num">${waiting(med('mcap'), fmtBig)}</td>
                 <td class="peer-td-num">${fmtPE(med('pe_ratio'))}</td>
                 <td class="peer-td-num">${fmtRG(med('rev_growth'))}</td>
-                <td class="peer-td-num">${fmtPct1(med('net_margin'))}</td>
+                <td class="peer-td-num">${waiting(med('net_margin'), fmtPct1)}</td>
                 <td class="peer-td-num">${fmtPct1(med('profit'))}</td>
                 <td class="peer-td-num">${fmtDE(med('debt_equity'))}</td>
-                <td class="peer-td-num">${fmtPct1(med('div_yield'))}</td>
+                <td class="peer-td-num">${waiting(med('div_yield'), fmtPct1)}</td>
                 <td class="peer-td-num">${fmtPct1(med('fcf_yield'))}</td>
                 <td class="peer-td-action"></td>
             </tr>`;
@@ -11376,9 +11402,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         el.async = true;
         const redraw = () => {
             // Only the sheet reads these fields, so only the sheet needs redrawing - and only
-            // if one is open on the stock whose text just arrived.
+            // if one is open on the stock whose data just arrived. One panel per field group:
+            // `about`/`industry` are renderAbout's, `financials` is read by the Company
+            // snapshot and by every row of the peer table (2026-11-08). renderPeerComparison
+            // keeps the reader's custom peer list, because peerState.currentTicker is already
+            // this ticker and it only resets on a change.
             if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) {
-                renderAbout(UX.current, D.stock_detail[UX.current]);
+                const s = D.stock_detail[UX.current];
+                renderAbout(UX.current, s);
+                if (typeof renderCompanySnapshot === 'function') renderCompanySnapshot(s);
+                if (typeof renderPeerComparison === 'function') renderPeerComparison(UX.current, s);
             }
         };
         el.onload = () => {

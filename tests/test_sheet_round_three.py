@@ -188,6 +188,21 @@ def _sheet(page, t):
     page.wait_for_function("document.getElementById('stock-modal').style.display === 'flex'", timeout=WAIT)
 
 
+def _detail_in(page, probe="JPM"):
+    """Wait until ``dashboard_detail.js`` has arrived *and been merged* into ``D.stock_detail``.
+
+    A test that writes into the payload and then opens a sheet has to do this first, because the
+    sheet-only fields are fetched on demand (2026-11-08) and the loader's merge would otherwise
+    put back exactly what the test deleted - which is a flake, not a failure: the pre-warm
+    usually wins the race on a local file:// page and loses it under load.
+
+    Both halves are waited on deliberately. ``DETAIL_LOADED`` says the script evaluated;
+    ``financials`` being present on a stock says the *merge* ran, which is the step that would
+    undo the write. Every stock has a ``financials`` block on a good run."""
+    page.wait_for_function("typeof DETAIL_LOADED !== 'undefined' && DETAIL_LOADED", timeout=WAIT)
+    page.wait_for_function("(t) => !!(D.stock_detail[t] || {}).financials", arg=probe, timeout=WAIT)
+
+
 def _settled(page):
     """The context payload is in (its arrival re-renders Before you decide, which moves every section
     below it) and the sheet's body has stopped scrolling for ten frames."""
@@ -364,6 +379,7 @@ def test_empty_sections_say_so(browser):
     which is what the previous version of this test would have asserted."""
     ctx, page, errors = _open(browser)
     try:
+        _detail_in(page)
         page.evaluate("""() => { const s = D.stock_detail.JPM;
             s.pt_mean = s.pt_high = s.pt_low = null; s.financials = null;
             ['revenue_growth', 'earnings_yield', 'roic', 'roe', 'debt_equity', 'fcf_yield']
@@ -384,9 +400,14 @@ def test_the_peers_panel_still_prints_the_columns_it_has(browser):
     Mkt Cap, Net Margin and Div Yield come from `financials`; the other six columns come from
     `raw`. With `financials` gone the panel must still draw the table with those six - the
     2026-11-08 unification is what makes this distinction visible, because the empty state now
-    asks whether any of the nine columns exists rather than whether one payload block does."""
+    asks whether any of the nine columns exists rather than whether one payload block does.
+
+    The em-dash is the point, not an ellipsis: `financials` ships on demand since 2026-11-08, so
+    a cell still *waiting* for it says so. This is the other state - the file has landed and the
+    figure is not in it - which is why ``_detail_in`` comes first."""
     ctx, page, errors = _open(browser)
     try:
+        _detail_in(page)
         page.evaluate("""() => { Object.keys(D.stock_detail).forEach(t => { D.stock_detail[t].financials = null; }); }""")
         _sheet(page, "JPM")
         page.wait_for_selector("#modal-peers .peer-table", state="attached", timeout=WAIT)
@@ -394,6 +415,7 @@ def test_the_peers_panel_still_prints_the_columns_it_has(browser):
             return [...r.querySelectorAll('td')].map(e => e.textContent.trim()); }""")
         # the three financials-fed columns are em-dashes, and the P/E and D/E are not
         assert cells.count("—") >= 3, cells
+        assert "…" not in cells, cells
         assert any(c.endswith("x") for c in cells), cells
         assert "No peer figures were published" not in page.evaluate(
             "document.getElementById('modal-peers').textContent")

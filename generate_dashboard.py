@@ -819,7 +819,44 @@ DETAIL_FILE = "dashboard_detail.js"
 # `stock_detail` is 84.3% of the 1.547 MB gzipped first-paint payload, and `about` alone is
 # 19.3% of it - the single heaviest field in the whole payload, ahead of `inp` (13.8%) and
 # `raw` (12.5%).
-DETAIL_KEYS = ("about", "industry")
+#
+# `financials` joined on 2026-11-08 (13:00 session) - the first *numbers* in the shard, 4.7% of
+# first paint. The membership rule was written that morning as "one read site, inside the sheet,
+# and no number"; the second clause is restated rather than broken, because it was describing
+# what made `about` safe rather than what the shard can carry:
+#
+#   a field may move when every surface that reads it is the open sheet, and every panel that
+#   prints it can say honestly that it is waiting.
+#
+# `financials` passes both. Exactly two functions read it - `renderCompanySnapshot` and
+# `buildPeerRow`, both inside the sheet - which only became true today: until the peer table was
+# unified onto `buildPeerRow`, the subject's row read a precomputed `self_metrics` block instead.
+# And both panels now have a waiting state rather than an em-dash, which for a number is the
+# difference between "loading" and "this company published none".
+#
+# What is *not* in the shard, and why, stays as the morning left it: `inp`, `raw`, `pct` and
+# `summary` are 42.6% more and are read by the movers strip, the compare drawer and the
+# calculation traces - surfaces that are not the sheet and are live at first paint.
+DETAIL_KEYS = ("about", "industry", "financials")
+# The subset that is provider prose. The scoring-freedom rule applies to every key above; being
+# a string applies only to these (`tests/test_detail_payload_split.py`).
+PROSE_KEYS = ("about", "industry")
+
+
+def _has_content(v) -> bool:
+    """Is there anything here worth putting on the wire?
+
+    For prose, a non-blank string. For a block of figures, at least one figure that is not null -
+    `str(v or "").strip()` is truthy for *every* dict, including one whose every value is None,
+    so the string test alone would have carried ~500 empty entries the day a dict-valued field
+    joined ``DETAIL_KEYS``."""
+    if isinstance(v, dict):
+        return any(_has_content(x) for x in v.values())
+    if isinstance(v, (list, tuple)):
+        return any(_has_content(x) for x in v)
+    if isinstance(v, str):
+        return bool(v.strip())
+    return v is not None and v is not False
 
 
 def split_context(data: dict) -> dict:
@@ -855,11 +892,18 @@ def split_detail(data: dict) -> dict:
     pre-warm exists so that the first open is instant, and that includes the text.
 
     A stock with nothing to say is omitted rather than carried as empty strings; the page treats
-    a missing entry and an empty description identically (``renderAbout`` hides the block)."""
+    a missing entry and an empty description identically (``renderAbout`` hides the block).
+    ``_has_content`` is what "nothing to say" means for each kind of value, so that adding a
+    field whose value is a dict of numbers does not silently carry 500 empty entries."""
     out = {"detail": {}}
     for t, s in (data.get("stock_detail") or {}).items():
         part = {k: s.pop(k) for k in DETAIL_KEYS if k in s}
-        if any(str(v or "").strip() for v in part.values()):
+        # Per key, not per stock: a stock with a description and no figures should carry the
+        # description and not an empty block beside it. Every reader treats a missing key and
+        # an empty one the same (``renderAbout`` hides the block, ``renderCompanySnapshot``
+        # says so), and the loader merges only the keys that are present.
+        part = {k: v for k, v in part.items() if _has_content(v)}
+        if part:
             out["detail"][t] = part
     return out
 
@@ -4632,6 +4676,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const container = document.getElementById('modal-snapshot');
         if (!container) return;
         const f = s.financials;
+        // `financials` ships in dashboard_detail.js since 2026-11-08, so "not here yet" and
+        // "never published" are different states and the panel says which. For a wall of
+        // figures an unexplained empty box is worse than for prose: it reads as a company that
+        // files nothing, which is true of none of them.
+        if (!f && !DETAIL_LOADED) {{
+            container.innerHTML = '<p class="modal-note sheet-empty">' +
+                (DETAIL_FAILED ? 'The financial figures could not be loaded.'
+                               : 'Loading the financial figures…') + '</p>';
+            return;
+        }}
         if (!f) {{ container.innerHTML = '<p class="modal-note sheet-empty">No financial figures were published for this stock in this run.</p>'; return; }}
 
         const fmtShares = (v) => {{
@@ -4714,7 +4768,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // of em-dashes while claiming to be published data.
         const self = buildPeerRow(ticker);
         if (!self || !PEER_COLS.some(k => self[k] !== null && self[k] !== undefined)) {{
-            container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }}
+            // Three of the nine columns arrive with dashboard_detail.js, so an empty row can
+            // mean "not here yet". Six come from `raw` at first paint, so on a good run this
+            // branch is unreachable either way - but it must not claim a run published nothing
+            // while a fetch it started is still outstanding.
+            const pend = !DETAIL_LOADED && !DETAIL_FAILED;
+            container.innerHTML = '<p class="modal-note sheet-empty">' + (pend
+                ? 'Loading the comparison figures…'
+                : 'No peer figures were published for this stock in this run.') + '</p>';
+            return; }}
 
         // Initialize peer state on first render for this ticker
         if (peerState.currentTicker !== ticker) {{
@@ -4731,6 +4793,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const fmtPE = (v) => v !== null && v !== undefined ? v.toFixed(1) + 'x' : '\u2014';
         const fmtPct1 = (v) => v !== null && v !== undefined ? pctPlain(v, 1) : '\u2014';
         const fmtDE = (v) => v !== null && v !== undefined ? v.toFixed(2) + 'x' : '\u2014';
+        // Market cap, net margin and dividend yield come from `financials`, which ships in
+        // dashboard_detail.js since 2026-11-08. Until it lands those three cells say they are
+        // waiting rather than printing an em-dash, which in a column of figures means "this
+        // run published none". One character, so the three columns do not change width when
+        // the file arrives. The other six come from `raw` and are there at first paint.
+        const detailPending = !DETAIL_LOADED && !DETAIL_FAILED;
+        const waiting = (v, f) => ((v === null || v === undefined) && detailPending)
+            ? '\u2026' : f(v);
 
         // No green/red verdicts on peers' figures. They used to colour a peer green when it
         // "beat" this stock on a rule of the table's own (a lower P/E, a higher dividend yield,
@@ -4793,13 +4863,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     ${{r.isSelf ? '<span class="peer-you">YOU</span>' : ''}}
                 </td>
                 <td class="peer-td-num peer-td-rank">${{r.rank ? '#' + r.rank : '—'}}</td>
-                <td class="peer-td-num">${{fmtBig(r.mcap)}}</td>
+                <td class="peer-td-num">${{waiting(r.mcap, fmtBig)}}</td>
                 <td class="peer-td-num">${{fmtPE(r.pe_ratio)}}</td>
                 <td class="peer-td-num">${{fmtRG(r.rev_growth)}}</td>
-                <td class="peer-td-num">${{fmtPct1(r.net_margin)}}</td>
+                <td class="peer-td-num">${{waiting(r.net_margin, fmtPct1)}}</td>
                 <td class="peer-td-num">${{fmtPct1(profitMetric)}}</td>
                 <td class="peer-td-num">${{fmtDE(r.debt_equity)}}</td>
-                <td class="peer-td-num">${{fmtPct1(r.div_yield)}}</td>
+                <td class="peer-td-num">${{waiting(r.div_yield, fmtPct1)}}</td>
                 <td class="peer-td-num">${{fmtPct1(r.fcf_yield)}}</td>
                 <td class="peer-td-action">${{r.isSelf ? '' : `<button type="button" class="peer-remove-btn" onclick="removePeer('${{escapeHtml(r.ticker)}}')" title="Remove from the comparison" aria-label="Remove ${{escapeHtml(r.ticker)}} from the comparison">&times;</button>`}}</td>
             </tr>`;
@@ -4812,13 +4882,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             html += `<tr class="peer-row-median">
                 <td class="peer-td-ticker"><span class="peer-ticker">Peer median</span></td>
                 <td class="peer-td-num"></td>
-                <td class="peer-td-num">${{fmtBig(med('mcap'))}}</td>
+                <td class="peer-td-num">${{waiting(med('mcap'), fmtBig)}}</td>
                 <td class="peer-td-num">${{fmtPE(med('pe_ratio'))}}</td>
                 <td class="peer-td-num">${{fmtRG(med('rev_growth'))}}</td>
-                <td class="peer-td-num">${{fmtPct1(med('net_margin'))}}</td>
+                <td class="peer-td-num">${{waiting(med('net_margin'), fmtPct1)}}</td>
                 <td class="peer-td-num">${{fmtPct1(med('profit'))}}</td>
                 <td class="peer-td-num">${{fmtDE(med('debt_equity'))}}</td>
-                <td class="peer-td-num">${{fmtPct1(med('div_yield'))}}</td>
+                <td class="peer-td-num">${{waiting(med('div_yield'), fmtPct1)}}</td>
                 <td class="peer-td-num">${{fmtPct1(med('fcf_yield'))}}</td>
                 <td class="peer-td-action"></td>
             </tr>`;
@@ -11550,9 +11620,16 @@ def _js_context() -> str:
         el.async = true;
         const redraw = () => {
             // Only the sheet reads these fields, so only the sheet needs redrawing - and only
-            // if one is open on the stock whose text just arrived.
+            // if one is open on the stock whose data just arrived. One panel per field group:
+            // `about`/`industry` are renderAbout's, `financials` is read by the Company
+            // snapshot and by every row of the peer table (2026-11-08). renderPeerComparison
+            // keeps the reader's custom peer list, because peerState.currentTicker is already
+            // this ticker and it only resets on a change.
             if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) {
-                renderAbout(UX.current, D.stock_detail[UX.current]);
+                const s = D.stock_detail[UX.current];
+                renderAbout(UX.current, s);
+                if (typeof renderCompanySnapshot === 'function') renderCompanySnapshot(s);
+                if (typeof renderPeerComparison === 'function') renderPeerComparison(UX.current, s);
             }
         };
         el.onload = () => {
