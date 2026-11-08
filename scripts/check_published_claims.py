@@ -104,6 +104,10 @@ PUBLISHED_ARTIFACTS = (
     "dashboard.html",
     "dashboard_data.js",
     "dashboard_context.js",
+    # The third payload file, 2026-11-08: the sheet-only company prose, split off so first
+    # paint does not carry it. Added here in the same commit that created it, which is the
+    # lesson of the eight days dashboard_context.js was published unguarded.
+    "dashboard_detail.js",
     "README.md",
 )
 

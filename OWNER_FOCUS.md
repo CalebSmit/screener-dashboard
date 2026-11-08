@@ -78,8 +78,26 @@ Two things still outrank this file, and neither is negotiable:
   five-ticker live run and `rehearse_publish.py` confirm it end to end. `universe.py` joined the
   research engine's `RESULT_PATHS` (it decides what a stock is ranked against) and all 32 ledger
   rows were rerun - no statistic moved. `plan/universe-expansion.md` has the record.
-  **Next in phase 1:** the `config.yaml` `universe:` block, the per-band health gates, and the
-  `stock_detail` shard (the one that keeps first paint flat as the universe grows).
+  **Phase 1, the per-band health gate: SHIPPED 2026-11-07 (13:00).** The analyst-target floor is
+  applied inside each size band as well as universe-wide, with the band read from the run's own
+  parquet so the payload stays byte-identical. The auto-disable's *trigger* was deliberately left
+  universe-wide: it changes the weights, so choosing between its three per-band rules is a
+  methodology decision needing phase 2's coverage measurement, and the per-band figures are
+  recorded now. `plan/universe-expansion.md` has the record.
+  **Phase 1, the `stock_detail` shard: the mechanism and its first slice SHIPPED 2026-11-08
+  (06:00 weekend session), measured at -19.8% of first paint.** The fields only an open sheet
+  reads now ship in a third payload file, `dashboard_detail.js`, fetched when the first sheet is
+  laid out: **first paint 1.547 -> 1.240 MB gzipped, -307 KB**, nothing published moved (the
+  business description is display-only prose by the 2026-08-26 decision). Which fields move was
+  decided by measuring every field's weight *and* every one of ~85 JS read sites - the rule is
+  **one read site, inside the sheet, and no number** - because the page reads
+  `D.stock_detail[t]` synchronously all over, so the fields the peers panel, movers strip and
+  calculation traces read cannot move until each is measured. Guarded in the same commit on both
+  publish paths, with a derived tripwire so the next payload file cannot be left out of the
+  rehearsal; 7 of 7 plausible mutations refused.
+  **Next in phase 1:** the `config.yaml` `universe:` block, then the shard's next field group
+  (`financials` + `self_metrics`), then bucketing - one file is right at 500 stocks and wrong at
+  5,000, so the shard is "off first paint" today and not yet "flat in the universe".
 
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test

@@ -111,7 +111,7 @@ class TestTheWritersUseIt:
         assert ctx["ctx"]["AAA"]["iv"] is None
 
 
-@pytest.mark.parametrize("name", ["dashboard_data.js", "dashboard_context.js"])
+@pytest.mark.parametrize("name", ["dashboard_data.js", "dashboard_context.js", "dashboard_detail.js"])
 def test_the_committed_payloads_parse_as_strict_json(name):
     """What the live site serves today - checked strictly, as the bot and JSON.parse read it."""
     path = ROOT / name

@@ -1085,14 +1085,24 @@ surface printed 13%. See below and `METHODOLOGY_CHANGELOG.md` 2026-08-28.
 
 | Key | Size (MB) | Notes |
 |---|---|---|
-| `stock_detail` | 2.81 -> ~4.3 | **~88% of the payload.** All 502 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw), 2026-09-15 with `change_driver` (+0.10 raw / +10.5 KB gz) |
+| `stock_detail` | 2.81 -> ~4.3 | **84.3% of the gzipped payload** (measured 2026-11-08). All ~500 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw), 2026-09-15 with `change_driver` (+0.10 raw / +10.5 KB gz); **`about` and `industry` left for `dashboard_detail.js` on 2026-11-08** (-307 KB gz off first paint). Field-by-field gzipped weights: `research/measurements/2026-11-08-stock-detail-field-weights.py` |
 | `history` | 0.27 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
 | `table_data` | 0.26 | 502 rows, 8 category scores + composite/rank/flags |
 | everything else | <0.02 | `portfolio` (0.010) and `spx_weights` removed 2026-08-26 |
 
 **Raw size is the wrong number to optimise.** Pages serves gzip, and the
-payload compresses ~4x overall. The business descriptions add ~0.71 MB raw but
-only ~60 KB on the wire. Measure gzip before calling anything expensive.
+payload compresses ~4x overall. Measure gzip before calling anything expensive.
+
+**And measure it, rather than assuming a ratio - this paragraph used to say the business
+descriptions "add ~0.71 MB raw but only ~60 KB on the wire", which is wrong by a factor of
+five** (corrected 2026-11-08, `research/measurements/2026-11-08-stock-detail-field-weights.py`).
+Removing `about` from the payload and re-gzipping it takes **298.6 KB off the wire**, 19.3% of
+the whole first-paint payload and the largest contribution of any field in it. The descriptions
+alone are **0.712 MB raw -> 215.2 KB gzipped, 3.31x**: 499 different companies' prose, each
+~1.4 KB, with nothing for gzip's 32 KB window to match far back - the ~11x the old figure
+implies belongs to repetitive text, not to English. The field was **split out of the first-paint
+payload on 2026-11-08** into `dashboard_detail.js` (CLAUDE.md, Front-end); a figure quoted off
+that 60 KB would have called the split worthless.
 
 **But do measure.** The 2026-09-08 summaries compress only **6.6x** (665 KB raw
 -> 101 KB gzipped), well short of the ~11x the earlier prose achieved, because

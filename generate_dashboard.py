@@ -809,6 +809,18 @@ def _shared_weeks(stock_detail: dict) -> list | None:
 CONTEXT_FILE = "dashboard_context.js"
 CONTEXT_KEYS = ("market", "track", "ctx_weeks")
 
+DETAIL_FILE = "dashboard_detail.js"
+# Fields of ``stock_detail`` that **only the open sheet** reads, so first paint need not carry
+# them. Kept deliberately small: the rule for membership is one read site, inside the sheet, and
+# no number - `about` and `industry` are the provider's prose, display-only by the 2026-08-26
+# decision, and nothing scores or ranks them.
+#
+# Measured before the split (`research/measurements/2026-11-08-stock-detail-field-weights.py`):
+# `stock_detail` is 84.3% of the 1.547 MB gzipped first-paint payload, and `about` alone is
+# 19.3% of it - the single heaviest field in the whole payload, ahead of `inp` (13.8%) and
+# `raw` (12.5%).
+DETAIL_KEYS = ("about", "industry")
+
 
 def split_context(data: dict) -> dict:
     """Move the context layer out of the main payload, in place, and return it.
@@ -824,6 +836,31 @@ def split_context(data: dict) -> dict:
     for k in CONTEXT_KEYS:
         if k in data:
             out[k] = data.pop(k)
+    return out
+
+
+def split_detail(data: dict) -> dict:
+    """Move the sheet-only half of ``stock_detail`` out of the first-paint payload, in place.
+
+    Phase 1 of `plan/universe-expansion.md` asks for `stock_detail` to be loaded on demand so
+    that first paint does not grow with the universe. This is the first slice of that: the
+    fields no surface reads until a sheet is laid out ship as ``dashboard_detail.js``.
+
+    **When it is fetched, measured rather than assumed:** the page requests it from
+    ``renderAbout``, so the first sheet pulls it - and on a page nobody touches that is the
+    idle-time pre-warm (``sheetPrewarm``), which lays the top stock's sheet out once the context
+    layer has loaded. Measured request order on the real page: ``dashboard_data.js``,
+    ``dashboard_context.js``, ``dashboard_detail.js``. So it is never on the critical path and
+    never ahead of the context layer, but it is not "only if you open a stock" either; the
+    pre-warm exists so that the first open is instant, and that includes the text.
+
+    A stock with nothing to say is omitted rather than carried as empty strings; the page treats
+    a missing entry and an empty description identically (``renderAbout`` hides the block)."""
+    out = {"detail": {}}
+    for t, s in (data.get("stock_detail") or {}).items():
+        part = {k: s.pop(k) for k in DETAIL_KEYS if k in s}
+        if any(str(v or "").strip() for v in part.values()):
+            out["detail"][t] = part
     return out
 
 
@@ -2028,7 +2065,7 @@ def score_key_html(cfg: dict | None = None) -> str:
 
 
 def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "",
-                  context_version: str = "") -> str:
+                  context_version: str = "", detail_version: str = "") -> str:
     """Build the complete dashboard HTML string.
 
     Data is loaded from the companion `dashboard_data.js` file (written by
@@ -2043,6 +2080,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     import run_overview   # its FUNDAMENTAL set is written into the page (What moved the scores)
     version = data_version or "latest"
     ctx_version = context_version or version
+    det_version = detail_version or version
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4217,13 +4255,28 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }}
     // "What does this company actually do?" - the one question the screener
     // could not answer before 2026-08-26. Verbatim provider text, never scored.
-    function renderAbout(s) {{
+    //
+    // The text itself is not in the first-paint payload (2026-11-08): it was the heaviest
+    // single field in it, and no surface outside this sheet reads it, so it ships in
+    // dashboard_detail.js and is fetched the first time a sheet is laid out. Until it lands the
+    // block says which state it is in, because an empty gap here reads as "this company has no
+    // description" - which is true of none of them.
+    function renderAbout(ticker, s) {{
+        loadDetail("./dashboard_detail.js?v={det_version}");
         const box = document.getElementById('modal-about');
         const txt = document.getElementById('modal-about-text');
         const btn = document.getElementById('modal-about-toggle');
         const ind = document.getElementById('modal-industry');
         const about = (s && s.about) ? String(s.about).trim() : '';
         ind.textContent = (s && s.industry) ? s.industry : '';
+        if (!about && !DETAIL_LOADED) {{
+            box.style.display = '';
+            txt.classList.remove('clamped');
+            txt.textContent = DETAIL_FAILED ? 'The company description could not be loaded.'
+                                            : 'Loading the company description…';
+            btn.style.display = 'none';
+            return;
+        }}
         if (!about) {{ box.style.display = 'none'; return; }}
         box.style.display = '';
         txt.textContent = about;
@@ -4364,7 +4417,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         renderSummary(s);
         renderCaseAgainst(s);
-        renderAbout(s);
+        renderAbout(ticker, s);
 
         // Score summary cards
         const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
@@ -11470,6 +11523,42 @@ def _js_context() -> str:
             if (typeof syncWhyMore === 'function') syncWhyMore(p);
         }
     });
+    // dashboard_detail.js - the sheet-only half of stock_detail (2026-11-08, the first slice of
+    // plan/universe-expansion.md phase 1's shard). Unlike the context layer this is not loaded
+    // from the start-up block: it is fetched the first time a sheet is laid out, which on an
+    // untouched page is the idle pre-warm - so it is requested after both payloads and never on
+    // the critical path. It merges into D.stock_detail, so every existing reader of s.about /
+    // s.industry keeps working unchanged once it lands.
+    let DETAIL_LOADED = false, DETAIL_PENDING = false, DETAIL_FAILED = false;
+    function loadDetail(src) {
+        if (DETAIL_LOADED || DETAIL_PENDING) return;
+        DETAIL_PENDING = true; DETAIL_FAILED = false;
+        const el = document.createElement('script');
+        el.src = src;
+        el.async = true;
+        const redraw = () => {
+            // Only the sheet reads these fields, so only the sheet needs redrawing - and only
+            // if one is open on the stock whose text just arrived.
+            if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) {
+                renderAbout(UX.current, D.stock_detail[UX.current]);
+            }
+        };
+        el.onload = () => {
+            const P = (window.SCREENER_DETAIL || {}).detail || {};
+            Object.keys(P).forEach(t => { if (D.stock_detail[t]) Object.assign(D.stock_detail[t], P[t]); });
+            DETAIL_LOADED = true; DETAIL_PENDING = false; DETAIL_FAILED = false;
+            redraw();
+        };
+        el.onerror = () => {
+            // A failure is said once, in the block itself, and retried on the next sheet that
+            // opens - this is prose, so it never blocks a number or a score.
+            DETAIL_PENDING = false; DETAIL_FAILED = true;
+            el.remove();
+            redraw();
+        };
+        document.body.appendChild(el);
+    }
+
     let CTX_LOADED = false, CTX_FAILED = false;
     function loadContext(src) {
         reportingMeta();
@@ -14450,15 +14539,20 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     else:
         data_timestamp = ""
 
-    # The context layer ships in its own file, loaded after the page is usable.
+    # The context layer ships in its own file, loaded after the page is usable; the sheet-only
+    # company prose in a third, fetched only when a sheet is first laid out.
     _full = json.loads(data_json)
     ctx_payload = split_context(_full)
+    detail_payload = split_detail(_full)
     data_json = payload_json(_full)
     ctx_json = payload_json(ctx_payload, separators=(",", ":"))
+    detail_json = payload_json(detail_payload, separators=(",", ":"))
     data_version = hashlib.md5(data_json.encode("utf-8")).hexdigest()[:12]
     context_version = hashlib.md5(ctx_json.encode("utf-8")).hexdigest()[:12]
+    detail_version = hashlib.md5(detail_json.encode("utf-8")).hexdigest()[:12]
     html = generate_html(methodology_html=methodology_html, data_timestamp=data_timestamp,
-                         data_version=data_version, context_version=context_version)
+                         data_version=data_version, context_version=context_version,
+                         detail_version=detail_version)
 
     output_path.write_text(html, encoding="utf-8")
     print(f"Dashboard generated: {output_path} ({output_path.stat().st_size / 1024:.0f} KB)")
@@ -14471,6 +14565,9 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     ctx_js_path = output_path.parent / CONTEXT_FILE
     ctx_js_path.write_text(f"window.SCREENER_CONTEXT = {ctx_json};", encoding="utf-8")
     print(f"Context file:        {ctx_js_path} ({ctx_js_path.stat().st_size / 1024:.0f} KB)")
+    det_js_path = output_path.parent / DETAIL_FILE
+    det_js_path.write_text(f"window.SCREENER_DETAIL = {detail_json};", encoding="utf-8")
+    print(f"Detail file:         {det_js_path} ({det_js_path.stat().st_size / 1024:.0f} KB)")
 
     return output_path
 

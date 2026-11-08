@@ -150,6 +150,30 @@ def test_both_runners_parse_every_javascript_payload_the_data_loop_publishes():
             )
 
 
+def test_both_runners_check_each_payload_by_its_assignment_not_only_by_its_name():
+    """Naming the file is not guarding it - found by mutation, 2026-11-08.
+
+    The tripwire above asks whether each published `.js` file *appears* in both runners. A
+    reader can satisfy that and still turn the gate off: keep ``$detPath`` in the spec and set
+    its expected-assignment regex to ``''``, which both runners read as "not a payload" and skip
+    for the header check **and** for ``node --check``. Measured: with that one change the whole
+    of `tests/test_detail_payload_split.py` and this module reported 40 passed.
+
+    So the globals are derived from the generator's own write lines - the only place that decides
+    what a payload file opens with - and each must appear as an anchored regex in both runners.
+    """
+    gen = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    assigned = sorted(set(re.findall(r"window\.(SCREENER_\w+) = \{", gen)))
+    assert len(assigned) >= 3, f"the generator's payload writers could not be read: {assigned}"
+    for runner in (DATA_RUNNER, CODE_RUNNER):
+        code = _code(runner)
+        for name in assigned:
+            expect = "'^window\\." + name + "='"
+            assert expect in code, (
+                f"{runner.name} does not check {name} by its opening assignment ({expect}) - "
+                "so that payload is neither header-checked nor parsed before it is published")
+
+
 @needs_node
 def test_a_payload_missing_its_tail_object_fails_the_parse(tmp_path):
     """A different truncation point, so the test is not pinned to one offset."""

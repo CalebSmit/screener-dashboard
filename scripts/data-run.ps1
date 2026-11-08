@@ -403,13 +403,20 @@ try {
     # (trend, options, insiders, macro, track record) for every stock; broken, it
     # leaves window.SCREENER_CONTEXT unset and every context panel silently empty.
     # Exactly the 2026-09-18 asymmetry, on the file that did not exist then.
+    # The third payload file, 2026-11-08: dashboard_detail.js carries the sheet-only company
+    # prose, split out of dashboard_data.js so first paint does not carry it. Named here in the
+    # same commit that created it - dashboard_context.js was published unguarded for eight days
+    # because adding a payload file meant remembering to widen two PowerShell scripts, which
+    # tests/test_payload_parse_gate.py now refuses to let happen again.
     $dataPath = Join-Path $RepoPath 'dashboard_data.js'
     $ctxPath  = Join-Path $RepoPath 'dashboard_context.js'
+    $detPath  = Join-Path $RepoPath 'dashboard_detail.js'
     # file, size floor, expected opening assignment as a regex ('' = not a payload)
     $OutputChecks = @(
         @($idx,      50000,  ''),
         @($dataPath, 100000, '^window\.SCREENER_DATA='),
-        @($ctxPath,  100000, '^window\.SCREENER_CONTEXT=')
+        @($ctxPath,  100000, '^window\.SCREENER_CONTEXT='),
+        @($detPath,  100000, '^window\.SCREENER_DETAIL=')
     )
     foreach ($spec in $OutputChecks) {
         $p = $spec[0]; $min = $spec[1]
@@ -546,6 +553,7 @@ try {
         'index.html',
         'dashboard_data.js',
         'dashboard_context.js',
+        'dashboard_detail.js',
         # The one ranking a downstream consumer may trade. Only this loop
         # writes it, and only after every gate above accepted the run.
         'signals.json',

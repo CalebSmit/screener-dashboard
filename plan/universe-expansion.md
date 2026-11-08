@@ -124,6 +124,60 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-08 (06:00 weekend session): the `stock_detail` shard bullet - the mechanism
+and its first slice, measured at -19.8% of first paint.**
+`stock_detail`'s sheet-only fields now ship in a **third payload file**, `dashboard_detail.js`
+(`generate_dashboard.split_detail`, `DETAIL_KEYS = ("about", "industry")`), fetched when the
+first sheet is laid out instead of at first paint.
+
+**Why those two fields and not the obvious ones.** Measured before anything was built
+(`research/measurements/2026-11-08-stock-detail-field-weights.py`, committed, which prices every
+field by removing it from the whole payload and re-gzipping): `stock_detail` is **84.3% of the
+1.547 MB gzipped first-paint payload**, and the heaviest single field in the whole payload is
+**`about` at 19.3%** - ahead of `inp` (13.8%), `raw` (12.5%), `pct` (8.4%) and `summary` (7.9%).
+The *shape* of the shard, though, is constrained by how the page reads the data: **~85 call sites
+read `D.stock_detail[t]` synchronously for an arbitrary ticker** (search, peers, holdings,
+movers, compare, the hash router), so a per-stock on-demand fetch would have to make every one of
+them asynchronous. Enumerating the read sites by enclosing function instead gives the rule this
+bullet now follows: **one read site, inside the sheet, and no number.** `about` and `industry`
+are read only by `renderAbout`; `financials` is also read by `buildPeerRow`, `eq4` by
+`renderReporting` (a first-paint strip), and `raw`/`pct`/`inp`/`summary` by the compare drawer,
+the movers strip and the calculation traces. Those are the next slices and each needs its own
+measurement - the mechanism is now there for them.
+
+**Result: first paint 1.547 -> 1.240 MB gzipped, -307 KB, -19.8%**, with 0.222 MB served on
+demand and `dashboard_context.js` byte-identical. No number, score, rank or sentence moved: the
+prose is display-only by the 2026-08-26 decision and nothing scores it.
+
+**Guarded in the commit that created it**, which is the 2026-10-16 lesson (the context payload
+was published unguarded for eight days because adding a file meant remembering two PowerShell
+scripts): both runners' size/header/`node --check` specs, `$DataArtifacts`,
+`check_published_claims.py`'s `PUBLISHED_ARTIFACTS`, `rehearse_publish.PUBLISHED`,
+`rebuild_page.PAYLOADS` (which now checks the page asks for the committed file's own hash) and
+`run_screener`'s publish copy. One new tripwire generalises the next time:
+`tests/test_rehearse_publish.py` derives the rehearsal's install list from `$DataArtifacts`, so a
+payload file the rehearsal does not install - and would therefore rehearse *as committed* - fails
+the suite. `tests/test_detail_payload_split.py`, 21 tests.
+
+**Measured rather than assumed, and it corrects the obvious claim:** "a reader who never opens a
+stock never pays for it" is **false**. The idle pre-warm lays the top stock's sheet out on an
+untouched page, so it pulls the file - after both payloads. The measured request order is
+`dashboard_data.js`, `dashboard_context.js`, `dashboard_detail.js`, which is what the tests
+assert (an order, true on any connection, rather than a timing). First paint is what the split
+protects; the pre-warm is there so the first open is instant, and that now includes the text.
+**Six mutations a reader could plausibly ship, 7 of 7 caught**
+(`research/measurements/2026-11-08-detail-split-mutations.py`): the split copying instead of
+moving, every stock carried including empty ones, the file loaded from the start-up block, the
+once-only guard lost, the waiting state back to an empty block, the loader not merging into
+`stock_detail`, and the code runner not naming the file.
+
+**What phase 4 still needs from this bullet, in order:** the next field group (`financials` and
+`self_metrics` together - both sheet-only once `buildPeerRow` is counted as sheet), then `inp`,
+`raw` and `pct` behind the calculation traces, and only then **bucketing**: one file for the whole
+universe is right at 500 stocks and wrong at 5,000, so the parts become ~32-stock buckets keyed
+by a function of the ticker, which is a localized change once every read site goes through the
+loader. Until then the shard is "off first paint", not yet "flat in the universe".
+
 **Progress, 2026-11-07 (13:00 session): the per-band gates bullet - the health gate shipped, the
 auto-disable's trigger deliberately not moved.**
 `check_run_health.MIN_TARGET_COVERAGE` (0.50) is now applied **inside each size band** as well as

@@ -32,7 +32,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=e3ce394e8950" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=1dfeee41b176" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -6295,7 +6295,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
          the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
          failed download is recorded so the page can say which of the failures it was. -->
     <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () { var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }, 4000);</script>
-    <script src="./dashboard_data.js?v=e3ce394e8950" onerror="window.SCREENER_DATA_FAILED = true"></script>
+    <script src="./dashboard_data.js?v=1dfeee41b176" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -8218,13 +8218,28 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     }
     // "What does this company actually do?" - the one question the screener
     // could not answer before 2026-08-26. Verbatim provider text, never scored.
-    function renderAbout(s) {
+    //
+    // The text itself is not in the first-paint payload (2026-11-08): it was the heaviest
+    // single field in it, and no surface outside this sheet reads it, so it ships in
+    // dashboard_detail.js and is fetched the first time a sheet is laid out. Until it lands the
+    // block says which state it is in, because an empty gap here reads as "this company has no
+    // description" - which is true of none of them.
+    function renderAbout(ticker, s) {
+        loadDetail("./dashboard_detail.js?v=44cfb71d3db7");
         const box = document.getElementById('modal-about');
         const txt = document.getElementById('modal-about-text');
         const btn = document.getElementById('modal-about-toggle');
         const ind = document.getElementById('modal-industry');
         const about = (s && s.about) ? String(s.about).trim() : '';
         ind.textContent = (s && s.industry) ? s.industry : '';
+        if (!about && !DETAIL_LOADED) {
+            box.style.display = '';
+            txt.classList.remove('clamped');
+            txt.textContent = DETAIL_FAILED ? 'The company description could not be loaded.'
+                                            : 'Loading the company description…';
+            btn.style.display = 'none';
+            return;
+        }
         if (!about) { box.style.display = 'none'; return; }
         box.style.display = '';
         txt.textContent = about;
@@ -8365,7 +8380,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         renderSummary(s);
         renderCaseAgainst(s);
-        renderAbout(s);
+        renderAbout(ticker, s);
 
         // Score summary cards
         const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
@@ -11333,6 +11348,42 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (typeof syncWhyMore === 'function') syncWhyMore(p);
         }
     });
+    // dashboard_detail.js - the sheet-only half of stock_detail (2026-11-08, the first slice of
+    // plan/universe-expansion.md phase 1's shard). Unlike the context layer this is not loaded
+    // from the start-up block: it is fetched the first time a sheet is laid out, which on an
+    // untouched page is the idle pre-warm - so it is requested after both payloads and never on
+    // the critical path. It merges into D.stock_detail, so every existing reader of s.about /
+    // s.industry keeps working unchanged once it lands.
+    let DETAIL_LOADED = false, DETAIL_PENDING = false, DETAIL_FAILED = false;
+    function loadDetail(src) {
+        if (DETAIL_LOADED || DETAIL_PENDING) return;
+        DETAIL_PENDING = true; DETAIL_FAILED = false;
+        const el = document.createElement('script');
+        el.src = src;
+        el.async = true;
+        const redraw = () => {
+            // Only the sheet reads these fields, so only the sheet needs redrawing - and only
+            // if one is open on the stock whose text just arrived.
+            if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) {
+                renderAbout(UX.current, D.stock_detail[UX.current]);
+            }
+        };
+        el.onload = () => {
+            const P = (window.SCREENER_DETAIL || {}).detail || {};
+            Object.keys(P).forEach(t => { if (D.stock_detail[t]) Object.assign(D.stock_detail[t], P[t]); });
+            DETAIL_LOADED = true; DETAIL_PENDING = false; DETAIL_FAILED = false;
+            redraw();
+        };
+        el.onerror = () => {
+            // A failure is said once, in the block itself, and retried on the next sheet that
+            // opens - this is prose, so it never blocks a number or a score.
+            DETAIL_PENDING = false; DETAIL_FAILED = true;
+            el.remove();
+            redraw();
+        };
+        document.body.appendChild(el);
+    }
+
     let CTX_LOADED = false, CTX_FAILED = false;
     function loadContext(src) {
         reportingMeta();
