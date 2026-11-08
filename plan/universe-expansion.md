@@ -171,11 +171,40 @@ moving, every stock carried including empty ones, the file loaded from the start
 once-only guard lost, the waiting state back to an empty block, the loader not merging into
 `stock_detail`, and the code runner not naming the file.
 
-**What phase 4 still needs from this bullet, in order:** `financials` (4.7% of first paint),
-then `inp`, `raw` and `pct` behind the calculation traces, and only then **bucketing**: one file
-for the whole universe is right at 500 stocks and wrong at 5,000, so the parts become ~32-stock
-buckets keyed by a function of the ticker, which is a localized change once every read site goes
-through the loader. Until then the shard is "off first paint", not yet "flat in the universe".
+**`financials` SHIPPED 2026-11-08 (13:00 session): 1.223 -> 1.161 MB gzipped, -62 KB / -5.1%.**
+With the morning's split and the peer-row unification below, first paint fell **1.547 -> 1.161 MB,
+-25.0%, in one day.** What that slice actually built is a **mechanism**, which is why it is the
+one worth reading before taking the next: the shard could not carry a number until the loader
+could redraw the panels that print one. It called `renderAbout` and nothing else, so a figure the
+Company snapshot or the peer table reads would have sat in its waiting state until the reader
+closed and reopened the sheet. It now redraws both, the reader's custom peer list surviving; the
+snapshot says "Loading the financial figures…" and keeps "No financial figures were published…"
+for the other state; and the peer table's three `financials`-fed cells show an **ellipsis** rather
+than the em-dash that in a column of figures means "this run published none". So the membership
+rule is restated, not broken:
+
+> A field may move when **every surface that reads it is the open sheet**, and **every panel that
+> prints it can say honestly that it is waiting.**
+
+Two smaller things the first dict-valued field forced, both of which the next one inherits:
+emptiness is `generate_dashboard._has_content`, not `str(v or "").strip()` (truthy for *every*
+dict, including one whose every value is None - ~500 entries of nothing); and it is judged **per
+key**, so a stock with a description and no figures carries the description alone.
+
+**And the cost that is not in the generator:** three test helpers had to start reading the union
+of the two payload files. `tests/examples.py` is the one that mattered - its full-sheet premise
+reads `financials` and it picks the stock four browser modules in the 02:00 publish gate open, so
+left alone the premise would have gone false for every stock at once and discarded a night's data
+(settled row "data->red"). Budget that audit into the next slice: **grep for the field in
+`tests/` before moving it**, not after.
+
+**What phase 4 still needs from this bullet, in order:** `inp`, `raw`, `pct` and `summary`
+(42.6% of what is left) behind the calculation traces - each needs its own read-site audit,
+because the movers strip, the compare drawer and the traces are not the sheet and are live at
+first paint - and only then **bucketing**: one file for the whole universe is right at 500 stocks
+and wrong at 5,000, so the parts become ~32-stock buckets keyed by a function of the ticker, which
+is a localized change once every read site goes through the loader. Until then the shard is
+"off first paint", not yet "flat in the universe".
 
 **`self_metrics` is gone rather than sharded (2026-11-08, 13:00 session), and that corrects the
 step this bullet named.** It was listed above as the other half of the next slice. It did not

@@ -95,9 +95,26 @@ Two things still outrank this file, and neither is negotiable:
   calculation traces read cannot move until each is measured. Guarded in the same commit on both
   publish paths, with a derived tripwire so the next payload file cannot be left out of the
   rehearsal; 7 of 7 plausible mutations refused.
-  **Next in phase 1:** the `config.yaml` `universe:` block, then the shard's next field group
-  (`financials` + `self_metrics`), then bucketing - one file is right at 500 stocks and wrong at
-  5,000, so the shard is "off first paint" today and not yet "flat in the universe".
+  **Phase 1, the shard's second slice: SHIPPED 2026-11-08 (13:00 session), and the day's total is
+  -25.0% of first paint.** The morning named `financials` + `self_metrics` as next; **one of the
+  two did not need sharding, it needed deleting.** The peer table built its nine columns **two
+  ways** - the open stock's row from a precomputed `self_metrics` block, every peer's row from
+  `buildPeerRow` in JS over `raw` + `financials` - and every stock is on both sides of that split,
+  being the subject of its own sheet and a peer in its sector-mates'. Measured before touching it
+  (`research/measurements/2026-11-08-peer-row-two-paths.py`): **0 of 4,491 cells disagreed**, so no
+  published figure moved, though the two expressions for P/E really were different code. One path
+  now; **-17 KB with no fetch, no waiting state and nothing new on demand.** Then `financials`
+  moved into the shard: **-62 KB**, taking first paint **1.547 -> 1.161 MB gzipped on the day**.
+  What the second half actually built is a **mechanism** - the shard could not carry a *number*
+  until the loader could redraw the panels that print one, and both panels now say they are
+  waiting rather than showing an em-dash that means "this run published none". The membership rule
+  is restated in the plan. 7 of 7 mutations refused, the one that got through first recorded as an
+  equivalent mutant and then closed. Gate 5 passed with all five published files byte-identical.
+  **Next in phase 1:** the `config.yaml` `universe:` block, then `inp`/`raw`/`pct`/`summary` (42.6%
+  of what is left, each needing its own read-site audit), then bucketing - one file is right at 500
+  stocks and wrong at 5,000, so the shard is "off first paint" today and not yet "flat in the
+  universe". **Grep `tests/` for a field before moving it:** `tests/examples.py` reads `financials`
+  and picks the stock four publish-gate modules open.
 
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test

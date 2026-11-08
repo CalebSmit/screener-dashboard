@@ -1115,8 +1115,13 @@ see `plan/dashboard-north-star.md` - but it is the largest single addition since
 `stock_detail` dominates. Per stock: `raw`, `pct`, `cat_scores`, `contrib`,
 `composite`, `rank`, `sector`, `company`, `industry`, `about`, `summary`,
 `vt`/`gt`, `price`, `pt_mean/high/low`, `num_analysts`, `eps_mismatch`,
-`eps_ratio`, `data_source`, `metric_count`/`metric_total`, `financials`,
-`flags`, `peers`. **There is no `self_metrics` since 2026-11-08**: the peer table's nine
+`eps_ratio`, `data_source`, `metric_count`/`metric_total`,
+`flags`, `peers`. **`financials` is no longer in the first-paint payload since 2026-11-08
+(13:00)** - it ships in `dashboard_detail.js` with `about` and `industry`, fetched when the first
+sheet is laid out, and the loader merges it back into `D.stock_detail`, so a reader of
+`s.financials` sees no difference once it lands (-62 KB gzipped, -5.1%). A test or script that
+reads it out of `dashboard_data.js` must read the union of the two files;
+`tests/examples.py::sheet()` is the shared helper. **There is no `self_metrics` since 2026-11-08**: the peer table's nine
 columns were built two ways - the open stock's row from that precomputed block, every peer's row
 from `buildPeerRow` in JS over `raw` + `financials` - and every stock is on both sides of that
 split, so one company's P/E could print two ways on two sheets. Measured before removing it:

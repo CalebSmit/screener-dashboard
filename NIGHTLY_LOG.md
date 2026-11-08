@@ -20820,3 +20820,134 @@ first sheet is laid out instead of at first paint. Measured: the gzipped first-p
 - Then phase 1's `config.yaml` `universe:` block, and **bucketing** the detail file (~32 stocks a
   part) - the step that turns "off first paint" into "flat in the universe" for phase 4.
 - The next lab experiment built needs its own second reader; 19 stands.
+
+## 2026-11-08 (13:00 session) - QUEUE: the shard's second slice, and the half of it that needed deleting rather than moving
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-08_060001-weekend.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-06_183427.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: **45 rows, newest 2026-10-06 (33 days ago, bound 40), 5 effective** of the 8
+the engine's gate needs. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13,
+The Factor Lab** (age **27 days**); also open: 0.10 32d, 0.14 25d.
+**Tests:** before 4218 passed / 1 skipped (209 s, parallel); after **4232 passed / 1 skipped**
+(206 s) - the 14 net new ones are this work's. Gate 2 clean, gate 5 **PASSED** with all five
+published files byte-identical to what the next data run would write.
+**Owner queue / rotation:** `write_brief.open_proposals()` is empty - no proposal waiting. Nothing
+held back by the gates (`origin/nightly/2026-11-08` was level with `main`). Carried on from the
+06:00 session's **Next**, which named the shard's next field group, under the same top open
+`OWNER_FOCUS.md` item (universe expansion, `plan/universe-expansion.md`). Nothing deferred for a
+gate or a stalled loop. 0.13 (the lab, 27 days) deferred again - the owner queue outranks the
+roadmap and the lab has no experiment waiting on a reader. The stash `auto-rescue 2026-10-28_060001`
+still shows an empty diff; left alone, as the last four sessions did.
+
+### Did
+
+**First paint fell 1.240 -> 1.161 MB gzipped (-6.4%) in two steps, and 1.547 -> 1.161 MB (-25.0%)
+over the day with the morning's split.** Nothing published moved: no number, score, rank or
+sentence. The two steps are different in kind and the first is the one worth reading.
+
+**1. The peer table's rows all go through one function; `self_metrics` is deleted, not sharded.**
+The morning's `Next` named `financials` + `self_metrics` as the next slice. `self_metrics` did not
+need moving, because it held nothing of its own. The nine-column peer table built the open stock's
+row from that precomputed block and **every peer's row from `buildPeerRow` in JS** over `raw` +
+`financials` - and every stock sits on both sides of that split, being the subject of its own sheet
+and a peer in its sector-mates'. So one company's figures could print two ways on two sheets.
+
+- **Measured before touching it** (`research/measurements/2026-11-08-peer-row-two-paths.py`,
+  committed): **0 of 4,491 cells disagreed** on the 2026-11-06 payload - all nine columns, all 499
+  stocks - so no published figure moved. The reason to remove it anyway is CLAUDE.md row 0.8 (the
+  page shows the engine's numbers, never a second derivation) and the fact that **one path cannot
+  disagree with itself**. The two expressions really were different code: `round(1.0 /
+  earnings_yield, 1)` on the unrounded yield in Python, round-half-to-even, against
+  `Math.round(10.0 / ey) / 10` on the published 4dp yield in JS, half away from zero.
+- **-17 KB of first paint for figures the payload already carried**, with no fetch, no waiting
+  state and nothing new served on demand - the cheapest slice in phase 1's queue, and the only one
+  that makes the page *simpler* rather than more conditional.
+- The panel's empty state now asks the question its sentence makes - whether any of the nine
+  columns has a figure, not whether one block exists. Unreachable on a good run either way, which
+  the new module asserts as its own premise (0 of 499; the thinnest stock carries six columns).
+- `tests/test_peer_row_one_path.py`, 8 tests. The one that would have caught the duplication reads
+  one company's row from **its own sheet** and the same company's row from **another stock's
+  sheet** - added there the way a reader adds a name - and requires the printed cells to be
+  character-identical.
+
+**2. `financials` moves into `dashboard_detail.js`: -62 KB, -5.1%.** What this slice actually built
+is a **mechanism**, and that is the part the next session needs: the shard could not carry a
+*number* until the loader could redraw the panels that print one.
+
+- The loader called `renderAbout` and nothing else, so a figure the Company snapshot or the peer
+  table reads would have sat in its waiting state until the reader closed and reopened the sheet.
+  It redraws both now; the reader's custom peer list survives.
+- Both panels say which state they are in. The snapshot says "Loading the financial figures..." and
+  keeps "No financial figures were published for this stock in this run" for the case where the
+  file landed without the block. The peer table's three `financials`-fed cells show **one
+  ellipsis** rather than an em-dash, which in a column of figures means "this run published none";
+  the other six columns come from `raw` and are on screen at first paint.
+- So the membership rule is **restated, not broken**. It was "one read site, inside the sheet, and
+  no number", which described what made `about` safe. It is now: *a field may move when every
+  surface that reads it is the open sheet, and every panel that prints it can say honestly that it
+  is waiting.* `financials` passes both - and only became a single-reader field **today**, because
+  until step 1 the subject's peer row read `self_metrics`.
+
+**Looked at the live page, desktop 1440 and 375px, before and after.** JPM's sheet: the Sector
+peers table draws its YOU row (#402, $888.3B, 13.5x, +8.1%, 33.2%, ROE 18.0%, D/E em-dash, 2.0%,
+FCF em-dash) above V, MA, BRK-B, BAC, MS and a peer median, every figure present, no ellipsis left
+behind once the file lands, and the em-dashes are the ones the payload genuinely has no value for.
+The Company snapshot above it shows Dividend Yield 2.0% "declared annual rate", Payout 25.8%,
+Shares out 2.66B, Avg daily $ vol $2.4B, Short interest 2.9 days to cover. At 375px the table
+scrolls horizontally as before and the YOU row keeps its marker. No page errors at either width.
+
+### Evidence / research
+
+- **The duplication measured rather than argued** (above): 0 of 4,491 cells, and a separate check
+  that Python's own `round()` on the *published* 4dp earnings yield reproduces the published P/E
+  for all 499 - so the second input was not diverging either. An honest "no live defect, real
+  duplication", which is why the commit leads with row 0.8 and not with a bug.
+- **Where first paint's weight is now** (re-measured with this morning's committed script): after
+  both steps, `inp` 19.9%, `raw` 19.0%, `pct` 12.1%, `summary` 11.4% - the four that are 42.6% of
+  what is left and are read outside the sheet.
+- **The mutation standard** (`plan/claims-mutation-audit.md`, nine passes):
+  `research/measurements/2026-11-08-peer-row-mutations.py`, committed - **7 of 7 refused**. Each
+  row regenerates `index.html` and the payload in a subprocess before the tests run, because
+  mutating the committed page is caught by the drift tripwire and the 2026-10-31 pass established
+  that a drift catch is **not** arithmetic coverage: it is green in exactly the state the change
+  ships in.
+- **The one that got through first, and why it was right to.** `const self = s.self_metrics ||
+  buildPeerRow(ticker)` - the JS half alone - is an **equivalent mutant**: with no such block in
+  the payload the fallback is all that ever runs. It is also a loaded one, because a later session
+  reintroducing the block would find the page already preferring it. Closed by a check that reads
+  the generated page for a property *access* (the code comments name the removed block on purpose,
+  so a regex on the word would have been satisfied by prose), and the pair applied together is now
+  its own row: 5 tests refuse it.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, score, rank or published sentence moved. `financials` is
+  display-only by construction and a test re-asserts it on the new file (no `DETAIL_KEYS` member in
+  `METRIC_COLS`, `raw` or `pct`).
+
+### Tried and rejected
+
+- **Sharding `self_metrics` as the plan's `Next` said.** It would have put a second copy of nine
+  figures behind a fetch while the first copy stayed at first paint in `raw` and `financials`. The
+  measurement is what turned the step from "move it" into "delete it" - recorded in
+  `plan/universe-expansion.md` so the correction is not lost.
+- **Moving `inp`/`raw`/`pct`/`summary` in the same session.** 42.6% of what is left and the
+  temptation. Each is read by the movers strip, the compare drawer or the calculation traces -
+  surfaces that are not the sheet and are live at first paint - so each needs its own read-site
+  audit. The mechanism built today is what they move through.
+- **Putting the detail wait inside `tests/sheet_warm.settle()`**, which would have fixed every
+  module at once. Refused: `settle()` *stops* the pre-warm, which is the only thing that would have
+  requested the file, so a module that does not copy `dashboard_detail.js` would hang for 60 s
+  instead of failing. Fixed in the one fixture that needed it, which has to **ask** for the file
+  explicitly - the first attempt turned 11 failures into 74 fixture errors by waiting without
+  asking.
+
+### Next
+
+- **Phase 1's `config.yaml` `universe:` block**, then the shard's next group (`inp` + `raw`, or
+  `summary` alone - whichever's read-site audit comes back cleanest). **Grep `tests/` for the field
+  before moving it:** `tests/examples.py` reads `financials` to pick the stock four publish-gate
+  modules open, and three helpers had to start reading the union of the two payload files today.
+- Then **bucketing** the detail file (~32 stocks a part) - the step that turns "off first paint"
+  into "flat in the universe" for phase 4.
+- The next lab experiment built needs its own second reader; 19 stands.
