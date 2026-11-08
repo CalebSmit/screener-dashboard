@@ -20705,3 +20705,118 @@ for byte** (380 page tests, 2,323 claim checks green).
   `universe_history`'s per-index bounds (one rerun for both) and the S&P 400/600 `Universe`
   objects the per-band gate will then see real bands from.
 - The next lab experiment built needs its own second reader; 19 was read this morning and stands.
+
+## 2026-11-08 (06:00 weekend session) - the sheet-only half of `stock_detail` leaves first paint: -19.8% on the wire
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-07_130001-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-06_183427.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: **45 rows, newest 2026-10-06 (33 days ago, bound 40), 5 effective** of the 8
+the engine's gate needs. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13,
+The Factor Lab** (age **27 days**); also open: 0.10 32d, 0.14 25d.
+**Tests:** before 4194 passed / 1 skipped (213 s, parallel); after **4218 passed / 1 skipped**
+(211 s) - the 24 new ones are this work's.
+**Owner queue / rotation:** `write_brief.open_proposals()` is empty - no proposal waiting. Took the
+top open `OWNER_FOCUS.md` item (universe expansion, `plan/universe-expansion.md`) and the stage its
+Progress line named next, which the 13:00 session's `Next` also named: **the `stock_detail` shard**.
+Nothing deferred for a gate or a stalled loop. 0.13 (the lab, 27 days) deferred again - the owner
+queue outranks the roadmap and the lab has no experiment waiting on a reader. The stash
+`auto-rescue 2026-10-28_060001` still shows an empty diff; left alone, as the last three sessions did.
+
+### Did
+
+**`about` and `industry` now ship in a third payload file, `dashboard_detail.js`, fetched when the
+first sheet is laid out instead of at first paint. Measured: the gzipped first-paint payload goes
+1.547 -> 1.240 MB, -307 KB, -19.8%.** Nothing published moved - no number, score, rank or sentence.
+`generate_dashboard.split_detail()`, `DETAIL_KEYS = ("about", "industry")`;
+`tests/test_detail_payload_split.py`, 21 tests.
+
+- **The shape of the shard was decided by measurement, and it is not the obvious one.** The plan's
+  bullet says "sharded out of `dashboard_data.js` and loaded per stock". Per *stock* cannot be done
+  without rewriting the page: **~85 call sites read `D.stock_detail[t]` synchronously for an
+  arbitrary ticker** - search, peers, holdings, movers, compare, the hash router - and each would
+  have to await a fetch. Enumerating those sites by enclosing function gives a rule that works
+  today: **one read site, inside the sheet, and no number.** `about`/`industry` are read only by
+  `renderAbout`. `financials` is also read by `buildPeerRow`, `eq4` by `renderReporting` (a
+  first-paint strip), and `raw`/`pct`/`inp`/`summary` by the compare drawer, the movers strip and
+  the calculation traces - 42.6% more of first paint, each needing its own measurement. The
+  mechanism is now there for them.
+- **Guarded in the commit that created it**, which is the 2026-10-16 lesson: both runners'
+  size/header/`node --check` specs, `$DataArtifacts`, `check_published_claims.PUBLISHED_ARTIFACTS`,
+  `rehearse_publish.PUBLISHED`, `rebuild_page.PAYLOADS` and `run_screener`'s publish copy. Two new
+  tripwires generalise it: the rehearsal's install list is **derived from `$DataArtifacts`** (a
+  payload file it does not install is one gate 5 rehearses *as committed*), and the page's
+  cache-busting token must be the hash of the committed detail file (else a returning reader is
+  served yesterday's descriptions forever).
+- **Gate 5 passed with all five published files byte-identical** to what the next data run would
+  write, which is also the proof that the committed artifacts are exactly what this tree's
+  generator makes.
+
+### Evidence / research
+
+- **Where first paint's weight actually is**
+  (`research/measurements/2026-11-08-stock-detail-field-weights.py`, committed; it prices each field
+  by removing it from the whole payload and re-gzipping, so gzip's non-additivity is priced against
+  the same whole). `stock_detail` is **84.3%** of the 1.547 MB gzipped payload, and the heaviest
+  single field in the entire payload is **`about`, 298.6 KB, 19.3%** - ahead of `inp` (13.8%), `raw`
+  (12.5%), `pct` (8.4%) and `summary` (7.9%). Twelve fields of 43 carry 83.2% of first paint.
+- **A false number corrected in `plan/dashboard-inventory.md`, which would have argued against doing
+  this at all.** It said the business descriptions "add ~0.71 MB raw but only **~60 KB** on the
+  wire". Measured: removing them takes **298.6 KB** off the wire, and the text alone is 0.712 MB ->
+  **215.2 KB, 3.31x**. 499 different companies' prose, ~1.4 KB each, gives gzip's 32 KB window
+  nothing to match far back; the ~11x the old figure implies belongs to repetitive text, not to
+  English. The paragraph now carries the measurement and the method.
+- **The obvious claim about *when* it loads is also false, and my own comment said it before I
+  checked.** "A reader who never opens a stock never pays for it" - the idle pre-warm
+  (`sheetPrewarm`) lays the top stock's sheet out on an untouched page, so it pulls the file.
+  Measured request order: `dashboard_data.js`, `dashboard_context.js`, `dashboard_detail.js`. Kept,
+  because the pre-warm exists to make the first open instant and that now includes the text; the
+  code, the docstring and the test say so, and the test asserts an **order** rather than a timing,
+  so it is true on any connection.
+- **The mutation standard** (`plan/claims-mutation-audit.md`, nine passes; the 2026-11-07 per-band
+  gate): eight mutations a reader could plausibly ship - the split copying instead of moving, every
+  stock carried including the empty ones, the file loaded from the start-up block, the once-only
+  guard lost, the waiting state back to an empty block, the loader not merging into `stock_detail`,
+  and each runner keeping the file while turning its parse off - **8 of 8 caught**
+  (`research/measurements/2026-11-08-detail-split-mutations.py`, committed; it restores every file in
+  a `finally` and refuses to run on a dirty tree).
+- **One of those eight got through on the first pass, and it is a hole one level inside the
+  2026-10-16 tripwire.** That tripwire asks whether every `.js` file the data loop publishes
+  *appears* in both runners. Keep `$detPath` in the spec and set its expected-assignment regex to
+  `''` and both runners read it as "not a payload": no header check and **no `node --check`**.
+  Measured with that one change: **40 passed**. The runners' checks are now derived from the
+  generator's own write lines - the only place that decides what a payload file opens with - and
+  each global must appear as an anchored regex in both specs. `tests/test_payload_parse_gate.py`.
+
+### Methodology changed
+
+- **None.** The business description is display-only prose by the 2026-08-26 decision; nothing
+  scores or ranks it, and a test in the new module re-asserts that on the new file (no `DETAIL_KEYS`
+  member in `METRIC_COLS`, `raw` or `pct`, and every value a string).
+
+### Tried and rejected
+
+- **Moving `inp`, `raw`, `pct` and `summary` in the same commit** - 42.6% more of first paint, and
+  the temptation. Each is read outside the sheet (compare, movers, the calculation traces), so each
+  needs its own read-site audit and its own browser test; shipping them together would have put the
+  numbers the page must prove it can reproduce behind an async fetch on the day the mechanism was
+  built. Next slice is `financials` + `self_metrics`, written into the plan.
+- **One file per stock (~499 small files) instead of one file.** It is the right end state - per-open
+  cost flat as the universe grows - and wrong today: the page reads *other* stocks' detail inside the
+  sheet (`buildPeerRow`, `peerContext`), so per-stock parts would need several fetches per open, and
+  499 artifacts rewritten every weekday is a publish surface this had no measurement for. One file
+  now; **bucketing (~32 stocks a part) is the step that makes the shard flat in the universe**, and
+  it is a localized change once every read site goes through the loader. Recorded in the plan, with
+  the honest statement that today's shard is "off first paint", not yet "flat in the universe".
+- **Putting the prose in `dashboard_context.js`**, which already loads after first paint and is
+  already gated - no new publish surface, same -307 KB. Refused: that file *is* the context layer
+  (CLAUDE.md row "ctx", `plan/context-layer.md`), it loads on every page view whether or not a sheet
+  opens, and it would have had to be undone to build the shard the plan actually asks for.
+
+### Next
+
+- **The shard's next slice: `financials` + `self_metrics`** (4.8% + 1.6% of first paint), which are
+  sheet-only once `buildPeerRow` is counted as sheet - audit its read sites, move them through
+  `DETAIL_KEYS`, and keep the bot contract's `stock_detail[t].price` where it is.
+- Then phase 1's `config.yaml` `universe:` block, and **bucketing** the detail file (~32 stocks a
+  part) - the step that turns "off first paint" into "flat in the universe" for phase 4.
+- The next lab experiment built needs its own second reader; 19 stands.
