@@ -171,12 +171,27 @@ moving, every stock carried including empty ones, the file loaded from the start
 once-only guard lost, the waiting state back to an empty block, the loader not merging into
 `stock_detail`, and the code runner not naming the file.
 
-**What phase 4 still needs from this bullet, in order:** the next field group (`financials` and
-`self_metrics` together - both sheet-only once `buildPeerRow` is counted as sheet), then `inp`,
-`raw` and `pct` behind the calculation traces, and only then **bucketing**: one file for the whole
-universe is right at 500 stocks and wrong at 5,000, so the parts become ~32-stock buckets keyed
-by a function of the ticker, which is a localized change once every read site goes through the
-loader. Until then the shard is "off first paint", not yet "flat in the universe".
+**What phase 4 still needs from this bullet, in order:** `financials` (4.7% of first paint),
+then `inp`, `raw` and `pct` behind the calculation traces, and only then **bucketing**: one file
+for the whole universe is right at 500 stocks and wrong at 5,000, so the parts become ~32-stock
+buckets keyed by a function of the ticker, which is a localized change once every read site goes
+through the loader. Until then the shard is "off first paint", not yet "flat in the universe".
+
+**`self_metrics` is gone rather than sharded (2026-11-08, 13:00 session), and that corrects the
+step this bullet named.** It was listed above as the other half of the next slice. It did not
+need to move, because it held nothing of its own: the peer table's nine columns were built
+**two ways** - the open stock's row from `self_metrics`, every peer's row from `buildPeerRow` in
+JS over `raw` + `financials` - and every stock is on both sides of that split, being the subject
+of its own sheet and a peer in its sector-mates'. Measured first
+(`research/measurements/2026-11-08-peer-row-two-paths.py`): **0 of 4,491 cells disagreed** on the
+2026-11-06 payload, so nothing a reader sees moved, and the two expressions for P/E were
+genuinely different code (`round(1/ey, 1)` on an unrounded yield in Python against
+`Math.round(10/ey)/10` on the published 4dp one in JS). So the subject's row goes through
+`buildPeerRow` too and the block is not published: **first paint 1.240 -> 1.223 MB gzipped,
+-17 KB**, with no fetch, no waiting state and nothing new on demand - the cheapest slice in this
+bullet, and the only one that makes the page simpler rather than more conditional.
+`tests/test_peer_row_one_path.py`; the check that would have caught the duplication reads one
+company's row from its own sheet and from another stock's and requires the cells to be identical.
 
 **Progress, 2026-11-07 (13:00 session): the per-band gates bullet - the health gate shipped, the
 auto-disable's trigger deliberately not moved.**

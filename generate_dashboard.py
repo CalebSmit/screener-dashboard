@@ -1493,18 +1493,17 @@ def prepare_dashboard_data(run_data: dict) -> str:
 
         # --- Sector Peers ---
         detail["peers"] = _get_peers(ticker, row.get("Sector", ""))
-        # Self metrics for comparison highlight
-        detail["self_metrics"] = {
-            "rev_growth": _safe(row.get("revenue_growth")),
-            "pe_ratio": round(1.0 / row["earnings_yield"], 1) if pd.notna(row.get("earnings_yield")) and row["earnings_yield"] > 0 else None,
-            "net_margin": round(_ni / _rev, 4) if (_ni is not None and _rev is not None and _rev > 0) else None,
-            "roic": _safe(row.get("roic")),
-            "roe": _safe(row.get("roe")),
-            "debt_equity": _safe(row.get("debt_equity")),
-            "div_yield": round(_div_yield, 4) if _div_yield is not None else None,
-            "fcf_yield": _safe(row.get("fcf_yield")),
-            "mcap": _mcap,
-        }
+        # There is no `self_metrics` block here (removed 2026-11-08). The peer table's nine
+        # columns used to be built two ways: the open stock's own row from a precomputed
+        # `self_metrics`, every peer's row from `buildPeerRow` in JS over `raw` + `financials`.
+        # Every stock sits on both sides of that - it is the subject of its own sheet and a peer
+        # in its sector-mates' - so one company's P/E could print two ways on two sheets, and
+        # the two expressions did differ (Python's round-half-to-even on an unrounded earnings
+        # yield against JS's Math.round on the published 4dp one). Measured before removal:
+        # 0 of 4,491 cells disagreed on the 2026-11-06 payload, so nothing a reader sees moved -
+        # but one path cannot disagree with itself, which is CLAUDE.md row 0.8's rule, and the
+        # block was 16.7 KB of first paint for figures already in `raw` and `financials`
+        # (research/measurements/2026-11-08-peer-row-two-paths.py).
 
         stock_detail[ticker] = detail
 
@@ -3188,6 +3187,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         customPeers: [],
     }};
 
+    // The nine figures in one row of the peer table. Every row goes through here since
+    // 2026-11-08, the open stock's included - it used to read a precomputed `self_metrics`
+    // block instead, so one company's figures were built one way on its own sheet and another
+    // way on its sector-mates'. PEER_COLS names the nine, so the panel's "nothing to compare"
+    // state can ask whether any of them exists rather than whether a block does.
+    const PEER_COLS = ['mcap', 'pe_ratio', 'rev_growth', 'net_margin', 'roic', 'roe',
+                       'debt_equity', 'div_yield', 'fcf_yield'];
+
     function buildPeerRow(peerTicker) {{
         const d = D.stock_detail[peerTicker];
         if (!d) return null;
@@ -4701,8 +4708,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     function renderPeerComparison(ticker, s) {{
         const container = document.getElementById('modal-peers');
         if (!container) return;
-        const self = s.self_metrics;
-        if (!self) {{ container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }}
+        // This stock's own row, built by the same function as every peer's (2026-11-08). The
+        // empty state asks whether any of the nine columns has a figure - the question the
+        // sentence actually makes: a `self_metrics` block of nine nulls used to render a row
+        // of em-dashes while claiming to be published data.
+        const self = buildPeerRow(ticker);
+        if (!self || !PEER_COLS.some(k => self[k] !== null && self[k] !== undefined)) {{
+            container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }}
 
         // Initialize peer state on first render for this ticker
         if (peerState.currentTicker !== ticker) {{
@@ -4733,7 +4745,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }};
 
         // Build rows dynamically from peerState
-        const selfRow = {{ ticker: ticker, company: s.company, isSelf: true, ...self, rank: s.rank }};
+        const selfRow = {{ ...self, isSelf: true }};
         const peerRows = peerState.customPeers
             .map(t => buildPeerRow(t))
             .filter(r => r !== null);

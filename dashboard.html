@@ -32,7 +32,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=1dfeee41b176" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=092984769729" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -6295,7 +6295,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
          the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
          failed download is recorded so the page can say which of the failures it was. -->
     <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () { var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }, 4000);</script>
-    <script src="./dashboard_data.js?v=1dfeee41b176" onerror="window.SCREENER_DATA_FAILED = true"></script>
+    <script src="./dashboard_data.js?v=092984769729" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -6701,6 +6701,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         defaultPeers: [],
         customPeers: [],
     };
+
+    // The nine figures in one row of the peer table. Every row goes through here since
+    // 2026-11-08, the open stock's included - it used to read a precomputed `self_metrics`
+    // block instead, so one company's figures were built one way on its own sheet and another
+    // way on its sector-mates'. PEER_COLS names the nine, so the panel's "nothing to compare"
+    // state can ask whether any of them exists rather than whether a block does.
+    const PEER_COLS = ['mcap', 'pe_ratio', 'rev_growth', 'net_margin', 'roic', 'roe',
+                       'debt_equity', 'div_yield', 'fcf_yield'];
 
     function buildPeerRow(peerTicker) {
         const d = D.stock_detail[peerTicker];
@@ -8664,8 +8672,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     function renderPeerComparison(ticker, s) {
         const container = document.getElementById('modal-peers');
         if (!container) return;
-        const self = s.self_metrics;
-        if (!self) { container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }
+        // This stock's own row, built by the same function as every peer's (2026-11-08). The
+        // empty state asks whether any of the nine columns has a figure - the question the
+        // sentence actually makes: a `self_metrics` block of nine nulls used to render a row
+        // of em-dashes while claiming to be published data.
+        const self = buildPeerRow(ticker);
+        if (!self || !PEER_COLS.some(k => self[k] !== null && self[k] !== undefined)) {
+            container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>'; return; }
 
         // Initialize peer state on first render for this ticker
         if (peerState.currentTicker !== ticker) {
@@ -8696,7 +8709,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         };
 
         // Build rows dynamically from peerState
-        const selfRow = { ticker: ticker, company: s.company, isSelf: true, ...self, rank: s.rank };
+        const selfRow = { ...self, isSelf: true };
         const peerRows = peerState.customPeers
             .map(t => buildPeerRow(t))
             .filter(r => r !== null);
