@@ -20942,6 +20942,32 @@ scrolls horizontally as before and the YOU row keeps its marker. No page errors 
   explicitly - the first attempt turned 11 failures into 74 fixture errors by waiting without
   asking.
 
+### One thing the next session should know: the browser tests are load-flaky under xdist
+
+Five full parallel runs were taken today on **identical code** - the only commit between them was
+prose (the log and the plans). They came back: **clean (4218, baseline), clean (4232), 3 setup
+errors in `tests/test_track_open_period.py`, 1 failure in
+`tests/test_dashboard_interaction.py::test_a_saved_name_outside_this_run_renders_and_is_kept`,
+1 failure in
+`tests/test_lab_reading_and_access.py::test_on_a_phone_the_overview_scans_as_a_list_with_every_experiment_on_it`,
+clean (4232).** Three different modules, one occurrence each, and **every one passed on re-run both
+serially and under `-n 4` in isolation.**
+
+It is not this change. The third module is the Factor Lab's overview page, which neither reads nor
+renders anything touched today - it does not load `dashboard_detail.js` at all - and CLAUDE.md
+already records its font-timing sensitivity ("`document.fonts.status` reports before it is true -
+reading early made the same commit pass serially and fail under xdist"). The common factor is
+machine load: runs 3-5 were taken while this session was also driving Chromium for screenshots and
+for the mutation harness.
+
+**Why it is worth writing down anyway.** A one-in-three chance of a red gate-1 baseline that nobody
+can reproduce costs the next session most of an hour - which is exactly what happened on 2026-11-05
+and is why a red baseline now keeps its output. Three distinct modules in three consecutive runs
+says the exposure is broader than the two faults already fixed by name. The measurement a session
+could take: run the browser modules alone at increasing `-n` and find where the first timeout
+appears, then either raise those fixtures' timeouts or mark the browser modules to one xdist group.
+Not started today - it is a session's work, not a tail-end fix.
+
 ### Next
 
 - **Phase 1's `config.yaml` `universe:` block**, then the shard's next group (`inp` + `raw`, or
