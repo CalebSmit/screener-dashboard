@@ -1,4 +1,4 @@
-# Morning Brief - Sunday 08 November 2026, 06:51
+# Morning Brief - Sunday 08 November 2026, 14:33
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -33,6 +33,13 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `78900f5 log: five full parallel runs on identical code, three one-off browser flakes`
+- `77cc502 log: the shard's second slice, and the half of it that needed deleting`
+- `13c18f8 fix: two modules that read `financials` before the loader merged it`
+- `c28af48 shard: the detail file learns to carry numbers, and `financials` moves into it`
+- `62bc52b measure: 7 of 7 mutations refused, and the one that got through first was right to`
+- `e299b11 unify: the peer table's rows all go through one function`
+- `fc1865f brief: code session 2026-11-08-weekend`
 - `a1bc585 log: the detail split, and two measurements that corrected the reasoning behind it`
 - `ae07726 gate: a runner must check each payload by its assignment, not only name the file`
 - `2dc0b70 measure: the pre-warm does fetch the detail file, and the inventory's 60 KB was wrong by 5x`
@@ -41,61 +48,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `16a40f7 log: the per-band health gate, and the threshold that is a methodology decision`
 - `0004e80 measure: six mutations against the per-band gate, 6 of 6 caught`
 - `5191b33 gate: the analyst-target floor is applied inside each size band`
-- `39d7ea0 brief: code session 2026-11-07-weekend`
-- `120b5cc log: the second reading of experiment 19`
-- `e86408d lab: experiment 19's second reading - it stands, with a stronger answer to its own open question`
-- `d8157a8 log: the size_band slice of universe-expansion phase 1`
-- `d703b37 rerun the research-engine ledger after the size_band change (32 rows, no number moved)`
-- `94e7ed4 wip: rerun ledger rows 21-28`
-- `93adbe2 wip: rerun ledger rows 11-20`
 
 ## The session's own account
 
-> 2026-11-08 (06:00 weekend session) - the sheet-only half of `stock_detail` leaves first paint: -19.8% on the wire
+> 2026-11-08 (13:00 session) - QUEUE: the shard's second slice, and the half of it that needed deleting rather than moving
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-07_130001-midday.log`
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-08_060001-weekend.log`
 > (completed). Data loop published? yes - `logs/datarun-2026-11-06_183427.log` (completed; HEALTH: PASS).
 > Evidence base at `1m`: **45 rows, newest 2026-10-06 (33 days ago, bound 40), 5 effective** of the 8
 > the engine's gate needs. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13,
 > The Factor Lab** (age **27 days**); also open: 0.10 32d, 0.14 25d.
-> **Tests:** before 4194 passed / 1 skipped (213 s, parallel); after **4218 passed / 1 skipped**
-> (211 s) - the 24 new ones are this work's.
-> **Owner queue / rotation:** `write_brief.open_proposals()` is empty - no proposal waiting. Took the
-> top open `OWNER_FOCUS.md` item (universe expansion, `plan/universe-expansion.md`) and the stage its
-> Progress line named next, which the 13:00 session's `Next` also named: **the `stock_detail` shard**.
-> Nothing deferred for a gate or a stalled loop. 0.13 (the lab, 27 days) deferred again - the owner
-> queue outranks the roadmap and the lab has no experiment waiting on a reader. The stash
-> `auto-rescue 2026-10-28_060001` still shows an empty diff; left alone, as the last three sessions did.
+> **Tests:** before 4218 passed / 1 skipped (209 s, parallel); after **4232 passed / 1 skipped**
+> (206 s) - the 14 net new ones are this work's. Gate 2 clean, gate 5 **PASSED** with all five
+> published files byte-identical to what the next data run would write.
+> **Owner queue / rotation:** `write_brief.open_proposals()` is empty - no proposal waiting. Nothing
+> held back by the gates (`origin/nightly/2026-11-08` was level with `main`). Carried on from the
+> 06:00 session's **Next**, which named the shard's next field group, under the same top open
+> `OWNER_FOCUS.md` item (universe expansion, `plan/universe-expansion.md`). Nothing deferred for a
+> gate or a stalled loop. 0.13 (the lab, 27 days) deferred again - the owner queue outranks the
+> roadmap and the lab has no experiment waiting on a reader. The stash `auto-rescue 2026-10-28_060001`
+> still shows an empty diff; left alone, as the last four sessions did.
 > 
 > ### Did
 > 
-> **`about` and `industry` now ship in a third payload file, `dashboard_detail.js`, fetched when the
-> first sheet is laid out instead of at first paint. Measured: the gzipped first-paint payload goes
-> 1.547 -> 1.240 MB, -307 KB, -19.8%.** Nothing published moved - no number, score, rank or sentence.
-> `generate_dashboard.split_detail()`, `DETAIL_KEYS = ("about", "industry")`;
-> `tests/test_detail_payload_split.py`, 21 tests.
+> **First paint fell 1.240 -> 1.161 MB gzipped (-6.4%) in two steps, and 1.547 -> 1.161 MB (-25.0%)
+> over the day with the morning's split.** Nothing published moved: no number, score, rank or
+> sentence. The two steps are different in kind and the first is the one worth reading.
 > 
-> - **The shape of the shard was decided by measurement, and it is not the obvious one.** The plan's
->   bullet says "sharded out of `dashboard_data.js` and loaded per stock". Per *stock* cannot be done
->   without rewriting the page: **~85 call sites read `D.stock_detail[t]` synchronously for an
->   arbitrary ticker** - search, peers, holdings, movers, compare, the hash router - and each would
->   have to await a fetch. Enumerating those sites by enclosing function gives a rule that works
->   today: **one read site, inside the sheet, and no number.** `about`/`industry` are read only by
->   `renderAbout`. `financials` is also read by `buildPeerRow`, `eq4` by `renderReporting` (a
->   first-paint strip), and `raw`/`pct`/`inp`/`summary` by the compare drawer, the movers strip and
->   the calculation traces - 42.6% more of first paint, each needing its own measurement. The
->   mechanism is now there for them.
-> - **Guarded in the commit that created it**, which is the 2026-10-16 lesson: both runners'
->   size/header/`node --check` specs, `$DataArtifacts`, `check_published_claims.PUBLISHED_ARTIFACTS`,
->   `rehearse_publish.PUBLISHED`, `rebuild_page.PAYLOADS` and `run_screener`'s publish copy. Two new
->   tripwires generalise it: the rehearsal's install list is **derived from `$DataArtifacts`** (a
->   payload file it does not install is one gate 5 rehearses *as committed*), and the page's
->   cache-busting token must be the hash of the committed detail file (else a returning reader is
->   served yesterday's descriptions forever).
-> - **Gate 5 passed with all five published files byte-identical** to what the next data run would
->   write, which is also the proof that the committed artifacts are exactly what this tree's
->   generator makes.
+> **1. The peer table's rows all go through one function; `self_metrics` is deleted, not sharded.**
+> The morning's `Next` named `financials` + `self_metrics` as the next slice. `self_metrics` did not
+> need moving, because it held nothing of its own. The nine-column peer table built the open stock's
+> row from that precomputed block and **every peer's row from `buildPeerRow` in JS** over `raw` +
+> `financials` - and every stock sits on both sides of that split, being the subject of its own sheet
+> and a peer in its sector-mates'. So one company's figures could print two ways on two sheets.
 > 
+> - **Measured before touching it** (`research/measurements/2026-11-08-peer-row-two-paths.py`,
+>   committed): **0 of 4,491 cells disagreed** on the 2026-11-06 payload - all nine columns, all 499
+>   stocks - so no published figure moved. The reason to remove it anyway is CLAUDE.md row 0.8 (the
+>   page shows the engine's numbers, never a second derivation) and the fact that **one path cannot
+>   disagree with itself**. The two expressions really were different code: `round(1.0 /
+>   earnings_yield, 1)` on the unrounded yield in Python, round-half-to-even, against
+>   `Math.round(10.0 / ey) / 10` on the published 4dp yield in JS, half away from zero.
+> - **-17 KB of first paint for figures the payload already carried**, with no fetch, no waiting
+>   state and nothing new served on demand - the cheapest slice in phase 1's queue, and the only one
+>   that makes the page *simpler* rather than more conditional.
+> - The panel's empty state now asks the question its sentence makes - whether any of the nine
+>   columns has a figure, not whether one block exists. Unreachable on a good run either way, which
+>   the new module asserts as its own premise (0 of 499; the thinnest stock carries six columns).
+> - `tests/test_peer_row_one_path.py`, 8 tests. The one that would have caught the duplication reads
 > ...
 
 ---
