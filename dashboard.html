@@ -11350,9 +11350,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     });
     // dashboard_detail.js - the sheet-only half of stock_detail (2026-11-08, the first slice of
     // plan/universe-expansion.md phase 1's shard). Unlike the context layer this is not loaded
-    // when the page is ready: it is fetched the first time a sheet is laid out, which for a
-    // reader who never opens a stock is never. It merges into D.stock_detail, so every existing
-    // reader of s.about / s.industry keeps working unchanged once it lands.
+    // from the start-up block: it is fetched the first time a sheet is laid out, which on an
+    // untouched page is the idle pre-warm - so it is requested after both payloads and never on
+    // the critical path. It merges into D.stock_detail, so every existing reader of s.about /
+    // s.industry keeps working unchanged once it lands.
     let DETAIL_LOADED = false, DETAIL_PENDING = false, DETAIL_FAILED = false;
     function loadDetail(src) {
         if (DETAIL_LOADED || DETAIL_PENDING) return;

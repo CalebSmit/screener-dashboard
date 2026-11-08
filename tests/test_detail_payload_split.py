@@ -248,6 +248,21 @@ def test_the_published_detail_file_is_framed_the_way_both_runners_check_for(live
     assert re.match(r"^window\.SCREENER_DETAIL=", first)
 
 
+def test_the_published_page_asks_for_the_version_it_published(live):
+    """The cache-busting token on the live page must be the hash of the live file.
+
+    Without this, a build that forgot to thread `detail_version` would publish a page asking for
+    ``?v=<the payload's hash>`` - which is a URL a returning reader already has cached, so they
+    would be served yesterday's descriptions indefinitely. The same check `scripts/rebuild_page.py`
+    makes before it rewrites the page; here it is a test, because a rebuild is not run every day.
+    """
+    body = DETAIL.read_text(encoding="utf-8")[len("window.SCREENER_DETAIL = "):-1]
+    want = gd.hashlib.md5(body.encode("utf-8")).hexdigest()[:12]
+    page = (ROOT / "index.html").read_text(encoding="utf-8")
+    assert f"dashboard_detail.js?v={want}" in page, (
+        "index.html does not ask for the committed detail file's version")
+
+
 def test_the_file_is_one_the_data_loop_publishes_and_both_runners_guard():
     """The 2026-10-16 lesson, applied in the commit that creates the file rather than eight days
     later. `tests/test_payload_parse_gate.py` generalises it; this is the direct statement."""
