@@ -202,7 +202,9 @@ def test_description_is_not_scored(payload):
     'id="modal-industry"',
     "function renderAbout",
     "function toggleAbout",
-    "renderAbout(s);",
+    # The ticker joined the signature on 2026-11-08: the text itself now ships in
+    # dashboard_detail.js, so the block has to know which stock it is waiting for.
+    "renderAbout(ticker, s);",
 ])
 def test_about_ui_hooks_are_present(html, hook):
     assert hook in html

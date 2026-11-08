@@ -95,13 +95,13 @@ def browser():
 @pytest.fixture(scope="module")
 def page(browser, tmp_path_factory):
     """The generator's own page with the published payloads, context file loaded."""
-    for f in ("dashboard_data.js", "dashboard_context.js"):
+    for f in ("dashboard_data.js", "dashboard_context.js", "dashboard_detail.js"):
         if not (ROOT / f).exists():
             pytest.skip(f"MISSING DATA: no published {f}")
     d = tmp_path_factory.mktemp("printed")
     (d / "index.html").write_text(gd.generate_html(methodology_html="<p>m</p>", data_timestamp="t",
                                                    data_version="v"), encoding="utf-8")
-    for f in ("dashboard_data.js", "dashboard_context.js"):
+    for f in ("dashboard_data.js", "dashboard_context.js", "dashboard_detail.js"):
         shutil.copy(ROOT / f, d / f)
     pg = browser.new_page(viewport={"width": 1440, "height": 1000})
     errors: list[str] = []
@@ -2026,7 +2026,7 @@ def test_the_holdings_strip_prints_the_saved_names_ranks_of_the_number_ranked(pa
 # through the whole ranking, each button states how many rows it will add and the count it reaches
 # ---------------------------------------------------------------------------
 def test_the_phone_table_states_each_next_page_and_reaches_every_row(browser, data, tmp_path):
-    for f in ("dashboard_data.js", "dashboard_context.js"):
+    for f in ("dashboard_data.js", "dashboard_context.js", "dashboard_detail.js"):
         shutil.copy(ROOT / f, tmp_path / f)
     (tmp_path / "index.html").write_text(gd.generate_html(methodology_html="<p>m</p>", data_timestamp="t",
                                                           data_version="v"), encoding="utf-8")

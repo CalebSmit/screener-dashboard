@@ -59,13 +59,13 @@ def page(tmp_path_factory):
     """The generator's own page (never the committed file) with both published payloads."""
     if sync_api is None:
         pytest.skip("playwright not installed")
-    for f in ("dashboard_data.js", "dashboard_context.js"):
+    for f in ("dashboard_data.js", "dashboard_context.js", "dashboard_detail.js"):
         if not (ROOT / f).exists():
             pytest.skip(f"MISSING DATA: no published {f}")
     d = tmp_path_factory.mktemp("ctxcards")
     (d / "index.html").write_text(gd.generate_html(methodology_html="<p>m</p>", data_timestamp="t",
                                                    data_version="v"), encoding="utf-8")
-    for f in ("dashboard_data.js", "dashboard_context.js"):
+    for f in ("dashboard_data.js", "dashboard_context.js", "dashboard_detail.js"):
         shutil.copy(ROOT / f, d / f)
     with sync_api.sync_playwright() as p:
         try:

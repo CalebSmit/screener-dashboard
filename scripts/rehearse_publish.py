@@ -32,7 +32,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRATCH = ROOT / "logs" / "rehearse-publish"
-PUBLISHED = ("dashboard.html", "index.html", "dashboard_data.js", "dashboard_context.js")
+PUBLISHED = ("dashboard.html", "index.html", "dashboard_data.js", "dashboard_context.js",
+             "dashboard_detail.js")
 # The modules that read the generated page or payload. `--full` runs everything instead.
 PAGE_TESTS = ("tests/test_dashboard_browser.py", "tests/test_dashboard_navigation.py",
               "tests/test_dashboard_surfaces.py", "tests/test_dashboard_js.py",
@@ -146,7 +147,7 @@ def with_installed(new_files: dict[Path, bytes], action):
 
 
 def regenerate(run: Path, scratch: Path = SCRATCH) -> dict[str, bytes]:
-    """The four published files as the working tree's generator would write them."""
+    """Every published file as the working tree's generator would write them."""
     sys.path.insert(0, str(ROOT))
     import generate_dashboard as gd
     copy = scratch / "run"
@@ -156,7 +157,7 @@ def regenerate(run: Path, scratch: Path = SCRATCH) -> dict[str, bytes]:
     gd.generate_dashboard(copy, site / "dashboard.html")
     page = (site / "dashboard.html").read_bytes()
     out = {"dashboard.html": page, "index.html": page}
-    for name in ("dashboard_data.js", "dashboard_context.js"):
+    for name in ("dashboard_data.js", "dashboard_context.js", "dashboard_detail.js"):
         if (site / name).exists():
             out[name] = (site / name).read_bytes()
     return out

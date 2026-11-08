@@ -7,6 +7,7 @@ page with the working tree's code, installs it, runs the tests that read it, and
 published files. These tests pin the part that must never go wrong: the restore.
 """
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -57,10 +58,28 @@ def test_a_ticker_trial_is_never_mistaken_for_the_universe(tmp_path):
 
 
 def test_it_installs_exactly_the_files_the_site_serves():
-    assert set(rp.PUBLISHED) == {"dashboard.html", "index.html", "dashboard_data.js", "dashboard_context.js"}
+    assert set(rp.PUBLISHED) == {"dashboard.html", "index.html", "dashboard_data.js",
+                                 "dashboard_context.js", "dashboard_detail.js"}
     assert all((ROOT / t).exists() for t in rp.PAGE_TESTS), [t for t in rp.PAGE_TESTS if not (ROOT / t).exists()]
     src = (ROOT / "scripts" / "rehearse_publish.py").read_text(encoding="utf-8")
     assert "finally:" in src and "git push" not in src and "git commit" not in src      # it publishes nothing
+
+
+def test_it_installs_every_payload_file_the_data_loop_publishes():
+    """Derived, not transcribed (2026-11-08, with the third payload file).
+
+    The rehearsal installs the regenerated artifacts, runs the page's tests against them and
+    restores. A payload file it does not install is a file those tests read *as committed* -
+    so gate 5 would pass on the old copy of the very thing the change altered. Same shape as
+    the hole `tests/test_payload_parse_gate.py` generalised for the two runners: adding a
+    published payload file must not depend on remembering a second list.
+    """
+    runner = (ROOT / "scripts" / "data-run.ps1").read_text(encoding="utf-8")
+    staged = sorted(set(re.findall(r"'([^']+\.js)'", runner)))
+    assert staged, "could not read the staged .js artifacts - detector is blind"
+    missing = [n for n in staged if n not in rp.PUBLISHED]
+    assert not missing, (f"the data loop publishes {missing}, which rehearse_publish does not "
+                         "install - gate 5 would rehearse the committed copy instead")
 
 
 def test_the_nightly_prompt_requires_it_when_a_generator_changes():

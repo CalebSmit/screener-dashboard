@@ -3335,6 +3335,11 @@ def main():
             src_ctx_js = ctx.run_dir / "dashboard_context.js"
             if src_ctx_js.exists():
                 shutil.copy2(src_ctx_js, ROOT / "dashboard_context.js")
+            # The sheet-only half of stock_detail, split off 2026-11-08 so first paint does
+            # not carry it (plan/universe-expansion.md, phase 1).
+            src_det_js = ctx.run_dir / "dashboard_detail.js"
+            if src_det_js.exists():
+                shutil.copy2(src_det_js, ROOT / "dashboard_detail.js")
             print(f"  Dashboard: {main_dash}")
     except Exception as e:
         print(f"  WARNING: Dashboard generation failed: {e}")

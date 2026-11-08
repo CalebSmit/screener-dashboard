@@ -26,7 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-PAYLOADS = ("dashboard_data.js", "dashboard_context.js")
+PAYLOADS = ("dashboard_data.js", "dashboard_context.js", "dashboard_detail.js")
 PAGES = ("index.html", "dashboard.html")
 
 
@@ -49,11 +49,13 @@ def build() -> str:
         raise SystemExit("index.html has no #gen-time - cannot recover the data timestamp")
     data_version = _version(ROOT / "dashboard_data.js", "window.SCREENER_DATA = ")
     context_version = _version(ROOT / gd.CONTEXT_FILE, "window.SCREENER_CONTEXT = ")
+    detail_version = _version(ROOT / gd.DETAIL_FILE, "window.SCREENER_DETAIL = ")
     if f"dashboard_data.js?v={data_version}" not in page:
         raise SystemExit("index.html does not reference the committed payload's version - "
                          "the page and payload are from different runs; rebuild with a full run")
     return gd.generate_html(methodology_html=gd._load_methodology_html(), data_timestamp=m.group(1),
-                            data_version=data_version, context_version=context_version)
+                            data_version=data_version, context_version=context_version,
+                            detail_version=detail_version)
 
 
 def main(argv=None) -> int:

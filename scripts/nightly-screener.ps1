@@ -816,14 +816,19 @@ try {
     # silently empty - which a 2026-10-12 session already lost time diagnosing as
     # "the context layer publishes nothing". Same shape as the 2026-09-18 hole, on
     # the newer file.
+    # dashboard_detail.js joined on 2026-11-08, in the commit that created it: the sheet-only
+    # company prose, ~0.3 MB gzipped taken off first paint. Published by the data loop every
+    # weekday, so it is parsed and header-checked here like the other two.
     $indexPath = Join-Path $RepoPath 'index.html'
     $dataPath  = Join-Path $RepoPath 'dashboard_data.js'
     $ctxPath   = Join-Path $RepoPath 'dashboard_context.js'
+    $detPath   = Join-Path $RepoPath 'dashboard_detail.js'
     # file, size floor, expected opening assignment as a regex ('' = not a payload)
     $g3Files = @(
         @($indexPath, 50000,  ''),
         @($dataPath,  100000, '^window\.SCREENER_DATA='),
-        @($ctxPath,   100000, '^window\.SCREENER_CONTEXT=')
+        @($ctxPath,   100000, '^window\.SCREENER_CONTEXT='),
+        @($detPath,   100000, '^window\.SCREENER_DETAIL=')
     )
     $g3 = $true
     foreach ($spec in $g3Files) {
