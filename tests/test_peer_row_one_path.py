@@ -29,10 +29,10 @@ printed cells to be character-identical. No assertion about which stock - both a
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -127,6 +127,27 @@ def test_the_two_expressions_for_price_to_earnings_now_have_one_source(built):
 
 
 # --------------------------------------------------------------- 2. the published payload
+def test_the_page_contains_no_reader_of_a_precomputed_self_row():
+    """The guard that makes the order of a reopening irrelevant.
+
+    Measured (``research/measurements/2026-11-08-peer-row-mutations.py``): putting the JS read
+    back on its own - ``const self = s.self_metrics || buildPeerRow(ticker)`` - **gets through**
+    every other check here, and correctly so, because with no such block in the payload the
+    fallback is all that ever runs. It is an equivalent mutant today and a loaded one tomorrow:
+    a later session that reintroduces the block would find the page already preferring it. The
+    pair together is caught (by ``test_the_generator_publishes_no_precomputed_self_row``); this
+    makes either half alone enough."""
+    page = gd.generate_html(methodology_html="", data_timestamp="x",
+                            data_version="v", context_version="v", detail_version="v")
+    # a property *read*, not the word - the code comments name the removed block on purpose,
+    # so that the next reader finds the reasoning rather than rediscovering it
+    reads = re.findall(r"(?:\.self_metrics\b|\[\s*['\"]self_metrics['\"]\s*\])", page)
+    assert not reads, f"the generated page reads a precomputed self row again: {reads}"
+    # and the nine columns are assembled in exactly one place
+    assert page.count("function buildPeerRow(") == 1
+    assert page.count("const selfRow = { ...self, isSelf: true }") == 1
+
+
 @pytest.mark.skipif(not PAYLOAD.exists(), reason="no published payload")
 def test_the_published_payload_carries_no_self_metrics():
     sd = _payload()["stock_detail"]
