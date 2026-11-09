@@ -217,10 +217,11 @@ session's diagnosis and the choice between them wants a reader who did not write
    reach well past the one metric. It also throws away the correct current market value, which
    section 3 shows is what every provider uses.
 
-**Proposal status: OPEN** - which of options 1-3 (or none) to build for a stock whose implied
-share count has moved more than the threshold since the last accepted run while the earnings
-behind its multiples predate the move. Section 5 pre-registers what must be measured first; my
-own order of preference is 2, then 1, and not 3.
+**Proposal status: DECIDED 2026-11-09 (13:00 session, which did not write this note) - option 2
+ACCEPTED in substance and REFUSED as specified; option 3 REFUSED on a measured reason; option 1
+left open with a pre-registration it did not have.** See section 8. In one line: the detector
+this note proposes building already exists, anchored to the *filings* rather than to the previous
+run - and it had been comparing **nothing** since 2026-11-08.
 
 ## 5. Pre-registered, before the numbers are in
 
@@ -288,8 +289,152 @@ first option into a researched answer rather than a choice of three.
 
 **Not established:**
 
-- Whether three of the six share-count moves were corporate actions at all.
+- Whether three of the six share-count moves were corporate actions at all. **Section 8 adds one
+  observation on this** and does not close it.
 - Whether scoring a post-event market value against pre-event earnings helps or hurts a ranking —
   that needs the literature in §6 and, eventually, this project's own forward returns, which at
   the `1m` horizon accrue about one independent observation a month.
 - Which of §4's three options is right. That is the open proposal.
+
+---
+
+## 8. The review (2026-11-09, 13:00 session - not the session that wrote this note)
+
+Measurements: `research/measurements/2026-11-09-share-count-detector-review.py`, committed, which
+reads `runs/*/`, the SEC companyfacts cache and `origin/main`, and writes nothing.
+
+### 8.1 The finding that decides it: the detector already exists, and it was broken
+
+Section 4 asks for a detector. The project has had one since **2026-10-14**, and this note does
+not mention it. `sec_crosscheck.market_value_check` computes `marketCap / price` - this note's own
+`implied_shares`, the same expression - and compares it with the **latest filed**
+weighted-average share count. `check_run_health.check_inputs_against_filings` calls it every run
+and prints the count within 5% and the count over 10%, with an `ATTENTION -` line above 60
+stocks. That is priority 0.14's own machinery, and section 5's rule 3 names `sec_crosscheck` as
+the precedent to copy without noticing it is the same check.
+
+**It had been comparing nothing.** From the run logs:
+
+| run | the line it printed |
+|---|---|
+| 2026-11-05, 11-06 02:00 | `market value / price vs filed shares 446/485 within 5% (21 over 10%)` |
+| 2026-11-06 18:34 | `444/485 within 5% (19 over 10%)` |
+| **2026-11-09 02:00** | **`0/0 within 5% (0 over 10%)`** |
+
+`financials` moved into `dashboard_detail.js` on **2026-11-08** (the `stock_detail` shard's second
+slice). `market_value_check` reads `stock_detail[t]["financials"]["market_cap"]`;
+`check_run_health.load_payload` read `dashboard_data.js` alone. So on the first run after that
+commit the check skipped every stock, and **an ATTENTION line that fires above 60 can never be
+reached from zero**. Measured on the 2026-11-09 run's own artifacts: **0 compared from
+`dashboard_data.js`, 485 with the shards folded back, 20 over 10%** - FOXA among them, at ratio
+**1.3109**, the stock this note is about.
+
+So "what saw it: nothing" (section 2) is true of that morning, and true for the wrong reason. The
+evidence to raise FOXA was already being computed; the gate reading it had stopped being able to.
+
+**Why nothing noticed.** `tests/test_sec_crosscheck.py` builds its payload by hand with
+`financials` inline, so it reports the same thing whatever the generator does with the field -
+CLAUDE.md rule 10's lesson (assert against the generator's output, not an artifact) one level
+down, in a gate rather than a claim. And the rule for what may move into the shard is written in
+terms of the **page's** read sites, which is true of `financials` and silent about the payload's
+readers that are not the page.
+
+### 8.2 Event or state - the measurement that refuses the proposed detector
+
+Section 5 rule 1 pre-registers a **run-to-run** delta over 5%. But the question section 4 poses is
+a **state**: the numerator predates the denominator, for about three months. A run-to-run delta is
+an **event** - it fires the morning the count moves and is silent for the whole window the
+distortion lasts.
+
+Measured on **KMB**, whose implied count moved +84.5% between the 11-03 and 11-04 runs (8-K of
+2026-11-04, completion of the Exchange Offers):
+
+| run date | run-to-run >5% (the proposed detector) | over 10% from the filed count (the existing one) |
+|---|---|---|
+| 2026-11-04 | KMB | KMB |
+| 2026-11-05 | - | KMB |
+| 2026-11-06 02:00 | - | KMB |
+| 2026-11-06 18:34 | - | KMB |
+| 2026-11-09 | FOXA, CHTR | KMB, FOXA, CHTR |
+
+**One run against five, and still counting.** The filings-anchored comparison is also the only one
+that can see a stock whose count was already stale before the project started watching, and the
+only one whose anchor is the quantity the distortion is *about* - the share count in the filing
+the earnings came from.
+
+So option 2 is **accepted in substance and refused as specified**: the detection is right, the
+anchor is wrong, and nothing new needed building. What was missing is the **names**.
+
+### 8.3 Named by what is new, not by how far - measured, because the obvious version fails
+
+The ordinary note printed a count. A session reading the brief cannot act on a count. The obvious
+fix is to name the stocks furthest from their filed count, and it does not work:
+
+- the 8 furthest on the 2026-11-09 run are **MCD, SKYD, IBKR, TKO, CVNA, VMRK, WAT, MNST** - the
+  standing structure recorded on 2026-10-14 (partnership units, splits after the filed quarter,
+  two filers' own scale errors);
+- **FOXA is 13th of 485.** A magnitude list of eight would not have named it.
+
+Against the page the site is serving, the set is exactly the news: **CHTR and FOXA new, 18
+standing, CPT gone.** That is what shipped - `check_share_count_moves`, a note plus an
+`ATTENTION -` line, never a failure. On the 11-09 run it reads:
+
+> share counts behind the market values: 20 over 10% from the filed count, 2 of them new since
+> the published page, 1 no longer (CPT)
+>
+> ATTENTION - 2 stock(s) now carry a market value implying a share count over 10% from the one
+> their filings report, which the published page does not: CHTR +47.7%, FOXA +31.1%.
+
+Base rate, from the 20 runs on file: new entrants on **3 of 16 run dates**, at most 2 on any one.
+The note's section 5.5 void condition (>3 a run date) is in the code as `SHARE_COUNT_MOVE_VOID`
+and fires as a second ATTENTION line, worded so that the response is to re-derive the detector
+rather than raise the line.
+
+**One observation on section 7's open question.** CPT was over 10% on the published page and is
+not on the 11-09 run - its gap **closed**. A completed acquisition does not reverse. That is
+evidence, not proof, that CPT was the source refreshing rather than the company doing something,
+which is what this note suspected and marked unestablished. It also only shows up in a state
+detector: a reversion is invisible to a one-shot event.
+
+### 8.4 Option 3 refused, on a reason this note could not have
+
+Section 4 is sceptical of option 3 (drop the market-value-based Valuation metrics for the stub
+window) on blast radius, and is right. The measurement adds a harder reason: **the detector cannot
+tell a corporate action from a partnership-unit structure.** 20 of 485 stocks sit over 10% on an
+ordinary run and 18 of them are standing, so the exclusion would not fire for a quarter after a
+deal - it would fire for **IBKR, TKO, CVNA, MCD and WAT permanently**, on the days their filings
+and the source simply disagree about what a share is. Dropping a stock's largest Valuation inputs
+for ever is not a stub-window rule.
+
+### 8.5 Option 1 left open, and better founded than it was
+
+Option 1 - a sentence on the Data Provenance panel and in the drilldown - is **not refused**, and
+8.2 makes it buildable in a way it was not: a sentence must be true for the whole window a reader
+might open the stock in, and only the filings-anchored **state** is. Two conditions are
+pre-registered here for whoever builds it, both from 8.3 and 8.4:
+
+1. **It may not say "changed" without a basis.** The state is "the market value implies a share
+   count N% from the one this company's latest filing reports", which is checkable from the page
+   (`stock_detail[t].xchk` is already that panel). "It moved on 2026-11-06" is a different claim
+   and needs the run-to-run comparison beside it.
+2. **It needs the discriminator 8.4 shows is missing**, or it will print a share-count sentence on
+   IBKR, TKO, CVNA, MCD and WAT every day for ever, which teaches a reader to ignore it. A
+   candidate the review did not test: whether the gap is **new** (which is what shipped in the
+   health note) and whether the stock has a recent 8-K. Neither is on the page today.
+
+Until then the state is reported where a session reads it and not where a reader does, which is
+the `sec_crosscheck` precedent applied as 0.14 wrote it: a printed note first, a surface once its
+normal range is known.
+
+### 8.6 What the review did not do
+
+- **It did not change the threshold.** The shipped check uses `sec_crosscheck.FAR` - the existing
+  10% line, one literal for one quantity - and **not** this note's 5%. The 5% in section 5 rule 2
+  is S&P DJI's threshold for an off-cycle share change, which is the right number for a
+  *run-to-run* move and is not the number for a distance from a filed count. If the run-to-run
+  detector is ever built, 5% stands as pre-registered.
+- **It did not read the three papers in section 6.** They are still marked `- not read` and the
+  question they bear on - whether a mechanically re-priced acquirer is a signal as well as a
+  measurement problem - is untouched. It remains a Monday.
+- **No weight, metric, threshold, score or published sentence moved.** The diff is the health
+  gate, two test modules, a comment in the generator and this section.
