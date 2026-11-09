@@ -127,6 +127,73 @@ def check_fetch_happened(run_dir: Path, res: Result) -> None:
         res.note(f"fetch evidence present ({', '.join(FETCH_EVIDENCE)})")
 
 
+# How each of the run's other payload files folds back into the payload. The run has written
+# its payload in more than one file since 2026-10-08 (the context layer) and in three since
+# 2026-11-08 (the sheet-only shard), and this gate judges the run's own artifacts - so it has to
+# read all of them, or a check reading a field that has moved sees nothing at all.
+#
+# **That is not hypothetical, it is why this exists.** `financials` joined the sheet-only shard
+# on 2026-11-08; `sec_crosscheck.market_value_check` reads
+# `stock_detail[t]["financials"]["market_cap"]`; so from the first run after that commit the
+# market-value line compared **0 stocks of 485** and printed "0/0 within 5% (0 over 10%)", which
+# an ATTENTION line at 60 can never reach. Measured on the 2026-11-09 run's own artifacts:
+# 0 compared from `dashboard_data.js` alone, 485 with the shards folded back, 20 over 10%
+# (`research/measurements/2026-11-09-share-count-detector-review.py`).
+#
+# The file names and the top-level keys come from ``generate_dashboard`` rather than being
+# transcribed, and `tests/test_health_reads_every_shard.py` derives the set of payload files
+# from `data-run.ps1`'s own `$DataArtifacts` - the precedent of the parse gate (CLAUDE.md,
+# settled row "gates"), so a fourth payload file cannot repeat this quietly.
+SHARD_FOLD = (
+    # (attribute on generate_dashboard holding the file name,
+    #  the key in that file holding the per-ticker map,
+    #  the field to set on stock_detail[t], or None to merge the entry's own keys in,
+    #  attribute holding the top-level keys the file carries, or None)
+    ("CONTEXT_FILE", "ctx", "ctx", "CONTEXT_KEYS"),
+    ("DETAIL_FILE", "detail", None, None),
+)
+
+
+def _parse_payload_file(path: Path) -> dict:
+    """``window.X = {...};`` -> the dict. Raises if it is there and does not parse."""
+    text = path.read_text(encoding="utf-8")
+    try:
+        return json.loads(text[text.index("{"):].rstrip().rstrip(";"))
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{path.name} did not parse: {exc}") from exc
+
+
+def fold_shards(payload: dict, run_dir: Path) -> dict:
+    """``payload`` with every shard this run wrote folded back in, as the page sees it.
+
+    A shard the run did not write is simply absent - every run before 2026-10-08 wrote one file
+    and every run before 2026-11-09 wrote two. A shard that *is* there and does not parse raises,
+    for the same reason the main payload does: this gate may not judge half a payload.
+    """
+    try:
+        import generate_dashboard as G
+    except Exception:  # noqa: BLE001 - never stop a run over the fold
+        return payload
+    detail = payload.get("stock_detail")
+    for file_attr, map_key, field, top_attr in SHARD_FOLD:
+        name = getattr(G, file_attr, None)
+        if not name or not (run_dir / name).exists():
+            continue
+        shard = _parse_payload_file(run_dir / name) or {}
+        for t, part in (shard.get(map_key) or {}).items():
+            entry = (detail or {}).get(t)
+            if entry is None:
+                continue
+            if field is None:
+                entry.update(part)
+            else:
+                entry[field] = part
+        for k in (getattr(G, top_attr, ()) or ()) if top_attr else ():
+            if k in shard:
+                payload.setdefault(k, shard[k])
+    return payload
+
+
 def load_payload(run_dir: Path) -> dict | None:
     """The payload **this run** wrote, from its own folder - or None.
 
@@ -137,15 +204,13 @@ def load_payload(run_dir: Path) -> dict | None:
     and approving it, after which ``data-run.ps1`` went on to regenerate and publish a page the
     gate had never seen. A missing run payload is a missing artifact of the run itself: the
     caller exits 2, which ``data-run.ps1`` treats as a discard.
+
+    **It returns the whole payload, not the first of its files** - see ``SHARD_FOLD``.
     """
     path = run_dir / "dashboard_data.js"
     if not path.exists():
         return None
-    text = path.read_text(encoding="utf-8")
-    try:
-        return json.loads(text[text.index("{"):].rstrip().rstrip(";"))
-    except (ValueError, json.JSONDecodeError) as exc:
-        raise ValueError(f"dashboard_data.js did not parse: {exc}") from exc
+    return fold_shards(_parse_payload_file(path), run_dir)
 
 
 def _run_meta(run_dir: Path) -> dict:
