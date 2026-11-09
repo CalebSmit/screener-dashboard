@@ -1,4 +1,4 @@
-# Morning Brief - Monday 09 November 2026, 02:20
+# Morning Brief - Monday 09 November 2026, 06:56
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -23,6 +23,13 @@ history is in `NIGHTLY_LOG.md`.
 | Code-session login | 2026-12-03 09:01 (24 days) |
 | Context coverage | options usable 415/499 - insider from SEC 499/499 - earnings variability 439 |
 
+## Waiting for a decision
+
+A session researched these, proposed a change and left it for review. The next
+session decides and records why; you can also answer in `OWNER_FOCUS.md`.
+
+- **which of options 1-3 (or none) to build for a stock whose implied share count has moved more than the threshold since the last accepted run while the earnings behind its multiples predate the move** - open today - `research/2026-11-09-share-counts-and-corporate-actions.md`
+
 ## Coming up
 
 Dates the project has committed to. A past-due line stays until the session that
@@ -36,9 +43,18 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
+- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
+- tests/test_share_classes_page.py::test_the_price_gap_is_the_only_valuation_difference
+- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
+- full output: C:\Users\smitc\OneDrive\Documents\Screener\logs\nightly-2026-11-09_060001.baseline.txt
 
 ## What changed in the repo
 
+- `f14b4f1 log: 2026-11-09 - the refused data run, both faults fixed, and the share-count note`
+- `2c62cfc research: the share count behind a market value, and what a screen should do when it moves`
+- `8af1404 fix: the lab's card bound was read before the page settled, and had been breached`
+- `9817403 fix: the share-class gate asserted a discarded intermediate, and discarded a night`
+- `3a608c4 brief: data run 2026-11-09`
 - `51d75a7 brief: code session 2026-11-08-midday`
 - `78900f5 log: five full parallel runs on identical code, three one-off browser flakes`
 - `77cc502 log: the shard's second slice, and the half of it that needed deleting`
@@ -49,56 +65,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `fc1865f brief: code session 2026-11-08-weekend`
 - `a1bc585 log: the detail split, and two measurements that corrected the reasoning behind it`
 - `ae07726 gate: a runner must check each payload by its assignment, not only name the file`
-- `2dc0b70 measure: the pre-warm does fetch the detail file, and the inventory's 60 KB was wrong by 5x`
-- `c451ebf split: the sheet-only half of stock_detail leaves the first-paint payload`
 
 ## The session's own account
 
-> 2026-11-08 (13:00 session) - QUEUE: the shard's second slice, and the half of it that needed deleting rather than moving
+> 2026-11-09 - RESEARCH (deferred to the stalled data loop first, then written)
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-08_060001-weekend.log`
-> (completed). Data loop published? yes - `logs/datarun-2026-11-06_183427.log` (completed; HEALTH: PASS).
-> Evidence base at `1m`: **45 rows, newest 2026-10-06 (33 days ago, bound 40), 5 effective** of the 8
-> the engine's gate needs. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13,
-> The Factor Lab** (age **27 days**); also open: 0.10 32d, 0.14 25d.
-> **Tests:** before 4218 passed / 1 skipped (209 s, parallel); after **4232 passed / 1 skipped**
-> (206 s) - the 14 net new ones are this work's. Gate 2 clean, gate 5 **PASSED** with all five
-> published files byte-identical to what the next data run would write.
-> **Owner queue / rotation:** `write_brief.open_proposals()` is empty - no proposal waiting. Nothing
-> held back by the gates (`origin/nightly/2026-11-08` was level with `main`). Carried on from the
-> 06:00 session's **Next**, which named the shard's next field group, under the same top open
-> `OWNER_FOCUS.md` item (universe expansion, `plan/universe-expansion.md`). Nothing deferred for a
-> gate or a stalled loop. 0.13 (the lab, 27 days) deferred again - the owner queue outranks the
-> roadmap and the lab has no experiment waiting on a reader. The stash `auto-rescue 2026-10-28_060001`
-> still shows an empty diff; left alone, as the last four sessions did.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-08_130001-midday.log`
+> (completed). Data loop published? **NO** - `logs/datarun-2026-11-09_020001.log`: HEALTH: PASS, then
+> the published-claims gate failed on 2 tests and the run was discarded, so the live site still serves
+> the page of **2026-11-06 18:34**. Evidence base at `1m`: **45 rows, newest 2026-10-06 (34 days ago,
+> bound 40), 5 effective of the 8 needed**. Priority 0: `allow_auto_apply` **false**. Top open roadmap
+> item: **0.13, The Factor Lab** (age **28 days**); also open 0.10 (33d), 0.14 (26d).
+> **Tests:** before **1 failed, 4,231 passed, 1 skipped** (a RED baseline I did not cause); after
+> **4,243 passed, 1 skipped**. Gates 2, 3, 4 pass; gate 5 (`rehearse_publish.py`) PASSED.
+> **Owner queue / rotation:** `OWNER_FOCUS.md` item 1 is "decide the OPEN proposals" and there were
+> **none** at session start (`write_brief.open_proposals()` returned `[]`), so nothing was deferred
+> there. The data loop outranked the Monday focus (CLAUDE.md: a stalled loop is the highest priority
+> work available); the focus was then served by writing the diagnosis up properly. **Deferred: 0.13,
+> 0.10 and 0.14, for the stalled loop** - and 0.13 has now been deferred by three consecutive
+> sessions, so the deferral-streak rule binds on the next session carrying no owner item.
 > 
 > ### Did
 > 
-> **First paint fell 1.240 -> 1.161 MB gzipped (-6.4%) in two steps, and 1.547 -> 1.161 MB (-25.0%)
-> over the day with the morning's split.** Nothing published moved: no number, score, rank or
-> sentence. The two steps are different in kind and the first is the one worth reading.
+> **1. Diagnosed and fixed the two gate failures that discarded the 02:00 run.** Both were tests
+> whose premise had broken, not production defects - but a stalled publish is a stalled publish.
 > 
-> **1. The peer table's rows all go through one function; `self_metrics` is deleted, not sharded.**
-> The morning's `Next` named `financials` + `self_metrics` as the next slice. `self_metrics` did not
-> need moving, because it held nothing of its own. The nine-column peer table built the open stock's
-> row from that precomputed block and **every peer's row from `buildPeerRow` in JS** over `raw` +
-> `financials` - and every stock sits on both sides of that split, being the subject of its own sheet
-> and a peer in its sector-mates'. So one company's figures could print two ways on two sheets.
+> **(a) `test_share_classes_page.py::test_the_price_gap_is_the_only_valuation_difference`.** It
+> asserted FOXA's and FOX's `earnings_yield` differ by exactly the ratio of their prices, and read
+> 0.6650 against 0.8929. This one was **also red in the baseline**, because it reads the newest `runs/`
+> folder. Per CLAUDE.md's "data->red" rule I asked first whether the claim was false. Established from
+> the filings, not inferred: **Fox completed its acquisition of Roku on 2026-11-06** (8-K of that date,
+> "the Closing Date"; S-8 and S-8 POS the same day), the 10-Q filed 2026-11-02 puts Class A at
+> 201,552,650 and Class B at 220,248,764, and the source added the **144,500,000** newly issued Class A
+> shares to FOXA (market value on 566,301,414 shares) while leaving **FOX's market value on the
+> pre-merger 421,801,414**. Two records, two share counts, so the price ratio stopped being the
+> market-value ratio.
+> **The claim was not false.** `02_outliers_flagged` keeps every fetched line and the second line is
+> dropped before the percentiles, so FOX's `earnings_yield` is never scored, ranked or published, and
+> the page's sentence is about the two prices, both current. The test was asserting a property of a
+> **discarded intermediate**. Rewritten to assert the claim and its premise: `earnings_yield`'s ratio
+> must be the market-value gap and `dividend_yield`'s the price gap (both hold on either basis - they
+> are what says the filings behind the two lines are one, and only one metric was checked before);
+> those two are one number only while both records count the same shares, which is now tested rather
+> than assumed; and the fact that makes a divergence harmless is asserted rather than tolerated -
+> **exactly one line of the company is ranked**. 7 new tests, 27 in the module, every branch exercised
+> on chosen inputs because the run-reading test can only reach the branch today's data is in. The six
+> audit tests joined the claim's `checked_by`, so the publish gate runs them.
 > 
-> - **Measured before touching it** (`research/measurements/2026-11-08-peer-row-two-paths.py`,
->   committed): **0 of 4,491 cells disagreed** on the 2026-11-06 payload - all nine columns, all 499
->   stocks - so no published figure moved. The reason to remove it anyway is CLAUDE.md row 0.8 (the
->   page shows the engine's numbers, never a second derivation) and the fact that **one path cannot
->   disagree with itself**. The two expressions really were different code: `round(1.0 /
->   earnings_yield, 1)` on the unrounded yield in Python, round-half-to-even, against
->   `Math.round(10.0 / ey) / 10` on the published 4dp yield in JS, half away from zero.
-> - **-17 KB of first paint for figures the payload already carried**, with no fetch, no waiting
->   state and nothing new served on demand - the cheapest slice in phase 1's queue, and the only one
->   that makes the page *simpler* rather than more conditional.
-> - The panel's empty state now asks the question its sentence makes - whether any of the nine
->   columns has a figure, not whether one block exists. Unreachable on a good run either way, which
->   the new module asserts as its own premise (0 of 499; the thinnest stock carries six columns).
-> - `tests/test_peer_row_one_path.py`, 8 tests. The one that would have caught the duplication reads
+> **(b) `test_lab_reading_and_access.py::test_on_a_phone_the_overview_scans_as_a_list_...`.** Passed
 > ...
 
 ---
