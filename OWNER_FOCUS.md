@@ -413,7 +413,36 @@ Two things still outrank this file, and neither is negotiable:
      2016 Q1 13F probe this project already ran found a median of **598 filers per security**, so
      that reading is left open, which is weaker than the note's. Two conditions are pre-registered
      in the note's section 4.5 for whoever builds it; the Congress verdict and sections 1-2 stand.
-     **No proposal is waiting for a decision** as of 2026-11-05 06:00 - read
+     **A twelfth arrived 2026-11-09 (06:00) and was DECIDED the same day (13:00) - option 2
+     accepted in substance and refused as specified, option 3 refused, option 1 left open - and
+     the review found the detector it asks for already built and silently broken.** The full
+     argument is `research/2026-11-09-share-counts-and-corporate-actions.md` section 8, kept
+     there rather than here (the 2026-10-30 retrospective named a refused proposal's full
+     argument under Open as a source of regrowth). In one paragraph: Fox closed its acquisition
+     of Roku on 2026-11-06, the source added the issued shares, and FOXA's market value rose
+     34.3% with its price unchanged - rank 34 -> 60 on four metrics moving 23-30%. The note asked
+     for a run-to-run detector on `marketCap / currentPrice`. **The project has compared that
+     expression with each company's filed share count every run since 2026-10-14**
+     (`sec_crosscheck.market_value_check`), and the note does not mention it while naming
+     `sec_crosscheck` as the precedent to copy. **It had been comparing nothing:** `financials`
+     moved into `dashboard_detail.js` on 2026-11-08 and the health gate read `dashboard_data.js`
+     alone, so the 11-09 run printed `0/0 within 5% (0 over 10%)` - 0 stocks of 485, and an
+     ATTENTION line that fires above 60 can never be reached from zero. Nothing saw *that*
+     because the check's test builds the payload by hand with `financials` inline.
+     **Three measurements decided the rest.** The note's detector is an **event** and its question
+     is a **state**: on KMB, whose count moved 2026-11-04, the delta fired on **1** run and the
+     filings comparison on **all 5** to 11-09. Naming the stocks by *magnitude* would have missed
+     FOXA, **13th of 485** behind the standing structure - against the published page the set is
+     exactly the news, **CHTR and FOXA new, 18 standing, CPT gone**. And option 3 would exclude
+     **IBKR, TKO, CVNA, MCD and WAT permanently**, not for a stub window, because the detector
+     cannot tell a corporate action from a partnership-unit structure.
+     **What shipped:** the gate folds every payload shard back (with a tripwire derived from
+     `$DataArtifacts`, so a fourth payload file cannot repeat it), and the note now names what is
+     new - verified on the 11-09 run, `CHTR +47.7%, FOXA +31.1%`. Never a failure; the note's own
+     void condition is in the code. 14 of 14 mutations refused. **No weight, metric, threshold,
+     score or published sentence moved.** Option 1 (a sentence on the page) stays open with two
+     conditions pre-registered in section 8.5.
+     **No proposal is waiting for a decision** as of 2026-11-09 13:00 - read
      `write_brief.open_proposals()` rather than this line.
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
