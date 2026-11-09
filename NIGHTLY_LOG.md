@@ -20977,3 +20977,159 @@ Not started today - it is a session's work, not a tail-end fix.
 - Then **bucketing** the detail file (~32 stocks a part) - the step that turns "off first paint"
   into "flat in the universe" for phase 4.
 - The next lab experiment built needs its own second reader; 19 stands.
+
+## 2026-11-09 - RESEARCH (deferred to the stalled data loop first, then written)
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-08_130001-midday.log`
+(completed). Data loop published? **NO** - `logs/datarun-2026-11-09_020001.log`: HEALTH: PASS, then
+the published-claims gate failed on 2 tests and the run was discarded, so the live site still serves
+the page of **2026-11-06 18:34**. Evidence base at `1m`: **45 rows, newest 2026-10-06 (34 days ago,
+bound 40), 5 effective of the 8 needed**. Priority 0: `allow_auto_apply` **false**. Top open roadmap
+item: **0.13, The Factor Lab** (age **28 days**); also open 0.10 (33d), 0.14 (26d).
+**Tests:** before **1 failed, 4,231 passed, 1 skipped** (a RED baseline I did not cause); after
+**4,243 passed, 1 skipped**. Gates 2, 3, 4 pass; gate 5 (`rehearse_publish.py`) PASSED.
+**Owner queue / rotation:** `OWNER_FOCUS.md` item 1 is "decide the OPEN proposals" and there were
+**none** at session start (`write_brief.open_proposals()` returned `[]`), so nothing was deferred
+there. The data loop outranked the Monday focus (CLAUDE.md: a stalled loop is the highest priority
+work available); the focus was then served by writing the diagnosis up properly. **Deferred: 0.13,
+0.10 and 0.14, for the stalled loop** - and 0.13 has now been deferred by three consecutive
+sessions, so the deferral-streak rule binds on the next session carrying no owner item.
+
+### Did
+
+**1. Diagnosed and fixed the two gate failures that discarded the 02:00 run.** Both were tests
+whose premise had broken, not production defects - but a stalled publish is a stalled publish.
+
+**(a) `test_share_classes_page.py::test_the_price_gap_is_the_only_valuation_difference`.** It
+asserted FOXA's and FOX's `earnings_yield` differ by exactly the ratio of their prices, and read
+0.6650 against 0.8929. This one was **also red in the baseline**, because it reads the newest `runs/`
+folder. Per CLAUDE.md's "data->red" rule I asked first whether the claim was false. Established from
+the filings, not inferred: **Fox completed its acquisition of Roku on 2026-11-06** (8-K of that date,
+"the Closing Date"; S-8 and S-8 POS the same day), the 10-Q filed 2026-11-02 puts Class A at
+201,552,650 and Class B at 220,248,764, and the source added the **144,500,000** newly issued Class A
+shares to FOXA (market value on 566,301,414 shares) while leaving **FOX's market value on the
+pre-merger 421,801,414**. Two records, two share counts, so the price ratio stopped being the
+market-value ratio.
+**The claim was not false.** `02_outliers_flagged` keeps every fetched line and the second line is
+dropped before the percentiles, so FOX's `earnings_yield` is never scored, ranked or published, and
+the page's sentence is about the two prices, both current. The test was asserting a property of a
+**discarded intermediate**. Rewritten to assert the claim and its premise: `earnings_yield`'s ratio
+must be the market-value gap and `dividend_yield`'s the price gap (both hold on either basis - they
+are what says the filings behind the two lines are one, and only one metric was checked before);
+those two are one number only while both records count the same shares, which is now tested rather
+than assumed; and the fact that makes a divergence harmless is asserted rather than tolerated -
+**exactly one line of the company is ranked**. 7 new tests, 27 in the module, every branch exercised
+on chosen inputs because the run-reading test can only reach the branch today's data is in. The six
+audit tests joined the claim's `checked_by`, so the publish gate runs them.
+
+**(b) `test_lab_reading_and_access.py::test_on_a_phone_the_overview_scans_as_a_list_...`.** Passed
+in my baseline, failed in the publish gate - the flake class CLAUDE.md already records for this
+module's sibling test. **Measured, and it is not a flake, it is a wrong reading:** the bound reads
+**4,429 px** and the settled height is **4,518 px**, the same 89 px in **6 of 6 trials**, with
+`document.fonts.status` already "loaded" at the early read in 5 of them. So the fixed `< 4500`
+ceiling **had been breached since experiment 19 shipped on 2026-11-06 and nothing could see it**;
+the gate's xdist run landed after the reflow. The 2026-11-06 session fixed exactly this in one test
+and left its sibling unsettled. Fixed both ways: the settle loop is now a shared `_settled` helper,
+and the fixed ceiling becomes a **per-card budget** for the reason the three tables carry one - the
+list is one card per experiment, so an absolute ceiling bounds how many experiments the lab may
+hold. 4,518 px settled over 19 cards is 4,049 of cards (213 a card, tallest 247) and 469 of chrome;
+bound 300 a card, between today's figure and the ~412 the 2026-10-27 pass removed, with the chrome
+bounded separately so a growing list cannot hide in an average. **Both halves exercised**: `_settled`
+is tried on a card that grows 400 ms after the first read (a bare read still returns the old
+figure), and the budget is shown to break under 330 px of minimum card height - settling a page that
+has already finished passes whatever the helper does.
+
+**Verified the loop will publish:** `scripts/rehearse_publish.py` PASSED end to end -
+`check_published_claims` 2,334 passed / 1 skipped, page tests 381 passed, all five published files
+restored byte for byte. **I did not republish the payload myself**: that is `data-run.ps1`'s job and
+the code loop must never write or stage `signals.json` (settled row "bot" - the asymmetry *is* the
+mechanism). The next 02:00 run publishes; the bot declines a stale `signals.json` by design in the
+meantime.
+
+**2. The research note** - `research/2026-11-09-share-counts-and-corporate-actions.md`, with
+`research/measurements/2026-11-09-post-acquisition-market-value.py` committed beside it.
+
+### Evidence / research
+
+**Measured, from this project's own runs and from EDGAR:**
+- FOXA across the two runs either side of the close, **price identical**: market value +34.3%,
+  `earnings_yield` **-25.5%**, `fcf_yield` -23.1%, `ev_ebitda` and `ev_sales` **+30.1%**, composite
+  63.19 -> 60.98, **rank 34 -> 60**. A 26-place move from one input, no price change, no new filing.
+- The signature (implied share count `marketCap/currentPrice` moving >5%) occurs **6 times in 19 run
+  pairs, 0.32 a run, and in none of thirteen consecutive pairs** - episodic, not noise. Three line up
+  with an 8-K read on EDGAR (KMB +84.5%, CHTR +37.8%, FOXA +34.3%); **three I did not establish**
+  (CVNA, PCG, CPT) and two of those appeared between two runs on the *same day*, which points at the
+  source. Marked unestablished rather than assumed.
+- **Nothing saw it.** That run's `check_run_health` was `ok` on every line including rank continuity
+  (Spearman 0.997, 2 new in the top 25) - correctly: one stock moving 26 places does not dent a
+  499-name Spearman and renormalisation preserves dispersion.
+
+**Documented practice, read from the PDFs rather than recalled:**
+- **MSCI, *Corporate Events Methodology*, February 2026** (105 pp.): p. 5, corporate-event changes -
+  "changes in number of shares (NOS)" among them - are implemented "**simultaneously with the
+  event**"; s2.6 "**Pro Forma Float Calculation for M&As**" pp. 16-17; s2.7 p. 17 - a cash-only deal
+  leaves the acquirer's weight unchanged, a share-issuing one does not; the `NOS Inflow Ratio`
+  formula p. 18. Materiality threshold **+-1%** (version history, p. 93).
+- **S&P DJI, *Equity Indices Policies & Practices*** pp. 28-29: "M&A activity is implemented when
+  the target company is deleted"; off-cycle share changes "of **5% or more** ... are made weekly".
+  **Version caveat stated in the note:** S&P's own host served an HTML bot wall instead of the
+  current August 2026 file and that was **not** worked around, so an older public copy was read.
+- Same document p. 29, "**Multiple Share Classes**": in US indices "each company is represented only
+  once ... The stock price is based on one class, usually the most liquid class, and the share count
+  is based on the **total shares outstanding**." That is this project's own 2026-10-21 rule, now
+  quoted at a page number - **and it explains the failure's root**: S&P applies one share count to
+  one price, while the source publishes total-shares x *each line's* price on *both* lines, so the
+  two are independent estimates of one quantity and a corporate action reaching one first makes them
+  disagree. Structural to the source, reproducible by any dual-class company.
+
+**So the new share count is right and is what any provider would use.** What is missing is that the
+**numerator has not caught up**: FOXA's earnings yield is standalone Fox earnings over
+Fox-plus-Roku market value for about three months, and the page says nothing - every equation on the
+row reproduces and the *reason* is invisible, which is the 2026-10-06 rule ("every number on the page
+must be checkable from the page") failing from the other side.
+
+**Academic half marked honestly:** Loughran & Vijh (1997), Rau & Vermaelen (1998) and Shleifer &
+Vishny (2003) are cited with full locators and **"- not read"** on all three, and the single sentence
+that leans on them is hedged to "a thing the literature has studied". A session that fetches them
+can turn the note's first option into a researched answer.
+
+### Methodology changed
+
+**None.** No weight, metric, threshold, score or published sentence moved. The diff is two test
+modules, six entries in one claim's `checked_by`, a research note and a measurement script.
+
+### Tried and rejected
+
+- **Widening the failing tolerance** (`rel=1e-4`) to let the run through. Refused: the tolerance was
+  not wrong, the thing being measured was. The identity it asserted is exact and is still asserted
+  exactly; what changed is that it is now applied to the quantity the claim is about.
+- **Option 3 of the note** - dropping the market-value-based Valuation metrics for a stock's
+  post-deal stub window. Argued against rather than deferred: it would drop a stock's largest
+  Valuation inputs for a quarter on a share-count heuristic, `MIN_CATEGORY_COVERAGE = 0.90` and the
+  coverage discount carry the consequences past the one metric, and it discards the correct current
+  market value that section 3 shows every provider uses.
+- **Re-measuring the lab budget to fit 19 experiments** under the old fixed ceiling. The fixed
+  ceiling was the defect - it bounds how many experiments the lab may hold - and the project had
+  already reached that conclusion for the three tables on 2026-11-06; this applies the same answer to
+  the sibling rather than inventing a second one.
+- **Republishing the payload from this session** to get the site current. Refused on settled row
+  "bot": only the gated 02:00 run is tradable and a second writer of `signals.json` reopens the hole
+  the asymmetry closes.
+
+### Next
+
+- **Decide the open proposal** - `research/2026-11-09-share-counts-and-corporate-actions.md`,
+  options 1-3 for a stock whose implied share count moved more than 5% while its earnings predate
+  the move. The deciding session must not be this one. My preference is **option 2** (a
+  `check_run_health` note, not a gate), because it is the option that produces the counts needed to
+  choose between the others and it has the `sec_crosscheck` precedent exactly. Section 5
+  pre-registers the detector (`marketCap/currentPrice`, **not** `sharesOutstanding` - that field is
+  per class and the market value is not), the 5% threshold taken from S&P rather than from this
+  data, counting per run date, and a void condition at >3 stocks a run date over four weeks.
+- **0.13 (The Factor Lab) has now been deferred three sessions running.** The deferral-streak rule
+  binds: the next session with no owner item and no broken loop must advance it or demote it in
+  "Current priorities" with the argument for what outranks it. A fourth defensible deferral is not
+  a result.
+- Confirm tomorrow's 02:00 run publishes (`logs/datarun-2026-11-10_*.log` ending "Data loop
+  complete"). If it does not, the first thing to read is whether the claims gate names a *different*
+  test - the two fixed today were independent faults in one night, which is itself worth noticing.

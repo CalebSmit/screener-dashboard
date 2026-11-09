@@ -2421,6 +2421,16 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_share_classes_page.py::test_the_payload_carries_the_second_lines",
             "tests/test_share_classes_page.py::test_a_second_class_is_not_called_a_departed_stock",
             "tests/test_share_classes_page.py::test_the_price_gap_is_the_only_valuation_difference",
+            # "the same claim on the same earnings" is honest because the company is scored
+            # once and both lines' ratios come off one set of filings. Those two facts are
+            # asserted on chosen inputs as well as on the morning's, because the run-reading
+            # test can only reach the branches today's data happens to be in (2026-11-09).
+            "tests/test_share_classes_page.py::test_the_audit_accepts_a_sound_pair_on_either_basis_and_says_which",
+            "tests/test_share_classes_page.py::test_the_audit_refuses_two_ranked_lines_of_one_company",
+            "tests/test_share_classes_page.py::test_the_audit_refuses_a_designated_line_that_was_not_ranked",
+            "tests/test_share_classes_page.py::test_the_audit_refuses_two_net_incomes_on_either_basis",
+            "tests/test_share_classes_page.py::test_the_audit_refuses_two_dividends_per_share_on_either_basis",
+            "tests/test_share_classes_page.py::test_the_audit_reports_nothing_when_only_one_line_was_fetched",
             "tests/test_share_classes_page.py::test_the_holdings_card_names_the_ranked_line",
             "tests/test_share_classes_page.py::test_a_second_line_whose_company_is_unranked_says_nothing",
         ),
