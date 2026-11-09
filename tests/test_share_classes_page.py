@@ -114,26 +114,194 @@ def test_the_block_rides_the_first_payload_not_the_context_file():
 
 
 # ------------------------------------------------------- the price gap IS the whole difference
+def two_lines(m, raw, kept, second):
+    """What two listed lines of one company share, and what separates them.
+
+    Both are claims on one set of filings, so every company-level figure behind a ratio is the
+    same for each line. ``earnings_yield`` is that one net income over each line's **market
+    value**, so the ratio between the lines is the ratio of their market values;
+    ``dividend_yield`` is one dividend per share over each line's **price**, so its ratio is the
+    ratio of their prices. Those two coincide exactly - which is what makes the page's
+    price-gap wording the whole of the difference - *while both of the source's records count
+    the same shares*. The share count behind a market value is ``marketCap / currentPrice``.
+    """
+    mc_k, mc_s = float(raw.loc[kept, "marketCap"]), float(raw.loc[second, "marketCap"])
+    p_k, p_s = float(raw.loc[kept, "currentPrice"]), float(raw.loc[second, "currentPrice"])
+    out = {"shares_kept": mc_k / p_k, "shares_second": mc_s / p_s,
+           "mc_gap": mc_s / mc_k,        # the gap earnings_yield reads
+           "price_gap": p_s / p_k}       # the gap the page states
+    out["one_share_count"] = out["shares_kept"] == pytest.approx(out["shares_second"], rel=1e-4)
+    for name, expect in (("earnings_yield", out["mc_gap"]), ("dividend_yield", out["price_gap"])):
+        a, b = m.loc[kept, name], m.loc[second, name]
+        out[name] = None if (pd.isna(a) or pd.isna(b) or b == 0) else (a / b, expect)
+    return out
+
+
+def audit_pairs(m, raw, ranked, pairs=None):
+    """Hold every pair of lines present in `m` to what the page says about them.
+
+    Raises ``AssertionError`` on a violation; returns the pairs whose two records agree on a
+    share count and those whose do not. Taking the three frames as arguments is what lets every
+    branch be exercised on constructed inputs below rather than only on the branches the
+    morning's data happens to reach.
+    """
+    checked, one_count_off = [], []
+    for kept, second in (pairs or PAIRS).items():
+        if kept not in m.index or second not in m.index:
+            continue      # only one of the two lines was fetched at all
+        g = two_lines(m, raw, kept, second)
+        for name in ("earnings_yield", "dividend_yield"):
+            if g[name] is None:
+                continue                      # a non-payer, or a figure this run did not get
+            got, expect = g[name]
+            assert got == pytest.approx(expect, rel=1e-4), \
+                f"{kept}/{second} {name}: {got} vs {expect}"
+        if g["one_share_count"]:
+            assert g["mc_gap"] == pytest.approx(g["price_gap"], rel=1e-4), \
+                f"{kept}/{second}: {g['mc_gap']} vs {g['price_gap']}"
+            checked.append((kept, second))
+        else:
+            one_count_off.append((kept, second, g["shares_kept"], g["shares_second"]))
+        # Whichever basis each record is on, only one line of the company may be ranked. Two
+        # ranked lines plus two share counts would put two inconsistent valuations of one
+        # company on the page, and that is the state this must refuse.
+        assert kept in ranked, f"{kept} is the designated line and is not ranked"
+        assert second not in ranked, f"{second} is a second line and was ranked"
+    return checked, one_count_off
+
+
 def test_the_price_gap_is_the_only_valuation_difference():
     """The page tells a reader the second line is "the same claim on the same earnings" at a
-    price gap. That is only honest because every valuation ratio differs between two lines of
-    one company by exactly the ratio of their prices - measured here on the newest run."""
+    price gap. Measured on the newest run: one company's two lines share every figure from its
+    filings, so each ratio differs between them by exactly its own gap - market values for a
+    yield on market value, prices for a yield on price - and while both records count the same
+    shares those are one number, which is the price gap the page states.
+
+    **The share count is a premise, so it is asserted and not assumed** (CLAUDE.md "data->red").
+    A corporate action can reach one line's record before the other's: Fox completed its
+    acquisition of Roku on 2026-11-06 (8-K of that date, "the Closing Date"), the source added
+    the 144,500,000 newly issued Class A shares to FOXA and left FOX's market value on the
+    pre-merger count, and on 2026-11-09 the two lines implied 566,301,414 and 421,801,414
+    shares. The old form of this test read one metric against the price gap alone, so it failed
+    and **discarded a night of the data loop's evidence** (`logs/datarun-2026-11-09_020001.log`).
+    Nothing published was wrong: `02_outliers_flagged` keeps every fetched line, the second line
+    is dropped before the percentiles, so no ratio of FOX's is scored, ranked or published - and
+    the page's sentence is about the two prices, which were both current. That the company is
+    scored once is the fact which makes the divergence harmless, so that is what gets asserted
+    here rather than tolerated silently.
+    """
     runs = glob.glob(str(ROOT / "runs" / "*" / "02_outliers_flagged.parquet"))
     if not runs:
         pytest.skip("no run artifacts present")
     run = Path(sorted(runs, key=os.path.getmtime)[-1]).parent
     m = pd.read_parquet(run / "02_outliers_flagged.parquet").set_index("Ticker")
     raw = pd.read_parquet(run / "00_raw_fetch.parquet").set_index("Ticker")
-    checked = 0
-    for kept, second in PAIRS.items():
-        if kept not in m.index or second not in m.index:
-            continue      # a run made after the rule shipped carries one line per company
-        ey = m.loc[kept, "earnings_yield"] / m.loc[second, "earnings_yield"]
-        pr = raw.loc[second, "currentPrice"] / raw.loc[kept, "currentPrice"]
-        assert ey == pytest.approx(pr, rel=1e-4), f"{kept}/{second}: {ey} vs {pr}"
-        checked += 1
-    if checked == 0:
-        pytest.skip("this run already scores each company once")
+    ranked = set(pd.read_parquet(run / "03_percentiles.parquet")["Ticker"])
+    checked, one_count_off = audit_pairs(m, raw, ranked)
+    if not checked and not one_count_off:
+        pytest.skip("this run fetched only one line per company")
+
+
+def _frames(mc_kept, mc_second, price_kept, price_second, ey_kept, ey_second):
+    """Two constructed lines of one company, in the shape the run artifacts have."""
+    m = pd.DataFrame({"Ticker": ["AAA", "BBB"],
+                      "earnings_yield": [ey_kept, ey_second],
+                      "dividend_yield": [1.0 / price_kept, 1.0 / price_second]}).set_index("Ticker")
+    raw = pd.DataFrame({"Ticker": ["AAA", "BBB"],
+                        "marketCap": [mc_kept, mc_second],
+                        "currentPrice": [price_kept, price_second]}).set_index("Ticker")
+    return m, raw
+
+
+def test_one_share_count_makes_the_market_value_gap_the_price_gap():
+    """The state the page's wording describes: both records count 100 shares."""
+    m, raw = _frames(1000.0, 800.0, 10.0, 8.0, 50.0 / 1000, 50.0 / 800)
+    g = two_lines(m, raw, "AAA", "BBB")
+    assert g["one_share_count"] and g["shares_kept"] == 100.0
+    assert g["mc_gap"] == pytest.approx(g["price_gap"])
+    assert g["earnings_yield"][0] == pytest.approx(g["earnings_yield"][1])
+    assert g["dividend_yield"][0] == pytest.approx(g["dividend_yield"][1])
+
+
+def test_two_share_counts_separate_the_two_gaps_and_are_detected():
+    """Fox on 2026-11-09, in miniature: the second line's record is 1.5x short of the first's
+    share count, so the market-value gap and the price gap part company - and the yields still
+    each track their own gap exactly, which is what says the filings behind them are one."""
+    m, raw = _frames(1500.0, 800.0, 10.0, 8.0, 50.0 / 1500, 50.0 / 800)
+    g = two_lines(m, raw, "AAA", "BBB")
+    assert not g["one_share_count"]
+    assert (g["shares_kept"], g["shares_second"]) == (150.0, 100.0)
+    assert g["mc_gap"] != pytest.approx(g["price_gap"], rel=1e-4)
+    assert g["earnings_yield"][0] == pytest.approx(g["earnings_yield"][1])
+    assert g["dividend_yield"][0] == pytest.approx(g["dividend_yield"][1])
+
+
+def test_a_yield_off_its_own_gap_is_caught_on_either_basis():
+    """The assertion that carries the weight: two lines of one company cannot have two net
+    incomes. It must fire whether or not the share counts agree."""
+    for mc_kept in (1000.0, 1500.0):          # one share count, then two
+        m, raw = _frames(mc_kept, 800.0, 10.0, 8.0, 50.0 / mc_kept, 61.0 / 800)
+        g = two_lines(m, raw, "AAA", "BBB")
+        assert g["earnings_yield"][0] != pytest.approx(g["earnings_yield"][1], rel=1e-4)
+
+
+def test_a_line_with_no_dividend_is_handled_rather_than_divided_by():
+    m, raw = _frames(1000.0, 800.0, 10.0, 8.0, 0.05, 0.0625)
+    m["dividend_yield"] = [float("nan"), 0.0]
+    g = two_lines(m, raw, "AAA", "BBB")
+    assert g["dividend_yield"] is None and g["earnings_yield"] is not None
+
+
+# --------------------------------- and the audit itself, on inputs chosen rather than fetched
+PAIR = {"AAA": "BBB"}
+
+
+def _good(mc_kept=1000.0):
+    """A pair the audit must accept, on one share count or on two."""
+    return _frames(mc_kept, 800.0, 10.0, 8.0, 50.0 / mc_kept, 50.0 / 800)
+
+
+def test_the_audit_accepts_a_sound_pair_on_either_basis_and_says_which():
+    for mc_kept, one_count in ((1000.0, True), (1500.0, False)):
+        m, raw = _good(mc_kept)
+        checked, off = audit_pairs(m, raw, {"AAA"}, PAIR)
+        assert bool(checked) is one_count and bool(off) is not one_count
+
+
+def test_the_audit_refuses_two_ranked_lines_of_one_company():
+    """The state that would put two inconsistent valuations of one company on the page."""
+    m, raw = _good()
+    with pytest.raises(AssertionError, match="second line and was ranked"):
+        audit_pairs(m, raw, {"AAA", "BBB"}, PAIR)
+
+
+def test_the_audit_refuses_a_designated_line_that_was_not_ranked():
+    m, raw = _good()
+    with pytest.raises(AssertionError, match="designated line and is not ranked"):
+        audit_pairs(m, raw, {"ZZZ"}, PAIR)
+
+
+def test_the_audit_refuses_two_net_incomes_on_either_basis():
+    for mc_kept in (1000.0, 1500.0):
+        m, raw = _frames(mc_kept, 800.0, 10.0, 8.0, 50.0 / mc_kept, 61.0 / 800)
+        with pytest.raises(AssertionError, match="earnings_yield"):
+            audit_pairs(m, raw, {"AAA"}, PAIR)
+
+
+def test_the_audit_refuses_two_dividends_per_share_on_either_basis():
+    for mc_kept in (1000.0, 1500.0):
+        m, raw = _good(mc_kept)
+        m.loc["BBB", "dividend_yield"] *= 1.02
+        with pytest.raises(AssertionError, match="dividend_yield"):
+            audit_pairs(m, raw, {"AAA"}, PAIR)
+
+
+def test_the_audit_reports_nothing_when_only_one_line_was_fetched():
+    """The skip the run-reading test takes - and it must not be reachable while both lines are
+    there, or a fetch that silently lost a line would read as a clean pass."""
+    m, raw = _good()
+    assert audit_pairs(m.drop(index="BBB"), raw, {"AAA"}, PAIR) == ([], [])
+    assert audit_pairs(m, raw, {"AAA"}, PAIR) != ([], [])
 
 
 # ---------------------------------------------------------------------- the page, rendered
