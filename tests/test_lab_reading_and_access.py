@@ -72,6 +72,29 @@ def _goto(page, scene: str) -> None:
     page.wait_for_function("!document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
 
 
+def _settled(page, js: str):
+    """`js`, read once the page has stopped changing rather than at the first moment it can be
+    read. Inter makes this page's tables and cards stand taller than the fallback face does, and
+    ``document.fonts`` reports "loaded" before the faces it uses have been applied - so a height
+    read at the first opportunity is the "paint->red" family in CLAUDE.md, a test whose premise
+    is that the page has settled when it has not.
+
+    Measured 2026-11-06 on the three tables (157 px) and 2026-11-09 on the experiment cards: the
+    overview's card list reads **4,429 px** at the first opportunity and **4,518 px** settled, the
+    same 89 px every time in 6 of 6 trials, with ``document.fonts.status`` already "loaded" at the
+    early read in 5 of them. That 89 px is the whole of why the 02:00 run of 2026-11-09 passed
+    this bound in one process and failed it under xdist, discarding a night of data.
+    """
+    value = page.evaluate(js)
+    for i in range(40):
+        page.wait_for_timeout(100)
+        again = page.evaluate(js)
+        if again == value and i >= 12:
+            return value
+        value = again
+    return value
+
+
 def test_every_bar_chart_can_be_read_from_the_keyboard(browser):
     ctx, page, errors = _page(browser)
     try:
@@ -333,7 +356,21 @@ def test_without_javascript_the_page_says_why_and_where_to_go():
 # --------------------------------------------------------------------------- follow-up pass, 2026-10-27
 def test_on_a_phone_the_overview_scans_as_a_list_with_every_experiment_on_it(browser):
     """At 375 px the seventeen cards ran to about 7,000 px of an overview 19,000 px long. Each card is
-    now its title and verdict meter, with the rest under "What it found"; no experiment is hidden."""
+    now its title and verdict meter, with the rest under "What it found"; no experiment is hidden.
+
+    **A per-card bound, not an absolute one**, for the reason the three tables below carry one: the
+    list is one card per experiment, so a fixed ceiling is a bound on how many experiments the lab
+    may hold, which is the opposite of what the page is for. This read `< 4500` and was measured
+    without waiting for the page to settle - 4,429 px against a settled 4,518 - so the ceiling had
+    in fact been breached since experiment 19 shipped on 2026-11-06 and nothing could see it. It
+    failed under xdist in the 02:00 publish gate of 2026-11-09 and discarded that run.
+
+    Measured 2026-11-09 with 19 experiments: 4,518 px settled, 4,049 of it the cards themselves
+    (213 px a card, tallest 247) and 469 px of section heading and intro. The intent is the
+    2026-10-27 pass's - a collapsed card is a row a phone can scroll, not the ~412 px a card it
+    was before that pass - so the bound is set between the two and the chrome is bounded on its
+    own, where an average over a growing list of cards would otherwise hide it.
+    """
     ctx, page, errors = _page(browser)
     try:
         _goto(page, "overview")
@@ -341,7 +378,12 @@ def test_on_a_phone_the_overview_scans_as_a_list_with_every_experiment_on_it(bro
         assert page.evaluate("[...document.querySelectorAll('.card .card-a strong')].filter(e => e.offsetParent).length") == n
         assert page.evaluate("[...document.querySelectorAll('.card .meter svg')].filter(e => e.getBoundingClientRect().height > 0).length") == n
         assert page.evaluate("[...document.querySelectorAll('.card-body')].filter(e => e.offsetParent).length") == 0
-        assert page.evaluate("document.querySelector('#o-exp').closest('section').offsetHeight") < 4500
+        cards = _settled(page, """[...document.querySelectorAll('#o-exp ~ .cards .card')]
+            .map(c => c.offsetHeight)""")
+        section = page.evaluate("document.querySelector('#o-exp').closest('section').offsetHeight")
+        assert len(cards) == n, cards
+        assert sum(cards) / n < 300, (sum(cards), n, sum(cards) / n)
+        assert section - sum(cards) < 700, (section, sum(cards))
         # "What it found" opens one card's detail and says so; it does not open the experiment
         x = fl.EXPERIMENTS[2]
         page.click(f"#o-exp ~ .cards .card-more[aria-controls='cb-{x['id']}']")
@@ -356,6 +398,45 @@ def test_on_a_phone_the_overview_scans_as_a_list_with_every_experiment_on_it(bro
         page.click(".card >> nth=5")
         page.wait_for_function(f"window.LAB_STATE().id === '{fl.EXPERIMENTS[5]['id']}'", timeout=WAIT)
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_the_height_the_card_bound_reads_waits_for_the_page_and_sees_a_taller_card(browser):
+    """The two halves of the bound above, each exercised rather than assumed.
+
+    `_settled` has to be tried on a page that is **still changing** - settling one that has
+    already finished passes whatever the helper does, which is how a no-op version of the
+    sheet-warm helper first got through (CLAUDE.md "paint->red"). So a card is grown after the
+    first read is possible, and the helper must return the grown figure where a bare read does
+    not. Then the quantity the bound reads is shown to respond to a taller card at all, because
+    a measurement that cannot rise is not a budget.
+    """
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "overview")
+        cards = """[...document.querySelectorAll('#o-exp ~ .cards .card')].map(c => c.offsetHeight)"""
+        before = _settled(page, cards)
+        n = len(before)
+        assert n == len(fl.EXPERIMENTS) and sum(before) / n < 300
+
+        # still changing: the first card grows 500 px, 400 ms after we start reading
+        page.evaluate("""() => { setTimeout(() => {
+            document.querySelector('#o-exp ~ .cards .card').style.minHeight =
+                (document.querySelector('#o-exp ~ .cards .card').offsetHeight + 500) + 'px';
+        }, 400); }""")
+        early = page.evaluate(cards)
+        settled = _settled(page, cards)
+        assert sum(early) == sum(before), (sum(early), sum(before))
+        assert sum(settled) == sum(before) + 500, (sum(settled), sum(before))
+
+        # and the budget responds to card height: 300 px of minimum on every card breaks it
+        page.evaluate("""() => { const s = document.createElement('style');
+            s.textContent = '#o-exp ~ .cards .card { min-height: 330px }';
+            document.head.appendChild(s); }""")
+        over = _settled(page, cards)
+        assert len(over) == n and sum(over) / n >= 300, (sum(over), n)
         assert errors == []
     finally:
         ctx.close()
@@ -479,20 +560,12 @@ def test_on_a_phone_the_three_overview_tables_read_as_rows_with_every_row_kept(b
             assert page.evaluate("window.LAB_STATE().id") == "overview"
             page.click(btn)
             page.wait_for_function(f"document.getElementById('{cell}').offsetParent === null", timeout=WAIT)
-        # Measure once the page has stopped changing, not at the first moment it can be read: the
-        # three tables stand 157 px taller with Inter than with the fallback, and document.fonts
-        # reports "loaded" before the faces this page uses have arrived (measured 2026-11-06,
-        # logs-only script in that session's log). Reading early is the "paint->red" family in
-        # CLAUDE.md - a test whose premise is that the page has settled when it has not - and it
-        # made this bound pass serially and fail under xdist on the same commit.
+        # Measure once the page has stopped changing, not at the first moment it can be read -
+        # see `_settled`, which is shared with the card list's bound because reading early is a
+        # property of this page and not of one test (2026-11-09; the card list had its own,
+        # unsettled read, and it is what discarded that morning's data run).
         height = "['t-after', 't-score', 't-map'].reduce((a, id) => a + document.getElementById(id).offsetHeight, 0)"
-        total = page.evaluate(height)
-        for _ in range(40):
-            page.wait_for_timeout(100)
-            again = page.evaluate(height)
-            if again == total and _ >= 12:
-                break
-            total = again
+        total = _settled(page, height)
         # A per-row bound, not an absolute one: after the paper is one row per experiment, so a fixed
         # ceiling can only be met by having fewer experiments, which is the opposite of what this page
         # is for. The intent is unchanged - the overview must read as rows a phone can scroll, not as
