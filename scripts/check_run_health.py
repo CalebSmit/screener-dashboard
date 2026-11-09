@@ -127,6 +127,106 @@ def check_fetch_happened(run_dir: Path, res: Result) -> None:
         res.note(f"fetch evidence present ({', '.join(FETCH_EVIDENCE)})")
 
 
+# How each of the run's other payload files folds back into the payload. The run has written
+# its payload in more than one file since 2026-10-08 (the context layer) and in three since
+# 2026-11-08 (the sheet-only shard), and this gate judges the run's own artifacts - so it has to
+# read all of them, or a check reading a field that has moved sees nothing at all.
+#
+# **That is not hypothetical, it is why this exists.** `financials` joined the sheet-only shard
+# on 2026-11-08; `sec_crosscheck.market_value_check` reads
+# `stock_detail[t]["financials"]["market_cap"]`; so from the first run after that commit the
+# market-value line compared **0 stocks of 485** and printed "0/0 within 5% (0 over 10%)", which
+# an ATTENTION line at 60 can never reach. Measured on the 2026-11-09 run's own artifacts:
+# 0 compared from `dashboard_data.js` alone, 485 with the shards folded back, 20 over 10%
+# (`research/measurements/2026-11-09-share-count-detector-review.py`).
+#
+# The file names and the top-level keys come from ``generate_dashboard`` rather than being
+# transcribed, and `tests/test_health_reads_every_shard.py` derives the set of payload files
+# from `data-run.ps1`'s own `$DataArtifacts` - the precedent of the parse gate (CLAUDE.md,
+# settled row "gates"), so a fourth payload file cannot repeat this quietly.
+SHARD_FOLD = (
+    # (attribute on generate_dashboard holding the file name,
+    #  the key in that file holding the per-ticker map,
+    #  the field to set on stock_detail[t], or None to merge the entry's own keys in,
+    #  attribute holding the top-level keys the file carries, or None)
+    ("CONTEXT_FILE", "ctx", "ctx", "CONTEXT_KEYS"),
+    ("DETAIL_FILE", "detail", None, None),
+)
+
+
+def _payload_from_text(name: str, text: str) -> dict:
+    """``window.X = {...};`` -> the dict. Raises, naming the file, if it does not parse."""
+    try:
+        return json.loads(text[text.index("{"):].rstrip().rstrip(";"))
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{name} did not parse: {exc}") from exc
+
+
+def _parse_payload_file(path: Path) -> dict:
+    """``window.X = {...};`` -> the dict. Raises if it is there and does not parse."""
+    return _payload_from_text(path.name, path.read_text(encoding="utf-8"))
+
+
+def _dir_reader(run_dir: Path):
+    """The run's own folder as a source of payload files."""
+    def read(name: str) -> str | None:
+        p = run_dir / name
+        return p.read_text(encoding="utf-8") if p.exists() else None
+    return read
+
+
+def _git_reader(ref: str):
+    """``ref`` in git as a source of payload files - what the site is serving."""
+    def read(name: str) -> str | None:
+        import subprocess
+        try:
+            r = subprocess.run(["git", "-C", str(ROOT), "show", f"{ref}:{name}"],
+                               capture_output=True, timeout=60)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if r.returncode != 0 or not r.stdout:
+            return None
+        try:
+            return r.stdout.decode("utf-8")
+        except UnicodeDecodeError:
+            return None
+    return read
+
+
+def fold_shards(payload: dict, read) -> dict:
+    """``payload`` with every shard folded back in, as the page sees it once they have loaded.
+
+    ``read(name)`` returns a payload file's text, or None where there is no such file - so the
+    same fold serves the run's own folder (``_dir_reader``) and the published commit
+    (``_git_reader``). A shard that is absent is not a fault: every run before 2026-10-08 wrote
+    one file and every run before 2026-11-09 two. A shard that *is* there and does not parse
+    raises, for the same reason the main payload does: this gate may not judge half a payload.
+    """
+    try:
+        import generate_dashboard as G
+    except Exception:  # noqa: BLE001 - never stop a run over the fold
+        return payload
+    detail = payload.get("stock_detail")
+    for file_attr, map_key, field, top_attr in SHARD_FOLD:
+        name = getattr(G, file_attr, None)
+        text = read(name) if name else None
+        if text is None:
+            continue
+        shard = _payload_from_text(name, text) or {}
+        for t, part in (shard.get(map_key) or {}).items():
+            entry = (detail or {}).get(t)
+            if entry is None:
+                continue
+            if field is None:
+                entry.update(part)
+            else:
+                entry[field] = part
+        for k in (getattr(G, top_attr, ()) or ()) if top_attr else ():
+            if k in shard:
+                payload.setdefault(k, shard[k])
+    return payload
+
+
 def load_payload(run_dir: Path) -> dict | None:
     """The payload **this run** wrote, from its own folder - or None.
 
@@ -137,15 +237,13 @@ def load_payload(run_dir: Path) -> dict | None:
     and approving it, after which ``data-run.ps1`` went on to regenerate and publish a page the
     gate had never seen. A missing run payload is a missing artifact of the run itself: the
     caller exits 2, which ``data-run.ps1`` treats as a discard.
+
+    **It returns the whole payload, not the first of its files** - see ``SHARD_FOLD``.
     """
     path = run_dir / "dashboard_data.js"
     if not path.exists():
         return None
-    text = path.read_text(encoding="utf-8")
-    try:
-        return json.loads(text[text.index("{"):].rstrip().rstrip(";"))
-    except (ValueError, json.JSONDecodeError) as exc:
-        raise ValueError(f"dashboard_data.js did not parse: {exc}") from exc
+    return fold_shards(_parse_payload_file(path), _dir_reader(run_dir))
 
 
 def _run_meta(run_dir: Path) -> dict:
@@ -578,6 +676,96 @@ def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None
                      f"Not a refusal - see research/2026-10-14-yahoo-vs-sec.md.")
 
 
+# Above this many new entrants on one run date, sustained, the construct is measuring source
+# churn rather than corporate actions - pre-registered in
+# research/2026-11-09-share-counts-and-corporate-actions.md §5.5 before the counts were in, and
+# **not a threshold to tune**: if it is noisy the move is to re-derive the detector, never to
+# raise the line. Measured over the 20 runs on file: entrants on 3 of 16 run dates, most 2.
+SHARE_COUNT_MOVE_VOID = 3
+
+
+def check_share_count_moves(payload: dict, res: Result, baseline: dict | None, facts=None) -> None:
+    """Which stocks' market value implies a share count the filings do not, *newly* - a NOTE.
+
+    **The question, from `research/2026-11-09-share-counts-and-corporate-actions.md`.** Fox
+    completed its acquisition of Roku on 2026-11-06 and the source added the newly issued Class A
+    shares the next session: FOXA's market value rose 34.3% with its price unchanged, four scored
+    metrics moved 23-30%, and its rank went 34 -> 60 on no price change and no new filing. The
+    market value is right - MSCI and S&P DJI both move an acquirer's share count at the event -
+    but the *earnings* behind the multiple are Fox standalone until the December quarter is filed.
+    Nothing in the pipeline said so: a 499-name Spearman of 0.997 cannot see one stock move 26
+    places, and renormalisation preserves dispersion.
+
+    **Why this is not the detector the note proposed, and the measurement that decided it**
+    (`research/measurements/2026-11-09-share-count-detector-review.py`). The note pre-registered
+    a *run-to-run* delta in ``marketCap / currentPrice`` over 5%. But the question it poses is a
+    **state** - the numerator predates the denominator for about three months - and a run-to-run
+    delta is an **event**: it fires on the one morning the count moves and is silent for the whole
+    window. Measured on KMB, whose count moved on 2026-11-04: the delta named it on **1** run, the
+    comparison against its filed share count named it on **all 5** runs from 11-04 to 11-09. And
+    the project already computes the second one (``sec_crosscheck.market_value_check``, the line
+    above), so what was missing is not a detector but the **names**.
+
+    **Named by what is new, not by how far.** The over-10% set is dominated by standing structural
+    cases - partnership units (IBKR, TKO, CVNA), splits after the filed quarter, two filers' own
+    scale errors (MCD, WAT) - so a list of the 8 furthest from their filed count would not have
+    named FOXA, which was **13th of 485**. Against the published page the set is exactly the news:
+    **CHTR and FOXA new, 18 standing, CPT gone** - and a departure is informative too, since a
+    completed acquisition does not reverse (CPT is one of the three moves the note could not
+    establish).
+
+    **It compares with the published page on purpose.** Settled row 0.5/0.7 says this gate judges
+    only the run's own artifacts, and that rule is about the **verdict**: this never fails a run,
+    and "new since what the site is serving" is only answerable against what the site is serving -
+    the named exception rank continuity already uses. A missing or unreadable baseline is a note.
+    """
+    if baseline is None:
+        res.note("share-count moves not checked - the published payload could not be read, so "
+                 "there is nothing to call these new against")
+        return
+    sys.path.insert(0, str(ROOT))
+    try:
+        import sec_crosscheck as X
+        if facts is None:
+            from sec_fundamentals import FACTS_PATH
+            if not FACTS_PATH.exists():
+                res.note("share-count moves not checked - no companyfacts cache yet")
+                return
+            facts = pd.read_parquet(FACTS_PATH)
+        now = X.market_value_check(payload, facts)
+        was = X.market_value_check(baseline, facts)
+    except Exception as exc:  # noqa: BLE001 - a note must never stop a publish
+        res.note(f"share-count moves not checked - {type(exc).__name__}: {exc}")
+        return
+    if now.empty:
+        res.note("share-count moves not checked - no stock could be compared with a filed count")
+        return
+
+    def far(df):
+        return {} if df.empty else dict(zip(df["ticker"], df["ratio"]))
+
+    now_far = {t: r for t, r in far(now).items() if abs(r - 1) > X.FAR}
+    was_far = {t: r for t, r in far(was).items() if abs(r - 1) > X.FAR}
+    new = sorted(set(now_far) - set(was_far), key=lambda t: -abs(now_far[t] - 1))
+    gone = sorted(set(was_far) - set(now_far))
+    res.note(f"share counts behind the market values: {len(now_far)} over 10% from the filed "
+             f"count, {len(new)} of them new since the published page, {len(gone)} no longer"
+             + (f" ({', '.join(gone)})" if gone else ""))
+    if new:
+        named = ", ".join(f"{t} {now_far[t] - 1:+.1%}" for t in new[:8])
+        res.note(f"ATTENTION - {len(new)} stock(s) now carry a market value implying a share count "
+                 f"over 10% from the one their filings report, which the published page does not: "
+                 f"{named}{'...' if len(new) > 8 else ''}. Usually a completed acquisition or a "
+                 f"split: the market value is right and every valuation ratio built on it has "
+                 f"moved, while the earnings behind those ratios have not. Not a refusal - see "
+                 f"research/2026-11-09-share-counts-and-corporate-actions.md.")
+    if len(new) > SHARE_COUNT_MOVE_VOID:
+        res.note(f"ATTENTION - {len(new)} new share-count gaps on one run is past the "
+                 f"pre-registered void condition of {SHARE_COUNT_MOVE_VOID}. Sustained, that "
+                 f"means this is measuring source churn rather than corporate actions: re-derive "
+                 f"the detector, do not raise the line.")
+
+
 def _weighted_metric_names() -> set[str] | None:
     """Every metric with weight in any profile, or None if that cannot be read.
 
@@ -713,6 +901,23 @@ def published_payload(ref: str = "HEAD") -> dict | None:
     try:
         return _parse_payload_text(r.stdout.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
+        return None
+
+
+def published_payload_whole(ref: str = "HEAD") -> dict | None:
+    """``published_payload`` with the shards it was split into folded back in.
+
+    Rank continuity needs ``table_data`` alone, which has never been sharded, so
+    ``published_payload`` is left as it is. Anything comparing a *field of ``stock_detail``* with
+    what the site is serving needs all three files - since 2026-11-08 the committed
+    ``dashboard_data.js`` carries no ``financials`` at all.
+    """
+    p = published_payload(ref)
+    if p is None:
+        return None
+    try:
+        return fold_shards(p, _git_reader(ref))
+    except ValueError:                      # a committed shard that does not parse: no baseline
         return None
 
 
@@ -1101,6 +1306,9 @@ def main() -> int:
     check_scored_universe(payload, run_dir, res)
     check_price_freshness(payload, published, res, run_dir)
     check_inputs_against_filings(payload, res)
+    # New since the page the site is serving, so it needs the published payload's *shards* too -
+    # `financials` has not been in the committed dashboard_data.js since 2026-11-08.
+    check_share_count_moves(payload, res, published_payload_whole())
     check_top_of_ranking(payload, res)
 
     if not args.quiet:

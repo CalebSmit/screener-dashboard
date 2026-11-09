@@ -828,6 +828,18 @@ DETAIL_FILE = "dashboard_detail.js"
 #   a field may move when every surface that reads it is the open sheet, and every panel that
 #   prints it can say honestly that it is waiting.
 #
+# **And the half that rule was missing, found 2026-11-09 by the run it broke.** It is written in
+# terms of *surfaces* - the page's read sites - and `stock_detail` has readers that are not the
+# page. `sec_crosscheck.market_value_check` reads `financials.market_cap`, the share count every
+# valuation ratio rests on, checked against the companies' own filed count; the health gate read
+# `dashboard_data.js` alone; so from the first run after `financials` moved, that check compared
+# **0 stocks of 485** and printed "0/0 within 5% (0 over 10%)" every morning, which an ATTENTION
+# line at 60 can never reach. The gate folds every shard back now and a derived tripwire fails if
+# a fourth payload file is left out (`tests/test_health_reads_every_shard.py`). So the rule's full
+# form is: **grep for the field outside the page too** - and the check of a field that moves is
+# asserted against the generator's own split, never a payload built by hand, which is why nothing
+# saw this one.
+#
 # `financials` passes both. Exactly two functions read it - `renderCompanySnapshot` and
 # `buildPeerRow`, both inside the sheet - which only became true today: until the peer table was
 # unified onto `buildPeerRow`, the subject's row read a precomputed `self_metrics` block instead.
