@@ -184,5 +184,51 @@ def main() -> None:
              sum(per_date.values()) / max(1, len(per_date))))
 
 
+def section5(facts) -> None:
+    """How should the note name them? By magnitude, or by what is new?
+
+    The reporting half of the note's option 2 needs a short list a session can act on. The
+    obvious construction - the stocks furthest from their filed count - is measured here against
+    the one that compares the run's set with the page the site is serving.
+    """
+    import subprocess
+
+    order = runs_in_order()
+    start, newest = order[-1]
+    cur = merged(H.load_payload(newest), read_shard(newest))
+    mv, far = far_set(cur, facts)
+
+    print("\n== 5. Naming them: by magnitude, or by what is new since the published page?")
+    by_mag = mv.assign(off=(mv["ratio"] - 1).abs()).sort_values("off", ascending=False)
+    top8 = list(by_mag.head(8)["ticker"])
+    print("   the 8 furthest from their filed count: %s" % ", ".join(top8))
+    print("   FOXA's position in that order: %d of %d"
+          % (list(by_mag["ticker"]).index("FOXA") + 1 if "FOXA" in set(by_mag["ticker"]) else -1, len(by_mag)))
+    print("   a magnitude list of 8 would name FOXA: %s" % ("FOXA" in top8))
+
+    base = {}
+    for name in ("dashboard_data.js", "dashboard_detail.js"):
+        r = subprocess.run(["git", "-C", str(ROOT), "show", "origin/main:" + name],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            print("   the published %s could not be read - no baseline" % name)
+            return
+        t = r.stdout
+        base[name] = json.loads(t[t.index("{"):].rstrip().rstrip(";"))
+    pub = base["dashboard_data.js"]
+    for t_, part in (base["dashboard_detail.js"].get("detail") or {}).items():
+        if t_ in (pub.get("stock_detail") or {}):
+            pub["stock_detail"][t_].update(part)
+    _, far_pub = far_set(pub, facts)
+    print("   published page: %s, %d over 10%%"
+          % ((pub.get("kpis") or {}).get("run_timestamp", "?")[:19], len(far_pub)))
+    print("   this run:       %s, %d over 10%%" % (start[:19], len(far)))
+    print("   NEW since the published page: %s" % (", ".join(sorted(far - far_pub)) or "-"))
+    print("   gone since it:                %s" % (", ".join(sorted(far_pub - far)) or "-"))
+    print("   standing in both:             %d" % len(far & far_pub))
+
+
 if __name__ == "__main__":
     main()
+    from sec_fundamentals import FACTS_PATH as _FP
+    section5(pd.read_parquet(_FP))
