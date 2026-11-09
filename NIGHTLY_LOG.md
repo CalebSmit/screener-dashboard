@@ -21133,3 +21133,158 @@ modules, six entries in one claim's `checked_by`, a research note and a measurem
 - Confirm tomorrow's 02:00 run publishes (`logs/datarun-2026-11-10_*.log` ending "Data loop
   complete"). If it does not, the first thing to read is whether the claims gate names a *different*
   test - the two fixed today were independent faults in one night, which is itself worth noticing.
+
+## 2026-11-09 (13:00 session) - QUEUE. The share-count proposal decided, and the detector it asks for found already built and silently broken
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-09_060001.log`
+(completed). Data loop published? **no** - `logs/datarun-2026-11-09_020001.log` (stopped
+deliberately; HEALTH: PASS) - this morning's session diagnosed and fixed both gate failures and
+verified the rehearsal, so the next 02:00 run publishes; nothing further was needed today.
+Evidence base at `1m`: **5 effective of the 8 needed, 45 rows, newest 1m run date 2026-10-06 (34
+days ago, bound 40)**; 114 rows across all horizons. Priority 0: `allow_auto_apply` **false**. Top
+open roadmap item: **0.13, The Factor Lab** (age **28 days**); also open 0.10 (33d), 0.14 (26d).
+**Tests:** before **4,243 passed / 1 skipped** (226 s parallel, green baseline - `origin/main`
+already carried this morning's work and no branch was held back by the gates); after **4,271
+passed / 1 skipped**. Gates 1-4 pass; gate 5 (`rehearse_publish.py`) **PASSED**, all five
+published files restored byte for byte.
+**Owner queue / rotation:** the morning brief listed **one open proposal**, which the prompt and
+`OWNER_FOCUS.md` item 1 both make the first job, and I did not write it - so that was the session.
+`write_brief.open_proposals()` returns `[]` now. **Deferred: 0.13, 0.10 and 0.14** - 0.13 for the
+fourth consecutive session, and this is the deferral-streak rule's own exception rather than a
+fourth defensible deferral: the rule binds on "the next session carrying **no owner item**", and
+deciding an open proposal is an owner item. **It is the next session's first job if the queue is
+still clear.**
+
+### Did
+
+**Decided the open proposal** - `research/2026-11-09-share-counts-and-corporate-actions.md`, which
+asked which of three things to do for a stock whose implied share count has moved while the
+earnings behind its multiples have not (FOXA, rank 34 -> 60 on 2026-11-09, price unchanged).
+**Option 2 accepted in substance and refused as specified; option 3 refused; option 1 left open
+with two conditions it did not have.** The argument is the note's new section 8; the measurements
+are `research/measurements/2026-11-09-share-count-detector-review.py`, committed.
+
+**1. The finding: the detector the note asks for already existed, and had been comparing
+nothing.** `sec_crosscheck.market_value_check` has computed `marketCap / price` - the note's own
+`implied_shares`, the same expression - against each company's **filed** weighted-average share
+count every run since 2026-10-14, printed in `check_run_health`'s own note with an ATTENTION line
+above 60 stocks. The note names `sec_crosscheck` as the precedent to copy without noticing it is
+the same check.
+
+From the run logs: `446/485 within 5% (21 over 10%)` on 11-05 and 11-06 02:00, `444/485 (19)` on
+11-06 18:34, and **`0/0 within 5% (0 over 10%)` on 11-09**. `financials` moved into
+`dashboard_detail.js` on **2026-11-08**; the check reads
+`stock_detail[t]["financials"]["market_cap"]`; `load_payload` read `dashboard_data.js` alone. So
+from the first run after that commit it compared **0 stocks of 485**, and **an ATTENTION line that
+fires above 60 cannot be reached from zero.** Measured on the 11-09 run's own artifacts: 0
+compared from `dashboard_data.js`, **485 with the shards folded back, 20 over 10%** - FOXA among
+them at ratio **1.3109**, the stock the whole note is about. Fixed: the gate folds every shard
+back, derived from the generator's own constants.
+
+**Why nothing saw it, which is the transferable half.** `tests/test_sec_crosscheck.py` builds its
+payload by hand with `financials` inline, so it reports the same thing whatever the generator does
+with the field - rule 10's lesson (assert against the generator's output, not an artifact) one
+level down, in a gate rather than a claim. And the shard's membership rule is written in terms of
+the **page's** read sites ("every surface that reads it is the open sheet"), which is true of
+`financials` and silent about the payload's readers that are not the page. Both now recorded where
+the next session moving a field will read them: the generator's `DETAIL_KEYS` comment and
+CLAUDE.md's settled row "gates".
+
+**2. Event or state - the measurement that refuses the proposed detector.** The note
+pre-registered a *run-to-run* delta over 5%. Its own section 4 question is a **state** (the
+numerator predates the denominator for about three months); a delta is an **event**. Measured on
+KMB, whose count moved +84.5% on 2026-11-04: the delta named it on **1** run and went quiet; the
+filings comparison named it on **all 5** runs from 11-04 to 11-09, and is still naming it. The
+filings anchor is also the only one that can see a stock already stale before the project started
+watching.
+
+**3. Named by what is new, not by how far - built, after measuring that the obvious version
+fails.** A count is not actionable. But the 8 stocks furthest from their filed count on 11-09 are
+**MCD, SKYD, IBKR, TKO, CVNA, VMRK, WAT, MNST** - the standing structure recorded on 2026-10-14 -
+and **FOXA is 13th of 485**, so a magnitude list of eight would have missed it. Against the
+published page the set is exactly the news: **CHTR and FOXA new, 18 standing, CPT gone.** Shipped
+as `check_share_count_moves`, verified end to end on the 11-09 run:
+
+> share counts behind the market values: 20 over 10% from the filed count, 2 of them new since the
+> published page, 1 no longer (CPT)
+> ATTENTION - 2 stock(s) ... which the published page does not: CHTR +47.7%, FOXA +31.1%.
+
+Never a failure; an `ATTENTION -` line, which is what the brief surfaces, exactly as option 2
+asked. Base rate from the 20 runs on file: entrants on **3 of 16 run dates**, at most 2 on any
+one. The note's own void condition (>3 a run date) is in the code as `SHARE_COUNT_MOVE_VOID`, and
+it uses the existing **10%** line (`sec_crosscheck.FAR`), **not** the note's 5% - 5% is S&P DJI's
+threshold for a run-to-run move and is not the right number for a distance from a filed count.
+
+**4. Two test modules, and 14 of 14 mutations refused.**
+`tests/test_health_reads_every_shard.py` (11) asserts the fold two ways a hand-built fixture
+cannot: a **round trip through the generator's own** `split_context`/`split_detail`, so a fourth
+shard or a field moved out of one fails with nobody adding a case, and a derivation from
+`data-run.ps1`'s own `$DataArtifacts` - the parse gate's precedent - with an empty, printed
+`KNOWN_UNFOLDED`. `tests/test_share_count_moves.py` (17) pins the construct, including the one
+finding that could silently regress (a nearer *new* gap is named over a further *standing* one)
+and the void condition probed **at** its line rather than either side of it. Mutation-checked by
+editing the production file and restoring: **6 of 6** and **8 of 8** refused, restored exactly
+both times.
+
+### Evidence / research
+
+- **This project's own runs and logs.** The `0/0` line's first appearance, dated against the
+  2026-11-08 commit; 0 compared vs 485 with the shards folded, on the same run's artifacts; KMB
+  named by one detector on 1 run and the other on 5; FOXA 13th of 485 by magnitude; CHTR/FOXA new
+  and CPT gone against the published page; entrants on 3 of 16 run dates.
+- **One observation on the note's own open question.** CPT was over 10% on the published page and
+  is not on the 11-09 run - its gap **closed**. A completed acquisition does not reverse, so that
+  is evidence (not proof) it was the source refreshing rather than the company, which the note
+  suspected and marked unestablished. A reversion is invisible to an event detector; only a state
+  detector reports it.
+- **No new literature.** The three papers the note marks `- not read` (Loughran & Vijh 1997,
+  Rau & Vermaelen 1998, Shleifer & Vishny 2003) are still unread and still marked. The question
+  they bear on - whether a mechanically re-priced acquirer is a signal as well as a measurement
+  problem - is untouched and remains a Monday.
+
+### Methodology changed
+
+**None.** No weight, metric, threshold, score, scoring line or published sentence moved. The diff
+is the health gate, two test modules, a comment in the generator, the note's section 8, the owner
+queue and one clause in CLAUDE.md.
+
+### Tried and rejected
+
+- **Building the note's run-to-run detector.** Refused on the measurement above: it answers the
+  event where the question is the state, and the state is already computed. Had I built it, the
+  project would have carried two detectors of one quantity - the thing the 2026-10-31
+  switching-margin finding is about.
+- **Naming the stocks by distance from their filed count.** The obvious reporting design, measured
+  before shipping: it would not have named the stock the note was written about. This is now a
+  test, so it cannot quietly go back.
+- **Option 3 (excluding the market-value metrics for the stub window).** Refused with a harder
+  reason than the note's: the detector cannot tell a corporate action from a partnership-unit
+  structure, 18 of the 20 over the line on an ordinary run are standing, so the exclusion would
+  drop **IBKR, TKO, CVNA, MCD and WAT**'s largest Valuation inputs *permanently* rather than for a
+  quarter.
+- **Option 1 (a sentence on the page) today.** Not refused - deferred with the two conditions it
+  needs written down (note section 8.5): the sentence must state the **state** rather than a
+  "change" it cannot support, and it needs the discriminator section 8.4 shows is missing, or it
+  prints a share-count sentence on five stocks every day for ever and teaches a reader to ignore
+  it.
+- **Adding the two new modules to the 02:00 publish gate.** Considered because
+  `tests/test_input_gates.py` is in it by the same reasoning, and rejected: that module checks
+  *payload fields* the gates read, which is a property of what is about to be published, while
+  these check the gate's own plumbing - already covered by gate 1, fourteen times a week. They
+  would add ~35 s to the publish gate and protect no published artifact.
+- **Republishing the payload to make the site current.** Still refused, on settled row "bot", for
+  the same reason this morning's session gave.
+
+### Next
+
+- **0.13, The Factor Lab, has now been deferred four sessions running** - three of them to work
+  that outranked it (the stalled data loop, then this owner item). The next session with a clear
+  proposal queue has it as its first job: experiment 19 is second-read, so the queue in
+  `plan/factor-lab.md` wants the next experiment, and Friday 2026-11-13 is the lab's day.
+- **Confirm the 02:00 run of 2026-11-10 publishes** (`logs/datarun-2026-11-10_*.log` ending "Data
+  loop complete") **and read its two new lines**: `market value / price vs filed shares` should be
+  back to ~440/485 rather than `0/0`, and `share counts behind the market values` should report
+  **0 new** once FOXA and CHTR are on the published page. If either is wrong, the fold is wrong.
+- **Option 1 of the share-count note is open** with its conditions pre-registered (section 8.5).
+  It is a page change and needs the 8-K-or-newness discriminator first; do not build the sentence
+  without it.
