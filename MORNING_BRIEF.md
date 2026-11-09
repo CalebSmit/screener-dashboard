@@ -1,4 +1,4 @@
-# Morning Brief - Sunday 08 November 2026, 14:33
+# Morning Brief - Monday 09 November 2026, 02:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,7 +7,7 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran yesterday |
+| Data run (2 AM) | **stopped deliberately** - last ran today |
 | Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-11-06 18:34 |
 | Stocks scored | 499 |
@@ -15,12 +15,12 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | VLO, EXPE, MU, MPC, DXCM |
 | Ranking's lean on growth | +0.052 (OUTSIDE the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (33 days ago, bound 40) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (34 days ago, bound 40) |
 | Context signals | 20 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 331/332 within 0.5%; operating cash flow 305/320 within 0.5%; net income 302/332 within 0.5%; market value 444/485 within 5%; 4 scored a quarter behind a filing over 30 days old; filings cached 5 days ago |
-| Top 25, worth a look | EXPE (#2: equity 6.2% of assets); DXCM (#5: operating cash flow 36% off the filing); HST (#7: net income 1.46x after-tax operating income); PSX (#9: net income 1.28x after-tax operating income); CF (#12: net income 16% off the filing); TPR (#13: equity 5.2% of assets); WDC (#19: net income 2.13x after-tax operating income) |
-| Data run timing | **21 min** total; slowest `fetch.tickers` 674 s, `context.options_pass` 178 s, `fetch.retry` 116 s; **33 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (26 days) |
+| Inputs vs SEC filings | total assets 331/332 within 0.5%; operating cash flow 305/320 within 0.5%; net income 302/332 within 0.5%; market value 0/0 within 5%; 4 scored a quarter behind a filing over 30 days old; filings cached 7 days ago |
+| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#5: net income 1.46x after-tax operating income); DXCM (#7: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); CF (#10: net income 16% off the filing); TPR (#11: equity 5.2% of assets); WDC (#20: net income 2.13x after-tax operating income); ES (#23: a period behind its filings) |
+| Data run timing | **17 min** total; slowest `fetch.tickers` 628 s, `fetch.retry` 153 s, `context.sec_insider` 80 s; **51 tickers rate-limited** |
+| Code-session login | 2026-12-03 09:01 (24 days) |
 | Context coverage | options usable 415/499 - insider from SEC 499/499 - earnings variability 439 |
 
 ## Coming up
@@ -28,11 +28,18 @@ history is in `NIGHTLY_LOG.md`.
 Dates the project has committed to. A past-due line stays until the session that
 does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
-- 2026-11-09 (in 1 day) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
-- 2026-11-16 (in 8 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
+- 2026-11-09 (**today**) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
+- 2026-11-16 (in 7 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
+
+## Things that needed attention
+
+- The regenerated artifacts contradict claims this project asserts about them.
+- Refusing to publish. The live site keeps the last good version.
+- Run discarded: published-claims check failed - fix the generator, not the file.
 
 ## What changed in the repo
 
+- `51d75a7 brief: code session 2026-11-08-midday`
 - `78900f5 log: five full parallel runs on identical code, three one-off browser flakes`
 - `77cc502 log: the shard's second slice, and the half of it that needed deleting`
 - `13c18f8 fix: two modules that read `financials` before the loader merged it`
@@ -44,10 +51,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `ae07726 gate: a runner must check each payload by its assignment, not only name the file`
 - `2dc0b70 measure: the pre-warm does fetch the detail file, and the inventory's 60 KB was wrong by 5x`
 - `c451ebf split: the sheet-only half of stock_detail leaves the first-paint payload`
-- `263cd05 brief: code session 2026-11-07-midday`
-- `16a40f7 log: the per-band health gate, and the threshold that is a methodology decision`
-- `0004e80 measure: six mutations against the per-band gate, 6 of 6 caught`
-- `5191b33 gate: the analyst-target floor is applied inside each size band`
 
 ## The session's own account
 
