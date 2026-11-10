@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 10 November 2026, 02:26
+# Morning Brief - Tuesday 10 November 2026, 07:33
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -37,71 +37,76 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
+- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
+- tests/test_ledger_is_level_with_the_code.py::test_every_published_row_was_produced_by_the_committed_code[content_hash]
+- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
+- full output: C:\Users\smitc\OneDrive\Documents\Screener\logs\nightly-2026-11-10_060001.baseline.txt
 
 ## What changed in the repo
 
+- `4b06504 log: 2026-11-10 - the advice ban read a company name, and the fingerprint read a weekly cache`
+- `febe5f5 fix: the mask read window.D, which the page does not have - so it masked nothing`
+- `b7f6cdc rerun: the ledger level again, and the measurement that the filings refresh moved nothing`
+- `52d2a68 rerun: research ledger rows 25-30 of 32`
+- `d8ba024 rerun: research ledger rows 19-24 of 32`
+- `3f05095 rerun: research ledger rows 13-18 of 32`
+- `6838462 rerun: research ledger rows 7-12 of 32`
+- `e891914 rerun: research ledger rows 1-6 of 32 at the new fingerprint`
+- `344eb47 fix: the research ledger went stale because a weekly cache refresh moved, not because a number did`
+- `87871f9 fix: a company's name is not a recommendation - the advice ban discarded a healthy run`
+- `ecd9d9e brief: data run 2026-11-10`
 - `4a404cb brief: code session 2026-11-09-midday`
 - `92256b7 log: 2026-11-09 (13:00) - the share-count proposal decided, and the detector that had been comparing nothing`
 - `94dc9fb docs: the share-count decision in the owner queue, and the gate-reads-the-whole-payload constraint`
 - `1e71c1f decide: the share-count proposal - option 2 accepted in substance, refused as specified; 3 refused; 1 left open with a pre-registration`
-- `e16a88e feat: the health note names the stocks whose market value implies a share count their filings do not - newly`
-- `b807239 test: the health gate must read the whole payload, derived rather than transcribed`
-- `016824c fix: the health gate read one of the run's three payload files, so the market-value check compared nothing`
-- `44b363d brief: code session 2026-11-09`
-- `f14b4f1 log: 2026-11-09 - the refused data run, both faults fixed, and the share-count note`
-- `2c62cfc research: the share count behind a market value, and what a screen should do when it moves`
-- `8af1404 fix: the lab's card bound was read before the page settled, and had been breached`
-- `9817403 fix: the share-class gate asserted a discarded intermediate, and discarded a night`
-- `3a608c4 brief: data run 2026-11-09`
-- `51d75a7 brief: code session 2026-11-08-midday`
 
 ## The session's own account
 
-> 2026-11-09 (13:00 session) - QUEUE. The share-count proposal decided, and the detector it asks for found already built and silently broken
+> 2026-11-10 - PRODUCT, THROUGH THE NUMBERS. Two refused loops instead: a company's name read as a recommendation, and a weekly cache refresh read as a changed result
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-09_060001.log`
-> (completed). Data loop published? **no** - `logs/datarun-2026-11-09_020001.log` (stopped
-> deliberately; HEALTH: PASS) - this morning's session diagnosed and fixed both gate failures and
-> verified the rehearsal, so the next 02:00 run publishes; nothing further was needed today.
-> Evidence base at `1m`: **5 effective of the 8 needed, 45 rows, newest 1m run date 2026-10-06 (34
-> days ago, bound 40)**; 114 rows across all horizons. Priority 0: `allow_auto_apply` **false**. Top
-> open roadmap item: **0.13, The Factor Lab** (age **28 days**); also open 0.10 (33d), 0.14 (26d).
-> **Tests:** before **4,243 passed / 1 skipped** (226 s parallel, green baseline - `origin/main`
-> already carried this morning's work and no branch was held back by the gates); after **4,271
-> passed / 1 skipped**. Gates 1-4 pass; gate 5 (`rehearse_publish.py`) **PASSED**, all five
-> published files restored byte for byte.
-> **Owner queue / rotation:** the morning brief listed **one open proposal**, which the prompt and
-> `OWNER_FOCUS.md` item 1 both make the first job, and I did not write it - so that was the session.
-> `write_brief.open_proposals()` returns `[]` now. **Deferred: 0.13, 0.10 and 0.14** - 0.13 for the
-> fourth consecutive session, and this is the deferral-streak rule's own exception rather than a
-> fourth defensible deferral: the rule binds on "the next session carrying **no owner item**", and
-> deciding an open proposal is an owner item. **It is the next session's first job if the queue is
-> still clear.**
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-09_130001-midday.log` (completed). Data loop published? **no** - `logs/datarun-2026-11-10_020001.log` (stopped deliberately; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (35 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **29 days**); also open: 0.10 34d; 0.14 27d.
+> 
+> **Tests:** before **4,268 passed / 3 skipped / 1 FAILED** (the runner's baseline,
+> `logs/nightly-2026-11-10_060001.baseline.txt`: `test_ledger_is_level_with_the_code.py::
+> test_every_published_row_was_produced_by_the_committed_code[content_hash]`) -> after **4,291
+> passed / 3 skipped / 0 failed**. Gates 1-4 pass. Gate 5 (`scripts/rehearse_publish.py`)
+> **PASSED** - it failed twice first, and both failures were real; all five published files
+> restored byte for byte.
+> 
+> **Owner queue / rotation:** `write_brief.open_proposals()` returns `[]`, and `OWNER_FOCUS.md`'s
+> open items are the long-horizon universe expansion. The nominal focus was Tuesday's product day
+> and I did not reach it: **two loops were refused and `main` arrived red**, which the prompt and
+> CLAUDE.md both put ahead of the focus. **Deferred: the product focus, 0.13 (the Factor Lab, 29
+> days), 0.10 (34d) and 0.14 (27d).** 0.13 is now a **fifth** consecutive deferral; the
+> deferral-streak rule's exception does not cover a fifth, so I am recording plainly that a red
+> `main` and two non-publishing loops outranked it rather than claiming the rule was met - see
+> **Next**.
 > 
 > ### Did
 > 
-> **Decided the open proposal** - `research/2026-11-09-share-counts-and-corporate-actions.md`, which
-> asked which of three things to do for a stock whose implied share count has moved while the
-> earnings behind its multiples have not (FOXA, rank 34 -> 60 on 2026-11-09, price unchanged).
-> **Option 2 accepted in substance and refused as specified; option 3 refused; option 1 left open
-> with two conditions it did not have.** The argument is the note's new section 8; the measurements
-> are `research/measurements/2026-11-09-share-count-detector-review.py`, committed.
+> **1. The advice-language ban discarded a healthy data run, because Best Buy is a company.**
 > 
-> **1. The finding: the detector the note asks for already existed, and had been comparing
-> nothing.** `sec_crosscheck.market_value_check` has computed `marketCap / price` - the note's own
-> `implied_shares`, the same expression - against each company's **filed** weighted-average share
-> count every run since 2026-10-14, printed in `check_run_health`'s own note with an ATTENTION line
-> above 60 stocks. The note names `sec_crosscheck` as the precedent to copy without noticing it is
-> the same check.
+> The 02:00 loop refused to publish on `tests/test_dashboard_navigation.py::
+> test_reporting_soon_is_a_calendar_not_a_leaderboard`, with `HEALTH: PASS` on every line above it:
+> 499 scored, 499/499 priced, 497/499 with a target, Spearman 0.989 against the published page,
+> every category dispersion inside its band. Reproduced against the regenerated page
+> (`scripts/rehearse_publish`'s machinery, one test): the failing assertion is
+> `advice_terms_in(page.inner_text("#reporting-body")) == []`, and the term found is **`Buy`**, in
+> **Best Buy Co., Inc.** Best Buy's next report is 2026-11-24 - **exactly +14 days** from that run
+> date - so it entered the panel's longer window that morning for the first time.
 > 
-> From the run logs: `446/485 within 5% (21 over 10%)` on 11-05 and 11-06 02:00, `444/485 (19)` on
-> 11-06 18:34, and **`0/0 within 5% (0 over 10%)` on 11-09**. `financials` moved into
-> `dashboard_detail.js` on **2026-11-08**; the check reads
-> `stock_detail[t]["financials"]["market_cap"]`; `load_payload` read `dashboard_data.js` alone. So
-> from the first run after that commit it compared **0 stocks of 485**, and **an ATTENTION line that
-> fires above 60 cannot be reached from zero.** Measured on the 11-09 run's own artifacts: 0
-> compared from `dashboard_data.js`, **485 with the shards folded back, 20 over 10%** - FOXA among
-> them at ratio **1.3109**, the stock the whole note is about. Fixed: the gate folds every shard
+> The page was right: a calendar of forthcoming reports prints the company's legal name. The
+> *check's premise* was wrong - "no company reporting within fourteen days has a banned word in its
+> name" is a fact about S&P 500 membership and the earnings calendar, and it went false with no
+> commit touching anything. **Measured: Best Buy is the only name in the universe that trips the
+> ban** - 1 of 998 names and tickers, over all 499 rows of both the 11-06 and 11-10 payloads - which
+> is why a check written weeks ago fired on the fourth window it could have fired on.
+> 
+> - `stock_summary.without_data_names()` masks the data's own proper nouns before the ban runs:
+>   longest first, each replaced by a space so no two words fuse, case-insensitive like the ban. A
+>   genuine recommendation beside a masked name still matches.
+> - every advice check over text a *browser* rendered now masks first - Reporting Soon, the stale
+>   note, the option-quote panel, the track record.
 > ...
 
 ---
