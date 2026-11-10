@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 10 November 2026, 07:33
+# Morning Brief - Tuesday 10 November 2026, 13:08
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **stopped deliberately** - last ran today |
-| Code session (latest) | **completed** - last ran today |
+| Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-11-06 18:34 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
@@ -37,13 +37,14 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
-- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
-- tests/test_ledger_is_level_with_the_code.py::test_every_published_row_was_produced_by_the_committed_code[content_hash]
-- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
-- full output: C:\Users\smitc\OneDrive\Documents\Screener\logs\nightly-2026-11-10_060001.baseline.txt
+- SESSION DID NOT RUN: API error 400 - API Error: 400 Claude Code 2.1.229 does not support this model; version 2.1.290 or newer is required. Run 'claude update', or update the Claude desktop app, the
+- Treating this as a failure, not as 'nothing to do': no success marker will be written, so the catch-up trigger will retry rather than skipping the day.
+- No commits, because the session never ran. This is a lost day, not a quiet one.
+- === Run FAILED: API error 400 - API Error: 400 Claude Code 2.1.229 does not support this model; version 2.1.290 or newer is required. Run 'claude update', or update the Claude desktop app, the ===
 
 ## What changed in the repo
 
+- `5b058e3 brief: code session 2026-11-10`
 - `4b06504 log: 2026-11-10 - the advice ban read a company name, and the fingerprint read a weekly cache`
 - `febe5f5 fix: the mask read window.D, which the page does not have - so it masked nothing`
 - `b7f6cdc rerun: the ledger level again, and the measurement that the filings refresh moved nothing`
@@ -58,7 +59,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `4a404cb brief: code session 2026-11-09-midday`
 - `92256b7 log: 2026-11-09 (13:00) - the share-count proposal decided, and the detector that had been comparing nothing`
 - `94dc9fb docs: the share-count decision in the owner queue, and the gate-reads-the-whole-payload constraint`
-- `1e71c1f decide: the share-count proposal - option 2 accepted in substance, refused as specified; 3 refused; 1 left open with a pre-registration`
 
 ## The session's own account
 
