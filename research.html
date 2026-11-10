@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Has it been tested? · Multi-Factor Screener</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
-<meta name="description" content="The screener's weighting and 11 pre-registered alternatives, tested on 2012-2026 S&amp;P 500 history rebuilt from the filings published at the time.">
+<meta name="description" content="The screener's weighting and 17 pre-registered alternatives, tested on 2012-2026 S&amp;P 500 history rebuilt from the filings published at the time.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Multi-Factor Screener">
 <meta property="og:title" content="Has it been tested? The screener on 2012-2026 history">
-<meta property="og:description" content="The ranking and 11 pre-registered alternatives, tested on S&amp;P 500 history rebuilt from the filings published at the time.">
+<meta property="og:description" content="The ranking and 17 pre-registered alternatives, tested on S&amp;P 500 history rebuilt from the filings published at the time.">
 <meta property="og:url" content="https://calebsmit.github.io/screener-dashboard/research.html">
 <meta property="og:image" content="https://calebsmit.github.io/screener-dashboard/og-card.png">
 <meta property="og:image:width" content="1200">
@@ -232,7 +232,7 @@ section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
   <div class="lede">
     <div class="eyebrow">The screener, tested on its own history</div>
     <h1>Does the ranking predict returns?</h1>
-    <p>Before trusting a ranking, ask whether it would have worked. This page tests the screener's weighting, and 11 alternatives from the investing literature, on fifteen years of S&amp;P&nbsp;500 history rebuilt from the financial statements companies had actually published at each date.</p>
+    <p>Before trusting a ranking, ask whether it would have worked. This page tests the screener's weighting, and 17 alternatives from the investing literature, on fifteen years of S&amp;P&nbsp;500 history rebuilt from the financial statements companies had actually published at each date.</p>
   </div>
 
   <ul class="answer">
@@ -250,7 +250,7 @@ section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
       <span><i class="lg-zero"></i>no relation</span>
     </div>
   </figure></li>
-    <li><strong>No alternative did better.</strong> None of the 11 alternative weightings cleared the bar set before the test, in either period.</li>
+    <li><strong>No alternative did better.</strong> None of the 17 alternative weightings cleared the bar set before the test, in either period.</li>
     <li><strong>Whether the test can see a signal is being re-measured.</strong> The check feeds the ranking the filings as they stand today for every past month &mdash; information nobody had at the time &mdash; and asks whether this test spots the advantage. It is registered with its prediction, and it is not quoted here until it has been run on the same monthly records as everything above.</li>
   </ul>
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
@@ -291,10 +291,10 @@ section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
 
   <section id="best-backtest">
     <h2>If you had kept the best backtest</h2>
-    <p>A common way to choose a strategy is to backtest many and keep the winner. That rewards luck as well as skill. Bailey, Borwein, L&oacute;pez de Prado &amp; Zhu (2017) measure how much: split the history into equal blocks of months, and for every way of picking half of them (<span class="num">12,870</span> ways here, from 16 blocks), take the weighting that did best on that half and see where it ranks on the other half. The <strong>probability of backtest overfitting</strong> (PBO) is the share of those trials in which the winner lands in the bottom half. Luck alone gives about 0.5; a weighting that is genuinely better pushes it toward 0. This uses the current weighting and the 11 alternatives above, each scored month by month against the current one on the stocks both ranked, and reruns nothing.</p>
-    <div class="stats"><div class="stat"><div class="v">0.18</div><div class="k">chance the best-looking weighting landed in the bottom half, 2012&ndash;2026</div></div><div class="stat"><div class="v">0.59</div><div class="k">the same over 2020&ndash;2026 alone</div></div><div class="stat"><div class="v">0.66</div><div class="k">every year, with Size alone dropped from the set</div></div></div>
-    <p>Over 2012&ndash;2026 the PBO was <span class="num">0.18</span>, better than luck alone would give, and the winner beat the current weighting on the other half in <span class="num">82%</span> of trials. But one weighting did most of the winning: Size alone, in <span class="num">73%</span> of trials. Its lead over the current weighting was <span class="num">+0.027</span> over 2012&ndash;2019 and <span class="num">&minus;0.015</span> over the held-out months, where it fell behind. That is the Size result above, which survivorship could explain.</p>
-    <p>Over 2020&ndash;2026 alone the PBO was <span class="num">0.59</span>, worse than a coin toss, and the winner beat the current weighting out of sample in <span class="num">43%</span> of trials. Drop Size alone from the set and the PBO over every year is <span class="num">0.66</span>, worse than a coin toss.</p>
+    <p>A common way to choose a strategy is to backtest many and keep the winner. That rewards luck as well as skill. Bailey, Borwein, L&oacute;pez de Prado &amp; Zhu (2017) measure how much: split the history into equal blocks of months, and for every way of picking half of them (<span class="num">12,870</span> ways here, from 16 blocks), take the weighting that did best on that half and see where it ranks on the other half. The <strong>probability of backtest overfitting</strong> (PBO) is the share of those trials in which the winner lands in the bottom half. Luck alone gives about 0.5; a weighting that is genuinely better pushes it toward 0. This uses the current weighting and the 17 alternatives above, each scored month by month against the current one on the stocks both ranked, and reruns nothing.</p>
+    <div class="stats"><div class="stat"><div class="v">0.18</div><div class="k">chance the best-looking weighting landed in the bottom half, 2012&ndash;2026</div></div><div class="stat"><div class="v">0.69</div><div class="k">the same over 2020&ndash;2026 alone</div></div><div class="stat"><div class="v">0.61</div><div class="k">every year, with Size alone dropped from the set</div></div></div>
+    <p>Over 2012&ndash;2026 the PBO was <span class="num">0.18</span>, better than luck alone would give, and the winner beat the current weighting on the other half in <span class="num">82%</span> of trials. But one weighting did most of the winning: Size alone, in <span class="num">72%</span> of trials. Its lead over the current weighting was <span class="num">+0.027</span> over 2012&ndash;2019 and <span class="num">&minus;0.015</span> over the held-out months, where it fell behind. That is the Size result above, which survivorship could explain.</p>
+    <p>Over 2020&ndash;2026 alone the PBO was <span class="num">0.69</span>, worse than a coin toss, and the winner beat the current weighting out of sample in <span class="num">36%</span> of trials. Drop Size alone from the set and the PBO over every year is <span class="num">0.61</span>, worse than a coin toss.</p>
     <p>So a low reading over the whole history did not survive either check. Keeping the best of many backtests would mostly have picked whatever the history happened to reward, which is why the screener's weights come from published research and every test here is registered before it runs.</p>
   </section>
   <section id="trading-rule">
