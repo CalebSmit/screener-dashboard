@@ -1,4 +1,4 @@
-# Morning Brief - Monday 09 November 2026, 13:54
+# Morning Brief - Tuesday 10 November 2026, 02:26
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -15,12 +15,12 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | VLO, EXPE, MU, MPC, DXCM |
 | Ranking's lean on growth | +0.052 (OUTSIDE the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (34 days ago, bound 40) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (35 days ago, bound 40) |
 | Context signals | 20 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 331/332 within 0.5%; operating cash flow 305/320 within 0.5%; net income 302/332 within 0.5%; market value 0/0 within 5%; 4 scored a quarter behind a filing over 30 days old; filings cached 7 days ago |
-| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#5: net income 1.46x after-tax operating income); DXCM (#7: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); CF (#10: net income 16% off the filing); TPR (#11: equity 5.2% of assets); WDC (#20: net income 2.13x after-tax operating income); ES (#23: a period behind its filings) |
-| Data run timing | **17 min** total; slowest `fetch.tickers` 628 s, `fetch.retry` 153 s, `context.sec_insider` 80 s; **51 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (24 days) |
+| Inputs vs SEC filings | total assets 438/439 within 0.5%; operating cash flow 407/424 within 0.5%; net income 393/433 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 0 days ago - **see the ATTENTION note below** |
+| Top 25, worth a look | EXPE (#2: equity 6.2% of assets); HST (#5: net income 1.29x after-tax operating income); DXCM (#6: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#15: net income 15% off the filing); MO (#24: revenue 12% off the filing) |
+| Data run timing | **23 min** total; slowest `fetch.tickers` 632 s, `fetch.sec_roe_history` 221 s, `fetch.retry` 152 s; **48 tickers rate-limited** |
+| Code-session login | 2026-12-03 09:01 (23 days) |
 | Context coverage | options usable 415/499 - insider from SEC 499/499 - earnings variability 439 |
 
 ## Coming up
@@ -28,17 +28,19 @@ history is in `NIGHTLY_LOG.md`.
 Dates the project has committed to. A past-due line stays until the session that
 does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
-- 2026-11-09 (**today**) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
-- 2026-11-16 (in 7 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
+- 2026-11-09 (**due 1 day ago - still listed**) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
+- 2026-11-16 (in 6 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
 
 ## Things that needed attention
 
+- ok   ATTENTION - 1 stock(s) now carry a market value implying a share count over 10% from the one their filings report, which the published page does not: FOXA +32.3%. Usually a completed acquisition or a split: the market value is right and every valuation ratio built on it has moved, while the earnings behind those ratios have not. Not a refusal - see research/2026-11-09-share-counts-and-corporate-actions.md.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
 
 ## What changed in the repo
 
+- `4a404cb brief: code session 2026-11-09-midday`
 - `92256b7 log: 2026-11-09 (13:00) - the share-count proposal decided, and the detector that had been comparing nothing`
 - `94dc9fb docs: the share-count decision in the owner queue, and the gate-reads-the-whole-payload constraint`
 - `1e71c1f decide: the share-count proposal - option 2 accepted in substance, refused as specified; 3 refused; 1 left open with a pre-registration`
@@ -52,8 +54,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `9817403 fix: the share-class gate asserted a discarded intermediate, and discarded a night`
 - `3a608c4 brief: data run 2026-11-09`
 - `51d75a7 brief: code session 2026-11-08-midday`
-- `78900f5 log: five full parallel runs on identical code, three one-off browser flakes`
-- `77cc502 log: the shard's second slice, and the half of it that needed deleting`
 
 ## The session's own account
 
