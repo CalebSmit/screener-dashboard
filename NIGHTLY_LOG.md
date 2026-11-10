@@ -21288,3 +21288,165 @@ queue and one clause in CLAUDE.md.
 - **Option 1 of the share-count note is open** with its conditions pre-registered (section 8.5).
   It is a page change and needs the 8-K-or-newness discriminator first; do not build the sentence
   without it.
+
+---
+
+## 2026-11-10 - PRODUCT, THROUGH THE NUMBERS. Two refused loops instead: a company's name read as a recommendation, and a weekly cache refresh read as a changed result
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-09_130001-midday.log` (completed). Data loop published? **no** - `logs/datarun-2026-11-10_020001.log` (stopped deliberately; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (45 rows, but overlapping windows are not independent; 114 rows across all horizons), newest 1m run date 2026-10-06 (35 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **29 days**); also open: 0.10 34d; 0.14 27d.
+
+**Tests:** before **4,268 passed / 3 skipped / 1 FAILED** (the runner's baseline,
+`logs/nightly-2026-11-10_060001.baseline.txt`: `test_ledger_is_level_with_the_code.py::
+test_every_published_row_was_produced_by_the_committed_code[content_hash]`) -> after **4,291
+passed / 3 skipped / 0 failed**. Gates 1-4 pass. Gate 5 (`scripts/rehearse_publish.py`)
+**PASSED** - it failed twice first, and both failures were real; all five published files
+restored byte for byte.
+
+**Owner queue / rotation:** `write_brief.open_proposals()` returns `[]`, and `OWNER_FOCUS.md`'s
+open items are the long-horizon universe expansion. The nominal focus was Tuesday's product day
+and I did not reach it: **two loops were refused and `main` arrived red**, which the prompt and
+CLAUDE.md both put ahead of the focus. **Deferred: the product focus, 0.13 (the Factor Lab, 29
+days), 0.10 (34d) and 0.14 (27d).** 0.13 is now a **fifth** consecutive deferral; the
+deferral-streak rule's exception does not cover a fifth, so I am recording plainly that a red
+`main` and two non-publishing loops outranked it rather than claiming the rule was met - see
+**Next**.
+
+### Did
+
+**1. The advice-language ban discarded a healthy data run, because Best Buy is a company.**
+
+The 02:00 loop refused to publish on `tests/test_dashboard_navigation.py::
+test_reporting_soon_is_a_calendar_not_a_leaderboard`, with `HEALTH: PASS` on every line above it:
+499 scored, 499/499 priced, 497/499 with a target, Spearman 0.989 against the published page,
+every category dispersion inside its band. Reproduced against the regenerated page
+(`scripts/rehearse_publish`'s machinery, one test): the failing assertion is
+`advice_terms_in(page.inner_text("#reporting-body")) == []`, and the term found is **`Buy`**, in
+**Best Buy Co., Inc.** Best Buy's next report is 2026-11-24 - **exactly +14 days** from that run
+date - so it entered the panel's longer window that morning for the first time.
+
+The page was right: a calendar of forthcoming reports prints the company's legal name. The
+*check's premise* was wrong - "no company reporting within fourteen days has a banned word in its
+name" is a fact about S&P 500 membership and the earnings calendar, and it went false with no
+commit touching anything. **Measured: Best Buy is the only name in the universe that trips the
+ban** - 1 of 998 names and tickers, over all 499 rows of both the 11-06 and 11-10 payloads - which
+is why a check written weeks ago fired on the fourth window it could have fired on.
+
+- `stock_summary.without_data_names()` masks the data's own proper nouns before the ban runs:
+  longest first, each replaced by a space so no two words fuse, case-insensitive like the ban. A
+  genuine recommendation beside a masked name still matches.
+- every advice check over text a *browser* rendered now masks first - Reporting Soon, the stale
+  note, the option-quote panel, the track record.
+- `tests/test_advice_ban_scope.py` (16 tests) holds the rule as an AST sweep over every test
+  module. It follows a bare name argument back to its assignment **in the same scope**, so a local
+  variable cannot defeat it; the first version joined lines by bracket depth and reported four
+  sites that do not exist, and reading names module-wide produced a fifth. The sweep found a site
+  my own hand search had missed. The one check that genuinely cannot mask - a node harness whose
+  payload is three synthetic tickers - is named in `EXEMPT` with a reason printed every run, and a
+  test fails if an exemption stops being needed.
+
+**The part worth carrying:** my first version read `window.D`. The page declares
+`const D = window.SCREENER_DATA || {}` at script scope, so `D` is **not** a property of `window` -
+the same shape as the closure-scoped `CTX_LOADED` the dashboard notes already warn about.
+`data_names` returned `[]`, the mask was a no-op, and gate 5 failed on exactly the test the data
+run had failed on. The fix read as finished while doing nothing. `data_names` now **raises** on an
+empty list, and a browser test asserts it reads 998 names for 499 rows off the real page.
+
+**2. `main` was red because a gitignored cache the data loop refreshes weekly had moved.**
+
+The inherited failure: all 32 newest ledger rows carried `content_hash=a7f3c9a52778` against a
+live `3fc1fe78c56d`, while `code_hash`, `base_config_hash` and `method_version` were level and no
+commit had touched any of the nine `RESULT_PATHS` files since the rows ran on 2026-11-07.
+
+Measured, part by part: of the seven parts of the content fingerprint **exactly one had moved** -
+`sec_facts`, `e86b780be015eb5d -> 1b21c3d2593fd1bb`. `month_files` identical
+(`21d6dd1cf5f34531`), `month_file_count` 176, `base_run` identical, `v2_daily`, `v2_index`,
+`splits` and `sec_facts_predecessor` identical. The mtime says why: the 02:00 run rewrote
+`data/sec/pit/facts.parquet` at **02:16:52**, and `sec_fundamentals.FACTS_MAX_AGE_DAYS = 7` makes
+that a **weekly** event. So this test turns `main` red roughly once a week, blocking every
+session's merge, and prescribes a ~27-minute rerun.
+
+The filings reach a row only **through** the monthly records, which `month_files` already hashes:
+`backtest_v2._load_facts` reads them at build time, and the only `DATA_SOURCES` file read at
+*experiment* time is `cache/v2_daily.parquet` (`v2_experiments` 215 and 913,
+`backtest_v2_returns` 129). The months were not rebuilt, so no number could have changed - and the
+rerun it prescribes re-stamps the rows while reading byte-identical inputs. It does not restore
+reproducibility from the overwritten cache either, so **it cannot fix what the failure claims is
+broken.**
+
+- `content_hash` is now taken over `v2_experiments.DECIDING_PARTS`: the monthly records, their
+  count, the base run, and `SOURCES_READ_AT_RUN`.
+- `content_parts` still records **all five** sources, so every row still names the exact filings
+  and prices its months were built from. The verdict is rescoped, nothing is dropped (rule 7).
+- a build input that moved while the months did not is reported by `provenance_note` as
+  information, in the same shape as the existing locator line, and says plainly that no number
+  moved. It never says "rerun".
+- `tests/test_ledger_is_level_with_the_code.py` holds all three halves: a run-time source still
+  stales every row; a build-only source does not, but must still appear in `content_parts`; and a
+  rebuilt **or added** month still stales everything - without that last one the split is a hole.
+
+This is the argument `provenance_note` already won on 2026-10-18 for `code_version` against
+`code_hash`, one layer down: **flag on the thing that can change a number, not on the thing that
+merely moves.**
+
+The rerun was needed either way (my edit moves `code_hash`), so it ran: all 32 rows, `--jobs 4`,
+six at a time in foreground calls of about 5.5 minutes each, committed after every call. `STALE
+REMAINING: 0`, report and `research.html` regenerated.
+
+### Evidence / research
+
+- **The Best Buy measurement.** 1 of 998 published names and tickers trips
+  `stock_summary.BANNED_TERMS`, in both the 2026-11-06 and the regenerated 2026-11-10 payload; the
+  window arithmetic is `2026-11-24 − 2026-11-10 = 14`, the panel's own bound. Reproduced and then
+  re-verified green against the page the next data run will publish.
+- **The fingerprint measurement.** `research/measurements/2026-11-10-filings-cache-rerun-moved-
+  nothing.py`, reusing 2026-11-05's comparison rather than restating it: **32 ids compared, 27,225
+  statistics, 0 differences.** The prediction - every statistic identical, only the provenance
+  moves - was written in that script's docstring before the comparison ran. So the weekly filings
+  rewrite staled every published row and changed no published number.
+- Read rather than assumed: `sec_fundamentals.FACTS_MAX_AGE_DAYS = 7` for the cadence, and the
+  three read sites for `v2_daily` that put it on the deciding side.
+- No literature today. Neither change is methodology: no weight, metric, threshold or score moved,
+  so **no `METHODOLOGY_CHANGELOG.md` entry** (rule 3 governs methodology changes; these are a test
+  scope and a provenance verdict).
+
+### Methodology changed
+
+- None. Deliberately: both fixes are about what a check is allowed to conclude, and no number the
+  page publishes moved. The ledger rerun reproduced all 27,225 statistics exactly.
+
+### Tried and rejected
+
+- **Accepting the weekly rerun instead of rescoping the verdict.** It is the prescribed remedy and
+  it would have been green by 07:00. Rejected because it does not address what the failure
+  detects: the months were not rebuilt, so the rerun reads byte-identical inputs and only
+  re-stamps provenance - and the condition recurs every week, with a red `main` blocking every
+  session's merge each time. The 27,225-statistic comparison is the evidence, and the same
+  argument is already written into `provenance_note` for `code_version`.
+- **Requiring every advice check to mask, with no exemptions.** The node-harness holdings test has
+  no page to read names from, so masking there would pass an empty list - the exact no-op this
+  work exists to prevent. A named `EXEMPT` entry with a printed reason is honest; a vacuous call
+  is not.
+- **Narrowing `content_hash` to `month_files` alone.** `v2_daily` is read at experiment time by
+  three sites, so a change to it genuinely moves forward returns. It stays in the verdict, and
+  `v2_index`/`splits` are flagged in the code as the two to move back the moment an experiment
+  starts reading one.
+
+### Next
+
+1. **Tuesday's product day was not worked and 0.13 has now been deferred five sessions running.**
+   The next session with a clear proposal queue, a green `main` and a published data loop should
+   take **0.13, the Factor Lab** - experiment 19 also still has no second reader
+   (`OWNER_FOCUS.md` 2026-10-20 item 2) - or demote it in "Current priorities" with the argument,
+   per the deferral-streak rule. Do not defer it a sixth time without doing one of those two.
+2. **Watch the 2026-11-11 02:00 run.** The live page has been 2026-11-06's data since Monday -
+   three refused runs in a row (11-06's catch-up, 11-09, 11-10). Gate 5 passes now and the
+   Reporting Soon failure is fixed, so it should publish; if it does not, read the new failure
+   before anything else. I did not publish from this session on purpose: `data-run.ps1` is the
+   only writer of `signals.json` and the only path with the seven data-loop gates in front of it
+   (settled row "bot"), and a code session publishing data would reopen that asymmetry.
+3. **`COMING_UP`'s 2026-11-09 line stays listed, correctly.** The context signals' first
+   one-month reading arrives with a run that *publishes*, and the 11-09 and 11-10 runs were both
+   discarded, so no reading has landed. Delete the line only once a published run's
+   `context_eval` shows it.
+4. The 2026-11-16 pre-registered filing cross-check table is six days out and unaffected by any
+   of this.
