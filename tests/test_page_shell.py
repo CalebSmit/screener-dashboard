@@ -367,7 +367,9 @@ def test_a_page_two_weekday_runs_behind_says_so_and_a_current_one_says_nothing(b
         assert "2 weekday runs since then have not" in text
         assert page.evaluate("getComputedStyle(document.getElementById('stale-note')).borderLeftColor") == "rgb(250, 178, 25)"
         import stock_summary
-        assert stock_summary.advice_terms_in(text) == []
+        from tests.advice_ban import data_names
+        assert stock_summary.advice_terms_in(
+            stock_summary.without_data_names(text, data_names(page))) == []
         assert errors == []
     finally:
         ctx.close()

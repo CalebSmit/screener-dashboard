@@ -46,6 +46,7 @@ import claims  # noqa: E402
 import generate_dashboard as gd  # noqa: E402
 import stock_summary  # noqa: E402
 import track_record as tr  # noqa: E402
+from tests.advice_ban import data_names  # noqa: E402
 
 try:
     from playwright import sync_api
@@ -371,6 +372,9 @@ def test_the_panel_renders_every_corrected_sentence_from_a_record():
         page.wait_for_function("typeof renderTrack === 'function' && typeof D !== 'undefined'", timeout=30000)
         page.evaluate("t => { D.track = t; TR_DONE = true; renderTrack(); }", json.loads(json.dumps(T)))
         text = page.evaluate("document.getElementById('track-body').textContent")
+        # the ban is on this project's prose, not on the names of listed companies
+        # (stock_summary.without_data_names, 2026-11-10) - read before the browser closes
+        names = data_names(page)
         b.close()
     assert not errors, errors
     assert "No money was invested" in text
@@ -381,7 +385,7 @@ def test_the_panel_renders_every_corrected_sentence_from_a_record():
     assert "Jan 5 recorded neither a start time nor any prices" in text
     assert "1 of the" in text and "top-fifth baskets" in text
     assert "pp" in text and "No return here is annualised" in text
-    assert not stock_summary.advice_terms_in(text)
+    assert not stock_summary.advice_terms_in(stock_summary.without_data_names(text, names))
 
 
 @pytest.mark.parametrize("raw, want", [

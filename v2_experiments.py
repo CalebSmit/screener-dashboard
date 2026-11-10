@@ -128,6 +128,38 @@ DATA_SOURCES = {"v2_daily": "cache/v2_daily.parquet",       # the prices every r
                 # each member's predecessor registrant's filings, for the years before a
                 # holding-company reorganisation (2026-10-24; backtest_v2._load_facts)
                 "sec_facts_predecessor": "data/sec/pit/facts_predecessor.parquet"}
+
+# Of those five, the ones an **experiment** reads. Every row still records all five (see
+# ``content_fingerprint``); only these decide whether a row is stale.
+#
+# Why the split, 2026-11-10. ``content_hash`` hashed all five, and the 02:00 data loop refreshes
+# ``data/sec/pit/facts.parquet`` **weekly** (``sec_fundamentals.FACTS_MAX_AGE_DAYS = 7``). It did
+# so at 02:16 that morning, so every one of the 32 newest ledger rows went stale and
+# ``tests/test_ledger_is_level_with_the_code.py`` turned ``main`` red with no commit touching any
+# file it names - blocking every session's merge until a ~27-minute rerun. Measured at that
+# commit: ``month_files`` **identical** (21d6dd1cf5f34531), ``month_file_count`` identical at 176,
+# ``base_run`` identical, ``v2_daily``/``v2_index``/``splits``/``sec_facts_predecessor``
+# identical - ``sec_facts`` alone had moved (e86b780be015eb5d -> 1b21c3d2593fd1bb).
+#
+# The filings reach a row **only through the monthly records**, which ``month_files`` already
+# hashes: ``backtest_v2._load_facts`` reads them at *build* time, and the only ``DATA_SOURCES``
+# file read at *run* time is ``v2_daily`` (``v2_experiments`` lines 215 and 913,
+# ``backtest_v2_returns`` line 129). So the months were not rebuilt, no number could have moved,
+# and the remedy the failure prescribed - rerun - re-stamps the rows while reading byte-identical
+# inputs. It cannot restore reproducibility from the overwritten cache either.
+#
+# This is ``provenance_note``'s rule one layer down, and the same argument it already won on
+# 2026-10-18 for ``code_version`` against ``code_hash``: **flag on the thing that can change a
+# number, not on the thing that merely moves.** A build input that moved while the months did not
+# is recorded in ``content_parts`` and reported, never alarmed on. ``v2_index`` and ``splits`` sit
+# on this side too, by the same test - they are read by ``backtest_v2.Inputs.load`` alone - and
+# they are the files to move back here the moment an experiment starts reading one.
+SOURCES_READ_AT_RUN = ("v2_daily",)
+
+# The parts of the fingerprint a staleness verdict reads: the monthly records, how many there are,
+# the live run whose static fields they borrow, and the sources read at run time.
+DECIDING_PARTS = ("month_files", "month_file_count", "base_run", *SOURCES_READ_AT_RUN)
+
 BUILD_RECORD = "cache/v2_metrics/_build.json"   # written by backtest_v2 when it builds the months
 
 
@@ -550,7 +582,13 @@ def content_fingerprint(root: Path = ROOT, metrics_dir: Path | None = None) -> d
     month's member list, which a rebuild can leave identical while every number inside it moves -
     a fix to a metric, a re-fetch of the filings, a split correction. So this hashes each month's
     parquet, the price, index, split and filing files they were built from, and the live run whose
-    static fields (sector, industry, share class) the records borrow."""
+    static fields (sector, industry, share class) the records borrow.
+
+    ``content_parts`` records **every** one of those, so a row names the exact filings and prices
+    its months were built from. ``content_hash`` - the number a staleness verdict compares - is
+    taken over ``DECIDING_PARTS`` only: the parts that can change a result rather than the parts
+    that merely move. See ``SOURCES_READ_AT_RUN`` for the measurement behind that split and for
+    the weekly red `main` it was costing."""
     parts, n = {}, 0
     h = hashlib.sha256()
     for p in sorted((metrics_dir or v2.METRICS_DIR).glob("*.parquet")):
@@ -562,7 +600,12 @@ def content_fingerprint(root: Path = ROOT, metrics_dir: Path | None = None) -> d
         p = root / rel
         parts[name] = _file_sha256(p)[:16] if p.is_file() else "missing"
     parts["base_run"] = build_record(root).get("base_run", "unrecorded")
-    return {"content_hash": _hash_of(parts), "content_parts": parts}
+    missing = [k for k in DECIDING_PARTS if k not in parts]
+    if missing:                                   # a renamed source must not silently drop out
+        raise SystemExit(f"content_fingerprint: DECIDING_PARTS names {missing}, which it does "
+                         f"not compute - fix DECIDING_PARTS or DATA_SOURCES together")
+    return {"content_hash": _hash_of({k: parts[k] for k in DECIDING_PARTS}),
+            "content_parts": parts}
 
 
 def load_registry() -> list[dict]:
@@ -766,6 +809,19 @@ def comparable_provenance(row: dict, base: dict) -> bool:
                for k in ("base_config_hash", "content_hash"))
 
 
+def _build_inputs_moved(rows: list[dict]) -> list[str]:
+    """Which recorded build inputs differ across ``rows`` without ``content_hash`` differing.
+
+    These reach a row only through the monthly records, so they cannot have changed a number -
+    see ``SOURCES_READ_AT_RUN``. Reported, never alarmed on."""
+    seen: dict[str, set] = {}
+    for r in rows:
+        for k, v in (r.get("content_parts") or {}).items():
+            if k not in DECIDING_PARTS:
+                seen.setdefault(k, set()).add(v)
+    return sorted(k for k, vals in seen.items() if len(vals) > 1)
+
+
 def provenance_note(rows: list[dict]) -> str:
     """The report's line on the code and the baseline weighting its rows ran on (item 8b).
 
@@ -808,6 +864,13 @@ def provenance_note(rows: list[dict]) -> str:
     if len(contents) > 1:
         out.append("**and on monthly records whose contents differ (`" + "`, `".join(contents)
                    + "`)** - the member lists may match while the numbers inside them do not")
+    elif _build_inputs_moved(rows):
+        # the `locator` line's counterpart for the data (2026-11-10): a build input moved while
+        # the months the experiments read did not, so no number can have changed. Information.
+        locator += (" A source the months were *built* from differs between rows (`"
+                    + "`, `".join(_build_inputs_moved(rows)) + "`) while the monthly records"
+                    " themselves were byte-identical: the filings cache was refreshed, the"
+                    " records were not rebuilt, and no number moved.")
     dirty = sorted({r.get("code_version", "") for r in rows if str(r.get("code_version", "")).endswith("-dirty")})
     lead = ("Provenance: " if len(hashes) == 1 and len(configs) == 1 and len(contents) == 1
             and not dirty else "**Provenance:** ")

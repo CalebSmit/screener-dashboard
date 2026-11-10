@@ -17,6 +17,20 @@ statistics, 0 differences, `research/measurements/2026-11-05-ledger-rerun-moved-
 that is a fact about which file moved, established afterwards, and is exactly what the hash exists
 so that nobody has to assume.)
 
+**What `content_hash` is taken over, corrected 2026-11-10.** It hashed all five
+`DATA_SOURCES`, and the 02:00 data loop refreshes `data/sec/pit/facts.parquet` weekly
+(`sec_fundamentals.FACTS_MAX_AGE_DAYS = 7`). It did so at 02:16 that morning, all 32 rows went
+stale, and this module turned `main` red with no commit touching any file it names - which is the
+"data->red" row arriving in the *code* loop, where the cost is a blocked merge rather than a
+discarded night. Measured at that commit: `month_files` identical (`21d6dd1cf5f34531`),
+`month_file_count` 176, `base_run` identical, and `v2_daily`, `v2_index`, `splits` and
+`sec_facts_predecessor` identical - `sec_facts` alone had moved. The filings reach a row only
+through the monthly records, which `month_files` already hashes, so no number could have changed
+and the prescribed rerun would have re-stamped the rows while reading byte-identical inputs. The
+verdict now reads `v2_experiments.DECIDING_PARTS`; the other sources stay in every row's
+`content_parts` and are reported rather than alarmed on, which is the rule `provenance_note`
+already won for `code_version` against `code_hash` on 2026-10-18.
+
 **Why its own module, and not `tests/test_v2_experiments.py`.** That module is named by claim
 `overview.research_engine`, so the 02:00 publish gate runs it and a failure **discards the night's
 data** (`CLAUDE.md`, the "data->red" row). A stale ledger is caused by a *code* session editing a
@@ -111,6 +125,102 @@ def test_the_live_fingerprint_moves_when_a_result_affecting_file_moves(tmp_path)
         assert X.code_fingerprint(root)["code_hash"] != before, rel
         assert before == X.code_fingerprint()["code_hash"], (
             f"the copy of the tree is not the real one for {rel}")
+
+
+def _content_root(tmp_path: Path, name: str) -> Path:
+    """A copy of the tree the content fingerprint reads: the five sources and one month file."""
+    root = tmp_path / name
+    for rel in X.DATA_SOURCES.values():
+        dst = root / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        src = ROOT / rel
+        dst.write_bytes(src.read_bytes() if src.is_file() else b"x")
+    months = root / "cache" / "v2_metrics"
+    months.mkdir(parents=True, exist_ok=True)
+    (months / "2020-01.parquet").write_bytes(b"month")
+    (months / "_build.json").write_text('{"base_run": "r1"}', encoding="utf-8")
+    return root
+
+
+def test_a_source_read_at_run_time_moves_the_verdict(tmp_path):
+    """The teeth of the split, first half: a file an experiment actually reads must still stale
+    every row. `v2_daily` is the prices every forward return is computed from."""
+    for name in X.SOURCES_READ_AT_RUN:
+        root = _content_root(tmp_path, f"run_{name}")
+        months = root / "cache" / "v2_metrics"
+        before = X.content_fingerprint(root, months)["content_hash"]
+        p = root / X.DATA_SOURCES[name]
+        p.write_bytes(p.read_bytes() + b"moved")
+        assert X.content_fingerprint(root, months)["content_hash"] != before, name
+
+
+def test_a_build_only_source_is_recorded_and_does_not_stale_a_row(tmp_path):
+    """The teeth of the split, second half - and the only thing stopping the weekly red from
+    coming back. A build input that moved while the monthly records did not cannot have changed
+    a number, so the verdict must not move; but the row must still name the file it read, or the
+    provenance this engine exists to keep has been dropped rather than rescoped (rule 7)."""
+    build_only = [k for k in X.DATA_SOURCES if k not in X.SOURCES_READ_AT_RUN]
+    assert "sec_facts" in build_only, "the file that caused this is back in the verdict"
+    for name in build_only:
+        root = _content_root(tmp_path, f"build_{name}")
+        months = root / "cache" / "v2_metrics"
+        before = X.content_fingerprint(root, months)
+        p = root / X.DATA_SOURCES[name]
+        p.write_bytes(p.read_bytes() + b"moved")
+        after = X.content_fingerprint(root, months)
+        assert after["content_hash"] == before["content_hash"], name
+        assert after["content_parts"][name] != before["content_parts"][name], (
+            f"{name} is no longer recorded in content_parts - the row cannot name what it read")
+
+
+def test_a_rebuilt_month_still_stales_every_row(tmp_path):
+    """Why the split is safe: a changed build input matters only once the months are rebuilt, and
+    that is what `month_files` sees. Without this, the split would be a hole."""
+    root = _content_root(tmp_path, "months")
+    months = root / "cache" / "v2_metrics"
+    before = X.content_fingerprint(root, months)["content_hash"]
+    (months / "2020-01.parquet").write_bytes(b"rebuilt")
+    assert X.content_fingerprint(root, months)["content_hash"] != before
+    (months / "2020-02.parquet").write_bytes(b"another")       # and a month gained or lost
+    assert X.content_fingerprint(root, months)["content_hash"] != before
+
+
+def test_every_deciding_part_is_one_the_fingerprint_computes():
+    """`DECIDING_PARTS` names keys of `content_parts`; a renamed source must not drop out of the
+    verdict silently, which would be this defect inverted and far worse."""
+    parts = X.content_fingerprint()["content_parts"]
+    assert set(X.DECIDING_PARTS) <= set(parts), sorted(set(X.DECIDING_PARTS) - set(parts))
+    assert set(X.SOURCES_READ_AT_RUN) <= set(X.DATA_SOURCES), "a source read at run time is unhashed"
+
+
+def test_a_build_input_that_moved_is_reported_not_hidden():
+    """Information, not an alarm - `provenance_note`'s own rule, on two rows that differ only in
+    the filings cache they were built from. The note must name the file and must not tell the
+    reader to rerun, because rerunning would reproduce the same numbers."""
+    base = {"code_version": "v1", "code_hash": "c1", "base_config_hash": "b1",
+            "content_hash": "h1", "content_parts": {"month_files": "m", "sec_facts": "old"}}
+    moved = {**base, "content_parts": {"month_files": "m", "sec_facts": "new"}}
+    assert X._build_inputs_moved([base, moved]) == ["sec_facts"]
+    assert X._build_inputs_moved([base, base]) == []
+    note = X.provenance_note([base, moved])
+    assert "sec_facts" in note and "no number moved" in note, note
+    assert "rerun" not in note.lower(), note
+    assert not note.startswith("**"), note          # not an alarm
+
+
+def test_the_filings_cache_moving_overnight_does_not_stale_the_ledger(newest):
+    """The case as it happened, reported from the real ledger: which recorded build inputs have
+    moved since these rows ran, and that the verdict is unaffected by them."""
+    rows = list(newest.values())
+    row_parts = rows[0].get("content_parts") or {}
+    if not row_parts:
+        pytest.skip("MISSING DATA: the newest rows are pre-8b and record no content_parts")
+    live_parts = X.content_fingerprint()["content_parts"]
+    moved = sorted(k for k, v in live_parts.items()
+                   if k in row_parts and row_parts[k] != v)
+    print(f"parts that moved since these rows ran: {moved or 'none'}")
+    assert not [k for k in moved if k in X.DECIDING_PARTS], (
+        f"a part the verdict reads has moved: {moved}. Fix: {FIX}")
 
 
 def test_this_module_stays_out_of_the_data_loops_publish_gate():
