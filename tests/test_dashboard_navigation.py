@@ -698,8 +698,13 @@ def test_reporting_soon_is_a_calendar_not_a_leaderboard(browser):
         page.click("#reporting-body .rp-row")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         assert first in page.inner_text("#stock-modal .modal-header, #stock-modal")
-        from stock_summary import advice_terms_in
-        assert advice_terms_in(page.inner_text("#reporting-body")) == []
+        # The ban is on the tool's prose, not on the index's membership: this panel prints
+        # every listed company's legal name, and on 2026-11-10 Best Buy's entering the
+        # fourteen-day window discarded a healthy run (stock_summary.without_data_names).
+        from stock_summary import advice_terms_in, without_data_names
+        from tests.advice_ban import data_names
+        panel = without_data_names(page.inner_text("#reporting-body"), data_names(page))
+        assert advice_terms_in(panel) == []
         assert errors == []
     finally:
         ctx.close()

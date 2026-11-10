@@ -52,6 +52,7 @@ import generate_dashboard as gd  # noqa: E402
 import market_context as mc  # noqa: E402
 import options_cache  # noqa: E402
 import stock_summary  # noqa: E402
+from tests.advice_ban import data_names  # noqa: E402
 from tests import sheet_warm  # noqa: E402 - settle the sheet pre-warm (2026-11-05)
 from factor_engine import compute_metrics  # noqa: E402
 
@@ -177,9 +178,10 @@ def test_the_page_says_when_each_kind_of_quote_was_taken(page):
 
     unknown = _options_text(page, {})
     assert "did not record when its option quotes were taken" in unknown
+    names = data_names(page)
     for text in (mid, evening, cached, unknown):
         assert not claims.forbidden_hits(text)
-        assert not stock_summary.advice_terms_in(text)
+        assert not stock_summary.advice_terms_in(stock_summary.without_data_names(text, names))
 
 
 def test_the_page_trend_word_is_the_engines(page):

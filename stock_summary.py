@@ -24,7 +24,10 @@ Two rules govern the wording, and both are enforced by tests:
    ``plan/dashboard-north-star.md``; ``advice_terms_in()`` finds any breach.
    "Ranks 1st, driven by valuation and momentum" is the good kind. "Attractive
    entry point" is the kind that would make this a liability for a student
-   club rather than a teaching tool.
+   club rather than a teaching tool. **It bans the tool's words, not the
+   index's names** - a check over *rendered* page text masks the data's own
+   proper nouns first (``without_data_names()``), because "Best Buy" is a
+   company and not a recommendation.
 2. **Metric percentiles are sector-relative** (``factor_engine.compute_sector_percentiles``),
    so the text says "sector percentile" and never implies a universe ranking.
    The composite is **not** a percentile: it is the cardinal weighted blend of the
@@ -48,6 +51,7 @@ from __future__ import annotations
 import math
 
 import re
+from collections.abc import Iterable
 from datetime import date
 
 CATEGORIES = [
@@ -99,6 +103,37 @@ _BANNED_RE = re.compile(
 def advice_terms_in(text: str) -> list[str]:
     """Return every banned recommendation term appearing in ``text``."""
     return [m.group(0) for m in _BANNED_RE.finditer(text or "")]
+
+
+def without_data_names(text: str, names: Iterable[str]) -> str:
+    """``text`` with the data's own proper nouns taken out, for an advice-language check.
+
+    **The ban is on the tool's prose, not on the index's membership.** On 2026-11-10 the
+    02:00 data loop discarded a complete, healthy run (HEALTH: PASS, Spearman 0.989, 499
+    scored) because ``test_reporting_soon_is_a_calendar_not_a_leaderboard`` ran
+    ``advice_terms_in`` over the whole rendered Reporting Soon panel, and **Best Buy Co.,
+    Inc.** had just entered the fourteen-day window - its next report fell on 2026-11-24,
+    exactly +14 days from that run date. The page was right: it printed the company's legal
+    name. The check's premise - that no company reporting in the window has a banned word in
+    its name - is a fact about the S&P 500 and the earnings calendar, and it went false with
+    no commit touching anything. ``Best Buy`` is the only name in the universe that trips the
+    ban (measured over the 499 rows of both the 2026-11-06 and 2026-11-10 payloads), which is
+    why it took until the fourth of November's windows to fire.
+
+    So a check over *rendered* text masks the names first. The blunt-list reasoning above -
+    "a false positive costs one rephrased sentence" - is true of the tool's own sentences and
+    false of a page that renders 499 companies' names: there a false positive costs a night of
+    the evidence the whole project runs on.
+
+    Each name is replaced by a space rather than removed, so neighbouring words cannot fuse
+    into a new one, and the longest names go first so a shorter one cannot strand the rest of
+    a longer. A genuine recommendation beside a masked name still matches: masking ``Best Buy
+    Co., Inc.`` out of "Best Buy Co., Inc. is a buy" leaves "is a buy".
+    """
+    out = text or ""
+    for name in sorted({str(n) for n in names if str(n).strip()}, key=len, reverse=True):
+        out = re.sub(re.escape(name), " ", out, flags=re.IGNORECASE)
+    return out
 
 
 # ---------------------------------------------------------------------------
