@@ -12,9 +12,25 @@ for). ``tests/test_advice_ban_scope.py`` is the sweep that keeps every such call
 """
 from __future__ import annotations
 
-NAMES_JS = "(window.D && D.table_data ? D.table_data : []).flatMap(r => [r.Ticker, r.Company || ''])"
+#: `D` is declared `const D = window.SCREENER_DATA || {}` at script scope, so it is **not** a
+#: property of `window` - the same shape as the closure-scoped `CTX_LOADED` the dashboard notes
+#: warn about. The first version of this read `window.D`, got `undefined`, masked nothing, and
+#: the rehearsal failed exactly as the data run had. Reach it by `typeof`, and read the raw
+#: payload as a fallback so a page that has not finished loading cannot silently mask nothing.
+NAMES_JS = ("(typeof D !== 'undefined' && D && D.table_data ? D.table_data "
+            ": (window.SCREENER_DATA || {}).table_data || [])"
+            ".flatMap(r => [r.Ticker, r.Company || ''])")
 
 
 def data_names(page) -> list[str]:
-    """Every ticker and company name in the payload the page actually loaded."""
-    return page.evaluate(f"(() => {NAMES_JS})()")
+    """Every ticker and company name in the payload the page actually loaded.
+
+    Raises if the page carries no payload: an empty mask is indistinguishable from a working one
+    on text that happens to be clean today, which is precisely how this check failed before."""
+    names = page.evaluate(f"(() => {NAMES_JS})()")
+    if not names:
+        raise AssertionError(
+            "the page exposes no table_data, so there are no names to mask - an advice check "
+            "masking an empty list is the no-op this helper exists to prevent "
+            "(tests/advice_ban.py)")
+    return names

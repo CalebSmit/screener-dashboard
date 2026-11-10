@@ -317,6 +317,52 @@ def test_the_masking_clears_every_company_name_this_run_published():
         assert ss.advice_terms_in(ss.without_data_names(name, names)) == [], name
 
 
+def test_the_page_really_hands_over_its_names():
+    """`data_names` must read the payload **out of the page**, not quietly return nothing.
+
+    This is the mistake this session made: the first version read `window.D`, but the page
+    declares `const D = window.SCREENER_DATA || {}` at script scope, so `D` is not a property of
+    `window` - the same shape as the closure-scoped `CTX_LOADED` the dashboard notes warn about.
+    It returned `[]`, masked nothing, and the rehearsal failed exactly as the 02:00 run had. A
+    helper that can silently do nothing is worse than no helper: every call site reads as covered.
+    """
+    page_file = ROOT / "index.html"
+    if not page_file.exists():
+        pytest.skip("MISSING DATA: index.html")
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:                                        # pragma: no cover
+        pytest.skip("playwright is not installed")
+    from tests.advice_ban import data_names
+    with sync_playwright() as p:
+        try:
+            browser = p.chromium.launch()
+        except Exception as exc:                               # noqa: BLE001 - no Chromium
+            pytest.skip(f"no usable chromium: {exc}")
+        page = browser.new_page()
+        page.goto(page_file.as_uri(), wait_until="load", timeout=60000)
+        page.wait_for_function("typeof D !== 'undefined' && D.table_data && D.table_data.length",
+                               timeout=30000)
+        names = data_names(page)
+        rows = page.evaluate("D.table_data.length")
+        browser.close()
+    assert len(names) == 2 * rows, (len(names), rows)
+    assert all(isinstance(n, str) for n in names)
+    print(f"{len(names)} names read from the page for {rows} rows")
+
+
+def test_data_names_refuses_a_page_with_no_payload():
+    """The guard that makes the test above hold for every caller, without a browser."""
+    from tests.advice_ban import data_names
+
+    class _Blank:
+        def evaluate(self, _js):
+            return []
+
+    with pytest.raises(AssertionError, match="no table_data"):
+        data_names(_Blank())
+
+
 def test_a_banned_term_in_a_name_is_the_only_way_a_name_trips_the_ban():
     """Guards the reasoning rather than the data: the masking is justified only because the
     hits come from company names, not from the panel's own copy. So a name that trips the ban
