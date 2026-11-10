@@ -1,0 +1,9 @@
+{
+  "differences": {},
+  "ids_compared": 32,
+  "ids_with_a_difference": 0,
+  "live_code_hash": "9c78caad2c54",
+  "statistics_compared": 27225,
+  "which_file_had_moved": "data/sec/pit/facts.parquet (sec_facts), refreshed weekly",
+  "why_it_could_not_have_mattered": "backtest_v2._load_facts reads the filings when it builds the monthly records; the only DATA_SOURCES file read at experiment time is cache/v2_daily.parquet. month_files was identical, so the records were not rebuilt."
+}
