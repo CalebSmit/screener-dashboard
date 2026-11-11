@@ -856,7 +856,14 @@ def test_the_whats_changed_footnote_prints_a_hand_worked_window(page, data):
     """Lists shorter than the counts, a round trip, and nothing down - worked by hand."""
     H = _history(data)
     k = next(iter(H["movers"]))
-    mv = {**H["movers"][k], "up": H["movers"][k]["up"][:3], "down": [], "n_up": 5, "n_down": 0, "n_round_trip": 2}
+    # Three entries, whatever the day held (2026-11-11: the window since the last run had ONE mover,
+    # because the 02:00 run used the same close as the evening retry before it, and `up[:3]` made this
+    # read "showing the largest 1" - the page was right and the run was discarded). Real entries from
+    # any window, padded with copies; the footnote counts the list, it does not read the names.
+    pool = [e for w in H["movers"].values() for e in (w.get("up") or []) + (w.get("down") or [])]
+    base = pool[0] if pool else {"t": "X", "dr": 99, "dc": 1.0, "drv": ["valuation", 1.0]}
+    up = (pool + [dict(base, t=f"{base['t']}{i}") for i in range(3)])[:3]
+    mv = {**H["movers"][k], "up": up, "down": [], "n_up": 5, "n_down": 0, "n_round_trip": 2}
     txt = _text(page.evaluate(_FOOT_JS, [k, mv]))
     assert "5 stocks moved up materially and 0 moved down; showing the largest 3 and 0." in txt, txt
     assert "2 of 5 are flagged round-trip" in txt, txt
