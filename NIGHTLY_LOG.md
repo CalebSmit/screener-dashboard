@@ -21450,3 +21450,46 @@ REMAINING: 0`, report and `research.html` regenerated.
    `context_eval` shows it.
 4. The 2026-11-16 pre-registered filing cross-check table is six days out and unaffected by any
    of this.
+
+
+## 2026-11-10 (owner-run, evening) - the site stayed stale because a refused run waits a day; it no longer does
+
+**Health (rule 8, all five):** last code session ran? **no** - `logs/nightly-2026-11-10_130001-midday.log`:
+"SESSION DID NOT RUN: ... Claude Code 2.1.229 does not support this model; version 2.1.290 or newer is
+required" (the 06:00 session before it shipped). Data loop published? **no** - `logs/datarun-2026-11-10_020001.log`,
+HEALTH: PASS, then the published-claims gate refused it (`test_reporting_soon_is_a_calendar_not_a_leaderboard`,
+Best Buy's name read as advice; fixed by the 06:00 session). The live page is still the **2026-11-06 18:34**
+run. Evidence base at `1m`: **45 rows, newest 2026-10-06 (35 days ago, bound 40)**. Priority 0:
+`allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **29 days**).
+**Owner direction (chat):** *"how did the run go this morning, why did the dashboard not update. make sure
+this doesnt happen again"*.
+
+### What happened, and the pattern
+
+Three of the last five weekday data runs (11-06, 11-09, 11-10) were refused by the published-claims
+gate, each for a fault in a test's premise (a rank read by position; a merger splitting Fox's share
+counts; a company name read as advice), each fixed by the next 06:00 session - and each time the site
+waited for the next 02:00 run anyway. By today it was three trading days stale. The gate did its job;
+**the gap was that nothing re-ran the loop once the fix had landed.** Separately the CLI had not updated
+itself, and the 13:00 session died on the version check - as tomorrow's 06:00 would have.
+
+### Did
+
+- **`Screener Data Retry`, 18:00 Mon-Fri, `data-run.ps1 -Retry`.** The data loop's success marker makes
+  it a no-op on a day that published. On a refused day it reruns every gate on that day's close. It
+  stands down on an owner session (before anything), and on a dirty tree or a branch off `main` (under
+  the repo lock, before the 02:00 run's stash-and-checkout rescue, writing no brief) - so it cannot
+  touch work in progress. No logon trigger, no late catch-up. `tests/test_data_retry.py`, 9 tests; every
+  guard removed in turn fails one. The 02:00 run is unchanged.
+- **The code runner updates the CLI and retries the session once** when the API says the CLI is too
+  old for the model (`npm install -g @anthropic-ai/claude-code@latest`; one retry, only on a successful
+  update).
+- **Updated the CLI on this PC now:** 2.1.223 -> 2.1.322, and confirmed a `--print` session runs on the
+  configured model. (npm skipped the package's postinstall script; the binary runs regardless.)
+- CLAUDE.md settled row -1 and "The two loops" say both.
+
+### Not verified here
+
+- The retry's stand-down could not be exercised by running `data-run.ps1` from this session (the
+  permission check refused running the data loop). Its logic is pinned by the tests above and parsed by
+  PowerShell's own parser; its first real outing is the next refused day.

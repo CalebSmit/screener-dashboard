@@ -10,8 +10,9 @@
     Task Scheduler entries. If that machine were rebuilt, the routine would be
     gone with no record of how it had been configured.
 
-    Creates five tasks:
+    Creates six tasks:
       Screener Data Run             02:00 Mon-Fri  -> scripts/data-run.ps1
+      Screener Data Retry           18:00 Mon-Fri  -> scripts/data-run.ps1 -Retry
       Nightly Screener Improvement  06:00 Mon-Fri  -> scripts/nightly-screener.ps1
       Screener Option Quotes        20:00 Mon-Fri  -> scripts/refresh-option-quotes.ps1
       Screener Midday Session       13:00 daily    -> scripts/nightly-screener.ps1 -Slot midday
@@ -84,6 +85,25 @@ $Specs = @(
         LogonDelay  = 'PT3M'
         Limit       = (New-TimeSpan -Hours 3)
         Description = 'Runs the screener live, health-gates the result, refreshes the dashboard and feeds the improvement engine. Pure Python and git - uses no Claude quota.'
+    },
+    @{
+        Name        = 'Screener Data Retry'
+        Script      = 'data-run.ps1'
+        Arguments   = '-Retry'
+        At          = '6:00PM'
+        # 2026-11-10. On 11-06, 11-09 and 11-10 the 02:00 run was refused by its own publish gate for a
+        # fault in a test's premise, the 06:00 session fixed it, and the site still sat on old data
+        # until the next 02:00 - three days stale by the third. This reruns the data loop after the
+        # close. data-run.ps1's success marker makes it a no-op on any day that published, and
+        # -Retry stands it down on an owner session, a dirty tree or a branch off main. 18:00 CT:
+        # after the close (15:00 CT) and the midday session's window, before the 20:00 quote task;
+        # the repo lock makes it wait for anything still running. ~16 hours after the 02:00 fetch
+        # (every throttle measured was a second full run within a few hours). No logon trigger and
+        # no late catch-up: firing at an arbitrary hour is how it would land on the owner working.
+        NoLogon     = $true
+        NoCatchUp   = $true
+        Limit       = (New-TimeSpan -Hours 3)
+        Description = 'Same-day retry of the data loop after the close. Does nothing if the 02:00 run published; otherwise runs every gate the 02:00 run does. Stands down on an owner session, uncommitted work or a branch other than main.'
     },
     @{
         Name        = 'Nightly Screener Improvement'

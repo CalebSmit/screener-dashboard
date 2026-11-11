@@ -98,11 +98,12 @@ def test_the_refresh_does_not_opt_into_running_late():
 
 def test_the_docstring_names_every_task():
     """Rule 9: a process doc that has gone stale sends the next session to rebuild something.
-    Five tasks since 2026-10-14 (the two extra code sessions)."""
+    Five tasks since 2026-10-14 (the two extra code sessions); six since 2026-11-10 (the data
+    loop's same-day retry, tests/test_data_retry.py)."""
     src = _src(REGISTER)
     head = src[:src.index("[CmdletBinding()]")]
     names = re.findall(r"Name\s*=\s*'([^']+)'", src)
-    assert len(names) == 5 and "five tasks" in head
+    assert len(names) == 6 and "six tasks" in head
     assert all(n in head for n in names), names
     assert TASK_NAME in head
 

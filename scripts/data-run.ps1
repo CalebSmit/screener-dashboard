@@ -35,7 +35,13 @@ param(
     # It exists for the case where a new field was added to the fetch and the
     # cache predates it, so a warm start would publish a schema that is
     # silently missing the new column.
-    [switch]$Refresh
+    [switch]$Refresh,
+    # The same-day retry (2026-11-10; task "Screener Data Retry", 18:00 Mon-Fri). The success marker
+    # below already makes it a no-op on a day that published. On a day that did not, it is a full
+    # run - so, unlike the 02:00 run, it must never touch a folder someone is working in: it stands
+    # down on an owner session, a dirty tree or a branch other than main, where the 02:00 run would
+    # stash and switch. The 02:00 behaviour is unchanged.
+    [switch]$Retry
 )
 
 $ErrorActionPreference = 'Continue'
@@ -151,6 +157,20 @@ if ((Test-Path $SuccessMarker) -and -not $Force) {
     }
 }
 
+# The same-day retry's first stand-down, before anything else: an owner session marked in
+# progress (a marker older than 8 hours is treated as forgotten, as the code slots do). The git
+# half of the check waits for the repo lock below - git runs only under it.
+$SkipBrief = $false
+if ($Retry -and -not $Force) {
+    $owner = Join-Path $LogDir '.owner-session'
+    if ((Test-Path $owner) -and (((Get-Date) - (Get-Item $owner).LastWriteTime).TotalHours -lt 8)) {
+        Write-Log "Same-day retry standing down: an owner session is marked in progress (logs/.owner-session). Nothing was touched; the next 02:00 run will publish." 'WARN'
+        if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
+        exit 0
+    }
+    Write-Log "Same-day retry: today's 02:00 run did not publish, so running again on today's close."
+}
+
 try {
     Set-Location $RepoPath
     Write-Log "=== Data loop $Date ==="
@@ -203,6 +223,20 @@ try {
                     -Logger { param($m, $l) Write-Log $m $l }
     if (-not $RepoLock) {
         Stop-Run "Could not get exclusive use of the repo. Not running git alongside another loop." 2
+    }
+
+    # The same-day retry's second stand-down, under the lock and before the stash below: at 18:00 a
+    # dirty tree or a branch off main is someone's work, not a crashed session's leftovers, so the
+    # retry leaves it exactly as it is - no stash, no checkout, no brief written into the tree. The
+    # 02:00 run keeps its rescue (it stashes and switches), unchanged.
+    if ($Retry -and -not $Force) {
+        $here = (Invoke-Native 'git' @('branch', '--show-current')).Text.Trim()
+        $wip  = (Invoke-Native 'git' @('status', '--porcelain')).Text.Trim()
+        if ($here -ne 'main' -or $wip) {
+            $SkipBrief = $true
+            Write-Log "Same-day retry standing down: $(if ($here -ne 'main') { "the folder is on '$here', not main" } else { 'the working tree has uncommitted changes' }). Nothing was touched; the next 02:00 run will publish." 'WARN'
+            exit 0
+        }
     }
 
     # Retry rather than abandon the day. The repo lock excludes the other loop,
@@ -714,7 +748,7 @@ catch {
 }
 finally {
     # Publish-Brief runs git, so the repo lock is released after it, not before.
-    Publish-Brief "data run $Date"
+    if (-not $SkipBrief) { Publish-Brief "data run $Date" }
     Exit-RepoLock $RepoLock
     if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
 }

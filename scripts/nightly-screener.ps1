@@ -683,6 +683,24 @@ try {
     Write-Log "Claude Code exited $claudeExit. Transcript: $JsonLog"
 
     $session = Get-SessionOutcome -TranscriptPath $JsonLog -ExitCode $claudeExit
+    # 2026-11-10 13:00: the session died on "Claude Code 2.1.229 does not support this model; version
+    # 2.1.290 or newer is required" - the CLI had not updated itself, and the next morning's session
+    # would have died the same way. The fix is mechanical and the API names it, so the runner applies
+    # it: update the CLI from its own npm package and run the session once more. Once, never a loop;
+    # any other failure falls through untouched. tests/test_cli_self_update.py.
+    if (-not $session.Ok -and $session.Reason -match 'does not support this model|or newer is required') {
+        Write-Log "The Claude CLI is too old for the configured model. Updating it and retrying the session once." 'WARN'
+        $upd = Invoke-Native 'npm' @('install', '-g', '@anthropic-ai/claude-code@latest')
+        $ver = Invoke-Native 'claude' @('--version')
+        Write-Log "    npm exited $($upd.ExitCode); claude --version: $($ver.Text.Trim())"
+        if ($upd.ExitCode -eq 0) {
+            $Prompt | claude --print --permission-mode acceptEdits --output-format json |
+                Out-File -FilePath $JsonLog -Encoding utf8
+            $claudeExit = $LASTEXITCODE
+            Write-Log "Claude Code (after the update) exited $claudeExit. Transcript: $JsonLog"
+            $session = Get-SessionOutcome -TranscriptPath $JsonLog -ExitCode $claudeExit
+        }
+    }
     $SessionFailed = -not $session.Ok
     $SessionError  = $session.Reason
     if ($SessionFailed) {
