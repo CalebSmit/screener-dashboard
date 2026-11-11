@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 10 November 2026, 20:09
+# Morning Brief - Wednesday 11 November 2026, 02:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,7 +7,7 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran today |
+| Data run (2 AM) | **stopped deliberately** - last ran today |
 | Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-11-10 19:38 |
 | Stocks scored | 499 |
@@ -15,11 +15,11 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | VLO, MPC, HST, MU, EXPE |
 | Ranking's lean on growth | +0.063 (OUTSIDE the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (48 rows, but overlapping windows are not independent; 119 rows across all horizons), newest 1m run date 2026-10-09 (32 days ago, bound 40) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (48 rows, but overlapping windows are not independent; 119 rows across all horizons), newest 1m run date 2026-10-09 (33 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 437/437 within 0.5%; operating cash flow 406/422 within 0.5%; net income 392/431 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 1 days ago - **see the ATTENTION note below** |
-| Top 25, worth a look | HST (#3: net income 1.29x after-tax operating income); EXPE (#5: equity 6.2% of assets); DXCM (#6: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#15: net income 15% off the filing); MO (#23: revenue 12% off the filing); WDC (#25: net income 2.13x after-tax operating income) |
-| Data run timing | **24 min** total; slowest `fetch.tickers` 675 s, `snapshot` 228 s, `context.options_pass` 182 s; **51 tickers rate-limited** |
+| Inputs vs SEC filings | total assets 437/437 within 0.5%; operating cash flow 406/422 within 0.5%; net income 392/431 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 1 days ago |
+| Top 25, worth a look | HST (#3: net income 1.29x after-tax operating income); EXPE (#5: equity 6.2% of assets); DXCM (#7: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#15: net income 15% off the filing); MO (#21: revenue 12% off the filing); WDC (#24: net income 2.13x after-tax operating income) |
+| Data run timing | **17 min** total; slowest `fetch.tickers` 620 s, `fetch.retry` 160 s, `context.sec_insider` 78 s; **54 tickers rate-limited** |
 | Code-session login | 2026-12-03 09:01 (22 days) |
 | Context coverage | options usable 448/499 - insider from SEC 499/499 - earnings variability 440 |
 
@@ -28,12 +28,14 @@ history is in `NIGHTLY_LOG.md`.
 Dates the project has committed to. A past-due line stays until the session that
 does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
-- 2026-11-09 (**due 1 day ago - still listed**) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
-- 2026-11-16 (in 6 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
+- 2026-11-09 (**due 2 days ago - still listed**) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
+- 2026-11-16 (in 5 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
 
 ## Things that needed attention
 
-- ok   ATTENTION - 1 stock(s) now carry a market value implying a share count over 10% from the one their filings report, which the published page does not: FOXA +32.3%. Usually a completed acquisition or a split: the market value is right and every valuation ratio built on it has moved, while the earnings behind those ratios have not. Not a refusal - see research/2026-11-09-share-counts-and-corporate-actions.md.
+- The regenerated artifacts contradict claims this project asserts about them.
+- Refusing to publish. The live site keeps the last good version.
+- Run discarded: published-claims check failed - fix the generator, not the file.
 - SESSION DID NOT RUN: API error 400 - API Error: 400 Claude Code 2.1.229 does not support this model; version 2.1.290 or newer is required. Run 'claude update', or update the Claude desktop app, the
 - Treating this as a failure, not as 'nothing to do': no success marker will be written, so the catch-up trigger will retry rather than skipping the day.
 - No commits, because the session never ran. This is a lost day, not a quiet one.
@@ -41,6 +43,8 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `716b43e log: the retry task registered and its first run published Nov 10's close`
+- `a426b51 brief: data run 2026-11-10`
 - `c577494 data: screener run 2026-11-10 - 499 scored, top: VLO MPC HST MU EXPE`
 - `9842618 A refused data run is retried the same evening; the runner updates a stale CLI`
 - `901c2ea brief: code session 2026-11-10-midday - SESSION DID NOT RUN`
@@ -54,8 +58,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `6838462 rerun: research ledger rows 7-12 of 32`
 - `e891914 rerun: research ledger rows 1-6 of 32 at the new fingerprint`
 - `344eb47 fix: the research ledger went stale because a weekly cache refresh moved, not because a number did`
-- `87871f9 fix: a company's name is not a recommendation - the advice ban discarded a healthy run`
-- `ecd9d9e brief: data run 2026-11-10`
 
 ## The session's own account
 
@@ -95,11 +97,16 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 >   configured model. (npm skipped the package's postinstall script; the binary runs regardless.)
 > - CLAUDE.md settled row -1 and "The two loops" say both.
 > 
-> ### Not verified here
+> ### Registered and exercised (with the owner's go-ahead, same evening)
 > 
-> - The retry's stand-down could not be exercised by running `data-run.ps1` from this session (the
->   permission check refused running the data loop). Its logic is pinned by the tests above and parsed by
->   PowerShell's own parser; its first real outing is the next refused day.
+> - `scripts/register-tasks.ps1` run: six tasks Ready; `Screener Data Retry` runs
+>   `data-run.ps1 -Retry` at 18:00 Mon-Fri (`schtasks /query /v` checked).
+> - The retry task was started by hand at 19:37 and took the real path: "Same-day retry: today's 02:00
+>   run did not publish", a full run (`logs/datarun-2026-11-10_193759.log`): HEALTH: PASS, price dates
+>   **499/499 on 2026-11-10**, Spearman 0.985 vs the 11-06 page, PUBLISHED CLAIMS: PASS (2335), signals
+>   written for run `4108d8310b22`, **published 20:07**. The live page reads "PRICES AT THE NOV 10 CLOSE"
+>   at 1440 and 375, no errors, no sideways scroll.
+> ...
 
 ---
 
