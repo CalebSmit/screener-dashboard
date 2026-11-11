@@ -21488,8 +21488,14 @@ itself, and the 13:00 session died on the version check - as tomorrow's 06:00 wo
   configured model. (npm skipped the package's postinstall script; the binary runs regardless.)
 - CLAUDE.md settled row -1 and "The two loops" say both.
 
-### Not verified here
+### Registered and exercised (with the owner's go-ahead, same evening)
 
-- The retry's stand-down could not be exercised by running `data-run.ps1` from this session (the
-  permission check refused running the data loop). Its logic is pinned by the tests above and parsed by
-  PowerShell's own parser; its first real outing is the next refused day.
+- `scripts/register-tasks.ps1` run: six tasks Ready; `Screener Data Retry` runs
+  `data-run.ps1 -Retry` at 18:00 Mon-Fri (`schtasks /query /v` checked).
+- The retry task was started by hand at 19:37 and took the real path: "Same-day retry: today's 02:00
+  run did not publish", a full run (`logs/datarun-2026-11-10_193759.log`): HEALTH: PASS, price dates
+  **499/499 on 2026-11-10**, Spearman 0.985 vs the 11-06 page, PUBLISHED CLAIMS: PASS (2335), signals
+  written for run `4108d8310b22`, **published 20:07**. The live page reads "PRICES AT THE NOV 10 CLOSE"
+  at 1440 and 375, no errors, no sideways scroll.
+- **Not exercised:** the stand-down branches (owner session, dirty tree, branch off main) - pinned by
+  `tests/test_data_retry.py`, not yet seen in a real run.
