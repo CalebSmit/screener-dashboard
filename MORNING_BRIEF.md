@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 12 November 2026, 06:00
+# Morning Brief - Thursday 12 November 2026, 13:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -40,14 +40,11 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `b8d6b17 brief: code session 2026-11-12`
 - `76034b4 brief: data run 2026-11-12`
 - `7303e70 brief: data run 2026-11-11`
 - `9e7168c brief: code session 2026-11-11`
 - `0c4b002 brief: data run 2026-11-11`
-- `716b43e log: the retry task registered and its first run published Nov 10's close`
-- `a426b51 brief: data run 2026-11-10`
-- `c577494 data: screener run 2026-11-10 - 499 scored, top: VLO MPC HST MU EXPE`
-- `9842618 A refused data run is retried the same evening; the runner updates a stale CLI`
 
 ## The session's own account
 
