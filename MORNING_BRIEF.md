@@ -1,4 +1,4 @@
-# Morning Brief - Friday 13 November 2026, 02:22
+# Morning Brief - Friday 13 November 2026, 06:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -37,6 +37,7 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `c65f079 brief: data run 2026-11-13`
 - `91cc06b data: screener run 2026-11-13 - 499 scored, top: VLO HST SNDK MPC EXPE`
 - `7ef65e1 brief: data run 2026-11-12`
 - `d036d6c brief: code session 2026-11-12-midday`
