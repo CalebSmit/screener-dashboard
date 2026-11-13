@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 12 November 2026, 13:00
+# Morning Brief - Thursday 12 November 2026, 18:25
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -17,10 +17,10 @@ history is in `NIGHTLY_LOG.md`.
 | Ranking's lean on growth | +0.063 (OUTSIDE the review's +-0.05 band; 2026-10-13 read -0.009) |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (48 rows, but overlapping windows are not independent; 119 rows across all horizons), newest 1m run date 2026-10-09 (34 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 435/435 within 0.5%; operating cash flow 404/420 within 0.5%; net income 390/429 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 2 days ago |
-| Top 25, worth a look | HST (#2: net income 1.29x after-tax operating income); EXPE (#4: equity 6.2% of assets); DXCM (#5: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#17: net income 15% off the filing); MO (#23: revenue 12% off the filing) |
-| Data run timing | **18 min** total; slowest `fetch.tickers` 629 s, `fetch.retry` 154 s, `snapshot` 112 s; **51 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (21 days) |
+| Inputs vs SEC filings | total assets 435/435 within 0.5%; operating cash flow 404/420 within 0.5%; net income 390/429 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 3 days ago |
+| Top 25, worth a look | HST (#2: net income 1.29x after-tax operating income); EXPE (#4: equity 6.2% of assets); DXCM (#7: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#18: net income 15% off the filing) |
+| Data run timing | **22 min** total; slowest `fetch.tickers` 626 s, `context.options_pass` 181 s, `fetch.retry` 164 s; **51 tickers rate-limited** |
+| Code-session login | 2026-12-03 09:01 (20 days) |
 | Context coverage | options usable 448/499 - insider from SEC 499/499 - earnings variability 440 |
 
 ## Coming up
@@ -40,11 +40,11 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `d036d6c brief: code session 2026-11-12-midday`
 - `b8d6b17 brief: code session 2026-11-12`
 - `76034b4 brief: data run 2026-11-12`
 - `7303e70 brief: data run 2026-11-11`
 - `9e7168c brief: code session 2026-11-11`
-- `0c4b002 brief: data run 2026-11-11`
 
 ## The session's own account
 
