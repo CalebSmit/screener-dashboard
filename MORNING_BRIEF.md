@@ -1,4 +1,4 @@
-# Morning Brief - Saturday 14 November 2026, 13:00
+# Morning Brief - Sunday 15 November 2026, 06:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,7 +7,7 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **failed** - last ran today |
+| Data run (2 AM) | **failed** - last ran yesterday |
 | Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-11-13 02:00 |
 | Stocks scored | 499 |
@@ -15,7 +15,7 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | VLO, HST, SNDK, MPC, EXPE |
 | Ranking's lean on growth | +0.040 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (50 rows, but overlapping windows are not independent; 126 rows across all horizons), newest 1m run date 2026-10-13 (32 days ago, bound 40) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (50 rows, but overlapping windows are not independent; 126 rows across all horizons), newest 1m run date 2026-10-13 (33 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
 | Context coverage | options usable 455/499 (44 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
@@ -24,8 +24,8 @@ history is in `NIGHTLY_LOG.md`.
 Dates the project has committed to. A past-due line stays until the session that
 does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
-- 2026-11-09 (**due 5 days ago - still listed**) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
-- 2026-11-16 (in 2 days) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
+- 2026-11-09 (**due 6 days ago - still listed**) - The context signals' first one-month reading arrives with this run; read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals wait for 2026-12-04 (below). `CLAUDE.md`
+- 2026-11-16 (in 1 day) - Re-run the filing cross-check's range table; promote total assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 on every run. `research/2026-10-14-yahoo-vs-sec.md`
 
 ## Things that needed attention
 
@@ -33,11 +33,8 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `42d195b brief: code session 2026-11-14-midday`
 - `c37ec57 brief: code session 2026-11-14-weekend`
-- `c65255c brief: code session 2026-11-13-midday`
-- `81c25d5 brief: code session 2026-11-13`
-- `c65f079 brief: data run 2026-11-13`
-- `91cc06b data: screener run 2026-11-13 - 499 scored, top: VLO HST SNDK MPC EXPE`
 
 ## The session's own account
 
