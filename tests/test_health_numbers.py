@@ -174,7 +174,60 @@ def test_the_real_logs_do_not_report_a_shipped_session_as_dead():
 def test_the_top_item_line_names_the_first_and_counts_the_rest(monkeypatch):
     monkeypatch.setattr(hn, "open_items", lambda claude_md=None, today=None:
                         [("0.13", "The Factor Lab", 21), ("0.10", "Keep the inputs", 26)])
+    # an ordinary item: no progress file named in its heading (the standing form has its own test)
+    monkeypatch.setattr(hn, "last_advanced", lambda claude_md=None, today=None, root=None: {})
     assert hn.top_roadmap(DAY) == "**0.13, The Factor Lab** (age **21 days**); also open: 0.10 26d"
+
+
+STANDING_FIXTURE = """# x
+### Open
+**0.13. The Factor Lab (opened 2026-10-12; a standing programme, progress in `plan/lab.md`).**
+**0.10. Keep the inputs (opened 2026-10-07).**
+**0.15. Finished (opened 2026-10-01; progress in `plan/lab.md`) - CLOSED 2026-10-20.**
+"""
+PLAN_FIXTURE = """# Lab
+- **2026-12-25 - above the Progress heading, never read.**
+## Progress (update each session)
+- **2026-10-20 (evening) - experiment 17.**
+- **2026-10-27, round two - presentation.**
+- **2026-10-12 - experiment 1.**
+- **2026-11-30 - a bullet dated after today is not progress yet.**
+"""
+
+
+def test_a_standing_programme_reports_days_since_its_newest_progress_bullet(tmp_path):
+    (tmp_path / "plan").mkdir()
+    (tmp_path / "plan" / "lab.md").write_text(PLAN_FIXTURE, encoding="utf-8")
+    got = hn.last_advanced(STANDING_FIXTURE, today=DAY, root=tmp_path)
+    # 2026-10-27 is the newest bullet on or before 2026-11-02, whatever order the file lists them
+    # in; an item with no progress file and a closed one are not standing programmes.
+    assert got == {"0.13": ("plan/lab.md", 6)}
+    # the heading still parses as an open item with its age since opening
+    assert hn.open_items(STANDING_FIXTURE, today=DAY)[0] == ("0.13", "The Factor Lab", 21)
+
+
+def test_a_standing_programme_with_no_readable_progress_says_so(tmp_path):
+    assert hn.last_advanced(STANDING_FIXTURE, today=DAY, root=tmp_path) == {"0.13": ("plan/lab.md", None)}
+
+
+def test_the_top_item_line_says_when_a_standing_programme_last_advanced(monkeypatch):
+    monkeypatch.setattr(hn, "open_items", lambda claude_md=None, today=None: [("0.13", "The Factor Lab", 21)])
+    for days, tail in ((6, "last advanced **6 days** ago per `plan/lab.md` (bound 21))"),
+                       (21, "last advanced **21 days** ago per `plan/lab.md` (bound 21))"),
+                       (22, "(bound 21) - **past its 21-day bound**)"),
+                       (None, "no dated bullet under Progress in `plan/lab.md`)")):
+        monkeypatch.setattr(hn, "last_advanced", lambda claude_md=None, today=None, root=None, d=days:
+                            {"0.13": ("plan/lab.md", d)})
+        got = hn.top_roadmap(DAY)
+        assert got.startswith("**0.13, The Factor Lab** (age **21 days**; a standing programme"), got
+        assert got.endswith(tail), got
+
+
+def test_the_real_standing_programme_names_a_plan_with_a_dated_progress_bullet():
+    """The premise, not the number: every open item that names a progress file can be read."""
+    for num, (path, days) in hn.last_advanced(today=datetime(2099, 1, 1)).items():
+        assert (ROOT / path).exists(), f"{num} names {path}, which does not exist"
+        assert days is not None, f"{num}: no dated bullet under '## Progress' in {path}"
 
 
 def test_the_script_prints_one_line_and_never_fails_its_caller():

@@ -833,9 +833,17 @@ read the brief's `context_eval` line. Three constraints survive it, beyond settl
 - **Accruals are counted three times inside Quality** (0.49 with Beneish, 0.00 with Piotroski,
   13 points in all) - measured, deliberately unchanged. Do not "discover" it again.
 
-**0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
+**0.13. The Factor Lab (opened 2026-10-12; a standing programme, progress in `plan/factor-lab.md`).**
+Owner item; `OWNER_FOCUS.md` has it and
 `plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day** - the next one
-that is not a retrospective - one finished experiment a session. **Nineteen experiments as of
+that is not a retrospective - one finished experiment a session. **It has no end, so its age
+since opening measures nothing and a non-Friday session that does not work it has not deferred
+it** (2026-11-17: six sessions in a row logged it "deferred" while it shipped on schedule, and the
+deferral-streak rule was about to make one of them "resolve" a programme that was not late). The
+number to read is the health line's **"last advanced N days ago"**, derived from the newest dated
+bullet under that plan's Progress (`health_numbers.last_advanced`): **past 21 days it is late, and
+then the streak rule applies** - so keep adding a dated Progress bullet when an experiment ships.
+**Nineteen experiments as of
 2026-11-06, 152 of 227 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
 ("0.13, the lab's first thirteen experiments" and "experiments 14-18", which now runs to 19).
 **All eight categories now have one** - Growth's arrived 2026-11-06 (Mohanram 2005 on Open Source
