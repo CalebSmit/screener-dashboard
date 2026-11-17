@@ -5344,3 +5344,59 @@ regenerated from the same run and diffed: 43 bank-scored stocks' sentences chang
 
 **Applied by:** owner-run session, 2026-11-06 night.
 **Rollback:** `good/2026-11-06-owner-6` (before both).
+
+## 2026-11-17 - Display: figures read from the annual statement are dated by it, and the stock's page says so
+
+**Area:** data provenance (fetch) and the Data Provenance panel. **No score, weight, metric,
+threshold or rank changed** - the figures were already the annual statement's; what changed is
+the date they are published under and what the page says about them.
+
+**Changed:** `_stmt_date_financials` and `_stmt_date_cashflow` are now the period end of the
+statement the figures were *read from*. Until today they were the newest column of the quarterly
+statement whenever one was on file, including when the fetch had fallen back to the annual
+statement because the quarters could not be summed, rolled forward (`_ltm_rollforward`) or scaled
+by 4/3. The fetch also records which statement was replaced (`_annual_instead`: "income
+statement", "cash-flow statement" or both), carried to the page as `flags.annual_instead`
+through the generator's provenance join. It never reaches `compute_metrics`.
+
+**Evidence (a documented failure, measured):** the pre-registered re-run of the filing
+cross-check's range table (`research/2026-10-14-yahoo-vs-sec.md` sections 5-6) found operating
+cash flow over 10% from the filing for **10** stocks on every run since 2026-11-10 (8-9 from
+2026-11-03) where it had been 1-3. For nine of the ten the source's quarterly cash-flow statement
+reads 2026-09-30, 2026-03-31, 2025-12-31, ... - **no June quarter** - so no route to twelve months
+exists and the fetch reads fiscal 2025
+(`research/measurements/2026-11-17-ocf-off-the-filing.py`). Counted across the published run
+against the SEC cache (`research/measurements/2026-11-17-annual-figures-under-a-quarterly-date.py`):
+**15 of 418** stocks on operating cash flow and **17 of 427** on net income carried the last
+fiscal year's figure under a later statement date - Amazon (net income $77.7bn shown, $134.8bn
+filed for the twelve months to the date the page gave), Boeing, Bank of America. Three things on
+the public site were wrong because of it: the panel's "Income statement as of Sep 30, 2026"; the
+Filing Age badge (48 days for figures 321 days old); and the "A period behind the filings" note,
+built on 2026-10-15 for exactly these companies, which reads the income statement's date and so
+reported **0 stocks** every morning.
+
+**Expected effect:** on the next full run those stocks' statement dates read their fiscal year
+end; their Filing Age badge and `_stale_data` flag turn on (over 120 days); the "period behind"
+note names their newest 10-Q, worded for this case (the source *has* that quarter - it lacks an
+earlier one); the brief's "scored a period behind a filing" count rises from 0 to roughly 16; and
+the cross-check's operating-cash-flow count should fall back toward 1-3, because it will compare a
+fiscal year with the same fiscal year. The methodology page's "A quarter the source never
+published" paragraph states the fourth route.
+
+**Not changed, and recorded as open:** whether fiscal-year figures are the *best* figure for
+these stocks. They are up to three quarters older than the income the source does carry, and
+`research/2026-10-29-ttm-fills-the-empty-quarter.md` section 5.5 holds the pre-registered narrow
+alternative. And one stock in the ten is a different defect: DexCom's quarterly column for
+2026-09-30 holds a nine-month cumulative figure, so its four-quarter sum is $2.209bn against
+$1.414bn filed. Neither is acted on here.
+
+**Validated by:** `tests/test_annual_instead.py` (11 tests: the premise that a gapped statement
+supports none of the three routes; each statement dated on its own; a stock whose quarters sum is
+untouched; a company with no quarterly statements is not described as having unsummable ones; the
+newer-filing note sees the stock once the date is right; the panel's sentence; the scorer does not
+read the record). Claim `drilldown.annual_instead`; `drilldown.newer_filing` gains two checks.
+Live fetch of BA, AMZN, MSFT and DXCM: BA and AMZN date both statements 2025-12-31 with the
+balance sheet at 2026-09-30; MSFT and DXCM are unchanged.
+
+**Applied by:** 06:00 session, 2026-11-17.
+**Rollback:** `good/2026-11-17-owner-1` (the tag before this change).

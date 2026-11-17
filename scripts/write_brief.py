@@ -595,14 +595,13 @@ def login_alert(data_lines: list[str], code_lines: list[str], data_is_newer: boo
 # tests/test_morning_brief.py fails if that file stops carrying it - so an entry cannot outlive or
 # contradict its source. When one is done, delete it here in the same commit.
 COMING_UP = (
-    ("2026-11-09", "The context signals' first one-month reading arrives with this run; "
-                   "read the brief's `context_eval` line (CLAUDE.md 0.11). The three option signals "
-                   "wait for 2026-12-04 (below).", "CLAUDE.md"),
     ("2026-12-04", "The option signals' (expected move, ATM volatility, skew) first one-month reading: "
                    "readings before 2026-11-04 recorded no price and are excluded, not spliced.",
      "METHODOLOGY_CHANGELOG.md"),
-    ("2026-11-16", "Re-run the filing cross-check's range table; promote total assets, equity and "
-                   "operating cash flow to a gate at 25 only if each stayed <= 5 on every run.",
+    ("2026-12-15", "Re-run the filing cross-check's range table over the runs from 2026-11-18 "
+                   "(`research/measurements/2026-11-17-filing-crosscheck-range.py`); promote total "
+                   "assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 "
+                   "on every one. The 2026-11-16 re-run was NOT met (operating cash flow 10; section 6).",
      "research/2026-10-14-yahoo-vs-sec.md"),
     ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
      "CLAUDE.md"),

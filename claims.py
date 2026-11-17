@@ -643,6 +643,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_annual_instead.py::test_a_stock_whose_quarters_sum_is_untouched",
             "tests/test_annual_instead.py::test_a_company_with_no_quarterly_statements_is_not_said_to_have_unsummable_ones",
             "tests/test_annual_instead.py::test_the_panel_says_the_figures_are_the_last_fiscal_years_and_why",
+            "tests/test_dead_badges.py::test_a_stock_on_its_annual_statement_says_so_and_is_dated_by_it",
+            "tests/test_dead_badges.py::test_the_period_behind_note_is_worded_for_a_stock_on_its_annual_statement",
         ),
     ),
     Claim(

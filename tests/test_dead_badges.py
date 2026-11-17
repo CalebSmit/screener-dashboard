@@ -171,6 +171,49 @@ def test_the_four_annualised_stocks_in_the_published_run_say_so(page):
     assert "Three quarters scaled" not in txt, other
 
 
+# --------------------------------------------------------------- 1b. the annual statement instead
+def test_a_stock_on_its_annual_statement_says_so_and_is_dated_by_it(page):
+    """claims.py drilldown.annual_instead - the fourth route to twelve months, 2026-11-17.
+
+    Rendered, not grepped: the sentence, the statement it names, its verb's number, the date
+    printed above it, and the lead that must not claim four summed quarters over it.
+    """
+    both = _prov(page, {"data_source": "annual",
+                        "asof": {"bs": "2026-09-30", "is": "2025-12-31", "cf": "2025-12-31"},
+                        "flags": {"annual_instead": "income statement and cash-flow statement"}})
+    assert "Last fiscal year used." in both
+    assert "quarterly income statement and cash-flow statement for this company do not carry four consecutive quarters" in both, both
+    assert "are the latest annual statement" in both and "the fiscal year ending on the date given above" in both
+    assert "Income statement as of Dec 31, 2025" in both and "Cash flow as of Dec 31, 2025" in both
+    assert "Balance sheet as of Sep 30, 2026" in both
+    assert FOUR_QUARTERS not in both and "built for this company as described below" in both
+
+    one = _prov(page, {"flags": {"annual_instead": "cash-flow statement"}})
+    assert "quarterly cash-flow statement for this company does not carry" in one, one
+    assert "undefined" not in one and "null" not in one
+
+    # every other stock: no sentence, and the general rule still stated
+    plain = _prov(page, {"flags": {}})
+    assert "Last fiscal year used." not in plain and FOUR_QUARTERS in plain
+    # a rejected quarterly statement keeps its own sentence and does not get this one as well
+    rej = _prov(page, {"flags": {"q_rejected": "a duplicated quarter",
+                                 "annual_instead": "income statement"}})
+    assert "Annual figures used." in rej and "Last fiscal year used." not in rej
+
+
+def test_the_period_behind_note_is_worded_for_a_stock_on_its_annual_statement(page):
+    """The source has the newest quarter for these stocks - it lacks an earlier one - so the
+    note may not say "the data source had not published that period"."""
+    nf = {"end": "2026-09-30", "filed": "2026-10-30", "form": "10-Q"}
+    ann = _prov(page, {"newer_filing": nf, "flags": {"annual_instead": "income statement"}})
+    assert "A period behind the filings." in ann
+    assert "The figures here are the last fiscal year" in ann
+    assert "had not published that period" not in ann
+    lag = _prov(page, {"newer_filing": nf, "flags": {}})
+    assert "had not published that period when this run fetched" in lag
+    assert "last fiscal year" not in lag
+
+
 # --------------------------------------------------------------- 2. the substituted EV
 def test_a_substituted_enterprise_value_is_stated_with_both_figures(page):
     """claims.py drilldown.ev_substituted."""
