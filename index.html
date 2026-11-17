@@ -5951,7 +5951,7 @@
 <li><strong>LTM / MRQ data freshness:</strong> All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (&lt; 8 quarters).</li>
 <li><strong>Checked against the filings:</strong> each run compares total assets, equity, revenue, net income, operating cash flow and market value with the companies' own SEC filings (<code>sec_crosscheck.py</code>), reports the agreement counts in its health check, and calls attention if a field disagrees for dozens of companies at once – the sign of a source changing a field's scale or meaning. A report, not a refusal: it never stops a run.</li>
 <li><strong>EV cross-validation:</strong> The API-provided Enterprise Value is cross-checked against computed MC + Debt − Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (<code>_ev_flag</code>). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).</li>
-<li><strong>A quarter the source never published:</strong> when the four most recent quarters cannot be summed because one of them was never served, the twelve months is rolled forward from the last fiscal year instead – fiscal year + the quarters since it − the same quarters a year earlier, the construction the company uses in its own 10-Q. Measured on Berkshire Hathaway, whose Q3-2025 the source does not carry, this reproduces its filed net income, operating cash flow and capital expenditure to the dollar, where the older rule was 14.5%, 6.1% and 0.1% out (2026-10-15). The stock's Data Provenance panel names the lines that were rolled (<code>_ltm_rolled</code>). Where even that is unavailable the screener still annualizes 3 of 4 quarters as sum × 4/3 and flags the ticker with <code>_ltm_annualized = True</code>, recording which fields were affected, so a reader can tell an extrapolated figure from a complete one.</li>
+<li><strong>A quarter the source never published:</strong> when the four most recent quarters cannot be summed because one of them was never served, the twelve months is rolled forward from the last fiscal year instead – fiscal year + the quarters since it − the same quarters a year earlier, the construction the company uses in its own 10-Q. Measured on Berkshire Hathaway, whose Q3-2025 the source does not carry, this reproduces its filed net income, operating cash flow and capital expenditure to the dollar, where the older rule was 14.5%, 6.1% and 0.1% out (2026-10-15). The stock's Data Provenance panel names the lines that were rolled (<code>_ltm_rolled</code>). Where even that is unavailable the screener still annualizes 3 of 4 quarters as sum × 4/3 and flags the ticker with <code>_ltm_annualized = True</code>, recording which fields were affected, so a reader can tell an extrapolated figure from a complete one. Where neither route is available – the quarters on file are not consecutive, so there is nothing to roll forward and no three adjacent quarters to scale – the latest annual statement is used in place of that quarterly statement. Those figures are then the last fiscal year's, which can be most of a year older than another company's; the stock's Data Provenance panel says so, names the statement, and dates it by the fiscal year the figures cover, never by the newest quarter on file (<code>_annual_instead</code>).</li>
 <li><strong>Channel-stuffing detection:</strong> Compares receivables with revenue over the last fiscal year, both from the same two annual statements, using Beneish's days-sales-in-receivables index (receivables / revenue, over the prior year's). At <strong>1.465 or more</strong> – the average among the earnings manipulators in Beneish (1999), against 1.031 among the rest – the stock is flagged with <code>_channel_stuffing_flag = True</code>. This can indicate aggressive revenue recognition or deteriorating collection quality. Not applied to any Financials stock: Beneish's sample excluded financial firms.</li>
 <li><strong>Beta overlap validation:</strong> Beta computation requires at least 80% date overlap between the stock's daily returns and the S&amp;P 500 market returns. Stocks with insufficient overlap get no beta at all rather than a potentially misleading value. The overlap percentage is recorded in <code>_beta_overlap_pct</code>.</li>
 <li><strong>Data quality log:</strong> Every data issue (missing fields, stale data, rate-limit failures) is logged to <code>validation/data_quality_log.csv</code> with ticker, severity, description, and action taken.</li>
@@ -12381,7 +12381,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const nf = s.newer_filing;
         if (nf && nf.end) items.push({ k: 'behind', label: 'Filings', go: 'section-provenance',
             text: 'The company filed its ' + nf.form + ' for the period to ' + caseDay(nf.end) + ' on ' + caseDay(nf.filed) +
-                  '. The data source had not published that period when this run fetched, so the figures here are the period before.' });
+                  (fl.annual_instead && !fl.q_rejected
+                      ? '. The source’s quarterly ' + fl.annual_instead + ' could not be summed to twelve months, so the figures here are the last fiscal year’s instead.'
+                      : '. The data source had not published that period when this run fetched, so the figures here are the period before.') });
         return { items: items, clear: clear, na: na, wait: wait };
     }
 
@@ -13082,7 +13084,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // The general rule, unless this stock is one of the exceptions spelled out below it -
         // saying "the sum of the last four quarters" above a sentence explaining that it is not
         // would be a contradiction on the same panel (2026-10-15).
-        const ltmLead = (fl.ltm_rolled || fl.q_rejected || fl.ltm_annualized)
+        const ltmLead = (fl.ltm_rolled || fl.q_rejected || fl.ltm_annualized || fl.annual_instead)
             ? 'Income and cash-flow figures cover the last twelve months, built for this company as described below.'
             : 'Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise.';
         html += '<p class="provenance-line">' + ltmLead + ' Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
@@ -13090,6 +13092,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (fl.q_rejected) {
             html += '<p class="provenance-line provenance-limit" id="provenance-q-rejected"><strong>Annual figures used.</strong> The income and cash-flow figures here are this company&rsquo;s latest annual statement, because its quarterly statement could not be summed: the source served ' +
                 escapeHtml(fl.q_rejected) + '.</p>';
+        }
+        // The fourth route, and until 2026-11-17 the one with no sentence and the wrong date:
+        // quarters on file, but not four consecutive ones with a figure each, and neither the
+        // roll-forward nor the 4/3 scaling available - so the fetch reads the annual statement.
+        // 15-17 stocks that morning (AMZN, BA, BAC): fiscal-2025 flows dated Sep 30, 2026.
+        if (fl.annual_instead && !fl.q_rejected) {
+            html += '<p class="provenance-line provenance-limit" id="provenance-annual-instead"><strong>Last fiscal year used.</strong> The source&rsquo;s quarterly ' +
+                escapeHtml(fl.annual_instead) + ' for this company ' + (fl.annual_instead.indexOf(' and ') > 0 ? 'do' : 'does') +
+                ' not carry four consecutive quarters with a figure each, and the quarters it does carry support neither rolling the last fiscal year forward nor scaling three quarters up. So the figures from the ' +
+                escapeHtml(fl.annual_instead) + ' are the latest annual statement&rsquo;s - the fiscal year ending on the date given above - and can be up to a year older than another company&rsquo;s.</p>';
         }
         if (fl.ltm_rolled) {
             const rolledLines = (fl.ltm_rolled_labels || []).map(escapeHtml);
@@ -13142,7 +13154,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const nf = s.newer_filing;
             html += '<p class="provenance-line provenance-limit" id="provenance-newer-filing"><strong>A period behind the filings.</strong> The company filed its ' +
                 escapeHtml(nf.form) + ' for the period to ' + fmtD(nf.end) + ' on ' + fmtD(nf.filed) +
-                '. The data source had not published that period when this run fetched, so the figures here are the period before.</p>';
+                (fl.annual_instead && !fl.q_rejected
+                    ? '. The figures here are the last fiscal year&rsquo;s instead, for the reason given above.</p>'
+                    : '. The data source had not published that period when this run fetched, so the figures here are the period before.</p>');
         }
         const xk = s.xchk || {};
         const XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];

@@ -651,7 +651,10 @@ def _with_weight_profiles(weights: dict, run_cfg: dict) -> dict:
 
 
 # Dates of the statements each stock's figures come from (display only).
-PROVENANCE_KEYS = ("_stmt_date_balance_sheet", "_stmt_date_cashflow", "_stmt_date_financials")
+# `_annual_instead` (2026-11-17): which statements had quarters on file that could not be made
+# into twelve months, so the annual statement was read in their place - the fetch's own record.
+PROVENANCE_KEYS = ("_stmt_date_balance_sheet", "_stmt_date_cashflow", "_stmt_date_financials",
+                   "_annual_instead")
 
 
 def _compact(v):
@@ -1538,6 +1541,11 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "ltm_rolled_labels": _str_list(row.get("_ltm_rolled_labels")),
             # display-only: why the flows are the last fiscal year's (factor_engine.quarterly_statement_defect)
             "q_rejected": row.get("_quarterly_rejected") if isinstance(row.get("_quarterly_rejected"), str) else None,
+            # display-only: which statements ("income statement", "cash-flow statement" or both)
+            # are the latest *annual* one because the quarters on file could not be summed,
+            # rolled forward or scaled (factor_engine, `_annual_instead`, 2026-11-17). Without it
+            # the panel dated fiscal-year figures by the newest quarter and said nothing.
+            "annual_instead": row.get("_in__annual_instead") if isinstance(row.get("_in__annual_instead"), str) and row.get("_in__annual_instead") else None,
             # display-only: why the run withheld every measure built from the daily price history
             # (factor_engine.check_price_series_integrity -> `_price_series_rejected`, e.g. a series
             # mixing pre- and post-split prices). An unscored Momentum or Risk tile names it
@@ -5549,7 +5557,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // The general rule, unless this stock is one of the exceptions spelled out below it -
         // saying "the sum of the last four quarters" above a sentence explaining that it is not
         // would be a contradiction on the same panel (2026-10-15).
-        const ltmLead = (fl.ltm_rolled || fl.q_rejected || fl.ltm_annualized)
+        const ltmLead = (fl.ltm_rolled || fl.q_rejected || fl.ltm_annualized || fl.annual_instead)
             ? 'Income and cash-flow figures cover the last twelve months, built for this company as described below.'
             : 'Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise.';
         html += '<p class="provenance-line">' + ltmLead + ' Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
@@ -5557,6 +5565,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (fl.q_rejected) {{
             html += '<p class="provenance-line provenance-limit" id="provenance-q-rejected"><strong>Annual figures used.</strong> The income and cash-flow figures here are this company&rsquo;s latest annual statement, because its quarterly statement could not be summed: the source served ' +
                 escapeHtml(fl.q_rejected) + '.</p>';
+        }}
+        // The fourth route, and until 2026-11-17 the one with no sentence and the wrong date:
+        // quarters on file, but not four consecutive ones with a figure each, and neither the
+        // roll-forward nor the 4/3 scaling available - so the fetch reads the annual statement.
+        // 15-17 stocks that morning (AMZN, BA, BAC): fiscal-2025 flows dated Sep 30, 2026.
+        if (fl.annual_instead && !fl.q_rejected) {{
+            html += '<p class="provenance-line provenance-limit" id="provenance-annual-instead"><strong>Last fiscal year used.</strong> The source&rsquo;s quarterly ' +
+                escapeHtml(fl.annual_instead) + ' for this company ' + (fl.annual_instead.indexOf(' and ') > 0 ? 'do' : 'does') +
+                ' not carry four consecutive quarters with a figure each, and the quarters it does carry support neither rolling the last fiscal year forward nor scaling three quarters up. So the figures from the ' +
+                escapeHtml(fl.annual_instead) + ' are the latest annual statement&rsquo;s - the fiscal year ending on the date given above - and can be up to a year older than another company&rsquo;s.</p>';
         }}
         if (fl.ltm_rolled) {{
             const rolledLines = (fl.ltm_rolled_labels || []).map(escapeHtml);
@@ -5609,7 +5627,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const nf = s.newer_filing;
             html += '<p class="provenance-line provenance-limit" id="provenance-newer-filing"><strong>A period behind the filings.</strong> The company filed its ' +
                 escapeHtml(nf.form) + ' for the period to ' + fmtD(nf.end) + ' on ' + fmtD(nf.filed) +
-                '. The data source had not published that period when this run fetched, so the figures here are the period before.</p>';
+                (fl.annual_instead && !fl.q_rejected
+                    ? '. The figures here are the last fiscal year&rsquo;s instead, for the reason given above.</p>'
+                    : '. The data source had not published that period when this run fetched, so the figures here are the period before.</p>');
         }}
         const xk = s.xchk || {{}};
         const XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];
@@ -13837,7 +13857,9 @@ def _js_drilldown() -> str:
         const nf = s.newer_filing;
         if (nf && nf.end) items.push({ k: 'behind', label: 'Filings', go: 'section-provenance',
             text: 'The company filed its ' + nf.form + ' for the period to ' + caseDay(nf.end) + ' on ' + caseDay(nf.filed) +
-                  '. The data source had not published that period when this run fetched, so the figures here are the period before.' });
+                  (fl.annual_instead && !fl.q_rejected
+                      ? '. The source’s quarterly ' + fl.annual_instead + ' could not be summed to twelve months, so the figures here are the last fiscal year’s instead.'
+                      : '. The data source had not published that period when this run fetched, so the figures here are the period before.') });
         return { items: items, clear: clear, na: na, wait: wait };
     }
 

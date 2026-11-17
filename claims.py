@@ -621,6 +621,28 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_newer_filing.py::test_a_stock_behind_its_filings_is_named",
             "tests/test_newer_filing.py::test_the_panel_says_the_figures_are_the_period_before",
+            "tests/test_annual_instead.py::test_the_newer_filing_note_now_sees_these_stocks",
+            "tests/test_annual_instead.py::test_the_period_behind_note_does_not_blame_the_source_for_a_period_it_did_publish",
+        ),
+    ),
+    Claim(
+        id="drilldown.annual_instead",
+        surface=DRILLDOWN,
+        asserts=(
+            "Each statement's 'as of' date is the period end of the statement the figures were read "
+            "from. When a stock's quarterly income or cash-flow statement is on file but cannot be "
+            "summed, rolled forward or scaled to twelve months, its figures are the latest annual "
+            "statement's, the date shown is that fiscal year's end, and the panel names the "
+            "statement and says the figures are the last fiscal year's."
+        ),
+        made_true_by="factor_engine:_fetch_single_ticker_inner",
+        checked_by=(
+            "tests/test_annual_instead.py::test_the_premise_a_gapped_statement_supports_none_of_the_three_routes",
+            "tests/test_annual_instead.py::test_figures_from_the_annual_statement_carry_its_date_not_the_newest_quarters",
+            "tests/test_annual_instead.py::test_each_statement_is_dated_on_its_own",
+            "tests/test_annual_instead.py::test_a_stock_whose_quarters_sum_is_untouched",
+            "tests/test_annual_instead.py::test_a_company_with_no_quarterly_statements_is_not_said_to_have_unsummable_ones",
+            "tests/test_annual_instead.py::test_the_panel_says_the_figures_are_the_last_fiscal_years_and_why",
         ),
     ),
     Claim(
