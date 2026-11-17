@@ -1,4 +1,4 @@
-# Morning Brief - Monday 16 November 2026, 13:00
+# Morning Brief - Monday 16 November 2026, 18:25
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,21 +7,21 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **stopped deliberately** - last ran today |
+| Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **failed** - last ran today |
-| Dashboard data from | 2026-11-13 02:00 |
+| Dashboard data from | 2026-11-16 18:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
-| Top 5 | VLO, HST, SNDK, MPC, EXPE |
-| Ranking's lean on growth | +0.040 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (50 rows, but overlapping windows are not independent; 126 rows across all horizons), newest 1m run date 2026-10-13 (34 days ago, bound 40) |
+| Top 5 | HST, EXPE, MU, VLO, SNDK |
+| Ranking's lean on growth | +0.038 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (51 rows, but overlapping windows are not independent; 128 rows across all horizons), newest 1m run date 2026-10-14 (33 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 433/433 within 0.5%; operating cash flow 402/418 within 0.5%; net income 388/427 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 6 days ago |
-| Top 25, worth a look | HST (#1: net income 1.29x after-tax operating income); EXPE (#3: equity 6.2% of assets); DXCM (#8: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#17: net income 15% off the filing) |
-| Data run timing | **19 min** total; slowest `fetch.tickers` 682 s, `fetch.retry` 118 s, `context.sec_insider` 107 s; **34 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (17 days) |
-| Context coverage | options usable 455/499 (44 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
+| Inputs vs SEC filings | total assets 433/433 within 0.5%; operating cash flow 402/418 within 0.5%; net income 388/427 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 7 days ago |
+| Top 25, worth a look | HST (#1: net income 1.29x after-tax operating income); EXPE (#2: equity 6.2% of assets); DXCM (#8: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#17: net income 15% off the filing); WDC (#24: net income 2.13x after-tax operating income) |
+| Data run timing | **22 min** total; slowest `fetch.tickers` 650 s, `context.options_pass` 183 s, `context.sec_insider` 141 s; **39 tickers rate-limited** |
+| Code-session login | 2026-12-03 09:01 (16 days) |
+| Context coverage | options usable 491/499 - insider from SEC 499/499 - earnings variability 440 |
 
 ## Coming up
 
@@ -33,17 +33,15 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## Things that needed attention
 
-- The regenerated artifacts contradict claims this project asserts about them.
-- Refusing to publish. The live site keeps the last good version.
-- Run discarded: published-claims check failed - fix the generator, not the file.
 - Required tool 'claude' is not on PATH. Aborting.
 
 ## What changed in the repo
 
+- `81baea3 data: screener run 2026-11-16 - 499 scored, top: HST EXPE MU VLO SNDK`
+- `af6f012 brief: code session 2026-11-16-midday`
 - `32836d7 brief: code session 2026-11-16`
 - `186f261 brief: data run 2026-11-16`
 - `816ff27 brief: code session 2026-11-15-midday`
-- `2bc8ab9 brief: code session 2026-11-15-weekend`
 
 ## The session's own account
 
