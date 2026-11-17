@@ -126,6 +126,10 @@ salvage (`research/2026-10-19-session-ended-on-a-background-job.md`). So, as har
   deferred by **eight of ten** sessions, each time for defensible smaller work,
   and moved only once two sessions in a row had nominated it in writing. The
   roadmap-age line makes the trade visible; this is what closes it.
+  **A standing programme is deferred only when it is late** (2026-11-17): where the health line
+  says "a standing programme, last advanced N days ago" - today 0.13, the Factor Lab, whose day is
+  the Friday that is not a retrospective - a session on another day has not deferred it, and the
+  streak counts only sessions after N passes the line's bound (21 days).
 - Check the data loop: has `scripts/data-run.ps1` run recently? Look at
   `logs/`, `improvement/live_ic_history.csv`, and the newest files in
   `improvement/snapshots/`. **If the data loop is stalled or failing, fixing it

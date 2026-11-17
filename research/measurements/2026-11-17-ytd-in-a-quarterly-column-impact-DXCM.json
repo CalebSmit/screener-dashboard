@@ -1,0 +1,24 @@
+{
+ "ticker": "DXCM",
+ "rank": 8,
+ "composite": 70.56,
+ "run_ocf": 2209200000,
+ "filed_ocf": 1414400000.0,
+ "how": "ytd + prior fy - prior ytd",
+ "fcf_yield": {
+  "published": 0.057704498291088514,
+  "restated": 0.031221339010711363,
+  "pct_published": 83.62068965517241,
+  "pct_restated": 30.625691839006162,
+  "composite_points": -5.246504783800459
+ },
+ "accruals": {
+  "published": -0.19526190934154003,
+  "restated": -0.06786561518240687,
+  "pct_published": 97.45762711864407,
+  "pct_restated": 86.57096555809875,
+  "composite_points": -0.11975327716599854
+ },
+ "composite_restated": 65.19374193903354,
+ "rank_restated": 20
+}
