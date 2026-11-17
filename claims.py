@@ -1215,6 +1215,37 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="drilldown.ytd_column_note",
+        surface=DRILLDOWN,
+        asserts=(
+            "On the FCF-yield and accruals rows, and in Data Provenance, for a stock whose "
+            "operating cash flow in the run exceeds the twelve months its own filings give for "
+            "the same statement date by the filed year-to-date figure one quarter before one of "
+            "the last four quarter ends (matched within 0.5% of the run's figure, and only where "
+            "that excess is at least 2% of it): the row says the figure counts part of the year "
+            "twice, names the quarterly column, gives the year-to-date figure it carries, the "
+            "quarter alone as filed and the filed twelve months, each with its sign, and says the "
+            "score was computed from the source's figure as delivered and has not been adjusted. "
+            "A disagreement of any size that is not that amount gets no such note. It never "
+            "enters a score."
+        ),
+        made_true_by="sec_crosscheck:ytd_columns",
+        checked_by=(
+            "tests/test_ytd_column_note.py::test_a_nine_month_figure_in_the_september_column_is_recognised",
+            "tests/test_ytd_column_note.py::test_only_the_stocks_whose_gap_is_a_year_to_date_figure_are_named",
+            "tests/test_ytd_column_note.py::test_an_earlier_column_inside_the_twelve_months_is_found_and_named",
+            "tests/test_ytd_column_note.py::test_a_column_outside_the_twelve_months_is_not_looked_at",
+            "tests/test_ytd_column_note.py::test_a_fiscal_year_in_the_fourth_quarter_column",
+            "tests/test_ytd_column_note.py::test_the_match_is_within_half_a_percent_of_the_runs_figure",
+            "tests/test_ytd_column_note.py::test_an_excess_under_two_percent_of_the_figure_gets_no_note",
+            "tests/test_ytd_column_note.py::test_the_note_states_the_runs_figure_and_the_three_filed_ones",
+            "tests/test_ytd_column_note.py::test_a_cash_outflow_keeps_its_sign",
+            "tests/test_ytd_column_note.py::test_the_note_never_reaches_a_score_and_has_its_own_key",
+            "tests/test_ytd_column_note.py::test_the_published_payload_agrees_with_the_filings",
+            "tests/test_dead_badges.py::test_a_year_to_date_column_is_named_in_the_provenance_panel",
+        ),
+    ),
+    Claim(
         id="drilldown.case_against",
         surface=DRILLDOWN,
         asserts=(

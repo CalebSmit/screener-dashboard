@@ -5400,3 +5400,63 @@ balance sheet at 2026-09-30; MSFT and DXCM are unchanged.
 
 **Applied by:** 06:00 session, 2026-11-17.
 **Rollback:** `good/2026-11-17-owner-1` (the tag before this change).
+
+## 2026-11-17 (13:00) - Display: a stock whose operating cash flow counts part of a year twice says so, on the rows that read it
+
+**Area:** the free-cash-flow-yield and accruals rows and the Data Provenance panel. **No score,
+weight, metric, threshold or rank changed**, and no input: the figure is scored as the source
+delivered it. What changed is what the page says about it.
+
+**Changed:** where the run's operating cash flow exceeds the twelve months the company's own
+filings give for the same statement date **by the filed year-to-date figure one quarter before
+one of the last four quarter ends** (`sec_crosscheck.ytd_columns`: matched within 0.5% of the
+run's figure, ignored under 2% of it), the two metric rows that read the figure carry a note,
+"Against this company's filings", stating the quarterly column, the year-to-date figure it
+carries, the quarter alone as filed, the filed twelve months and that the score was not
+adjusted (`stock_detail[t].srcn`). Data Provenance says the same in one sentence and, where
+that is the only field that differs, no longer prints "a difference usually means the two
+sources define the line differently ... rather than that either figure is wrong".
+
+**Evidence (a documented failure, measured; `research/2026-11-17-ytd-in-a-quarterly-column.md`):**
+
+- *The failure.* DexCom, ranked 8th: $2.209bn scored, $1.414bn filed, because the source's
+  column for the quarter to 2026-09-30 carries $1.120bn - the nine months. Its figure matched
+  the filing to the dollar on all 16 published pages to 2026-10-30 and has been wrong on all 8
+  since 2026-11-03; the true twelve months *fell* while the page showed them rising. Restated
+  with the filed figure its free-cash-flow yield goes from the 84th to the 31st percentile of
+  its sector and its rank from 8 to about 20 (an estimate holding every other stock still).
+- *Prevalence.* Of 2,300 quarterly operating-cash-flow columns on 497 stocks, 2,283 are within
+  2% of the filed quarter, **3 are the filed year-to-date figure** (DexCom twice, General Motors
+  once) and 1 of those is inside the twelve months scored.
+- *Why the filings and not the source.* Three detectors using only the source's own figures were
+  measured: "at least the earlier quarters of its fiscal year" fires on 63 of 379 newest columns
+  for the one true case; a completed fiscal year's quarters reconcile with the annual statement
+  for 61 of 61 and cannot see the current year; the source's own trailing figure repeats the
+  error. The filings' identity fired on **8 of 10,446 stock-days** across every published page
+  since 2026-10-08 - DexCom's 8 - and on none of the 143 other stock-days over 2% from a filing.
+- *Why the error exists.* Regulation S-X Rule 10-01(c)(3) requires a 10-Q's cash-flow statement
+  for the year to date only, so every "quarterly" cash flow is a vendor's subtraction (WRDS's
+  `QUARTERIZE` macro is the documented academic counterpart).
+
+**Expected effect:** on the next full run DexCom's two rows and its provenance panel carry the
+note; `src_notes` in the payload reads 1. The rehearsed payload differs from the published one
+in `srcn` and `xwhy` for DexCom, the top-level `src_notes`, and nothing else of this change's
+(`research/measurements/2026-11-17-ytd-note-payload-diff.py`; the only other difference is the
+06:00 session's `flags.annual_instead` key).
+
+**Not changed, and recorded as waiting:** whether the filing should *correct* the score for that
+one field. It crosses the display-only rule that `research/2026-10-14-yahoo-vs-sec.md` section
+3c earned, on one instance. The note's section 7 states the three options and four conditions
+written before any further page is read; its status is WAITING until 2026-12-15.
+
+**Validated by:** `tests/test_ytd_column_note.py` (14 tests: a nine-month, a six-month and a
+fiscal-year column; a fifth column back is not looked at; a gap of the same size that is not a
+year-to-date figure gets no note; both bars as literals and on both sides; an outflow keeps its
+sign; the note has its own key and reaches no score; the published payload's notes are rebuilt
+from the filings) and one rendered check in `tests/test_dead_badges.py`. Claim
+`drilldown.ytd_column_note`: 9 of 9 mutations of the code behind it fail its registered checks
+(`research/measurements/2026-11-17-ytd-note-mutations.py`). `scripts/rehearse_publish.py`
+PASSED. Seen on a throwaway copy of DexCom's sheet at 1440 and 375 px.
+
+**Applied by:** 13:00 session, 2026-11-17.
+**Rollback:** `good/2026-11-17` (the tag before this change).

@@ -125,6 +125,49 @@ def open_items(claude_md: str | None = None, today: datetime | None = None) -> l
     return out
 
 
+# A standing programme's age since it was opened measures nothing (2026-11-17). 0.13, the Factor
+# Lab, is one finished experiment every lab Friday with no end: its "age 36 days" grew every day
+# while it shipped on schedule, six sessions in a row logged it as "deferred", and the
+# deferral-streak rule - written for a task that sits untouched - was about to force a session to
+# "resolve" a programme that was not late. So an item whose heading says where its progress is
+# recorded - "progress in `plan/<file>.md`" - also reports the days since the newest dated bullet
+# under that file's "## Progress". Derived, never written by hand (rule 8: a hand-written age was
+# still saying 1 day eight days later).
+STANDING = re.compile(r"progress in `([^`]+)`")
+PROGRESS_BULLET = re.compile(r"^- \*\*(\d{4}-\d{2}-\d{2})", re.M)
+STANDING_BOUND_DAYS = 21  # lab Fridays alternate with retrospectives: 14 days, plus one lost week
+
+
+def last_advanced(claude_md: str | None = None, today: datetime | None = None,
+                  root: Path | None = None) -> dict[str, tuple[str, int | None]]:
+    """{item number: (plan path, days since its newest dated Progress bullet or None)} for each
+    open item whose heading names a progress file."""
+    text = claude_md if claude_md is not None else (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    start = text.find("### Open")
+    if start < 0:
+        return {}
+    today = today or datetime.now()
+    out: dict[str, tuple[str, int | None]] = {}
+    for m in OPEN_ITEM.finditer(text, start):
+        line = text[m.start(): text.find("\n", m.start())]
+        s = STANDING.search(line)
+        if not s or re.search(r"\b(CLOSED|DONE)\b", line):
+            continue
+        days = None
+        try:
+            plan = ((root or ROOT) / s.group(1)).read_text(encoding="utf-8")
+            at = plan.find("## Progress")
+            dates = [datetime.strptime(d, "%Y-%m-%d").date()
+                     for d in PROGRESS_BULLET.findall(plan[at:] if at >= 0 else "")]
+            dates = [d for d in dates if d <= today.date()]
+            if dates:
+                days = (today.date() - max(dates)).days
+        except (OSError, ValueError):
+            pass
+        out[m.group(1)] = (s.group(1), days)
+    return out
+
+
 def top_roadmap(today: datetime | None = None) -> str:
     try:
         items = open_items(today=today)
@@ -134,7 +177,19 @@ def top_roadmap(today: datetime | None = None) -> str:
         return "unknown - no item under \"### Open\" carries an opened date"
     num, title, age = items[0]
     rest = "; ".join(f"{n} {a}d" for n, _, a in items[1:])
-    return f"**{num}, {title}** (age **{age} days**)" + (f"; also open: {rest}" if rest else "")
+    standing = ""
+    try:
+        path, days = last_advanced(today=today).get(num, (None, None))
+    except OSError:
+        path, days = None, None
+    if path:
+        if days is None:
+            standing = f"; a standing programme - no dated bullet under Progress in `{path}`"
+        else:
+            late = f" - **past its {STANDING_BOUND_DAYS}-day bound**" if days > STANDING_BOUND_DAYS else ""
+            standing = (f"; a standing programme, last advanced **{days} days** ago per `{path}`"
+                        f" (bound {STANDING_BOUND_DAYS}){late}")
+    return f"**{num}, {title}** (age **{age} days**{standing})" + (f"; also open: {rest}" if rest else "")
 
 
 # Work a ship gate refused, still waiting on origin (2026-11-04). When the runner's gates fail it

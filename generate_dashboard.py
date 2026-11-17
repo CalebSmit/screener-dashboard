@@ -1126,6 +1126,37 @@ def _attach_special_item_note(stock_detail: dict, facts=None) -> int:
         return 0
 
 
+def _attach_ytd_column_note(stock_detail: dict, facts=None) -> int:
+    """Add ``srcn['fcf_yield']`` and ``srcn['accruals']`` for the stocks whose operating
+    cash flow counts part of a year twice, because the source's quarterly column carries the
+    company's filed year-to-date figure (``sec_crosscheck.ytd_columns``).
+
+    2026-11-17, `research/2026-11-17-ytd-in-a-quarterly-column.md`: DexCom, ranked 8th, was scored
+    on $2.209bn against $1.414bn filed, and the only sentence on its page said a difference
+    "usually means the two sources define the line differently". Nothing the source returns can
+    recognise the case; three filed figures can, exactly. Whether that may change the *score* is
+    an open proposal in the note - this says what the figure contains, on the two rows that read
+    it. Its own key, not ``cavs``: each note's publish-gate test rebuilds its key from the filings
+    and compares the whole dict, so two notes sharing one would fail each other's. Display-only -
+    ``srcn`` is prose, it enters no score, and like the filing check it must never stop a build."""
+    try:
+        import sec_crosscheck as X
+        facts = _facts(facts)
+        if facts is None:
+            return 0
+        found = X.ytd_columns({"stock_detail": stock_detail}, facts[facts["ticker"].isin(list(stock_detail))])
+        for t, entry in found.items():
+            note = X.ytd_column_note(entry)
+            for m in X.YTD_METRICS:
+                stock_detail[t].setdefault("srcn", {})[m] = note
+            # why the filing check's operating-cash-flow line differs, for the Provenance panel
+            stock_detail[t].setdefault("xwhy", {})["ocf"] = "ytd"
+        return len(found)
+    except Exception as exc:  # noqa: BLE001 - provenance never stops a build
+        print(f"WARNING: year-to-date column note skipped ({type(exc).__name__}: {exc})")
+        return 0
+
+
 def _input_mismatches(inp: dict, raw: dict) -> list:
     """Metrics whose published value does NOT rebuild from the inputs published
     beside it. The page says so for these instead of showing a formula that fails."""
@@ -1855,6 +1886,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
     _n_special = _attach_special_item_note(stock_detail)
     if _n_special:
         print(f"Filings: a one-off charge inside the scored earnings of {_n_special} stocks")
+    _n_ytd = _attach_ytd_column_note(stock_detail)
+    if _n_ytd:
+        print(f"Filings: operating cash flow counts part of a year twice for {_n_ytd} stocks")
     # What to check before trusting a high rank (display-only prose; ranking_audit.py, 2026-10-15)
     try:
         import ranking_audit
@@ -1876,6 +1910,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "share_classes": _share_classes_block(run_data, table_data),
         "unscored": _unscored_block(run_data, table_data),
         "sec_facts": _facts_vintage(),
+        # how many stocks carry a source-against-filings note (``srcn``). Published even at 0, so
+        # a test can tell "no stock qualified" from "built before the note existed" (2026-11-17).
+        "src_notes": _n_ytd,
         "weights": weights,
         "ctx_weeks": _shared_weeks(stock_detail),
         "market": _market_block(stock_detail),
@@ -5645,7 +5682,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (agree.length) line += '<strong>' + listed(agree) + '</strong> ' + (agree.length === 1 ? 'agrees' : 'agree') + ' within 2%';
             if (differ.length) line += (agree.length ? '; ' : '') + listed(differ) + ' ' + (differ.length === 1 ? 'differs' : 'differ') + ' from it';
             html += '<p class="provenance-line" id="provenance-filing-check">' + line + '.</p>';
-            if (differ.length) html += '<p class="provenance-line provenance-limit">A difference usually means the two sources define the line differently - a bank&rsquo;s revenue, profit that belongs to minority shareholders, sales taxes - rather than that either figure is wrong.</p>';
+            // A difference whose cause the filings settle is said plainly, not folded into "usually
+            // a definition" (2026-11-17: DexCom's operating cash flow, 36% off, under that sentence).
+            const ytdCol = (s.xwhy || {{}}).ocf === 'ytd' && Math.abs(xk.ocf || 0) > 0.02;
+            if (ytdCol) html += '<p class="provenance-line provenance-limit" id="provenance-ytd-column"><strong>Operating cash flow counts part of the year twice.</strong> One of the data source&rsquo;s quarterly columns carries the company&rsquo;s filed year-to-date figure instead of the quarter, so the twelve months used here are too large by the earlier part of that year. The free-cash-flow yield and accruals rows give the filed figures; the scores were computed from the source&rsquo;s figure as delivered.</p>';
+            if (differ.length > (ytdCol ? 1 : 0)) html += '<p class="provenance-line provenance-limit">A difference usually means the two sources define the line differently - a bank&rsquo;s revenue, profit that belongs to minority shareholders, sales taxes - rather than that either figure is wrong.</p>';
             html += '<p class="provenance-line provenance-limit">Every figure is as delivered by Yahoo Finance. The workings above rebuild every score from them, and the figures that have a counterpart in the filing are checked against it; the others cannot be checked here.</p>';
         }} else {{
             html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but this stock&rsquo;s figures could not be checked against its filings on this run.</p>';
@@ -6067,6 +6108,11 @@ def _js_workings() -> str:
         // filed figures; the page never derives it.
         const stockCav = (s.cavs || {})[m];
         if (stockCav) h += `<div class="wk-caveat wk-caveat-stock"><strong>In this company&rsquo;s filings.</strong> ${escapeHtml(stockCav)}</div>`;
+        // Where the data source's figure and the company's filing part company for a reason the
+        // filings settle (today: a year-to-date figure in a quarterly cash-flow column -
+        // research/2026-11-17-ytd-in-a-quarterly-column.md). Built at run time from filed figures.
+        const srcNote = (s.srcn || {})[m];
+        if (srcNote) h += `<div class="wk-caveat wk-caveat-stock wk-caveat-source"><strong>Against this company&rsquo;s filings.</strong> ${escapeHtml(srcNote)}</div>`;
         // What this stock's reported figures make worth a second look (ranking_audit.py,
         // 2026-10-15): income from outside operations, an equity base hollowed out by buybacks.
         const figNote = (s.fign || {})[m];

@@ -522,6 +522,24 @@ industrial business only. `sec_crosscheck.lease_book` / `lease_capex_note`,
 `research/2026-10-14-capex-definition.md` section 5 - the proposal to change the metric was
 refused. `cavs` is a general per-stock, per-metric slot: a new one needs a claim and its own test.
 
+**A metric row can also say where the source's figure and the filing part company for a reason
+the filings settle** (2026-11-17). A third block, headed "Against this company's filings",
+renders `stock_detail[t].srcn[metric]`. Today one cause uses it: **operating cash flow that
+counts part of a year twice**, on the **FCF yield** and **accruals** rows, when the source's
+quarterly column carries the company's filed year-to-date figure (DexCom, ranked 8th, from the
+2026-11-03 page: $2.2B used, $1.4B filed). The note gives the column, the year-to-date figure
+it carries, the quarter alone and the filed twelve months, and says the score was not adjusted.
+Data Provenance repeats it in one sentence (`#provenance-ytd-column`, keyed on
+`stock_detail[t].xwhy.ocf == "ytd"`) and, where that is the only field that differs, drops the
+"a difference usually means the two sources define the line differently" sentence, which is
+false for this cause. The payload's top-level `src_notes` is the count, published even at 0.
+`sec_crosscheck.ytd_columns` / `ytd_column_note`, `generate_dashboard._attach_ytd_column_note`,
+claim `drilldown.ytd_column_note`, `tests/test_ytd_column_note.py`. **`srcn` is its own key, not
+`cavs`, on purpose**: each `cavs` note's publish-gate test rebuilds its key from the filings and
+compares the whole dict, so a second writer to `cavs['fcf_yield']` would fail the lease note's
+test and discard a night's run. Display-only; whether the filing should correct the *score* is
+the open proposal in `research/2026-11-17-ytd-in-a-quarterly-column.md` section 7.
+
 ## The stock sheet, UI elevation (2026-10-27) - `_js_drilldown()` / `_css_drilldown()`
 
 `plan/ui-elevation.md`. Presentation only; every rule is scoped to `#stock-modal` and emitted

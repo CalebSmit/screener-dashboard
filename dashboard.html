@@ -9391,6 +9391,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // filed figures; the page never derives it.
         const stockCav = (s.cavs || {})[m];
         if (stockCav) h += `<div class="wk-caveat wk-caveat-stock"><strong>In this company&rsquo;s filings.</strong> ${escapeHtml(stockCav)}</div>`;
+        // Where the data source's figure and the company's filing part company for a reason the
+        // filings settle (today: a year-to-date figure in a quarterly cash-flow column -
+        // research/2026-11-17-ytd-in-a-quarterly-column.md). Built at run time from filed figures.
+        const srcNote = (s.srcn || {})[m];
+        if (srcNote) h += `<div class="wk-caveat wk-caveat-stock wk-caveat-source"><strong>Against this company&rsquo;s filings.</strong> ${escapeHtml(srcNote)}</div>`;
         // What this stock's reported figures make worth a second look (ranking_audit.py,
         // 2026-10-15): income from outside operations, an equity base hollowed out by buybacks.
         const figNote = (s.fign || {})[m];
@@ -13172,7 +13177,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (agree.length) line += '<strong>' + listed(agree) + '</strong> ' + (agree.length === 1 ? 'agrees' : 'agree') + ' within 2%';
             if (differ.length) line += (agree.length ? '; ' : '') + listed(differ) + ' ' + (differ.length === 1 ? 'differs' : 'differ') + ' from it';
             html += '<p class="provenance-line" id="provenance-filing-check">' + line + '.</p>';
-            if (differ.length) html += '<p class="provenance-line provenance-limit">A difference usually means the two sources define the line differently - a bank&rsquo;s revenue, profit that belongs to minority shareholders, sales taxes - rather than that either figure is wrong.</p>';
+            // A difference whose cause the filings settle is said plainly, not folded into "usually
+            // a definition" (2026-11-17: DexCom's operating cash flow, 36% off, under that sentence).
+            const ytdCol = (s.xwhy || {}).ocf === 'ytd' && Math.abs(xk.ocf || 0) > 0.02;
+            if (ytdCol) html += '<p class="provenance-line provenance-limit" id="provenance-ytd-column"><strong>Operating cash flow counts part of the year twice.</strong> One of the data source&rsquo;s quarterly columns carries the company&rsquo;s filed year-to-date figure instead of the quarter, so the twelve months used here are too large by the earlier part of that year. The free-cash-flow yield and accruals rows give the filed figures; the scores were computed from the source&rsquo;s figure as delivered.</p>';
+            if (differ.length > (ytdCol ? 1 : 0)) html += '<p class="provenance-line provenance-limit">A difference usually means the two sources define the line differently - a bank&rsquo;s revenue, profit that belongs to minority shareholders, sales taxes - rather than that either figure is wrong.</p>';
             html += '<p class="provenance-line provenance-limit">Every figure is as delivered by Yahoo Finance. The workings above rebuild every score from them, and the figures that have a counterpart in the filing are checked against it; the others cannot be checked here.</p>';
         } else {
             html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but this stock&rsquo;s figures could not be checked against its filings on this run.</p>';

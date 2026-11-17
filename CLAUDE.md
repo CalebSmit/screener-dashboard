@@ -833,9 +833,17 @@ read the brief's `context_eval` line. Three constraints survive it, beyond settl
 - **Accruals are counted three times inside Quality** (0.49 with Beneish, 0.00 with Piotroski,
   13 points in all) - measured, deliberately unchanged. Do not "discover" it again.
 
-**0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
+**0.13. The Factor Lab (opened 2026-10-12; a standing programme, progress in `plan/factor-lab.md`).**
+Owner item; `OWNER_FOCUS.md` has it and
 `plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day** - the next one
-that is not a retrospective - one finished experiment a session. **Nineteen experiments as of
+that is not a retrospective - one finished experiment a session. **It has no end, so its age
+since opening measures nothing and a non-Friday session that does not work it has not deferred
+it** (2026-11-17: six sessions in a row logged it "deferred" while it shipped on schedule, and the
+deferral-streak rule was about to make one of them "resolve" a programme that was not late). The
+number to read is the health line's **"last advanced N days ago"**, derived from the newest dated
+bullet under that plan's Progress (`health_numbers.last_advanced`): **past 21 days it is late, and
+then the streak rule applies** - so keep adding a dated Progress bullet when an experiment ships.
+**Nineteen experiments as of
 2026-11-06, 152 of 227 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
 ("0.13, the lab's first thirteen experiments" and "experiments 14-18", which now runs to 19).
 **All eight categories now have one** - Growth's arrived 2026-11-06 (Mohanram 2005 on Open Source
@@ -936,7 +944,17 @@ on every one. **Two things it left open, neither to be acted on without research
 figures are up to three quarters old (`research/2026-10-29-ttm-fills-the-empty-quarter.md` section
 5.5 holds the narrow pre-registered alternative), and **DexCom's 2026-09-30 quarterly cash-flow
 column holds a nine-month cumulative figure** (four-quarter sum $2.209bn against $1.414bn filed,
-rank 8) - a detector needs its false-positive rate measured first. Each stock's Data
+rank 8). **That one was measured the same afternoon**
+(`research/2026-11-17-ytd-in-a-quarterly-column.md`): 3 of 2,300 quarterly columns are
+year-to-date figures, 1 inside the twelve months scored; **nothing the source returns can
+recognise one** (the best statement-only rule raises 62 false alarms for the one true case, and
+the source's own trailing figure repeats the error), while an identity among three *filed*
+figures does, exactly - 8 of 10,446 stock-days, all DexCom. So the two rows that read operating
+cash flow now say so (`srcn`, claim `drilldown.ytd_column_note`; **its own key, never `cavs`** -
+each `cavs` note's publish-gate test compares the whole dict). **The score is not corrected**:
+whether a filing may act on one field of one stock is that note's proposal, **WAITING until
+2026-12-15** on four conditions written in advance (section 7; the brief's "Coming up" carries
+the date) - do not build it early, and do not build a statement-only detector at all. Each stock's Data
 Provenance panel shows the same check (`stock_detail[t].xchk`,
 `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`): which inputs agree
 within 2% with the filing. **Display-only** - a test fails if `xchk` or `sec_crosscheck` appears

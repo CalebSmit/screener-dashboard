@@ -1,0 +1,101 @@
+{
+ "stocks_fetched": 498,
+ "stocks_with_a_row": 497,
+ "columns": 2479,
+ "columns_judged_against_filings": 2300,
+ "verdicts": {
+  "right": 2283,
+  "other": 14,
+  "ytd": 3
+ },
+ "columns_at_fiscal_position_2_plus": 1795,
+ "verdicts_position_2_plus": {
+  "right": 1781,
+  "other": 11,
+  "ytd": 3
+ },
+ "ytd_columns": [
+  {
+   "t": "DXCM",
+   "rank": 8,
+   "date": "2025-09-30",
+   "v": 1146700000.0,
+   "filed_q": 659900000.0,
+   "filed_ytd": 1146700000.0,
+   "pos_filed": 3.0,
+   "newest": false,
+   "in_ltm": false
+  },
+  {
+   "t": "DXCM",
+   "rank": 8,
+   "date": "2026-09-30",
+   "v": 1120400000.0,
+   "filed_q": 325600000.0,
+   "filed_ytd": 1120400000.0,
+   "pos_filed": 3.0,
+   "newest": true,
+   "in_ltm": true
+  },
+  {
+   "t": "GM",
+   "rank": 374,
+   "date": "2025-06-30",
+   "v": 12969000000.0,
+   "filed_q": 6908000000.0,
+   "filed_ytd": 12969000000.0,
+   "pos_filed": 2.0,
+   "newest": false,
+   "in_ltm": false
+  }
+ ],
+ "other_columns": 14,
+ "other_over_10pct": 8,
+ "other_over_10pct_in_ltm": 3,
+ "A": {
+  "testable": 862,
+  "fires": 311,
+  "true": 1,
+  "missed": 0,
+  "untestable_ytd": 2,
+  "newest_testable": 379,
+  "newest_fires": 63,
+  "newest_true": 1,
+  "by_position": {
+   "2": [
+    431,
+    246
+   ],
+   "3": [
+    385,
+    59
+   ],
+   "4": [
+    46,
+    6
+   ]
+  }
+ },
+ "B": {
+  "stock_years": 61,
+  "stocks": 61,
+  "off_2pct": 0,
+  "off_10pct": 0,
+  "off_on_ytd_stocks": []
+ },
+ "C": {
+  "with_trailing": 494,
+  "comparable": 458,
+  "off_2pct": 4,
+  "ltm_ytd_stocks": [
+   "DXCM"
+  ],
+  "fires_on_ltm_ytd": [],
+  "fires_elsewhere": [
+   "COIN",
+   "DD",
+   "EBAY",
+   "SPGI"
+  ]
+ }
+}
