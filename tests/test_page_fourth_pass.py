@@ -136,11 +136,19 @@ def test_phone_weighting_select_shows_its_whole_label(browser):
 
 # --- 3. Side by side on a phone ---------------------------------------------------------------------
 
-@pytest.mark.parametrize("n", [3, 4])
+# "worst": the four stocks whose sector or company name holds the longest single word, whatever ranks
+# top. 2026-11-12 discarded two runs: Expedia ranked 4th, "Discretionary" was wider than its column,
+# and the side-by-side scrolled 2px sideways - a case the top four only reach on some days.
+_WORST_JS = """() => { const longest = s => Math.max(0, ...String(s || '').split(/\s+/).map(w => w.length));
+    return D.table_data.slice().sort((a, b) => (longest(b.Sector) + longest(b.Company) - longest(a.Sector) - longest(a.Company))
+        || (a.Rank - b.Rank)).slice(0, 4).map(r => r.Ticker); }"""
+
+
+@pytest.mark.parametrize("n", [3, 4, "worst"])
 def test_phone_side_by_side_fits_three_and_four_stocks(browser, n):
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
-        ts = page.evaluate(f"D.table_data.slice(0, {n}).map(r => r.Ticker)")
+        ts = page.evaluate(_WORST_JS) if n == "worst" else page.evaluate(f"D.table_data.slice(0, {n}).map(r => r.Ticker)")
         page.evaluate(f"UX.compare = {ts!r}; openCompare()".replace("'", '"'))
         page.wait_for_selector(".cmp-scroll", state="visible", timeout=8000)
         m = page.evaluate("""() => { const s = document.querySelector('.cmp-scroll'), b = document.querySelector('#compare-modal .cmp-content').getBoundingClientRect();

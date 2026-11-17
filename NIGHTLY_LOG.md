@@ -21499,3 +21499,42 @@ itself, and the 13:00 session died on the version check - as tomorrow's 06:00 wo
   at 1440 and 375, no errors, no sideways scroll.
 - **Not exercised:** the stand-down branches (owner session, dirty tree, branch off main) - pinned by
   `tests/test_data_retry.py`, not yet seen in a real run.
+
+
+## 2026-11-16 (owner-run, evening) - eleven code sessions lost to a CLI I installed in the wrong place; the two refusals fixed
+
+**Health (rule 8, all five):** last code session ran? **no** - every one from 11-11 07:38 to 11-16 13:00
+(eleven) aborted: "Required tool 'claude' is not on PATH". Data loop published? **yes** -
+`logs/datarun-2026-11-16_180000.log` (the 18:00 retry, after the 02:00 run was refused). Evidence base
+at `1m`: **51 rows, newest 2026-10-14 (33 days ago, bound 40)**. Priority 0: `allow_auto_apply`
+**false**. Top open roadmap item: **0.13, The Factor Lab** (age **35 days**).
+
+### What happened
+
+1. **The CLI.** On 11-10 the owner-run session ran `npm install -g @anthropic-ai/claude-code@latest`
+   from inside the Claude desktop app. That app is sandboxed: it keeps its own copy of `AppData\Roaming`
+   (the files carry an `S-1-15-3-` app-container ACL). The update landed in the sandbox's copy; in the
+   real folder the old version was removed and nothing replaced it - a scheduled task listed
+   `%APPDATA%
+pm` as `node_modules` alone. So every code session since aborted at its tool check.
+   **My mistake, 11-10.** Reproduced with a one-off task; fixed by reinstalling from a one-off task
+   (real context): 2.1.326, `Get-Command claude` and a `--print` session both work from a task.
+   The diagnostic task is deleted.
+2. **Smart App Control** blocked pyarrow's `parquet.dll` on 11-11 after KB5132061 (Code Integrity 3033/
+   3077). It loads again by 11-16 with SAC still on - presumably reputation caught up. Not changed by us.
+3. **Refusals:** 11-11 18:00 and 11-16 02:00 on the What-changed footnote's hand-worked example
+   (it needed three movers; a window between two runs on one close had one); 11-12 02:00 and 18:00 on
+   the phone side-by-side with four stocks (Expedia 4th: "Discretionary" was 72px in a 70px column,
+   a 2px sideways scroll - a real page defect). 11-13 02:00 and 11-16 18:00 published.
+
+### Did
+
+- **Runner reinstalls a missing CLI once before its tool check aborts** (`tests/test_data_retry.py`).
+- **Footnote test** builds its example from real entries padded to three.
+- **Side-by-side sector label**: 10.5px at <= 420px so the longest sector word fits whole, plus
+  `hyphens: auto` and `overflow-wrap: anywhere` as the guarantee (`break-word` does not lower min-
+  content). Measured on both 11-12 runs: scroll width 307 -> 305 = client width. New test case
+  `worst`: the four stocks with the longest sector/company words, whatever ranks top; it fails on the
+  old CSS on today's data.
+- Memory: `reference_desktop_app_sandboxed_appdata.md` - never install the loops' tools from a
+  desktop-app session.

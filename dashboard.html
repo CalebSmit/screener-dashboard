@@ -3124,7 +3124,15 @@
         .cmp-head:hover .cmp-t { color: var(--accent-text); }
         .cmp-t { font-size: 18px; font-weight: 600; color: var(--text-primary); letter-spacing: -.01em; }
         .cmp-n { font-size: 12.5px; color: var(--text-secondary); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cmp-sec { font-size: 11.5px; color: var(--text-muted); }
+        /* A sector is up to two long words ("Consumer Discretionary", "Communication Services"). In four
+           phone-width columns "Discretionary" is wider than its column, and the side-by-side scrolled
+           sideways by 2px whenever such a stock was fourth - which discarded the 2026-11-12 runs.
+           Hyphenate where the browser has an English dictionary (the page is lang="en"); `anywhere`
+           is the guarantee, because unlike `break-word` it lowers the label's minimum width, so the
+           column can never be forced wider than its share. */
+        .cmp-sec { font-size: 11.5px; color: var(--text-muted); hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; }
+        /* four 70px columns: at 10.5px the longest sector word ("Discretionary", 66px) fits whole */
+        @media (max-width: 420px) { .cmp-table .cmp-sec { font-size: 10.5px; } }
         .cmp-traits td, .cmp-traits th { vertical-align: top; }
         .cmp-traits .tr-chip { font-size: 11.5px; padding: 2px 8px; }
         .cmp-traits .tr-chip, .top5-card .tr-chip { border-radius: 10px; }  /* a phrase that wraps stays a tidy box */

@@ -119,3 +119,16 @@ def test_the_ascii_rule_still_holds():
         raw = p.read_bytes()
         assert raw.startswith(b"\xef\xbb\xbf"), p.name
         assert all(b < 128 for b in raw[3:]), p.name
+
+
+def test_a_missing_cli_is_reinstalled_once_before_the_tool_check_aborts():
+    """2026-11-11..16: eleven sessions aborted on "Required tool 'claude' is not on PATH" - the CLI had
+    been updated inside the desktop app's sandbox, so the real npm folder had none. The runner, which
+    is outside any sandbox, now reinstalls it once and checks again."""
+    src = _src(NIGHTLY)
+    i = src.index("if (-not (Get-Command 'claude' -ErrorAction SilentlyContinue)) {")
+    check = src.index("foreach ($tool in @('git', 'claude', 'python'))")
+    assert i < check                                              # before the check that aborts
+    block = src[i:check]
+    assert "@('install', '-g', '@anthropic-ai/claude-code@latest')" in block
+    assert "Stop-Run" not in block and block.count("Invoke-Native 'npm'") == 1     # once, never fatal itself

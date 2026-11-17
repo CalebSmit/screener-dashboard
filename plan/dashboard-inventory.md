@@ -18,6 +18,7 @@ Last batch: summaries name inputs from the stock's own weight table (`stock_metr
 `history.last` (a departed name's last rank and date) and `history.renamed` (old symbol -> the symbol
 its SEC registrant trades under now) feed search (`notInRunText`), links (`stockFromHash`,
 `renamedTo`) and the holdings card; `#sec-...` in the URL opens that section (`openSectionFromHash`).
+2026-11-16: the side-by-side's sector label is 10.5px on phones and may break a long word, so four columns never scroll sideways (`tests/test_page_fourth_pass.py`, case `worst`).
 
 **2026-10-29 (owner-run):** context panels' percents keep their sign when they round to zero
 (`cPlain`; `tests/test_every_panel_reads_clean.py` opens all ~500 sheets and fails on any

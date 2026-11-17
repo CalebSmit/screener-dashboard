@@ -376,6 +376,16 @@ try {
     if ($IsRetro) { Write-Log "RETROSPECTIVE SESSION - self-evaluation, not normal work" }
     Write-Log "Focus: $Focus"
 
+    # A missing CLI is reinstalled once before giving up (2026-11-16). From 11-11 to 11-16 eleven sessions
+    # in a row aborted here: an owner-run session had updated the CLI from inside the Claude desktop app,
+    # whose sandbox keeps its own copy of AppData\Roaming, so the update landed where only that app could
+    # see it and the real npm folder was left with no `claude` at all. This runner is outside any sandbox,
+    # so an install here is the one the scheduled tasks use. tests/test_data_retry.py.
+    if (-not (Get-Command 'claude' -ErrorAction SilentlyContinue)) {
+        Write-Log "The Claude CLI is not on PATH. Reinstalling it from npm before giving up." 'WARN'
+        $reinst = Invoke-Native 'npm' @('install', '-g', '@anthropic-ai/claude-code@latest')
+        Write-Log "    npm exited $($reinst.ExitCode)"
+    }
     foreach ($tool in @('git', 'claude', 'python')) {
         if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
             Stop-Run "Required tool '$tool' is not on PATH. Aborting."
