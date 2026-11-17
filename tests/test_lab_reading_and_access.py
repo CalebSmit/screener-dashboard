@@ -62,6 +62,10 @@ def _page(browser, width=375, touch=False, init=None):
     page = ctx.new_page()
     errors: list[str] = []
     page.on("pageerror", lambda e: errors.append(str(e)))
+    # read by _wait_for_the_web_font: a font request that failed will never be applied
+    page._font_requests_failed = []
+    page.on("requestfailed", lambda r: page._font_requests_failed.append(r.url)
+            if "fonts.g" in r.url else None)
     return ctx, page, errors
 
 
@@ -70,6 +74,43 @@ def _goto(page, scene: str) -> None:
     page.wait_for_function(f"window.LAB_STATE && window.LAB_STATE() && window.LAB_STATE().id === '{scene}'", timeout=WAIT)
     # and the opening scene fully drawn: the 153 factors' chart waits on a second part (round three)
     page.wait_for_function("!document.querySelector('#lab [aria-busy=\"true\"]')", timeout=WAIT)
+
+
+FONT_WAIT = 20000
+# "in": the stylesheet is applied, at least one face it declares has loaded and none is still on
+# its way. "failed": every face it asked for errored. "none": the page links no web font.
+# False: keep waiting. `document.fonts.status` alone will not do - it reads "loaded" while the
+# stylesheet is still a preload and declares no face at all.
+_FONT_STATE = """() => {
+    // the stylesheet, not the bare-host preconnect hint above it, which never becomes one
+    const link = document.querySelector('link[href*="fonts.googleapis.com/css"]');
+    if (!link) return 'none';
+    if (link.rel !== 'stylesheet' || !link.sheet) return false;
+    const faces = [...document.fonts];
+    if (faces.some(f => f.status === 'loading')) return false;
+    if (faces.some(f => f.status === 'loaded')) return 'in';
+    return faces.some(f => f.status === 'error') ? 'failed' : false;
+}"""
+
+
+def _wait_for_the_web_font(page) -> str:
+    """Block until the page's web font is applied, known to have failed, or FONT_WAIT has passed.
+
+    Returns which. A font that cannot arrive (no network) must not jam the publish gate, so a
+    failed request ends the wait at once and the fallback face is measured; the timeout is the
+    last resort for a request that neither answers nor fails.
+    """
+    failed = getattr(page, "_font_requests_failed", [])
+    waited = 0
+    while waited < FONT_WAIT:
+        state = page.evaluate(_FONT_STATE)
+        if state:
+            return state
+        if failed:
+            return "failed"
+        page.wait_for_timeout(100)
+        waited += 100
+    return "timeout"
 
 
 def _settled(page, js: str):
@@ -84,7 +125,18 @@ def _settled(page, js: str):
     same 89 px every time in 6 of 6 trials, with ``document.fonts.status`` already "loaded" at the
     early read in 5 of them. That 89 px is the whole of why the 02:00 run of 2026-11-09 passed
     this bound in one process and failed it under xdist, discarding a night of data.
+
+    **And the web font is waited for by name, not by patience** (2026-11-17). The loop below
+    calls a page settled once a reading has held for 1.3 s, which is a statement about how fast
+    Google Fonts answered: on the 06:00 baseline of 2026-11-17 the font landed after that, the
+    "before" figure was read in the fallback face (3,959 px) and the rest of the test in Inter
+    (4,049), and ``main`` was red with no commit touching the lab. Reproduced exactly with 1.5 s
+    of network latency - 3,959 returned, 4,049 six seconds later
+    (`research/measurements/2026-11-17-late-font-defeats-settled.py`). So first wait until the
+    font stylesheet is applied and no face it declares is still loading - or until the request
+    is known to have failed, when the fallback face *is* the settled page.
     """
+    _wait_for_the_web_font(page)
     value = page.evaluate(js)
     for i in range(40):
         page.wait_for_timeout(100)
@@ -438,6 +490,57 @@ def test_the_height_the_card_bound_reads_waits_for_the_page_and_sees_a_taller_ca
         over = _settled(page, cards)
         assert len(over) == n and sum(over) / n >= 300, (sum(over), n)
         assert errors == []
+    finally:
+        ctx.close()
+
+
+_CARD_HEIGHTS = "[...document.querySelectorAll('#o-exp ~ .cards .card')].map(c => c.offsetHeight)"
+
+
+def test_a_web_font_that_lands_late_is_waited_for_and_one_that_cannot_land_is_not(browser):
+    """`_settled` on the state that turned ``main`` red on 2026-11-17, and on its opposite.
+
+    Late: 1.5 s of latency on network requests (file:// is not throttled, so only the font
+    stylesheet and its files are slow) put the font past the helper's 1.3 s of patience, and it
+    returned the fallback-face height. Whatever it returns now must be what the page still reads
+    three seconds on. Blocked: with the font host refused the helper must say so and return at
+    once, measuring the fallback face - a font that cannot arrive may not jam the publish gate.
+
+    The premise is asserted, not assumed: the late case only counts when the font really did
+    arrive ("in"); with no network both cases take the blocked path, which is still checked.
+    """
+    import time
+
+    # late
+    ctx, page, errors = _page(browser)
+    try:
+        cdp = ctx.new_cdp_session(page)
+        cdp.send("Network.enable")
+        cdp.send("Network.emulateNetworkConditions", {
+            "offline": False, "latency": 1500, "downloadThroughput": -1, "uploadThroughput": -1})
+        _goto(page, "overview")
+        got = _settled(page, _CARD_HEIGHTS)
+        state = _wait_for_the_web_font(page)
+        assert state in ("in", "failed"), state
+        page.wait_for_timeout(3000)
+        assert page.evaluate(_CARD_HEIGHTS) == got, (state, sum(got))
+        late_state, late = state, got
+    finally:
+        ctx.close()
+
+    # blocked
+    ctx, page, errors = _page(browser)
+    try:
+        ctx.route(re.compile(r"https://fonts\.(googleapis|gstatic)\.com/"), lambda route: route.abort())
+        _goto(page, "overview")
+        t0 = time.monotonic()  # clock: an elapsed interval, the same on any day
+        assert _wait_for_the_web_font(page) == "failed"
+        assert time.monotonic() - t0 < 5  # clock: an elapsed interval, the same on any day
+        fallback = _settled(page, _CARD_HEIGHTS)
+        assert len(fallback) == len(fl.EXPERIMENTS)
+        if late_state == "in":
+            # the two faces really do differ here, or waiting for one would decide nothing
+            assert sum(late) > sum(fallback), (sum(late), sum(fallback))
     finally:
         ctx.close()
 
