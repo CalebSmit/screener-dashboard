@@ -478,3 +478,116 @@ def market_value_check(payload: dict, facts, today=None):
                              "ratio": (mc / px) / float(last["val"])})
             break
     return pd.DataFrame(rows, columns=["ticker", "implied", "filed", "ratio"])
+
+
+# --- a year-to-date figure in the source's quarterly cash-flow column (2026-11-17) ---
+#
+# WHY: `research/2026-11-17-ytd-in-a-quarterly-column.md`. A 10-Q's cash-flow statement is
+# cumulative - six months, nine months - and the source derives each quarter by subtraction. When
+# it does not subtract, its "quarterly" column carries the year-to-date figure, and the four
+# quarters the engine sums count the earlier part of the year twice. DexCom, 2026-11-03 to
+# 2026-11-17: the September-quarter column carried $1.120bn, the nine months as filed; the
+# twelve months came to $2.209bn against $1.414bn filed, on the stock ranked 8th.
+#
+# Measured that day on 2,300 quarterly columns of 497 stocks: 3 are year-to-date figures (DexCom
+# twice, General Motors once), 1 inside the four the engine sums. Nothing the source itself
+# returns can tell them apart from a seasonal quarter - "at least the earlier quarters of its
+# fiscal year" fires on 63 of 379 newest columns for that one true case, a completed fiscal year
+# reconciles for 61 of 61 and cannot see the current one, and the source's own trailing figure
+# repeats the error. The filings can, exactly: **the run's figure exceeds the filed twelve
+# months by the filed year-to-date figure one quarter before one of the last four quarter
+# ends.** That is an identity between three filed numbers and the run's, not a heuristic.
+#
+# So the two metric rows that read operating cash flow say so, with the filed figures. The score
+# is not changed - whether a filing may act on a score is an open proposal in that note, and
+# this module stays display-only: a test fails if a scoring module imports it.
+YTD_TOL = 0.005        # the gap matches the filed excess within this share of the run's figure
+YTD_MIN_SHARE = 0.02   # an excess smaller than this share of the run's figure is not worth a note
+OCF_CONCEPT = "NetCashProvidedByUsedInOperatingActivities"
+YTD_METRICS = ("fcf_yield", "accruals")     # the scored metrics that read operating cash flow
+
+
+def filed_quarter(f, end):
+    """``(quarter, year_to_date, fiscal_position, period_end)`` the filings imply for the fiscal
+    quarter ending within ten days of ``end`` - any of the first three None where they cannot say.
+    One concept's facts; each period's value as first filed."""
+    with_start = f[f["start"].notna()]
+    near = with_start[(with_start["end"] - end).abs() <= timedelta(days=10)]
+    if near.empty:
+        return None, None, None, None
+    gap = (near["end"] - end).abs()
+    at = near[near["end"] == near.loc[gap.idxmin(), "end"]]
+    span = (at["end"] - at["start"]).dt.days
+    longest = at[span == span.max()]
+    days, when = int(span.max()), at["end"].iloc[0]
+    if days < 80 or days > 380:
+        return None, None, None, when
+    ytd = first_filed(longest)
+    pos = min(4, max(1, round(days / 91.3)))
+    if pos == 1:
+        return ytd, ytd, 1, when
+    start = longest["start"].iloc[0]
+    prev = with_start[_near(with_start["end"], when - timedelta(days=91), 10) & _near(with_start["start"], start, 4)]
+    if prev.empty:
+        return None, ytd, pos, when
+    pspan = (prev["end"] - prev["start"]).dt.days
+    return ytd - first_filed(prev[pspan == pspan.max()]), ytd, pos, when
+
+
+def ytd_columns(payload: dict, facts) -> dict:
+    """``{ticker: entry}`` for every stock whose operating cash flow in the run exceeds the filed
+    twelve months by exactly the amount one year-to-date figure in a quarterly column adds."""
+    import pandas as pd
+    f_all = facts[facts["form"].isin(FORMS) & (facts["concept"] == OCF_CONCEPT)]
+    by_ticker = dict(tuple(f_all.groupby("ticker")))
+    out = {}
+    for t, det in (payload.get("stock_detail") or {}).items():
+        run, when = (det.get("inp") or {}).get("operatingCashFlow"), (det.get("asof") or {}).get("cf")
+        f = by_ticker.get(t)
+        if run is None or when is None or f is None:
+            continue
+        end = pd.Timestamp(when)
+        ttm, _ = flow_ttm(f, end)
+        if ttm is None:
+            continue
+        gap = float(run) - ttm
+        for k in range(4):                  # the four quarter ends the engine's twelve months cover
+            q, ytd, pos, q_end = filed_quarter(f, end - timedelta(days=round(91.31 * k)))
+            if q is None or ytd is None or not pos or pos < 2:
+                continue
+            excess = ytd - q
+            if abs(excess) < YTD_MIN_SHARE * abs(run) or abs(gap - excess) > YTD_TOL * abs(run):
+                continue
+            out[t] = {"run": float(run), "filed": ttm, "asof": str(end.date()), "column_end": str(q_end.date()),
+                      "months": 3 * pos, "column_ytd": ytd, "column_quarter": q,
+                      "rel": (float(run) - ttm) / max(abs(run), abs(ttm), 1.0)}
+            break
+    return out
+
+
+def _signed_usd(v) -> str:
+    return ("-" if float(v) < 0 else "") + _usd(v)
+
+
+def _long_date(iso: str) -> str:
+    import pandas as pd
+    d = pd.Timestamp(iso)
+    return f"{d:%B} {d.day}, {d.year}"
+
+
+def ytd_column_note(entry: dict) -> str:
+    """The sentence the FCF-yield and accruals rows carry for one stock, from `ytd_columns`.
+
+    Says what the figure above contains, what the company filed for the same twelve months, and
+    that the score was computed from the figure as delivered. It never says what to do about it
+    (claim `drilldown.ytd_column_note`)."""
+    months = {6: "six", 9: "nine", 12: "twelve"}[entry["months"]]
+    pct = abs(entry["rel"]) * 100
+    word = "below" if entry["filed"] < entry["run"] else "above"
+    return (f"The {_signed_usd(entry['run'])} of operating cash flow above counts part of the year twice. "
+            f"The data source's column for the quarter to {_long_date(entry['column_end'])} carries "
+            f"{_signed_usd(entry['column_ytd'])}, which is this company's filed figure for the {months} months "
+            f"to that date; the quarter alone was {_signed_usd(entry['column_quarter'])} as filed. With that "
+            f"quarter, the twelve months to {_long_date(entry['asof'])} come to {_signed_usd(entry['filed'])} "
+            f"in the company's filings, {pct:.0f}% {word} the figure used here. This score is computed "
+            f"from the source's figure as delivered and has not been adjusted.")

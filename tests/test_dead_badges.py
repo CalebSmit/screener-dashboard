@@ -214,6 +214,35 @@ def test_the_period_behind_note_is_worded_for_a_stock_on_its_annual_statement(pa
     assert "last fiscal year" not in lag
 
 
+# --------------------------------------------------------------- 1c. a year-to-date column
+def test_a_year_to_date_column_is_named_in_the_provenance_panel(page):
+    """claims.py drilldown.ytd_column_note, 2026-11-17 - rendered, not grepped.
+
+    DexCom's panel said operating cash flow "(36%) differs" and then that a difference "usually
+    means the two sources define the line differently ... rather than that either figure is
+    wrong". For this cause one figure *is* wrong, and the filings say which.
+    """
+    USUAL = "A difference usually means the two sources define the line differently"
+    only = _prov(page, {"xchk": {"ta": 0.0, "ni": 0.0, "ocf": 0.3598}, "xwhy": {"ocf": "ytd"}})
+    assert "operating cash flow (36%) differs from it" in only
+    assert "Operating cash flow counts part of the year twice." in only
+    assert "carries the company’s filed year-to-date figure instead of the quarter" in only
+    assert "free-cash-flow yield and accruals rows give the filed figures" in only
+    assert "computed from the source’s figure as delivered" in only
+    assert USUAL not in only, "the only difference has a known cause; 'usually a definition' is false here"
+
+    # a second field that differs for the usual reason keeps the usual sentence, beside this one
+    both = _prov(page, {"xchk": {"rev": 0.12, "ocf": 0.3598}, "xwhy": {"ocf": "ytd"}})
+    assert "Operating cash flow counts part of the year twice." in both and USUAL in both
+
+    # every other stock: the same gap with no known cause is still "usually a definition"
+    plain = _prov(page, {"xchk": {"ta": 0.0, "ocf": 0.3598}})
+    assert "counts part of the year twice" not in plain and USUAL in plain
+    # and the flag without a disagreement on the page says nothing (the filing check is the premise)
+    agree = _prov(page, {"xchk": {"ta": 0.0, "ocf": 0.001}, "xwhy": {"ocf": "ytd"}})
+    assert "counts part of the year twice" not in agree
+
+
 # --------------------------------------------------------------- 2. the substituted EV
 def test_a_substituted_enterprise_value_is_stated_with_both_figures(page):
     """claims.py drilldown.ev_substituted."""
