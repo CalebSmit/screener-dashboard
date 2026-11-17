@@ -21752,3 +21752,157 @@ rule; its 0.13 line said experiment 19 had no second reader, which stopped being
 4. `tests/test_header_nav_fit.py` and `tests/test_sheet_round_three.py` each have their own
    `_settled` helper. Neither failed today and I did not change them, but both pages load the same
    web font: if either flakes, the lab module's `_wait_for_the_web_font` is the fix to copy.
+
+## 2026-11-17 (13:00) - QUEUE. The eighth-ranked stock counts half a year of cash flow twice: measured, said on the page, and the correction left for a dated review
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-17_060001.log` (completed). Data loop published? yes - `logs/datarun-2026-11-17_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 130 rows across all horizons), newest 1m run date 2026-10-16 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **36 days**; a standing programme, last advanced **11 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 41d; 0.14 34d.
+
+(The roadmap half of that line is in the form this session gave it - see Did 1.)
+
+**Tests:** before **4,334 passed / 2 skipped / 0 failed** (my baseline, 4:17 in parallel; the same
+as the 06:00 session's "after", so `main` arrived green) -> after: **GATE1_AFTER**. Gate 2
+(dry-run) exits normally before and after. Gate 5, `scripts/rehearse_publish.py --changed-since
+bdd5c70`: **REHEARSAL PASSED**, published files restored byte for byte. Gates 3 and 4: see the
+last lines of this entry.
+
+**Owner queue / rotation:** this is today's second session, so I carried on from the 06:00
+entry's Next. Its item 1 needs tomorrow's 02:00 run and cannot be done today. Its **item 2** (the
+DexCom question, as research) is what this session did, end to end. Its **item 3** (0.13 has gone
+six sessions) is resolved in Did 1. `write_brief.open_proposals()` returned `[]` at the start and
+returns `[]` now. `OWNER_FOCUS.md`: nothing moved - its three open items are the owner's own
+decisions, the long-horizon universe expansion (not worked today; the morning's Next outranked it
+because it was a live defect on the public page's eighth-ranked stock) and the second-reader
+queue, which is clear. `git stash list` still shows the empty `auto-rescue 2026-10-28_060001`,
+left in place as every entry since 10-28 records. Nothing the 06:00 session decided is reversed.
+
+### Did
+
+**1. 0.13's age now measures something (the deferral-streak rule, resolved rather than deferred a
+seventh time).** The Factor Lab is one experiment every lab Friday with no end. Its "age 36 days"
+grew daily while it shipped on schedule (experiment 19 on 2026-11-06, second-read 11-07), six
+sessions in a row logged it "deferred", and the streak rule - written for a task nobody touches -
+was about to make a Tuesday session "resolve" a programme that is not late. An open item whose
+heading names its progress file (`progress in \`plan/factor-lab.md\``) now also reports the days
+since the newest dated bullet under that file's Progress, derived, with a 21-day bound (lab
+Fridays alternate with retrospectives: 14 days, plus one lost week). It reads **11 days**.
+`scripts/health_numbers.py`, 4 new tests; `CLAUDE.md` 0.13 and `prompts/nightly.md` say that a
+non-Friday session has not deferred it, and that past 21 days it is late and the streak rule
+applies. This is the "demote with the argument" branch of the rule, and the argument is the
+number: nothing about the lab's rules or its Friday changed. **Friday 2026-11-20 is a lab day.**
+
+**2. The DexCom question, measured** (`research/2026-11-17-ytd-in-a-quarterly-column.md`). The
+morning found the source's September-quarter cash-flow column carries the nine-month figure and
+asked how often that happens and whether the statement alone can show it.
+
+- **How often:** I fetched the quarterly, annual and trailing cash-flow statements for all 499
+  stocks (498 returned; one sequential pass, about 11 minutes) and compared **2,300** quarterly
+  operating-cash-flow columns with the discrete quarter and the year-to-date figure the SEC cache
+  implies. **2,283 are the filed quarter within 2%; 3 are the filed year-to-date figure** -
+  DexCom's 2026-09-30 and 2025-09-30 columns and GM's 2025-06-30 - and **one of the three is
+  inside the twelve months scored.** One stock of 497.
+- **When:** DexCom's figure matched its filing to the dollar on all 16 published pages to
+  2026-10-30 and has been wrong on all 8 since 2026-11-03. It arrived with the new 10-Q.
+- **What it is worth:** restated with the filed $1.414bn, free-cash-flow yield falls from the
+  84th to the 31st percentile of Health Care and the rank from **8 to about 20** (an estimate
+  that rebuilds both published category scores first and holds the other 498 stocks still). The
+  sharper fact: the true twelve months *fell* (a weak third quarter, $0.326bn against $0.660bn)
+  while the page showed them rising to $2.209bn and the rank improving from 7-10 to 5-8.
+- **Can the statement alone show it? No, three ways.** "The column is at least the earlier
+  quarters of its fiscal year" fires on **63 of 379** newest columns for the one true case. A
+  completed fiscal year's four quarters match the annual statement for **61 of 61** - an identity,
+  but blind to the current year, which is where a new 10-Q's error lands. And **the source's own
+  trailing-twelve-month figure repeats the error** ($2.209bn), so the source does not disagree
+  with itself. The morning's refusal to build a detector was right by a wide margin.
+- **What can:** the run's figure minus the filed twelve months equals the filed year-to-date
+  figure one quarter before one of the last four quarter ends ($2.2092bn - $1.4144bn = $0.7948bn
+  = DexCom's filed six months to June). Run over every published page since 2026-10-08:
+  **10,446 stock-days, 151 over 2% from a filing, the identity fires on 8 - DexCom's 8.**
+
+**3. The page says it, where the number is.** Display only - no input, score or rank changes.
+DexCom's free-cash-flow-yield and accruals rows carry, under "Against this company's filings":
+*"The $2.2B of operating cash flow above counts part of the year twice. The data source's column
+for the quarter to September 30, 2026 carries $1.1B, which is this company's filed figure for the
+nine months to that date; the quarter alone was $326M as filed. With that quarter, the twelve
+months to September 30, 2026 come to $1.4B in the company's filings, 36% below the figure used
+here. This score is computed from the source's figure as delivered and has not been adjusted."*
+Data Provenance says it in one sentence, and for this cause no longer follows "operating cash
+flow (36%) differs" with "a difference usually means the two sources define the line differently
+... rather than that either figure is wrong" - which on DexCom's page was false.
+
+What I saw: the committed payload predates the note, so I built a throwaway copy of the page
+(the generator's HTML, the published payload with the note attached from the SEC cache) and
+opened DexCom's sheet. At **1440 px** the note sits under the inputs and the "Rebuilt from the
+inputs above" line of the FCF-yield row, after "Worth knowing", five lines, nothing clipped. At
+**375 px** it is the same block on the accruals row, eleven lines at 297 px wide, inside the
+card, the document no wider than the viewport. The Provenance sentence I read from the rendered
+panel's text and in the rendered test, **not in a screenshot** - my screenshot of it landed on
+the collapsed section above, and I did not go back for it.
+
+**4. The correction is not built, and it is not an open proposal either.** Whether a filing may
+correct one field of one stock crosses the display-only rule that
+`research/2026-10-14-yahoo-vs-sec.md` section 3c earned by measuring a per-stock filings fallback
+and refusing it. This case is narrower (one field, where source and filings agree within 0.5%
+for 402 of 418 stocks, and where the figure is provably not the company's) but it is **one
+instance**. The note's section 7 gives three options and four conditions written before any
+further page is read (two more confirmed firings; no rank moved by the substitution where the
+figures already agree; no double jump when the source corrects itself; a `DECISIONS.md` entry and
+the 32-row rerun if built). Its status line is **WAITING until 2026-12-15**, deliberately not
+OPEN: the brief makes an OPEN proposal the next session's first job, and this one cannot be
+decided for a month. `COMING_UP` in `scripts/write_brief.py` carries the date.
+
+### Evidence / research
+
+- **A documented failure, measured five ways**, every script committed under
+  `research/measurements/2026-11-17-ytd-*`: the column-level table (with its JSON), the impact
+  estimate, the page history, the identity over 24 pages, and the rehearsed payload's diff.
+- **17 CFR 210.10-01(c)(3)** (Regulation S-X; read on Cornell LII today): "Interim statements of
+  cash flows shall be provided for the period between the end of the preceding fiscal year and
+  the end of the most recent fiscal quarter, and for the corresponding period of the preceding
+  fiscal year." The income-statement paragraph names the quarter as well; this one does not. So
+  every "quarterly" cash flow is a vendor's subtraction - which is why this error exists.
+- **Documented practice:** WRDS's `QUARTERIZE` macro, "Quarterizes Compustat YTM Cash Flow
+  Variables in FUNDQ Dataset" (header and code comments read today; the page has no prose).
+  Deloitte's cash-flow roadmap, Appendix D, was found and **not read**.
+
+### Methodology changed
+
+- **No score, weight, metric, threshold or input.** `METHODOLOGY_CHANGELOG.md` 2026-11-17 (13:00)
+  records the note as a display entry, with the evidence above and the waiting proposal.
+- The rehearsed payload differs from the published one in `srcn` and `xwhy` for DexCom and the
+  top-level `src_notes` (1); the only other difference is the 06:00 session's
+  `flags.annual_instead` key. No `RESULT_PATHS` file was edited, so the research ledger is level.
+
+### Tried and rejected
+
+- **A statement-only detector** - measured, three ways, above. Not a matter of tuning: the one
+  usable-looking rule has 62 false alarms to one hit, and the one exact rule cannot see the case.
+- **Writing the note into `cavs`**, the existing per-metric slot. `tests/test_capex_lease_note.py`
+  and `tests/test_special_item_note.py` each rebuild their `cavs` key from the filings and assert
+  the *whole dict* equal, and both are in the 02:00 publish gate. A second writer to
+  `cavs['fcf_yield']` would have failed the lease note's test on the first night DexCom's note
+  published and **discarded the run**. I had it written that way for about ten minutes; reading
+  the neighbouring test before running mine is what caught it. The note has its own key (`srcn`),
+  and the inventory says why.
+- **Marking the proposal OPEN.** See Did 4.
+- **Correcting the score today**, or withholding the field. One instance; a settled rule; a
+  second reader's decision.
+
+### Next
+
+1. **Tomorrow's 02:00 run carries two changes to read on the real page**: the 06:00 session's
+   (its Next 1 stands unchanged - the cross-check line and Amazon's "Last fiscal year used"), and
+   this one - `src_notes` should be **1**, DexCom's FCF-yield and accruals rows should carry
+   "Against this company's filings", and its Data Provenance panel
+   "Operating cash flow counts part of the year twice." Look at that panel sentence in a
+   screenshot at 1440 and 375 px; I only read its text. If `src_notes` is 0 while DexCom's
+   `xchk.ocf` is still about 0.36, the SEC cache moved or the source corrected the column -
+   `python research/measurements/2026-11-17-ytd-signature-history.py` says which.
+2. **Friday 2026-11-20 is the lab's day** (ISO week 47, not a retrospective): the next experiment
+   in `plan/factor-lab.md`'s queue is `EarningsSurprise` on Open Source Asset Pricing, behind the
+   Revisions category's surprise points - and it needs a dated Progress bullet when it ships,
+   because that bullet is now what the health line reads.
+3. The 14 columns that are neither the filed quarter nor the year-to-date figure (note section
+   8; DTE's 2025-09-30 column is $0.133bn against $0.632bn filed and is inside its twelve months)
+   are unexplained. A Monday could take them; the cross-check counts them every morning meanwhile.
+4. The DexCom Monday question the 06:00 entry queued (its Next 2) is **done** - do not start it
+   again.
