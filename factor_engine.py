@@ -1384,8 +1384,14 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["interestExpense"]    = _stmt_val_ltm(q_fins, "Interest Expense Non Operating", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
 
         # Fallback: if quarterly IS produced all NaN, try annual for everything
+        # Which statements had quarters on file that could not be made into twelve months, so
+        # that the annual statement was used in their place (2026-11-17). Display only: it
+        # dates the figures truthfully and lets the stock's page say what happened.
+        _annual_instead = []
         if all(np.isnan(rec.get(k, np.nan)) for k in ["totalRevenue", "netIncome", "ebit"]):
             rec["_data_source"] = "annual"
+            if q_fins is not None and not q_fins.empty:
+                _annual_instead.append("income statement")
             rec["totalRevenue"]           = _stmt_val(fins, "Total Revenue")
             rec["totalRevenue_prior"]     = _stmt_val(fins, "Total Revenue", 1)
             rec["grossProfit"]            = _stmt_val(fins, "Gross Profit")
@@ -1537,7 +1543,11 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                     break
 
         # Fallback: if quarterly CF produced all NaN, try annual
+        _cf_from_annual = False
         if all(np.isnan(rec.get(k, np.nan)) for k in ["operatingCashFlow", "capex"]):
+            _cf_from_annual = True
+            if q_cf is not None and not q_cf.empty:
+                _annual_instead.append("cash-flow statement")
             rec["operatingCashFlow"]      = _stmt_val(cf, "Operating Cash Flow")
             if np.isnan(rec["operatingCashFlow"]):
                 rec["operatingCashFlow"]  = _stmt_val(cf, "Total Cash From Operating")
@@ -1622,11 +1632,23 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["_beneish_ocf"]           = _stmt_val(cf, "Total Cash From Operating")
 
         # ---- data freshness: record most recent filing date ----
+        # **The date of the statement the figures were read from, not of the newest one on
+        # file** (2026-11-17). Until then a stock whose quarterly statement could not be summed
+        # took its flows from the annual statement and its date from the quarterly one: on the
+        # 2026-11-17 run 15-17 stocks - Amazon, Boeing, Bank of America - carried fiscal-2025
+        # income and cash flow dated 2026-09-30, so the page stated a period the figures did
+        # not cover, the staleness check below read 48 days for figures 321 days old, and the
+        # filing cross-check compared a fiscal year with a different twelve months
+        # (research/measurements/2026-11-17-annual-figures-under-a-quarterly-date.py).
+        rec["_annual_instead"] = " and ".join(_annual_instead) if _annual_instead else None
+        _is_from_annual = rec.get("_data_source") == "annual"
         try:
             for stmt_name, stmt_obj in [
-                ("financials", q_fins if (q_fins is not None and not q_fins.empty) else fins),
+                ("financials", q_fins if (q_fins is not None and not q_fins.empty
+                                          and not _is_from_annual) else fins),
                 ("balance_sheet", _bs_src),
-                ("cashflow", q_cf if (q_cf is not None and not q_cf.empty) else cf),
+                ("cashflow", q_cf if (q_cf is not None and not q_cf.empty
+                                      and not _cf_from_annual) else cf),
             ]:
                 if stmt_obj is not None and not stmt_obj.empty:
                     _pc = _populated_columns(stmt_obj)

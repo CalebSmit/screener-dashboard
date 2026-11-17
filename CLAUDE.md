@@ -842,8 +842,8 @@ that is not a retrospective - one finished experiment a session. **Nineteen expe
 Asset Pricing's `MS` groups) and corrected the lab's own claim that it could not be rerun on free
 data. Every new experiment needs a **second reader** before it counts as checked
 (`OWNER_FOCUS.md`, 2026-10-20 item 2) - experiment 18 (analyst revisions) had its second reading
-on 2026-11-02 (`research/2026-11-02-lab-revisions.md`, "Second reading"); **19 has not been
-second-read.**
+on 2026-11-02 (`research/2026-11-02-lab-revisions.md`, "Second reading"), and **19 on 2026-11-07**
+(`research/2026-11-06-lab-mohanram.md` section 8; it stands). The next experiment built needs its own.
 
 **The overview's phone budget is per row since 2026-11-06, and the measurement waits for the
 page to settle.** After-the-paper is one row per experiment, so the old fixed 6,000 px ceiling
@@ -921,12 +921,22 @@ loop's health check as a **note**: per-field counts every morning, and an `ATTEN
 surfaced in the brief, when any field disagrees by over 10% for more than **25** stocks
 (pre-registered; that day's counts were 0-13). Market value (market cap / price) against the filed
 share count has its own line of **60** (22 over 10% on 2026-10-14: splits after the filed quarter,
-partnership units, filers' tagging errors). **Promote it to a gate only after a few weeks of
-counts show its normal range**, and then only for the fields that sat near zero. **The rule is
-pre-registered** (2026-11-02, `research/2026-10-14-yahoo-vs-sec.md` section 5: 11 runs, total
-assets 0, equity 2, operating cash flow 1-3): on the first data run on or after **2026-11-16**,
-re-run that table; if those three stayed at or below 5 on every run, they - and only they - become
-a gate at the existing bar of 25. Each stock's Data
+partnership units, filers' tagging errors). **The pre-registered re-run of 2026-11-16 was NOT met** (2026-11-17,
+`research/2026-10-14-yahoo-vs-sec.md` section 6): total assets stayed at 0 and equity at 1-2 on all
+18 runs, but operating cash flow went 1, 3, **8, 9, 10** from 2026-11-03, so nothing was promoted.
+The cause was ours: **15-17 stocks whose quarterly statement lacks a quarter are scored on the
+annual statement, and their figures were dated by the newest quarter**, so the check compared
+fiscal 2025 with a different twelve months (and the "period behind the filings" note read 0 for
+exactly the stocks it was built for). **A statement's date is now the period end of the statement
+the figures were read from** (`_annual_instead`, `tests/test_annual_instead.py`, claim
+`drilldown.annual_instead`) - keep it that way. **Re-registered:** on the first data run on or
+after **2026-12-15**, re-run `research/measurements/2026-11-17-filing-crosscheck-range.py` over the
+runs from 2026-11-18; the same three fields become a gate at 25 only if each stayed at or below 5
+on every one. **Two things it left open, neither to be acted on without research:** those stocks'
+figures are up to three quarters old (`research/2026-10-29-ttm-fills-the-empty-quarter.md` section
+5.5 holds the narrow pre-registered alternative), and **DexCom's 2026-09-30 quarterly cash-flow
+column holds a nine-month cumulative figure** (four-quarter sum $2.209bn against $1.414bn filed,
+rank 8) - a detector needs its false-positive rate measured first. Each stock's Data
 Provenance panel shows the same check (`stock_detail[t].xchk`,
 `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`): which inputs agree
 within 2% with the filing. **Display-only** - a test fails if `xchk` or `sec_crosscheck` appears

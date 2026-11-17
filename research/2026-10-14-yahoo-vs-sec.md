@@ -244,6 +244,63 @@ other source-outage rule). Net income and revenue stay notes: their counts move 
 season and with real definitional differences (`DECISIONS.md` 0.14). Market value stays a note at
 60. If any of the three exceeds 5 before then, the rule is not met and the note says why.
 
+## 6. The pre-registered re-run (2026-11-17, 06:00 session): the rule is NOT met, and the reason is ours
+
+Section 5 committed to re-running its table on the first data run on or after 2026-11-16 and to
+one rule. Re-run from every `logs/datarun-*.log` still on disk that carries the check's line
+(`research/measurements/2026-11-17-filing-crosscheck-range.py`; 18 runs, 2026-10-30..11-17 - the
+logs before 10-30 have been pruned, so the first eight of section 5's eleven runs are represented
+by section 5's own table), stocks over 10% from the filing:
+
+| Field | Runs | Min | Median | Max |
+|---|---|---|---|---|
+| total assets | 18 | 0 | 0 | 0 |
+| equity | 18 | 1 | 1.5 | 2 |
+| operating cash flow | 18 | 1 | 10 | **10** |
+| net income | 18 | 6 | 17 | 18 |
+| revenue | 18 | 8 | 11 | 12 |
+| market value / price vs filed shares | 18 | 0 | 19 | 22 |
+
+(Market value's minimum of 0 is the 2026-11-09 run, when the check compared nothing -
+`CLAUDE.md` settled row "gates".)
+
+**Verdict, applied as written:** total assets (max 0) and equity (max 2) stayed at or below 5 on
+every run. **Operating cash flow did not**: 1, 3, then **8 on 2026-11-03, 9 through 11-09 and 10
+on every run since 11-10**. The rule required all three, so **nothing is promoted to a gate.**
+
+**Why it moved - measured, not inferred.** For nine of today's ten the source's quarterly
+cash-flow statement carries 2026-09-30, 2026-03-31, 2025-12-31, 2025-09-30, 2025-06-30 - **the
+June 2026 quarter is absent** (`research/measurements/2026-11-17-ocf-off-the-filing.py`, a live
+fetch of all ten). Four quarters cannot be summed; the fiscal year cannot be rolled forward,
+because the stub after it is not consecutive; no three adjacent quarters exist to scale; so the
+fetch reads the annual statement, correctly. But it dated the figure by the quarterly statement's
+newest column, so this check compared **fiscal 2025 with the filed twelve months to 2026-09-30**.
+The disagreement is real - the page's figure for those stocks is three quarters old - but it is
+not the source disagreeing with the filing about the same period, which is what this check
+exists to count. Across the run: 15 of 418 stocks on operating cash flow and 17 of 427 on net
+income (`research/measurements/2026-11-17-annual-figures-under-a-quarterly-date.py`).
+
+The tenth is a different thing and a genuine source error: **DexCom's quarterly column for
+2026-09-30 holds $1.120bn, which is the nine months to that date** (its 2025-09-30 column holds
+$1.147bn likewise). Summed as a quarter it gives $2.209bn; replacing it with the quarter it
+implies ($1.120bn - $0.526bn - $0.269bn = $0.325bn) gives **$1.414bn, the filed figure to the
+dollar**. DexCom ranked 8th on the 2026-11-17 run. Not acted on today: a detector for a
+cumulative figure in a quarterly column needs its false-positive rate measured across the
+universe first, and scoring may not read a filing to find out.
+
+**What shipped the same morning:** the statement dates are now those of the statement the
+figures were read from, and the stock's page says when that is the annual one
+(`METHODOLOGY_CHANGELOG.md` 2026-11-17). This check reads `asof`, so from the next run it compares
+those stocks' fiscal year with the same fiscal year.
+
+**The promotion question, re-registered before any post-fix count exists:** on the first data run
+on or after **2026-12-15** (four further weekly cache refreshes), re-run the script above over the
+runs from **2026-11-18** onward only. If total assets, equity and operating cash flow have each
+stayed at or below **5** on every one of those runs, those three - and only those three - become a
+gate at the existing bar of 25. The bar, the fields and the window are section 5's; only the start
+date moves, to the first run made with the corrected dates. If operating cash flow is still above
+5, say which stocks and why before proposing anything else.
+
 ## Sources
 
 - SEC EDGAR `companyfacts` for each company, cached 2026-10-09 (`sec_fundamentals.py`).
