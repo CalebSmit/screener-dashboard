@@ -172,7 +172,13 @@ def test_the_generated_script_still_parses(tmp_path):
     ship gate stays green. Checked with a real parser when one is available."""
     node = _node_or_skip()
     html = g.generate_html()
-    blocks = re.findall(r"<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>", html)
+    tagged = re.findall(r"<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)</script>", html)
+    # A data block (the JSON-LD description, 2026-11-17) is not script: it must parse as JSON, and
+    # handing it to node would fail on valid input.
+    data = [b for attrs, b in tagged if "application/ld+json" in attrs]
+    for block in data:
+        json.loads(block)
+    blocks = [b for attrs, b in tagged if "application/ld+json" not in attrs]
     assert blocks, "the page has no inline script at all"
     for i, block in enumerate(blocks):
         path = tmp_path / f"block{i}.js"
