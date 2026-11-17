@@ -24,6 +24,17 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-11-17 - Three decisions only you can make, from the SEO article.** You asked a session to
+  take what it could from a search-and-discovery playbook. What fit shipped that night (the live-site
+  check after every publish, canonical URLs, a sitemap, `llms.txt`, honest structured data); the full
+  triage, including what does not fit a free teaching tool and why, is `plan/site-discovery.md`.
+  Left for you: **(1) Google Search Console** - verify the site with your Google account (HTML-tag
+  method; send a session the tag and it goes into the page) and submit `sitemap.xml`; nothing about
+  search can be measured until this exists. **(2) Who is behind it** - a name and one paragraph on an
+  About section would let a reader see who built the tool; your name, your call. **(3) Analytics** -
+  there are none, which keeps the site free of trackers; say if you want any. No session will add a
+  byline or a tracker without you.
+
 - **2026-10-28 - Beyond the S&P 500: add NASDAQ and NYSE stocks, phased in.** Owner, in chat:
   *"right now we only have the S&P 500 stocks, and that's good. There's been some really good
   testing done on these stocks. But over time, I would really like to get the NASDAQ and the New

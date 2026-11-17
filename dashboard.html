@@ -16,6 +16,11 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
+    <!-- One address for one page (2026-11-17): Pages serves this file as /, /index.html and
+         /dashboard.html, three URLs a search engine would otherwise treat as duplicates. The
+         description below repeats only what the page itself says (tests/test_site_discovery.py). -->
+    <link rel="canonical" href="https://calebsmit.github.io/screener-dashboard/">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Multi-Factor Screener", "url": "https://calebsmit.github.io/screener-dashboard/", "description": "Every S&P 500 stock scored on eight factors against its own sector, with the numbers behind every score. A research and teaching tool, not investment advice.", "applicationCategory": "FinanceApplication"}</script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
     <!-- A phone's home screen (round three, 2026-10-27): the mark as a PNG, which iOS needs, and a
          manifest so "Add to Home Screen" opens the site full-screen under its own name. No service

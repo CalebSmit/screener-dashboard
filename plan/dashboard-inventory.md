@@ -211,6 +211,10 @@ Presentation and platform only (payload byte-identical). What a later session mu
   `/screener-dashboard/`, rewritten to `/` elsewhere), `manifest.webmanifest`, `icon-180.png` /
   `icon-192.png` / `icon-512.png` / `icon-maskable-512.png` (made by `python scripts/make_icons.py`). No
   service worker, deliberately.
+- **Discovery files (2026-11-17, `plan/site-discovery.md`):** `sitemap.xml` and `llms.txt` (hand-written, root);
+  every page carries `<link rel="canonical">` equal to its `og:url` (`/` for both `index.html` and
+  `dashboard.html`), the dashboard one `WebApplication` JSON-LD block whose description is the meta
+  description, and the research page's `<title>` matches its `<h1>`. `tests/test_site_discovery.py`.
 
 ## The page, round two, 2026-10-27 (owner-run) - `plan/ui-elevation.md` "Round two", `tests/test_page_round_two.py`
 

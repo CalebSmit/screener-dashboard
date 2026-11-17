@@ -21538,3 +21538,42 @@ pm` as `node_modules` alone. So every code session since aborted at its tool che
   old CSS on today's data.
 - Memory: `reference_desktop_app_sandboxed_appdata.md` - never install the loops' tools from a
   desktop-app session.
+
+## 2026-11-17 (owner-run, after midnight) - an SEO playbook, triaged: the publish is now checked on the live site
+
+**Health (rule 8, all five):** last code session ran? **no** - 2026-11-16 13:00 aborted on the missing
+CLI, fixed that evening (the next real test is 06:00 today). Data loop published? **yes** -
+`logs/datarun-2026-11-16_180000.log`, the 18:00 retry, live site confirmed serving
+`2026-11-16T18:00:03` by the new check. Evidence base at `1m`: **51 rows, newest 2026-10-14 (34 days
+ago, bound 40), 5 effective observations**. Priority 0: `allow_auto_apply` **false**. Top open roadmap
+item: **0.13, The Factor Lab** (opened 2026-10-12, age **36 days**).
+
+The owner pasted a long tiered SEO/discovery playbook and asked to take what applies. Audited the
+live site first: most of the technical tier was already here (descriptions, sharing cards, 404,
+cross-links, footers). The triage, with what does not fit and why, is `plan/site-discovery.md`.
+
+### Shipped
+
+1. **`scripts/check_live_site.py`, called by `data-run.ps1` right after the push.** The loop said
+   "live dashboard refreshed" because `git push` exited 0; a failed Pages deploy afterwards was
+   invisible to every log (the owner's GitHub failure emails in early November). It range-requests
+   the live payload's first 400 bytes (cache-busted - Pages' CDN holds `max-age=600`), compares the
+   `run_timestamp` with the one pushed, waits up to 20 min, prints one line and always exits 0.
+   A stale site logs `ATTENTION - LIVE SITE NOT UPDATED` at WARN, which `write_brief.outcome` already
+   surfaces. Verified against the real site: serving the 18:00 run. `tests/test_live_site_check.py`
+   (9, fake clock, no network).
+2. **Canonical URLs** on every page (`/` for both `index.html` and `dashboard.html`), equal to `og:url`;
+   **`sitemap.xml`**; **`llms.txt`** (the page shows a JS-less reader ~8 KB of frame and no ticker -
+   measured - so this points readers at the methodology and payload); one **`WebApplication` JSON-LD**
+   block that repeats the meta description and claims nothing the page does not say; the research
+   page's `<title>` now matches its `<h1>`. `tests/test_site_discovery.py` (8). Pages rebuilt with
+   `scripts/rebuild_page.py` (payload byte-identical) and `python v2_experiments.py report`.
+3. **Not done, on purpose:** `robots.txt` (a project site's is never read - the host root's returns
+   404, so all is crawlable), outreach of any kind (publishing in the owner's name), pricing/trial/
+   competitor pages (nothing is sold), trend-chasing (rule 4). Owner decisions queued in
+   `OWNER_FOCUS.md`: Search Console, a byline, analytics.
+
+### Next
+
+- The 06:00 session today is the first since the CLI fix; its log is the proof.
+- After the next real data run, read the `Live site:` line in `logs/datarun-*.log`.

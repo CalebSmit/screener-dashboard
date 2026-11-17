@@ -665,7 +665,18 @@ try {
     $push = Invoke-Native 'git' @('push', 'origin', "${dataCommit}:refs/heads/main")
     Write-NativeOutput $push
     if ($push.ExitCode -ne 0) { Stop-Run "Push to main failed. Local main is ahead." 2 }
-    Write-Log "Published to main - live dashboard refreshed."
+    Write-Log "Published to main - GitHub Pages deploys it from here."
+
+    # --- Did the live site actually pick it up? (2026-11-17) ------------------
+    # A push is not a published page: Pages builds and deploys afterwards, and until this check
+    # the loop said "live dashboard refreshed" on the strength of git exiting 0. This reads the
+    # first bytes of the live payload and compares its run_timestamp with the one just pushed,
+    # for up to 20 minutes. One line, always exits 0 - a slow or failed deploy is said in the
+    # brief ("ATTENTION - LIVE SITE"), never a reason to discard the run. scripts/check_live_site.py.
+    $live = Invoke-Native 'python' @('scripts/check_live_site.py')
+    $liveLine = $live.Text.Trim()
+    if ($liveLine -match 'ATTENTION - LIVE SITE') { Write-Log $liveLine 'WARN' }
+    elseif ($liveLine) { Write-Log $liveLine }
 
     # Keep the object store packed. This loop commits a ~5 MB payload every
     # weekday, and a loose object carries no delta - measured 2026-09-18, the

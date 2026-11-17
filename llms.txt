@@ -1,0 +1,26 @@
+# Multi-Factor Screener
+
+> Every company in the S&P 500 scored on eight categories - valuation, quality, growth, momentum, risk, analyst revisions, size and investment - each against its own sector, ranked, with the arithmetic behind every number on the page. A research and teaching tool for students and investment clubs. It is not investment advice, and it does not tell anyone to buy or sell.
+
+The ranking is rebuilt from the latest market close on weekday mornings. The dashboard draws its rankings in the browser from a data file, so a reader that does not run JavaScript gets the page's frame and none of the stocks: the methodology and the data file below are the readable versions.
+
+## Pages
+
+- [Rankings dashboard](https://calebsmit.github.io/screener-dashboard/): the ranked S&P 500, each stock's category scores, the inputs behind each score, and the caveats that go with them.
+- [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html): the published studies the screener's categories rest on, rerun on public data, with how far each rerun lands from its paper.
+- [Does the ranking predict returns?](https://calebsmit.github.io/screener-dashboard/research.html): the screener's weighting and pre-registered alternatives tested on 2012-2026 S&P 500 history rebuilt from the filings published at the time.
+
+## Methodology
+
+- [How the screener works](https://calebsmit.github.io/screener-dashboard/SCREENER_OVERVIEW.md): every category, metric, weight and limitation, regenerated with each run.
+- [Methodology changelog](https://calebsmit.github.io/screener-dashboard/METHODOLOGY_CHANGELOG.md): every change to how stocks are scored, with the evidence for it and the date.
+- [README](https://calebsmit.github.io/screener-dashboard/README.md): what the project is and how it is built.
+
+## Data
+
+- [dashboard_data.js](https://calebsmit.github.io/screener-dashboard/dashboard_data.js): the published ranking as one JavaScript assignment, `window.SCREENER_DATA = {...}` (several megabytes). `kpis.run_timestamp` says which run it is; `table_data` holds every ranked stock with its rank, composite and category scores.
+
+## Optional
+
+- [Research notes](https://github.com/CalebSmit/screener-dashboard/tree/main/research): the dated notes behind each methodology decision, with citations.
+- [Source code](https://github.com/CalebSmit/screener-dashboard): the scoring engine, the dashboard generator and their tests.

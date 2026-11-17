@@ -571,7 +571,8 @@ outcome.
   `scripts/rerun_experiments.py` (resumable engine reruns; `--jobs 4` runs them in parallel worker
   processes, rows identical to serial and appended in serial order - all 32 in ~18 min under load
   on 2026-10-26 against ~47-63 serial, still longer than one 600 s call)
-- `scripts/data-run.ps1` (2:00 AM data loop); `scripts/write_signals.py` (the tradable
+- `scripts/data-run.ps1` (2:00 AM data loop; after the push `scripts/check_live_site.py` confirms the live
+  site serves the run - a note, never a gate, `ATTENTION - LIVE SITE` in the brief otherwise, 2026-11-17); `scripts/write_signals.py` (the tradable
   ranking, after every gate) and `scripts/archive_run.py` (the published run's inputs,
   outside OneDrive, never pruned)
 - `NIGHTLY_LOG.md`, `research/`, `ROLLBACK.md`, `logs/` (gitignored)

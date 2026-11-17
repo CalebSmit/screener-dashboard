@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The site's three pages, at their canonical addresses (2026-11-17; tests/test_site_discovery.py
+     keeps this list equal to the pages' own <link rel="canonical">). No <lastmod>: the dashboard
+     changes every weekday and a date that is not kept true is ignored by search engines anyway.
+     A project site's sitemap is found only if it is submitted in Google Search Console - a
+     robots.txt here would sit at /screener-dashboard/robots.txt, where no crawler looks. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://calebsmit.github.io/screener-dashboard/</loc></url>
+  <url><loc>https://calebsmit.github.io/screener-dashboard/lab.html</loc></url>
+  <url><loc>https://calebsmit.github.io/screener-dashboard/research.html</loc></url>
+</urlset>
