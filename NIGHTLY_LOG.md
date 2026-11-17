@@ -21760,10 +21760,18 @@ rule; its 0.13 line said experiment 19 had no second reader, which stopped being
 (The roadmap half of that line is in the form this session gave it - see Did 1.)
 
 **Tests:** before **4,334 passed / 2 skipped / 0 failed** (my baseline, 4:17 in parallel; the same
-as the 06:00 session's "after", so `main` arrived green) -> after: **GATE1_AFTER**. Gate 2
-(dry-run) exits normally before and after. Gate 5, `scripts/rehearse_publish.py --changed-since
-bdd5c70`: **REHEARSAL PASSED**, published files restored byte for byte. Gates 3 and 4: see the
-last lines of this entry.
+as the 06:00 session's "after", so `main` arrived green) -> after: **4,352 passed / 3 skipped /
+0 failed** in 4:01 (18 new passing tests; the one new skip is
+`tests/test_ytd_column_note.py::test_the_published_payload_agrees_with_the_filings`, which skips
+loudly until a payload built with the note is published - tomorrow's). Gate 2 (dry-run) exits
+normally before and after. Gate 3: the three payload files are byte-identical to the base commit
+(`git diff --stat bdd5c70` on them is empty), `index.html` is 944 KB and is what the generator
+builds (`tests/test_rebuild_page.py`); the tool guard refuses `node` in this session, so the
+parse itself is `tests/test_payload_parse_gate.py`'s (22 passed with the rebuild module) and the
+runner's. Gate 4: `git status --porcelain` empty. Gate 5, `scripts/rehearse_publish.py
+--changed-since bdd5c70`: **REHEARSAL PASSED**, published files restored byte for byte. The
+suite ran on the tree before this paragraph's numbers were filled in; nothing but this file
+changed after it.
 
 **Owner queue / rotation:** this is today's second session, so I carried on from the 06:00
 entry's Next. Its item 1 needs tomorrow's 02:00 run and cannot be done today. Its **item 2** (the
