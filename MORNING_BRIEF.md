@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 17 November 2026, 06:58
+# Morning Brief - Tuesday 17 November 2026, 14:01
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -23,15 +23,16 @@ history is in `NIGHTLY_LOG.md`.
 | Code-session login | 2026-12-03 09:01 (16 days) |
 | Context coverage | options usable 491/499 (8 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
-## Things that needed attention
-
-- BASELINE main was RED on arrival: 1 pre-existing failure(s). The session did not cause these:
-- tests/test_lab_reading_and_access.py::test_the_height_the_card_bound_reads_waits_for_the_page_and_sees_a_taller_card
-- BASELINE fixing a red main outranks the day's focus - gate 1 below will refuse the merge until it is green.
-- full output: C:\Users\smitc\OneDrive\Documents\Screener\logs\nightly-2026-11-17_060001.baseline.txt
-
 ## What changed in the repo
 
+- `e68a574 NIGHTLY_LOG 2026-11-17 (13:00): the gates' results`
+- `7f6a8fb NIGHTLY_LOG 2026-11-17 (13:00): the year-to-date column, the health line, what is next`
+- `260a77b Research note, changelog, inventory, CLAUDE.md 0.14: the year-to-date column, measured; the proposal waits until 2026-12-15`
+- `c4e1e48 wip: the note seen on DexCom's sheet; nine mutations of its claim, nine caught`
+- `14663f2 wip: the rows that read operating cash flow say when the source counted part of a year twice`
+- `c64629a wip: measurement - year-to-date figures in the source's quarterly cash-flow columns`
+- `fea7cca Health line: a standing programme reports days since it last advanced, not only its age`
+- `bdd5c70 brief: code session 2026-11-17`
 - `c5b5766 NIGHTLY_LOG 2026-11-17: the gates' results`
 - `01d8ed8 Research engine: rerun all 32 rows on the new code hash (no statistic changed)`
 - `65af5f6 NIGHTLY_LOG 2026-11-17, CLAUDE.md 0.14 and 0.13, the drilldown spot check`
@@ -39,62 +40,54 @@ history is in `NIGHTLY_LOG.md`.
 - `1b68dac Figures read from the annual statement are dated by it, and the stock's page says so`
 - `47991e4 test: the lab's settle helper waits for the web font by name, not for 1.3 s of quiet`
 - `77c95f8 brief: data run 2026-11-17`
-- `5255a8b data: screener run 2026-11-17 - 499 scored, top: HST EXPE VLO MU SNDK`
-- `1a24c11 test: the inline-script parse check reads a JSON-LD block as JSON, not JavaScript`
-- `a2da290 Check the publish on the live site; canonical URLs, sitemap, llms.txt`
-- `310d57d test: the CLI-login check's clock is pinned to its fixture's day`
-- `1449e97 Unstick the loops: reinstall a missing CLI, and fix the two tests behind five refused runs`
-- `3bfa1c7 test: the What-changed footnote's hand-worked example no longer needs three movers in the day's data`
-- `3e4c7b7 brief: data run 2026-11-16`
-- `81baea3 data: screener run 2026-11-16 - 499 scored, top: HST EXPE MU VLO SNDK`
 
 ## The session's own account
 
-> 2026-11-17 - PRODUCT, THROUGH THE NUMBERS. Sixteen stocks were scored on last year's statements and the page dated them last quarter
+> 2026-11-17 (13:00) - QUEUE. The eighth-ranked stock counts half a year of cash flow twice: measured, said on the page, and the correction left for a dated review
 > 
-> **Health (rule 8, all five):** last code session ran? **failed** - `logs/nightly-2026-11-16_130000-midday.log` (failed: Required tool 'claude' is not on PATH. Aborting.). Data loop published? yes - `logs/datarun-2026-11-17_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 130 rows across all horizons), newest 1m run date 2026-10-16 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **36 days**); also open: 0.10 41d; 0.14 34d.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-17_060001.log` (completed). Data loop published? yes - `logs/datarun-2026-11-17_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 130 rows across all horizons), newest 1m run date 2026-10-16 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **36 days**; a standing programme, last advanced **11 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 41d; 0.14 34d.
 > 
-> This is the first code session to run since 2026-11-10: the eleven between aborted on the missing
-> CLI (fixed by the owner-run session on 11-16). The runner started it normally.
+> (The roadmap half of that line is in the form this session gave it - see Did 1.)
 > 
-> **Tests:** before **4,319 passed / 2 skipped / 1 FAILED** (the runner's baseline,
-> `logs/nightly-2026-11-17_060001.baseline.txt`) -> after: **4,334 passed / 2 skipped / 0 failed** (15 new tests). Gate 2 (dry-run) exits normally; gate 3: the three payload files are byte-identical to the base commit and `index.html` is 943 KB (the tool guard refuses `node` in this session, so the parse itself is the runner's and `tests/test_payload_parse_gate.py`'s); gate 4 clean; gate 5 (`scripts/rehearse_publish.py --changed-since 77c95f8`) **PASSED**, published files restored byte for byte.
+> **Tests:** before **4,334 passed / 2 skipped / 0 failed** (my baseline, 4:17 in parallel; the same
+> as the 06:00 session's "after", so `main` arrived green) -> after: **4,352 passed / 3 skipped /
+> 0 failed** in 4:01 (18 new passing tests; the one new skip is
+> `tests/test_ytd_column_note.py::test_the_published_payload_agrees_with_the_filings`, which skips
+> loudly until a payload built with the note is published - tomorrow's). Gate 2 (dry-run) exits
+> normally before and after. Gate 3: the three payload files are byte-identical to the base commit
+> (`git diff --stat bdd5c70` on them is empty), `index.html` is 944 KB and is what the generator
+> builds (`tests/test_rebuild_page.py`); the tool guard refuses `node` in this session, so the
+> parse itself is `tests/test_payload_parse_gate.py`'s (22 passed with the rebuild module) and the
+> runner's. Gate 4: `git status --porcelain` empty. Gate 5, `scripts/rehearse_publish.py
+> --changed-since bdd5c70`: **REHEARSAL PASSED**, published files restored byte for byte. The
+> suite ran on the tree before this paragraph's numbers were filled in; nothing but this file
+> changed after it.
 > 
-> **Owner queue / rotation:** `write_brief.open_proposals()` returns `[]`. `OWNER_FOCUS.md`'s three
-> open items are the owner's own decisions (Search Console, a byline, analytics), the long-horizon
-> universe expansion, and the 2026-10-20 second-reader queue, whose sub-items are all clear - none
-> needed a session today. `git stash list` still shows `auto-rescue 2026-10-28_060001`, empty and
-> left in place as every entry since 10-28 records. **`main` arrived red**, which outranks the focus,
-> so that came first; then two dated commitments in the brief's "Coming up", both past due; and the
-> second of them turned into the product day's actual finding. **0.13 (the Factor Lab) was not
-> worked** - a sixth consecutive session. The deferral-streak rule excuses a session that inherits a
-> broken state, which this one did, but I am not going to lean on that: see Next.
+> **Owner queue / rotation:** this is today's second session, so I carried on from the 06:00
+> entry's Next. Its item 1 needs tomorrow's 02:00 run and cannot be done today. Its **item 2** (the
+> DexCom question, as research) is what this session did, end to end. Its **item 3** (0.13 has gone
+> six sessions) is resolved in Did 1. `write_brief.open_proposals()` returned `[]` at the start and
+> returns `[]` now. `OWNER_FOCUS.md`: nothing moved - its three open items are the owner's own
+> decisions, the long-horizon universe expansion (not worked today; the morning's Next outranked it
+> because it was a live defect on the public page's eighth-ranked stock) and the second-reader
+> queue, which is clear. `git stash list` still shows the empty `auto-rescue 2026-10-28_060001`,
+> left in place as every entry since 10-28 records. Nothing the 06:00 session decided is reversed.
 > 
 > ### Did
 > 
-> **1. The red baseline: a web font that answered late.**
+> **1. 0.13's age now measures something (the deferral-streak rule, resolved rather than deferred a
+> seventh time).** The Factor Lab is one experiment every lab Friday with no end. Its "age 36 days"
+> grew daily while it shipped on schedule (experiment 19 on 2026-11-06, second-read 11-07), six
+> sessions in a row logged it "deferred", and the streak rule - written for a task nobody touches -
+> was about to make a Tuesday session "resolve" a programme that is not late. An open item whose
+> heading names its progress file (`progress in \`plan/factor-lab.md\``) now also reports the days
+> since the newest dated bullet under that file's Progress, derived, with a 21-day bound (lab
+> Fridays alternate with retrospectives: 14 days, plus one lost week). It reads **11 days**.
+> `scripts/health_numbers.py`, 4 new tests; `CLAUDE.md` 0.13 and `prompts/nightly.md` say that a
+> non-Friday session has not deferred it, and that past 21 days it is late and the streak rule
+> applies. This is the "demote with the argument" branch of the rule, and the argument is the
+> number: nothing about the lab's rules or its Friday changed. **Friday 2026-11-20 is a lab day.**
 > 
-> `tests/test_lab_reading_and_access.py::test_the_height_the_card_bound_reads_waits_for_the_page_and_sees_a_taller_card`
-> failed with `sum(settled) == 4549` against `sum(before) + 500 == 4459`. The 90 px between them is
-> the figure that module already records for Inter replacing the fallback face on the lab's cards.
-> `_settled` called a page settled once a reading had held for 1.3 s - which is a statement about
-> how fast Google Fonts answered. That morning it answered later, so `before` was read in the
-> fallback face (3,959 px) and everything after it in Inter (4,049).
-> 
-> Reproduced exactly rather than argued: with 1.5 s of latency on network requests (file:// is not
-> throttled, so only the font is late) the old helper returns **3,959 and the page reads 4,049 six
-> seconds later**; at 0 and 0.5 s it returns 4,049
-> (`research/measurements/2026-11-17-late-font-defeats-settled.py`). The helper now waits until the
-> font stylesheet is applied and no face it declares is still loading, or until the request is
-> known to have failed, and only then runs its stability loop. After: 4,049 at 0, 1.5, 3 and 6 s.
-> 
-> Two things worth carrying. My first reproduction slept inside a route handler, which blocks the
-> thread the helper runs on, so the helper waited with the font and the bug vanished - a
-> reproduction that cannot fail is not one. And my first version of the wait matched the page's
-> bare-host `preconnect` hint instead of the stylesheet, never came true, and ran to its 20 s
-> timeout on every call while returning the right number: it read as fixed and was a sleep. The new
-> test asserts the state the helper reports (`in`), not only the height, and fails on the old helper
-> (`MUTANT CAUGHT: ('in', 3959)`). This module is in the 02:00 publish gate, so the same flake could
 > ...
 
 ---
