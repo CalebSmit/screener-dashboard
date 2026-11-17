@@ -77,6 +77,15 @@ def test_it_reads_no_token_and_never_runs_the_cli(tmp_path, monkeypatch, capsys)
     src = (ROOT / "scripts" / "check_cli_login.py").read_text(encoding="utf-8")
     assert "subprocess" not in src and "auth status\"" not in src and "accessToken" not in src
     monkeypatch.setattr(cl, "credentials_path", lambda: _creds(tmp_path, NOW + timedelta(days=20)))
+
+    # main() reads the clock; pin it to the fixture's NOW. Without this the fixture's "20 days ahead"
+    # became "5 days ahead" on 2026-11-16, the script rightly said the login was expiring, and this
+    # check went red with nothing changed (the clock->red row in CLAUDE.md).
+    class _Fixed(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW
+    monkeypatch.setattr(cl, "datetime", _Fixed)
     assert cl.main() == 0
     out = capsys.readouterr().out
     assert "SECRET" not in out and out.count("\n") == 1 and out.startswith("CLI login: OK")
