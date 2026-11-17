@@ -21577,3 +21577,178 @@ cross-links, footers). The triage, with what does not fit and why, is `plan/site
 
 - The 06:00 session today is the first since the CLI fix; its log is the proof.
 - After the next real data run, read the `Live site:` line in `logs/datarun-*.log`.
+
+
+## 2026-11-17 - PRODUCT, THROUGH THE NUMBERS. Sixteen stocks were scored on last year's statements and the page dated them last quarter
+
+**Health (rule 8, all five):** last code session ran? **failed** - `logs/nightly-2026-11-16_130000-midday.log` (failed: Required tool 'claude' is not on PATH. Aborting.). Data loop published? yes - `logs/datarun-2026-11-17_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 130 rows across all horizons), newest 1m run date 2026-10-16 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **36 days**); also open: 0.10 41d; 0.14 34d.
+
+This is the first code session to run since 2026-11-10: the eleven between aborted on the missing
+CLI (fixed by the owner-run session on 11-16). The runner started it normally.
+
+**Tests:** before **4,319 passed / 2 skipped / 1 FAILED** (the runner's baseline,
+`logs/nightly-2026-11-17_060001.baseline.txt`) -> after: TESTS_AFTER_PLACEHOLDER
+
+**Owner queue / rotation:** `write_brief.open_proposals()` returns `[]`. `OWNER_FOCUS.md`'s three
+open items are the owner's own decisions (Search Console, a byline, analytics), the long-horizon
+universe expansion, and the 2026-10-20 second-reader queue, whose sub-items are all clear - none
+needed a session today. `git stash list` still shows `auto-rescue 2026-10-28_060001`, empty and
+left in place as every entry since 10-28 records. **`main` arrived red**, which outranks the focus,
+so that came first; then two dated commitments in the brief's "Coming up", both past due; and the
+second of them turned into the product day's actual finding. **0.13 (the Factor Lab) was not
+worked** - a sixth consecutive session. The deferral-streak rule excuses a session that inherits a
+broken state, which this one did, but I am not going to lean on that: see Next.
+
+### Did
+
+**1. The red baseline: a web font that answered late.**
+
+`tests/test_lab_reading_and_access.py::test_the_height_the_card_bound_reads_waits_for_the_page_and_sees_a_taller_card`
+failed with `sum(settled) == 4549` against `sum(before) + 500 == 4459`. The 90 px between them is
+the figure that module already records for Inter replacing the fallback face on the lab's cards.
+`_settled` called a page settled once a reading had held for 1.3 s - which is a statement about
+how fast Google Fonts answered. That morning it answered later, so `before` was read in the
+fallback face (3,959 px) and everything after it in Inter (4,049).
+
+Reproduced exactly rather than argued: with 1.5 s of latency on network requests (file:// is not
+throttled, so only the font is late) the old helper returns **3,959 and the page reads 4,049 six
+seconds later**; at 0 and 0.5 s it returns 4,049
+(`research/measurements/2026-11-17-late-font-defeats-settled.py`). The helper now waits until the
+font stylesheet is applied and no face it declares is still loading, or until the request is
+known to have failed, and only then runs its stability loop. After: 4,049 at 0, 1.5, 3 and 6 s.
+
+Two things worth carrying. My first reproduction slept inside a route handler, which blocks the
+thread the helper runs on, so the helper waited with the font and the bug vanished - a
+reproduction that cannot fail is not one. And my first version of the wait matched the page's
+bare-host `preconnect` hint instead of the stylesheet, never came true, and ran to its 20 s
+timeout on every call while returning the right number: it read as fixed and was a sleep. The new
+test asserts the state the helper reports (`in`), not only the height, and fails on the old helper
+(`MUTANT CAUGHT: ('in', 3959)`). This module is in the 02:00 publish gate, so the same flake could
+have discarded a night of data; a blocked font host returns in under 5 s and measures the
+fallback face, so it cannot jam the gate.
+
+**2. The pre-registered filing cross-check re-run (0.14): the rule is NOT met.**
+
+`research/2026-10-14-yahoo-vs-sec.md` section 5 committed, on 2026-11-02, to re-running its range
+table on the first data run on or after 2026-11-16: total assets, equity and operating cash flow
+become a gate at 25 only if each stayed at or below 5 stocks over 10% on every run. Over the 18
+runs still on disk: total assets **0** on every run, equity **1-2**, operating cash flow **1, 3,
+then 8 on 2026-11-03, 9 through 11-09, 10 on every run since**. Applied as written: nothing is
+promoted. Section 6 of the note has the table.
+
+**3. Why operating cash flow moved - which is the product day's finding.**
+
+A live fetch of the ten (`research/measurements/2026-11-17-ocf-off-the-filing.py`): for nine, the
+source's quarterly cash-flow statement carries 2026-09-30, 2026-03-31, 2025-12-31, 2025-09-30,
+2025-06-30 - **no June 2026 quarter**. Four quarters cannot be summed; the fiscal year cannot be
+rolled forward, because the stub after it is not consecutive; no three adjacent quarters exist to
+scale by 4/3. So the fetch reads the annual statement, which is the right thing to do. **But it
+dated the figures by the quarterly statement's newest column.**
+
+Counted across the published run against the SEC cache
+(`research/measurements/2026-11-17-annual-figures-under-a-quarterly-date.py`): **15 of 418 stocks
+on operating cash flow and 17 of 427 on net income** carried the last fiscal year's figure under a
+later date. Amazon: net income $77.7bn shown, $134.8bn filed for the twelve months to the date the
+page gave. Boeing, Bank of America, Amphenol, Mondelez, Abbott likewise. On the public page, for
+each of them:
+
+- "Income statement as of Sep 30, 2026 - Cash flow as of Sep 30, 2026" over fiscal-2025 figures;
+- "Filing Age: 48 days" for figures 321 days old;
+- and no "A period behind the filings" note - the note built on 2026-10-15 **for Amazon, Bank of
+  America and Boeing by name** reads the income statement's date, so the brief has said "0 stocks
+  scored a period behind a filing over 30 days old" every morning while sixteen were scored three
+  quarters behind.
+
+That last one is why this sat for two weeks: every surface that should have said it read the same
+wrong date, so they agreed with each other.
+
+Fixed at the one place the date is made. `_stmt_date_financials` and `_stmt_date_cashflow` are now
+the period end of the statement the figures were **read from**; the fetch records which statement
+was replaced (`_annual_instead`, display-only, never read by `compute_metrics`); the Data
+Provenance panel says "Last fiscal year used", names the statement and why; the "period behind"
+note is worded for this case in both places it is written (the source *has* the newest quarter for
+these stocks, so "had not published that period" would have been false); and the methodology page
+states the fourth route to twelve months, which it had not. Live fetch after the change: BA and
+AMZN date both statements 2025-12-31 with the balance sheet at 2026-09-30; MSFT and DXCM unchanged.
+
+**No score moves** - the figures were already the annual statement's. The committed payload was
+fetched with the old code, so the page changes with tomorrow's 02:00 run, not today. What I saw of
+the page: the sentence rendered through the page's own `renderProvenance` in Chromium at 1280 px
+(`tests/test_dead_badges.py`, two new tests) - both statements named with a plural verb, one with
+a singular, the dates above it, and no "sum of the last four reported quarters" over it. I did not
+look at it at 375 px on a real stock, because no published stock carries the flag yet; that is
+Next 1.
+
+**4. Tuesday's drilldown check.** `research/measurements/2026-11-17-drilldown-spot-check.py`, plain
+arithmetic on the published payload, independent of `calc_trace`: HST (#1), AMZN (#479) and JPM
+(#384) each rebuild their composite from the eight published category contributions to within
+0.01, and earnings yield and asset growth from the published inputs to four decimals. JPM's ROE
+"differs" from net income over total equity by design - banks are scored on net income to common
+over common equity since 2026-10-20. Amazon's 70.8% asset growth looked wrong and is not: both
+balance sheets match its filings to the dollar ($727.9bn to $1,243.4bn).
+
+**5. Housekeeping the work implied.** `COMING_UP` in `scripts/write_brief.py`: the 2026-11-09 line
+is deleted (the context signals' first one-month reading has landed - the brief reads "up to 1
+effective observations of 8"), the 2026-11-16 line is deleted as done, and **2026-12-15** is added
+for the re-registered cross-check question. `CLAUDE.md` 0.14 carries the result and the standing
+rule; its 0.13 line said experiment 19 had no second reader, which stopped being true on
+2026-11-07. `plan/dashboard-inventory.md` has the new panel sentence.
+
+### Evidence / research
+
+- **A documented failure, measured four ways**: the range table (18 runs), the live fetch of the
+  ten stocks, the universe count against the SEC cache, and the live fetch after the change. All
+  four scripts are committed under `research/measurements/2026-11-17-*`.
+- **The flake**: reproduced at 1.5 s and 3 s of latency with the baseline's own two numbers
+  (3,959 and 4,049), and absent at 0 and 0.5 s.
+- No literature today, and none needed: nothing about how a stock is scored changed.
+
+### Methodology changed
+
+- **No score, weight, metric or threshold.** `METHODOLOGY_CHANGELOG.md` 2026-11-17 records the
+  dating change as a display entry, because it changes what the public page says about sixteen
+  stocks' inputs and turns their staleness flag on.
+- Editing `factor_engine.py` staled all 32 research-ledger rows, as `CLAUDE.md` warns; they were
+  rerun (`--jobs 4`) and the report regenerated. LEDGER_PLACEHOLDER
+
+### Tried and rejected
+
+- **Promoting total assets and equity alone.** Both met the bar on every run. The rule was written
+  as a conjunction - "if total assets, equity and operating cash flow have each stayed at or below
+  5 ... those three" - and splitting it after seeing which two passed is the re-fitting a
+  pre-registration exists to prevent. Re-registered instead, before any post-fix count exists.
+- **Scoring those sixteen stocks on something newer than the annual statement.** They are up to
+  three quarters behind figures the source does carry. But the June quarter is the one that is
+  missing, so no arithmetic on the quarterly statement recovers the twelve months, and scoring may
+  not read a filing. `research/2026-10-29-ttm-fills-the-empty-quarter.md` section 5.5 holds the
+  narrow pre-registered alternative; this is evidence that the population is not the one that
+  note measured, and it is a Monday's question, not a Tuesday's patch.
+- **A detector for DexCom's defect.** The tenth stock is a genuine source error: its 2026-09-30
+  quarterly cash-flow column holds $1.120bn, the nine months to that date. Summed as a quarter the
+  twelve months is $2.209bn; replacing it with the quarter it implies gives $1.414bn, the filed
+  figure to the dollar. DexCom ranks 8th. A rule that spots a cumulative figure in a quarterly
+  column would also fire on a genuinely seasonal company, and its false-positive rate across 500
+  stocks is unmeasured - so it is recorded (note section 6, `CLAUDE.md` 0.14, and the brief's
+  "Top 25, worth a look" already names it every morning) and not built.
+
+### Next
+
+1. **Read tomorrow's 02:00 run for the fix landing.** Expect, in `logs/datarun-2026-11-18_*.log`'s
+   "inputs against SEC filings" line: operating cash flow over 10% back toward 1-3, and "stocks
+   scored a period behind a filing over 30 days old" rising from 0 to roughly 16. If the second
+   number stays 0 the date fix did not reach the payload - look at `_in__stmt_date_financials`.
+   Then open Amazon's Data Provenance panel at 1440 and 375 px and read the "Last fiscal year
+   used" sentence on the real page; today it could only be rendered from a synthetic stock.
+2. **DexCom, as a Monday research question**: how often does the source publish a year-to-date
+   figure in a quarterly cash-flow column, measured offline against the SEC cache across the
+   universe, and can it be recognised from the statement alone? It is the eighth-ranked stock on
+   the public page with operating cash flow 56% above its filing.
+3. **0.13 has now gone six sessions.** It is the lab's standing Friday programme (19 experiments,
+   all second-read), not a task with an end, and its age in the health line keeps growing while it
+   ships on schedule. The next session with a green `main` and no dated commitment should either
+   run the next experiment in `plan/factor-lab.md`'s queue or rewrite its entry under "Open" so the
+   age measures something - Friday 2026-11-20 is a lab day (ISO week 47 is odd, so not a
+   retrospective).
+4. `tests/test_header_nav_fit.py` and `tests/test_sheet_round_three.py` each have their own
+   `_settled` helper. Neither failed today and I did not change them, but both pages load the same
+   web font: if either flakes, the lab module's `_wait_for_the_web_font` is the fix to copy.
