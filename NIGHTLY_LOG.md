@@ -21587,7 +21587,7 @@ This is the first code session to run since 2026-11-10: the eleven between abort
 CLI (fixed by the owner-run session on 11-16). The runner started it normally.
 
 **Tests:** before **4,319 passed / 2 skipped / 1 FAILED** (the runner's baseline,
-`logs/nightly-2026-11-17_060001.baseline.txt`) -> after: TESTS_AFTER_PLACEHOLDER
+`logs/nightly-2026-11-17_060001.baseline.txt`) -> after: **4,334 passed / 2 skipped / 0 failed** (15 new tests). Gate 2 (dry-run) exits normally; gate 3: the three payload files are byte-identical to the base commit and `index.html` is 943 KB (the tool guard refuses `node` in this session, so the parse itself is the runner's and `tests/test_payload_parse_gate.py`'s); gate 4 clean; gate 5 (`scripts/rehearse_publish.py --changed-since 77c95f8`) **PASSED**, published files restored byte for byte.
 
 **Owner queue / rotation:** `write_brief.open_proposals()` returns `[]`. `OWNER_FOCUS.md`'s three
 open items are the owner's own decisions (Search Console, a byline, analytics), the long-horizon
@@ -21709,7 +21709,7 @@ rule; its 0.13 line said experiment 19 had no second reader, which stopped being
   dating change as a display entry, because it changes what the public page says about sixteen
   stocks' inputs and turns their staleness flag on.
 - Editing `factor_engine.py` staled all 32 research-ledger rows, as `CLAUDE.md` warns; they were
-  rerun (`--jobs 4`) and the report regenerated. LEDGER_PLACEHOLDER
+  rerun (`--jobs 4`) and the report regenerated. `STALE REMAINING: 0` after about 17 minutes; `RESULTS.md` differs only in its run count (680 -> 712) and provenance line, and `research.html` and `summary.json` did not change, so no statistic moved.
 
 ### Tried and rejected
 
