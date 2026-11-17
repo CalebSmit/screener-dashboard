@@ -944,7 +944,17 @@ on every one. **Two things it left open, neither to be acted on without research
 figures are up to three quarters old (`research/2026-10-29-ttm-fills-the-empty-quarter.md` section
 5.5 holds the narrow pre-registered alternative), and **DexCom's 2026-09-30 quarterly cash-flow
 column holds a nine-month cumulative figure** (four-quarter sum $2.209bn against $1.414bn filed,
-rank 8) - a detector needs its false-positive rate measured first. Each stock's Data
+rank 8). **That one was measured the same afternoon**
+(`research/2026-11-17-ytd-in-a-quarterly-column.md`): 3 of 2,300 quarterly columns are
+year-to-date figures, 1 inside the twelve months scored; **nothing the source returns can
+recognise one** (the best statement-only rule raises 62 false alarms for the one true case, and
+the source's own trailing figure repeats the error), while an identity among three *filed*
+figures does, exactly - 8 of 10,446 stock-days, all DexCom. So the two rows that read operating
+cash flow now say so (`srcn`, claim `drilldown.ytd_column_note`; **its own key, never `cavs`** -
+each `cavs` note's publish-gate test compares the whole dict). **The score is not corrected**:
+whether a filing may act on one field of one stock is that note's proposal, **WAITING until
+2026-12-15** on four conditions written in advance (section 7; the brief's "Coming up" carries
+the date) - do not build it early, and do not build a statement-only detector at all. Each stock's Data
 Provenance panel shows the same check (`stock_detail[t].xchk`,
 `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`): which inputs agree
 within 2% with the filing. **Display-only** - a test fails if `xchk` or `sec_crosscheck` appears

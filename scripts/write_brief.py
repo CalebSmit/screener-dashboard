@@ -603,6 +603,12 @@ COMING_UP = (
                    "assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 "
                    "on every one. The 2026-11-16 re-run was NOT met (operating cash flow 10; section 6).",
      "research/2026-10-14-yahoo-vs-sec.md"),
+    ("2026-12-15", "Decide the year-to-date-column proposal (score a stock on the filed twelve months "
+                   "when its operating cash flow provably counts part of a year twice): re-run "
+                   "`research/measurements/2026-11-17-ytd-signature-history.py`; section 7's four "
+                   "conditions were written before any further page was read. Its status line reads "
+                   "WAITING, not OPEN, until then.",
+     "research/2026-11-17-ytd-in-a-quarterly-column.md"),
     ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
      "CLAUDE.md"),
 )
