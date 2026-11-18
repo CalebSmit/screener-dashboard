@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 17 November 2026, 14:01
+# Morning Brief - Wednesday 18 November 2026, 02:27
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,22 +9,24 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-11-17 02:00 |
+| Dashboard data from | 2026-11-18 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
-| Top 5 | HST, EXPE, VLO, MU, SNDK |
-| Ranking's lean on growth | +0.039 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 130 rows across all horizons), newest 1m run date 2026-10-16 (32 days ago, bound 40) |
+| Top 5 | HST, EXPE, VLO, MU, APA |
+| Ranking's lean on growth | +0.043 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 131 rows across all horizons), newest 1m run date 2026-10-16 (33 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 433/433 within 0.5%; operating cash flow 402/418 within 0.5%; net income 388/427 within 0.5%; market value 452/487 within 5%; 0 scored a quarter behind a filing over 30 days old; filings cached 7 days ago |
-| Top 25, worth a look | HST (#1: net income 1.29x after-tax operating income); EXPE (#2: equity 6.2% of assets); DXCM (#8: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#17: net income 15% off the filing); WDC (#25: net income 2.13x after-tax operating income) |
-| Data run timing | **18 min** total; slowest `fetch.tickers` 662 s, `fetch.retry` 127 s, `context.sec_insider` 95 s; **36 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (16 days) |
-| Context coverage | options usable 491/499 (8 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
+| Inputs vs SEC filings | total assets 440/440 within 0.5%; operating cash flow 430/431 within 0.5%; net income 420/443 within 0.5%; market value 452/487 within 5%; 7 scored a quarter behind a filing over 30 days old; filings cached 0 days ago |
+| Top 25, worth a look | HST (#1: net income 1.29x after-tax operating income); EXPE (#2: equity 6.2% of assets); DXCM (#8: operating cash flow 36% off the filing); PSX (#9: net income 1.28x after-tax operating income); TPR (#10: equity 5.2% of assets); CF (#17: net income 15% off the filing) |
+| Data run timing | **22 min** total; slowest `fetch.tickers` 573 s, `fetch.sec_roe_history` 262 s, `fetch.retry` 168 s; **51 tickers rate-limited** |
+| Code-session login | 2026-12-03 09:01 (15 days) |
+| Context coverage | options usable 494/499 (5 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
 ## What changed in the repo
 
+- `3aecb1a data: screener run 2026-11-18 - 499 scored, top: HST EXPE VLO MU APA`
+- `fd62296 brief: code session 2026-11-17-midday`
 - `e68a574 NIGHTLY_LOG 2026-11-17 (13:00): the gates' results`
 - `7f6a8fb NIGHTLY_LOG 2026-11-17 (13:00): the year-to-date column, the health line, what is next`
 - `260a77b Research note, changelog, inventory, CLAUDE.md 0.14: the year-to-date column, measured; the proposal waits until 2026-12-15`
@@ -38,8 +40,6 @@ history is in `NIGHTLY_LOG.md`.
 - `65af5f6 NIGHTLY_LOG 2026-11-17, CLAUDE.md 0.14 and 0.13, the drilldown spot check`
 - `fb7ed28 Filing cross-check: the pre-registered re-run (rule not met), changelog, inventory, rendered checks`
 - `1b68dac Figures read from the annual statement are dated by it, and the stock's page says so`
-- `47991e4 test: the lab's settle helper waits for the web font by name, not for 1.3 s of quiet`
-- `77c95f8 brief: data run 2026-11-17`
 
 ## The session's own account
 
