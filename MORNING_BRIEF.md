@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 18 November 2026, 06:52
+# Morning Brief - Wednesday 18 November 2026, 13:48
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -25,6 +25,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `4e34d62 NIGHTLY_LOG 2026-11-18 (13:00): where the missing filings went, the gates' results, what is next`
+- `04e3f32 Research note, changelog, CLAUDE.md 0.14: where twenty companies' filings went`
+- `6b9d514 wip: the SEC refresh follows a combined filing to the co-registrant whose record holds it`
+- `9f638b9 brief: code session 2026-11-18`
 - `0a4e4c0 NIGHTLY_LOG 2026-11-18: the synthesis, the gates' results, what is next`
 - `1aecd56 The synthesis note commits to the date COMING_UP gives it`
 - `e0f2c28 Synthesis note, changelog, CLAUDE.md 0.14: what the screener knows about its inputs`
@@ -36,58 +40,54 @@ history is in `NIGHTLY_LOG.md`.
 - `fd62296 brief: code session 2026-11-17-midday`
 - `e68a574 NIGHTLY_LOG 2026-11-17 (13:00): the gates' results`
 - `7f6a8fb NIGHTLY_LOG 2026-11-17 (13:00): the year-to-date column, the health line, what is next`
-- `260a77b Research note, changelog, inventory, CLAUDE.md 0.14: the year-to-date column, measured; the proposal waits until 2026-12-15`
-- `c4e1e48 wip: the note seen on DexCom's sheet; nine mutations of its claim, nine caught`
-- `14663f2 wip: the rows that read operating cash flow say when the source counted part of a year twice`
-- `c64629a wip: measurement - year-to-date figures in the source's quarterly cash-flow columns`
 
 ## The session's own account
 
-> 2026-11-18 - SYNTHESIS. Six weeks of "the page says when an input is impaired", read as one layer: a sentence that was false for all 27 stocks it was printed for, and twenty companies the filing check cannot see
+> 2026-11-18 (13:00) - QUEUE. Where twenty companies' filings went: the SEC now files a combined report under one co-registrant, and the weekly refresh follows it there
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-17_130001-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-18_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 131 rows across all horizons), newest 1m run date 2026-10-16 (33 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **37 days**; a standing programme, last advanced **12 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 42d; 0.14 35d.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-18_060000.log` (completed). Data loop published? yes - `logs/datarun-2026-11-18_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 131 rows across all horizons), newest 1m run date 2026-10-16 (33 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **37 days**; a standing programme, last advanced **12 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 42d; 0.14 35d.
 > 
-> **Tests:** before **4,354 passed / 1 skipped / 0 failed** (my baseline, 4:05 in parallel; `main`
-> arrived green) -> after **4,363 passed / 1 skipped / 0 failed** in 3:58 (9 new tests). Gate 2
-> (dry-run) passes before and after. Gate 3: the three payload files are untouched (`rebuild_page.py`
-> reported "payload byte-identical"; `git status` clean after every gate) and `index.html` is what
-> the generator builds (`tests/test_rebuild_page.py`); the parse itself is
-> `tests/test_payload_parse_gate.py`'s and the runner's. Gate 4: `git status --porcelain` empty.
-> Gate 5, `scripts/rehearse_publish.py --changed-since 5f55b79`: **REHEARSAL PASSED** (381 page
-> tests, published claims 2,373 passed, files restored byte for byte). The suite ran on the tree
-> before this entry was written; nothing but this file changed after it.
+> **Tests:** the runner's baseline was GREEN (4,363 passed / 1 skipped). **My own baseline had one
+> failure**, `tests/test_lab_reading_and_access.py::test_a_web_font_that_lands_late_is_waited_for_and_one_that_cannot_land_is_not`
+> (card heights 208 against 183 at the moment it read them): 1 failed / 4,362 passed / 1 skipped in
+> 4:39. It did not reproduce - the module alone, 35 passed - and it ran while I was making EDGAR
+> requests on the same machine. Recorded as a flake, not fixed; the saved output is
+> `logs/session-baseline-1300.txt`. After: **4,371 passed / 4 skipped / 0 failed** in 4:09 (11 new
+> cases). **The three extra skips are mine and are by design:** `test_capex_lease_note`,
+> `test_special_item_note` and `test_ytd_column_note` each skip, loudly, when the SEC cache on disk
+> is not the one the committed payload was built from (2,446,742 rows then, 2,449,990 now). They
+> skip the same way after every weekly refresh and run again once the 02:00 run publishes from the
+> new cache. Gate 2 (dry-run) passes. Gate 3: no payload or page file touched. Gate 5,
+> `scripts/rehearse_publish.py --changed-since origin/main`: **REHEARSAL PASSED**, files restored
+> byte for byte. Gate 4 clean. The suite was run twice with the same counts, the second time (4:27)
+> on the final tree with this entry already written; only this sentence changed after it.
 > 
-> **Owner queue / rotation:** I am today's first session. `write_brief.open_proposals()` returned
-> `[]`, and no branch was held back by the gates. `OWNER_FOCUS.md`: nothing moved - its three open
-> items are the owner's own decisions (Search Console, a byline, analytics), the long-horizon
-> universe expansion (not worked: the rotation's focus had a real subject and no owner item was
-> waiting on a session), and the second-reader queue, which is clear. **0.13 is not deferred** - it
-> is a standing programme 12 days from its last advance against a bound of 21, and Friday
-> 2026-11-20 is its day. Nothing was deferred for a gate or a loop.
-> 
-> **Yesterday's Next 1, read first:** both of 2026-11-17's changes landed in the 02:00 run.
-> `src_notes` is **1** and DexCom carries its note on the FCF-yield and accruals rows. Operating
-> cash flow over 10% from the filing fell from 10 to **1** (DexCom), as predicted. **26** stocks
-> carry `annual_instead` - more than the "roughly 16" predicted; that count was of stocks the SEC
-> cache could confirm (15 of 418 and 17 of 427 checked), which is the likely reason and not one I
-> verified stock by stock. The brief's "scored a period behind a filing over 30 days
-> old" reads **7**, not 16: the other stocks' newer 10-Q is under 30 days old, so they will join it
-> over the next fortnight; the page's own note names 32. And looking at Amazon's sheet for the
-> "Last fiscal year used" sentence is what started Did 1.
+> **Owner queue / rotation:** second session today; I read the 06:00 entry first and took its
+> **Next 3** (Next 1 is Friday's, Next 2 needs tomorrow's run). `open_proposals()` is `[]`; no
+> branch was held back; no `auto-rescue` stash (`git stash list` is empty). `OWNER_FOCUS.md`: not
+> re-read item by item - the 06:00 session did four hours earlier and no commit has touched it
+> since; nothing moved. 0.13 is not deferred (12 days against a bound of 21; Friday is its day).
+> Nothing was deferred for a gate or a loop. No decision of this morning's was reversed; one of its
+> numbers is superseded (below).
 > 
 > ### Did
 > 
-> **The synthesis subject.** Five changelog entries since the 2026-11-04 synthesis; none moved a
-> score; all five are the page learning to say an input is not what it appears to be - the same
-> kind of change as most of the six weeks before them. Nobody had looked at what they add up to.
-> `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`, with five committed
-> measurement scripts.
+> **The question:** this morning found 20 of 499 scored companies with nothing in the SEC
+> `companyfacts` cache filed in 165 days, showed the SEC's record itself lacked them, and "did not
+> establish why". `research/2026-11-18-combined-filings-under-a-co-registrant.md`.
 > 
-> **1. Two correct changes met and made a false sentence - fixed.** The 2026-11-02 stale bar and
-> the 2026-11-17 statement dating were each sound and each verified. Together they printed, on
-> Amazon's page this morning, *"Its filings are flagged stale (322 days old)"* - beside a 10-Q
-> filed 19 days earlier that the same payload records. Measured: **27 stocks** carried the
-> sentence; **27 of 27 had a newer filing on record**, 22 of them filed inside the 165-day bar;
+> **1. The cause, for 19 of the 20.** Followed filing by filing through EDGAR's `submissions`
+> record and each filing's header (`research/measurements/2026-11-18-where-the-missing-filings-went.py`,
+> 134 requests): the twenty have made **41** periodic filings since the newest in their own record,
+> all XBRL, none with a single fact there. **37 of them, for 19 companies, are whole in exactly one
+> co-registrant's record** - a subsidiary utility or an operating partnership, and a different one
+> from quarter to quarter (Sempra's June quarter is under Southern California Gas, September's
+> under San Diego Gas & Electric). Until mid-May the whole filing sat under the first registrant,
+> the listed company. I did not find the rule that now picks the registrant, and found no SEC
+> notice; the note says so.
+> 
+> **2. The moved facts are the parent's - measured, not assumed.** Every 10-Q repeats earlier
+> figures as comparatives, and the parent's own record already holds those. 7,004 of 7,326
 > ...
 
 ---
