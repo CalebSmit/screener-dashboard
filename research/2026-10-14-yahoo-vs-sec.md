@@ -322,6 +322,16 @@ promoting the three fields should state the denominators beside the decision (to
 440 of 499 that morning) and say whether twenty unseeable companies changes it.
 `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md` section 5.
 
+**Same day, 13:00 session - the cause, and 19 of the 20 recovered.** The SEC holds a jointly filed
+report's facts under one of the other registrants on it since mid-May; the weekly refresh now
+follows them there (`research/2026-11-18-combined-filings-under-a-co-registrant.md`). On the
+rebuilt cache the count is **1** (Citigroup) and total assets compares **459 of 459** within 0.5%,
+from 440 of 440. **The rule in section 6 is still not changed**, but its window (runs from
+2026-11-18) now has one run on the old cache and the rest on the new: the denominators step up by
+up to 19 on 2026-11-19, and a count over 10% that rises that day should be read against that
+before it is read as drift. On the rebuilt cache, against the 2026-11-18 payload, the three
+fields' counts over 10% are unchanged: total assets 0, equity 1, operating cash flow 1.
+
 ## Sources
 
 - SEC EDGAR `companyfacts` for each company, cached 2026-10-09 (`sec_fundamentals.py`).

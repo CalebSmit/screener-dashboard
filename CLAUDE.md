@@ -965,7 +965,15 @@ for that population). **(2) The check cannot see 20 companies** - fourteen utili
 and Citigroup have nothing in the SEC's `companyfacts` filed since May or earlier, with the cache
 "0 days old"; the health line and the brief now print that count every morning
 (`sec_crosscheck.no_recent_filing`, a count, never an ATTENTION line), and the 2026-10-14 note's
-section 7 tells whoever applies the 12-15 rule. **(3) 26 stocks are scored on last fiscal year's
+section 7 tells whoever applies the 12-15 rule. **The cause was found the same afternoon and
+fixed for 19 of the 20** (`research/2026-11-18-combined-filings-under-a-co-registrant.md`): since
+mid-May the SEC holds a jointly filed 10-Q's facts under one of the *other* registrants on it (a
+subsidiary, an operating partnership - a different one from quarter to quarter), so
+`sec_fundamentals.refresh_companyfacts` now follows a gap of over 150 days between a company's
+periodic filings to its co-registrants' records, **only for a filing the listed company leads**,
+taking only that accession's facts. 41 filings for 23 companies on the first refresh; the count
+reads **1** (Citigroup, which files alone - unexplained). The refresh's log names every company
+still gapped; **read that line in February 2027, when the first combined 10-Ks arrive.** **(3) 26 stocks are scored on last fiscal year's
 flows** because the source's quarterly table has a hole; scored net income is below the filed
 twelve months for 15 of 18 comparable (median absolute gap 32%). **Sized, not acted on** - it is
 the same question as DexCom's at 26 times the size, and a Monday is queued ahead of 12-15

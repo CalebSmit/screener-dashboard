@@ -5544,3 +5544,65 @@ on the phone.
 
 **Applied by:** 06:00 session, 2026-11-18.
 **Rollback:** `good/2026-11-17-1401` (the tag before this change).
+
+## 2026-11-18 (13:00) - Data source: the weekly SEC refresh follows a combined filing to the co-registrant whose record holds it
+
+**Area:** `sec_fundamentals.refresh_companyfacts` - the cache of filed figures behind the filing
+cross-check, "a period behind the filings", "Against its own five years" and backtest v2's
+point-in-time records. **No score, weight, metric, threshold or rank changed**: the only
+engine reader of this cache is `earnings_variability`, a weight-0 candidate built from 10-K
+facts, and every recovered fact is from a 10-Q.
+
+**Changed:** after reading a company's own `companyfacts` record, the refresh looks for a stretch
+of more than 150 days with no periodic filing (`filing_gap`). Where there is one it reads the
+company's `submissions` record for the filings its record lacks, each one's header for the
+registrants on it, and - **only where the listed company is the first registrant** - the other
+registrants' records, keeping only the facts carrying that accession number, under the listed
+company's ticker. The refresh's log line counts what was recovered and names every company still
+gapped. A failure in the follow-up leaves the company's own facts as they were.
+
+**Evidence (a documented failure, measured;
+`research/2026-11-18-combined-filings-under-a-co-registrant.md`):**
+
+- The morning's entry recorded 20 scored companies with nothing in the cache filed in 165 days
+  and no cause. Followed filing by filing: those 20 had made 41 periodic filings since, none with
+  a fact in the company's own record; **37, for 19 companies, are whole in exactly one
+  co-registrant's record** (a different one from quarter to quarter for Sempra, Exelon, Alliant,
+  PPL, Southern and AEP). The other 4 - Citigroup's three 10-Qs of 2026 and one of FirstEnergy's -
+  are in no record, and Citigroup is absent from the frames API for all three quarters.
+- *The moved facts are the listed company's.* Of the 7,326 comparatives those filings repeat from
+  periods the parent's own record covers, **95.6% equal it - against 95.3%** for the same
+  parents' last un-moved filing against their own history (98.7% and 97.6% without American
+  Electric Power, which began rounding to millions in 2026). And against a different source: the
+  filing check's total assets went from 440 of 440 within 0.5% to **459 of 459**.
+- *An age bar was hiding four more.* Dow, Consolidated Edison, Edison International and United
+  Rentals each had one quarter moved and the next not. The first refresh with this code
+  recovered **41 filings for 23 companies, 3,248 cached facts**; no row of the old cache is
+  absent from the new (0 of 2,446,742).
+- The 150-day bar is the filing calendar's (two consecutive periodic filings of a large
+  accelerated filer are at most about 142 days apart), the same arithmetic as the 2026-11-02 and
+  2026-11-18 entries.
+
+**Expected effect:** from the 2026-11-19 run (the rebuilt cache was installed this afternoon,
+rule 11): the health note's "no 10-K or 10-Q in the SEC cache filed in the last 165 days" reads
+**1**, from 20; the filing check compares up to 19 more companies per field (total assets and
+equity 19; revenue, net income, operating cash flow 14; capex 9), with the counts over 10%
+unchanged except capex, 45 to 46; those companies' Data Provenance panels show the check, and
+some gain the "a period behind the filings" note the cache could not support before. No composite
+or rank moves. Still gapped and named weekly in the refresh log: Citigroup, FirstEnergy (one
+filing), Cardinal Health, Clorox - none explained.
+
+**Not changed:** the pre-registered 2026-12-15 rule for promoting the filing check
+(`research/2026-10-14-yahoo-vs-sec.md` section 7 notes the step in its denominators); whether
+scoring may read a filing (0.14 - it may not).
+
+**Validated by:** `tests/test_sec_fundamentals.py` (eleven new cases: the gap rule on six filing
+calendars; a combined filing read from whichever co-registrant holds it, under the parent's
+ticker, never the co-registrant's other filings; a filing the listed company does not lead is not
+followed; a company filing alone is left and named; a company with no gap costs one request; a
+failed follow-up keeps the company's own facts). A live refresh of all 503 companies, compared row
+for row with the cache it replaced. `scripts/rehearse_publish.py` on the rebuilt cache.
+
+**Applied by:** 13:00 session, 2026-11-18.
+**Rollback:** `good/2026-11-18` (the tag before this change); the cache it replaced is
+`logs/facts_before_1118_1300.parquet`, and any refresh with the old code rebuilds the old content.
