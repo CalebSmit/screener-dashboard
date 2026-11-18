@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "written_by": "scripts/data-run.ps1",
-  "run_date": "2026-11-17",
-  "run_timestamp": "2026-11-17T02:00:04.299227",
-  "run_id": "d5f34735fc08",
-  "git_sha": "1a24c11d53efb53ce9e0e240d47cb81347132040",
+  "run_date": "2026-11-18",
+  "run_timestamp": "2026-11-18T02:00:04.736581",
+  "run_id": "eea3adb0c2e2",
+  "git_sha": "fd62296e654809fb6aa8ab3832141e338601e5ed",
   "methodology_version": "3ed2aee7f770",
-  "raw_sha256": "e887494194520bc33d5dc464fb1d806542df2686cb60531cf9c8f3112e449128",
+  "raw_sha256": "ec2627fb23e3e024a69a07f974369dcff860ac98143797e212a039ddf763b595",
   "universe_size": 499,
   "stocks_scored": 499,
   "gates": {
@@ -25,22 +25,22 @@
     {
       "rank": 1,
       "ticker": "HST",
-      "composite": 73.1,
+      "composite": 73.26,
       "sector": "Real Estate",
       "value_trap": false,
       "growth_trap": false,
-      "price": 25.72,
-      "price_date": "2026-11-16"
+      "price": 25.62,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 2,
       "ticker": "EXPE",
-      "composite": 72.53,
+      "composite": 73.02,
       "sector": "Consumer Discretionary",
       "value_trap": false,
       "growth_trap": false,
-      "price": 252.69,
-      "price_date": "2026-11-16"
+      "price": 243.16,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 3,
@@ -49,378 +49,378 @@
       "sector": "Energy",
       "value_trap": false,
       "growth_trap": false,
-      "price": 369.73,
-      "price_date": "2026-11-16"
+      "price": 363.77,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 4,
       "ticker": "MU",
-      "composite": 72.07,
+      "composite": 71.78,
       "sector": "Information Technology",
       "value_trap": false,
       "growth_trap": false,
-      "price": 719.02,
-      "price_date": "2026-11-16"
+      "price": 712.42,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 5,
-      "ticker": "SNDK",
-      "composite": 71.43,
-      "sector": "Information Technology",
+      "ticker": "APA",
+      "composite": 71.49,
+      "sector": "Energy",
       "value_trap": false,
       "growth_trap": false,
-      "price": 809.11,
-      "price_date": "2026-11-16"
+      "price": 46.88,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 6,
       "ticker": "MPC",
-      "composite": 71.24,
+      "composite": 71.44,
       "sector": "Energy",
       "value_trap": false,
       "growth_trap": false,
-      "price": 402.19,
-      "price_date": "2026-11-16"
+      "price": 395.61,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 7,
-      "ticker": "APA",
-      "composite": 70.93,
-      "sector": "Energy",
+      "ticker": "SNDK",
+      "composite": 71.02,
+      "sector": "Information Technology",
       "value_trap": false,
       "growth_trap": false,
-      "price": 47.3,
-      "price_date": "2026-11-16"
+      "price": 797.24,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 8,
       "ticker": "DXCM",
-      "composite": 70.56,
+      "composite": 70.16,
       "sector": "Health Care",
       "value_trap": false,
       "growth_trap": false,
-      "price": 81.61,
-      "price_date": "2026-11-16"
+      "price": 82.04,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 9,
       "ticker": "PSX",
-      "composite": 69.9,
+      "composite": 69.97,
       "sector": "Energy",
       "value_trap": false,
       "growth_trap": false,
-      "price": 260.62,
-      "price_date": "2026-11-16"
+      "price": 256.93,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 10,
       "ticker": "TPR",
-      "composite": 68.89,
+      "composite": 68.76,
       "sector": "Consumer Discretionary",
       "value_trap": false,
       "growth_trap": false,
-      "price": 132.95,
-      "price_date": "2026-11-16"
+      "price": 127.04,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 11,
       "ticker": "NTAP",
-      "composite": 67.75,
+      "composite": 67.89,
       "sector": "Information Technology",
       "value_trap": false,
       "growth_trap": false,
-      "price": 177.85,
-      "price_date": "2026-11-16"
+      "price": 173.04,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 12,
-      "ticker": "EG",
-      "composite": 67.54,
-      "sector": "Financials",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 433.0,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 13,
       "ticker": "BBY",
-      "composite": 67.29,
+      "composite": 67.27,
       "sector": "Consumer Discretionary",
       "value_trap": false,
       "growth_trap": false,
-      "price": 103.35,
-      "price_date": "2026-11-16"
+      "price": 98.4,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 13,
+      "ticker": "EG",
+      "composite": 67.15,
+      "sector": "Financials",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 424.47,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 14,
       "ticker": "DECK",
-      "composite": 67.2,
+      "composite": 66.92,
       "sector": "Consumer Discretionary",
       "value_trap": false,
       "growth_trap": false,
-      "price": 83.46,
-      "price_date": "2026-11-16"
+      "price": 81.48,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 15,
       "ticker": "TRV",
-      "composite": 66.56,
+      "composite": 66.43,
       "sector": "Financials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 403.06,
-      "price_date": "2026-11-16"
+      "price": 397.58,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 16,
       "ticker": "NUE",
-      "composite": 66.47,
+      "composite": 66.01,
       "sector": "Materials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 252.67,
-      "price_date": "2026-11-16"
+      "price": 252.08,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 17,
       "ticker": "CF",
-      "composite": 66.03,
+      "composite": 65.51,
       "sector": "Materials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 119.85,
-      "price_date": "2026-11-16"
+      "price": 119.34,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 18,
-      "ticker": "HAS",
-      "composite": 65.55,
-      "sector": "Consumer Discretionary",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 121.02,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 19,
       "ticker": "ALL",
-      "composite": 65.38,
+      "composite": 65.17,
       "sector": "Financials",
       "value_trap": false,
       "growth_trap": false,
       "price": 270.43,
-      "price_date": "2026-11-16"
+      "price_date": "2026-11-17"
     },
     {
-      "rank": 20,
-      "ticker": "FIX",
-      "composite": 65.34,
-      "sector": "Industrials",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 1057.68,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 21,
+      "rank": 19,
       "ticker": "RL",
-      "composite": 65.07,
+      "composite": 65.1,
       "sector": "Consumer Discretionary",
       "value_trap": false,
       "growth_trap": false,
-      "price": 389.59,
-      "price_date": "2026-11-16"
+      "price": 378.14,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 20,
+      "ticker": "HAS",
+      "composite": 65.06,
+      "sector": "Consumer Discretionary",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 118.35,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 20,
+      "ticker": "SWK",
+      "composite": 65.06,
+      "sector": "Industrials",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 108.81,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 22,
-      "ticker": "EXPD",
+      "ticker": "MAS",
       "composite": 64.88,
       "sector": "Industrials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 195.34,
-      "price_date": "2026-11-16"
+      "price": 83.22,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 23,
-      "ticker": "ACGL",
-      "composite": 64.87,
-      "sector": "Financials",
+      "ticker": "FIX",
+      "composite": 64.58,
+      "sector": "Industrials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 110.89,
-      "price_date": "2026-11-16"
+      "price": 1099.02,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 24,
-      "ticker": "SWK",
-      "composite": 64.54,
-      "sector": "Industrials",
+      "ticker": "CAH",
+      "composite": 64.49,
+      "sector": "Health Care",
       "value_trap": false,
       "growth_trap": false,
-      "price": 112.92,
-      "price_date": "2026-11-16"
+      "price": 279.25,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 25,
-      "ticker": "WDC",
-      "composite": 64.52,
-      "sector": "Information Technology",
+      "ticker": "GL",
+      "composite": 64.46,
+      "sector": "Financials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 280.93,
-      "price_date": "2026-11-16"
+      "price": 158.04,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 26,
-      "ticker": "MAS",
-      "composite": 64.46,
-      "sector": "Industrials",
+      "ticker": "ACGL",
+      "composite": 64.42,
+      "sector": "Financials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 84.59,
-      "price_date": "2026-11-16"
+      "price": 109.22,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 27,
       "ticker": "EVRG",
-      "composite": 64.43,
+      "composite": 64.38,
       "sector": "Utilities",
       "value_trap": false,
       "growth_trap": false,
-      "price": 88.38,
-      "price_date": "2026-11-16"
+      "price": 87.04,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 28,
-      "ticker": "ED",
-      "composite": 64.3,
-      "sector": "Utilities",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 121.88,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 29,
-      "ticker": "DLTR",
-      "composite": 64.18,
-      "sector": "Consumer Staples",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 138.695,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 30,
-      "ticker": "CAH",
-      "composite": 64.17,
-      "sector": "Health Care",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 283.85,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 30,
-      "ticker": "HIG",
-      "composite": 64.17,
-      "sector": "Financials",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 137.82,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 32,
-      "ticker": "CL",
-      "composite": 64.07,
-      "sector": "Consumer Staples",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 100.99,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 33,
-      "ticker": "GL",
-      "composite": 63.85,
-      "sector": "Financials",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 159.39,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 34,
-      "ticker": "FFIV",
-      "composite": 63.73,
-      "sector": "Information Technology",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 304.68,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 35,
-      "ticker": "MO",
-      "composite": 63.63,
-      "sector": "Consumer Staples",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 78.9,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 36,
-      "ticker": "EOG",
-      "composite": 63.43,
-      "sector": "Energy",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 155.47,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 37,
-      "ticker": "ROST",
-      "composite": 63.36,
-      "sector": "Consumer Discretionary",
-      "value_trap": false,
-      "growth_trap": false,
-      "price": 222.99,
-      "price_date": "2026-11-16"
-    },
-    {
-      "rank": 38,
-      "ticker": "EME",
-      "composite": 63.28,
+      "ticker": "EXPD",
+      "composite": 64.25,
       "sector": "Industrials",
       "value_trap": false,
       "growth_trap": false,
-      "price": 638.72,
-      "price_date": "2026-11-16"
+      "price": 190.77,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 29,
+      "ticker": "ED",
+      "composite": 64.16,
+      "sector": "Utilities",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 119.23,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 30,
+      "ticker": "WDC",
+      "composite": 64.12,
+      "sector": "Information Technology",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 283.33,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 31,
+      "ticker": "EOG",
+      "composite": 63.92,
+      "sector": "Energy",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 154.91,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 32,
+      "ticker": "HIG",
+      "composite": 63.74,
+      "sector": "Financials",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 136.22,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 33,
+      "ticker": "NEM",
+      "composite": 63.69,
+      "sector": "Materials",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 111.26,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 34,
+      "ticker": "NWSA",
+      "composite": 63.68,
+      "sector": "Communication Services",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 26.37,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 35,
+      "ticker": "DLTR",
+      "composite": 63.54,
+      "sector": "Consumer Staples",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 139.71,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 36,
+      "ticker": "ROST",
+      "composite": 63.45,
+      "sector": "Consumer Discretionary",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 220.45,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 37,
+      "ticker": "EME",
+      "composite": 63.3,
+      "sector": "Industrials",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 646.24,
+      "price_date": "2026-11-17"
+    },
+    {
+      "rank": 38,
+      "ticker": "FFIV",
+      "composite": 63.29,
+      "sector": "Information Technology",
+      "value_trap": false,
+      "growth_trap": false,
+      "price": 305.15,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 39,
-      "ticker": "VST",
-      "composite": 63.1,
-      "sector": "Utilities",
+      "ticker": "MO",
+      "composite": 63.23,
+      "sector": "Consumer Staples",
       "value_trap": false,
-      "growth_trap": true,
-      "price": 130.16,
-      "price_date": "2026-11-16"
+      "growth_trap": false,
+      "price": 77.46,
+      "price_date": "2026-11-17"
     },
     {
       "rank": 40,
-      "ticker": "BMY",
-      "composite": 62.85,
-      "sector": "Health Care",
+      "ticker": "VST",
+      "composite": 63.21,
+      "sector": "Utilities",
       "value_trap": false,
-      "growth_trap": false,
-      "price": 62.93,
-      "price_date": "2026-11-16"
+      "growth_trap": true,
+      "price": 127.15,
+      "price_date": "2026-11-17"
     }
   ]
 }
