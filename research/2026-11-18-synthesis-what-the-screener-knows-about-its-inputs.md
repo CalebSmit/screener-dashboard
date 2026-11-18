@@ -225,7 +225,8 @@ and a filing **corroborating** a figure the source itself supplies by another ro
 "dual vendor validation" wording in its Fundamental Data Methodology section 1.1.5, quoted in the
 10-29 note section 5.2, is the documented-practice version of the second.
 
-**Queued as a Monday, ahead of 2026-12-15:** how do point-in-time data vendors and index
+**Queued as a Monday, no later than 2026-12-07 - the last one before the 2026-12-15 decision**
+(`COMING_UP` in `scripts/write_brief.py` carries the date): how do point-in-time data vendors and index
 providers treat a company whose quarterly series has a hole - hold the last complete twelve
 months, carry the fiscal year, or admit a trailing figure once a second source agrees - and what
 does each do to the 26? From the literature and from documented practice, with the 10-29 and
