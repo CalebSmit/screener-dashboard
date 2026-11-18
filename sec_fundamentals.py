@@ -120,8 +120,118 @@ DEI_SHARE_CONCEPTS = ("EntityCommonStockSharesOutstanding",)
 EPS_CONCEPTS = ("EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted")
 
 
+PERIODIC_FORMS = ("10-K", "10-Q", "10-K/A", "10-Q/A")
+# Two consecutive periodic filings of a large accelerated filer are at most ~142 days apart (a
+# third-quarter 10-Q in mid-October, the 10-K 60 days after the year end). Past 150, one is missing.
+FILING_GAP_DAYS = 150
+FILING_GAP_LOOKBACK_DAYS = 550
+
+
+def _fact_rows(j: dict, ticker: str, accessions=None) -> list[tuple]:
+    """The cache's rows from one ``companyfacts`` record - every one, or only those filed under
+    the given accession numbers."""
+    gaap = (j.get("facts") or {}).get("us-gaap") or {}
+    dei = (j.get("facts") or {}).get("dei") or {}
+    wanted = ([(gaap, c, "USD") for c in FACT_CONCEPTS]
+              + [(gaap, c, "shares") for c in SHARE_CONCEPTS + OUTSTANDING_CONCEPTS]
+              + [(dei, c, "shares") for c in DEI_SHARE_CONCEPTS]
+              + [(gaap, c, "USD/shares") for c in EPS_CONCEPTS])
+    rows = []
+    for ns, c, unit in wanted:
+        for f in ((ns.get(c) or {}).get("units") or {}).get(unit, []):
+            if f.get("form") in PERIODIC_FORMS and (accessions is None or f.get("accn") in accessions):
+                rows.append((ticker, c, f.get("start"), f.get("end"), f.get("filed"), f.get("form"),
+                             f.get("fp"), f.get("val")))
+    return rows
+
+
+def _accessions(j: dict) -> set:
+    """Every accession number a ``companyfacts`` record carries a fact from."""
+    return {f.get("accn") for concepts in (j.get("facts") or {}).values() for body in concepts.values()
+            for facts in (body.get("units") or {}).values() for f in facts}
+
+
+def filing_gap(filed: list, today: date) -> str | None:
+    """The filing date after which a periodic filing looks missing from a company's record, or
+    ``None``: the first of its recent filing dates followed by more than ``FILING_GAP_DAYS`` with
+    nothing filed (to the next one, or to today). A company with no recent filing at all is not
+    a gap this can follow - it may simply be newly listed."""
+    days = sorted({date.fromisoformat(str(d)[:10]) for d in filed if d})
+    days = [d for d in days if (today - d).days <= FILING_GAP_LOOKBACK_DAYS and d <= today]
+    for a, b in zip(days, days[1:] + [today]):
+        if (b - a).days > FILING_GAP_DAYS:
+            return a.isoformat()
+    return None
+
+
+def filing_registrants(header: str) -> list[int]:
+    """The CIK of every registrant on a filing, in the order filed, from its EDGAR header page
+    (``<accession>-index-headers.html``: one FILER block each)."""
+    import re
+    out = []
+    for block in re.split(r"&lt;FILER&gt;|<FILER>", header)[1:]:
+        m = re.search(r"(?:&lt;CIK&gt;|<CIK>|CENTRAL INDEX KEY:)\s*(\d+)", block)
+        if m:
+            out.append(int(m.group(1)))
+    return out
+
+
+def _facts_filed_under_a_co_registrant(edgar, ticker: str, cik: int, since: str, own_accessions: set,
+                                       co_records: dict) -> tuple[list, int]:
+    """Rows for the periodic filings a company made after ``since`` whose facts the SEC's
+    ``companyfacts`` holds under **another registrant on the same filing** - and how many filings.
+
+    2026-11-18 (research/2026-11-18-combined-filings-under-a-co-registrant.md). From mid-May 2026
+    the 10-Qs that 19 scored companies filed jointly with a subsidiary or an operating
+    partnership - fourteen utilities and five REITs, 37 filings - are absent from the listed
+    company's own record and present, whole, in exactly one co-registrant's (Sempra's June
+    quarter under Southern California Gas, its September quarter under San Diego Gas &
+    Electric). The cache had nothing newer than a first-quarter 10-Q for any of them. Four more
+    companies had one quarter moved the same way (Dow, Con Edison, Edison International, United
+    Rentals), which an age bar cannot see: 41 filings, 23 companies on the first refresh.
+
+    The facts are the listed company's own. Measured rather than assumed: of the 7,326
+    comparatives those 37 filings repeat from periods the parent's own record already covers,
+    95.6% are equal to it, against 95.3% for the same companies' last *un-moved* filing (American
+    Electric Power began rounding to millions in 2026 and is most of the difference in both); and
+    the filing check's total-assets comparison went from 440 of 440 within 0.5% of the source to
+    459 of 459. An accession is followed only where the listed company is the **first**
+    registrant on it, which it was on all 41 - that convention, not this code, is what makes the
+    record's facts the consolidated parent's.
+
+    A filing with no co-registrant holding it stays missing and is named in the refresh's log
+    line: Citigroup's three 10-Qs of 2026 are in no record and no frame, and one filing each of
+    FirstEnergy, Cardinal Health and Clorox. ``sec_crosscheck.no_recent_filing`` counts the ones
+    old enough to matter."""
+    sub = edgar.get(f"https://data.sec.gov/submissions/CIK{cik:010d}.json").json()
+    recent = (sub.get("filings") or {}).get("recent") or {}
+    missing = [a for a, form, filed in zip(recent.get("accessionNumber", []), recent.get("form", []),
+                                           recent.get("filingDate", []))
+               if form in PERIODIC_FORMS and filed > since and a not in own_accessions]
+    rows, found = [], 0
+    for accn in missing:
+        head = edgar.get(f"https://www.sec.gov/Archives/edgar/data/{cik}/{accn.replace('-', '')}/"
+                         f"{accn}-index-headers.html").text
+        regs = filing_registrants(head)
+        if not regs or regs[0] != cik:
+            continue
+        for co in regs[1:]:
+            if co not in co_records:
+                try:
+                    co_records[co] = edgar.get(
+                        f"https://data.sec.gov/api/xbrl/companyfacts/CIK{co:010d}.json").json()
+                except Exception:  # noqa: BLE001 - a registrant with no record is an answer
+                    co_records[co] = {}
+            got = _fact_rows(co_records[co], ticker, {accn})
+            if got:
+                rows.extend(got)
+                found += 1
+                break
+    return rows, found
+
+
 def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool = False,
-                         allow_write: bool = True):
+                         allow_write: bool = True, today: date | None = None):
     """Every 10-K / 10-Q fact for ``FACT_CONCEPTS``, one ``companyfacts`` request per company,
     cached in ``FACTS_PATH`` and refreshed at most weekly (~500 requests, ~3 minutes).
 
@@ -144,6 +254,9 @@ def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool 
         edgar = Edgar(ua)
     cmap = ticker_map(edgar)
     rows, failed = [], 0
+    today = today or date.today()
+    co_records: dict = {}                      # one request per co-registrant per refresh
+    moved, still_gapped = {}, []
     for t in tickers:
         cik = cmap.get(str(t).upper())
         if cik is None:
@@ -153,17 +266,28 @@ def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool 
         except Exception:  # noqa: BLE001 - one company failing must not lose the rest
             failed += 1
             continue
-        gaap = (j.get("facts") or {}).get("us-gaap") or {}
-        dei = (j.get("facts") or {}).get("dei") or {}
-        wanted = ([(gaap, c, "USD") for c in FACT_CONCEPTS]
-                  + [(gaap, c, "shares") for c in SHARE_CONCEPTS + OUTSTANDING_CONCEPTS]
-                  + [(dei, c, "shares") for c in DEI_SHARE_CONCEPTS]
-                  + [(gaap, c, "USD/shares") for c in EPS_CONCEPTS])
-        for ns, c, unit in wanted:
-            for f in ((ns.get(c) or {}).get("units") or {}).get(unit, []):
-                if f.get("form") in ("10-K", "10-Q", "10-K/A", "10-Q/A"):
-                    rows.append((t, c, f.get("start"), f.get("end"), f.get("filed"), f.get("form"),
-                                 f.get("fp"), f.get("val")))
+        own = _fact_rows(j, t)
+        rows.extend(own)
+        since = filing_gap([r[4] for r in own], today)
+        if since is None:
+            continue
+        try:
+            extra, n_filings = _facts_filed_under_a_co_registrant(edgar, t, int(cik), since,
+                                                                 _accessions(j), co_records)
+        except Exception:  # noqa: BLE001 - the follow-up failing leaves the company as it was
+            extra, n_filings = [], 0
+        rows.extend(extra)
+        if extra:
+            moved[t] = (n_filings, len(extra))
+        if filing_gap([r[4] for r in own + extra], today) is not None:
+            still_gapped.append(t)
+    if moved:
+        log(f"  SEC companyfacts: {len(moved)} companies' filings were under a co-registrant's record "
+            f"({sum(v[0] for v in moved.values())} filings, {sum(v[1] for v in moved.values()):,} facts): "
+            f"{' '.join(sorted(moved))}")
+    if still_gapped:
+        log(f"  SEC companyfacts: {len(still_gapped)} companies still have a gap of over "
+            f"{FILING_GAP_DAYS} days between periodic filings: {' '.join(sorted(still_gapped))}")
     got = len({r[0] for r in rows})
     asked = sum(1 for t in tickers if cmap.get(str(t).upper()) is not None)
     # A refresh that reached under 90% of the companies it asked for (a network outage, a rate
