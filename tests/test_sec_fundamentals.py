@@ -159,3 +159,122 @@ def test_a_subset_run_never_rewrites_the_cache(tmp_path, monkeypatch):
 
     out = sf.refresh_companyfacts(["AAA"], edgar=Boom(), allow_write=False)
     assert len(out) == len(_facts()) and os.path.getmtime(path) == 0
+
+
+# ------------------------------------------------- a combined filing under a co-registrant's record
+# 2026-11-18: from mid-May the SEC's companyfacts holds a jointly filed 10-Q under one of the other
+# registrants on it, so 19 scored companies' records stopped at their first-quarter 10-Q.
+def _record(*facts):
+    """A companyfacts record: facts are (accession, form, filed, end, value) of us-gaap Assets."""
+    return {"facts": {"us-gaap": {"Assets": {"units": {"USD": [
+        {"accn": a, "form": form, "filed": filed, "end": end, "val": v} for a, form, filed, end, v in facts]}}}}}
+
+
+class _Edgar:
+    """PARENT (CIK 1) files with SUB (CIK 2) and SUB2 (CIK 3); ALONE (CIK 9) files by itself."""
+
+    def __init__(self, first_registrant=1):
+        self.urls = []
+        self.first = first_registrant
+
+    def get(self, url):
+        self.urls.append(url)
+        body = self._body(url)
+
+        class R:
+            text = body if isinstance(body, str) else ""
+
+            @staticmethod
+            def json():
+                return body
+        return R()
+
+    def _body(self, url):
+        old = [("K", "10-K", "2026-02-10", "2025-12-31", 100), ("Q1", "10-Q", "2026-05-01", "2026-03-31", 110)]
+        if url.endswith("companyfacts/CIK0000000001.json") or url.endswith("companyfacts/CIK0000000009.json"):
+            return _record(*old)
+        if url.endswith("companyfacts/CIK0000000002.json"):
+            return _record(("Q2", "10-Q", "2026-08-01", "2026-06-30", 120))
+        if url.endswith("companyfacts/CIK0000000003.json"):
+            return _record(("Q3", "10-Q", "2026-11-01", "2026-09-30", 130),
+                           ("OTHER", "10-Q", "2026-11-02", "2026-09-30", 7))   # the subsidiary's own filing
+        if "submissions/CIK0000000001" in url or "submissions/CIK0000000009" in url:
+            return {"filings": {"recent": {
+                "accessionNumber": ["Q3", "8K", "Q2", "Q1", "K"],
+                "form": ["10-Q", "8-K", "10-Q", "10-Q", "10-K"],
+                "filingDate": ["2026-11-01", "2026-09-01", "2026-08-01", "2026-05-01", "2026-02-10"]}}}
+        if url.endswith("-index-headers.html"):
+            if "/data/9/" in url:
+                return "<FILER>\nCENTRAL INDEX KEY: 9\n"
+            order = [1, 2, 3] if self.first == 1 else [2, 1, 3]
+            return "".join(f"&lt;FILER&gt;\nCOMPANY DATA:\nCENTRAL INDEX KEY:\t\t\t{c:010d}\n" for c in order)
+        raise AssertionError(url)
+
+
+def _refresh(tmp_path, monkeypatch, edgar, tickers=("PARENT",)):
+    import insider_activity as ia
+    monkeypatch.setattr(sf, "FACTS_PATH", tmp_path / "facts.parquet")
+    monkeypatch.setattr(ia, "ticker_map", lambda edgar=None: {"PARENT": 1, "ALONE": 9})
+    said = []
+    out = sf.refresh_companyfacts(list(tickers), edgar=edgar, log=said.append, today=date(2026, 11, 18))
+    return out, said
+
+
+@pytest.mark.parametrize("filed,today,gap", [
+    (["2026-02-10", "2026-05-01", "2026-08-01", "2026-11-01"], date(2026, 11, 18), None),
+    (["2026-02-10", "2026-05-01"], date(2026, 11, 18), "2026-05-01"),                  # stopped in May
+    (["2026-02-10", "2026-05-01", "2026-11-01"], date(2026, 11, 18), "2026-05-01"),    # one quarter out
+    (["2025-10-20", "2026-02-27"], date(2026, 3, 1), None),         # third-quarter 10-Q to 10-K: 130 days
+    ([], date(2026, 11, 18), None),                                 # nothing recent is not a gap to follow
+    (["2021-02-10"], date(2026, 11, 18), None),
+])
+def test_a_gap_is_more_than_150_days_between_periodic_filings(filed, today, gap):
+    assert sf.filing_gap(filed, today) == gap
+
+
+def test_a_combined_filing_is_read_from_the_co_registrant_that_holds_it(tmp_path, monkeypatch):
+    out, said = _refresh(tmp_path, monkeypatch, _Edgar())
+    got = {(str(r.end.date()), r.val) for r in out.itertuples()}
+    assert got == {("2025-12-31", 100), ("2026-03-31", 110), ("2026-06-30", 120), ("2026-09-30", 130)}
+    assert set(out["ticker"]) == {"PARENT"}                 # filed under the listed company's ticker
+    assert 7 not in set(out["val"])                         # never the co-registrant's other filings
+    assert any("1 companies' filings were under a co-registrant's record (2 filings, 2 facts): PARENT" in s
+               for s in said)
+    assert not any("still have a gap" in s for s in said)
+
+
+def test_a_filing_the_listed_company_does_not_lead_is_not_followed(tmp_path, monkeypatch):
+    """The facts are the parent's because the parent is the first registrant; where it is not,
+    the dimensionless facts may be someone else's."""
+    out, said = _refresh(tmp_path, monkeypatch, _Edgar(first_registrant=2))
+    assert set(out["val"]) == {100, 110}
+    assert any("still have a gap" in s and "PARENT" in s for s in said)
+
+
+def test_a_company_filing_alone_is_left_as_it_is_and_named(tmp_path, monkeypatch):
+    e = _Edgar()
+    out, said = _refresh(tmp_path, monkeypatch, e, tickers=("ALONE",))
+    assert set(out["val"]) == {100, 110}
+    assert any("1 companies still have a gap" in s and "ALONE" in s for s in said)
+    assert not any("companyfacts/CIK0000000002" in u for u in e.urls)
+
+
+def test_a_company_with_no_gap_costs_one_request(tmp_path, monkeypatch):
+    class Whole(_Edgar):
+        def _body(self, url):
+            assert "companyfacts/CIK0000000001" in url, url
+            return _record(("K", "10-K", "2026-02-10", "2025-12-31", 100), ("Q1", "10-Q", "2026-05-01", "2026-03-31", 1),
+                           ("Q2", "10-Q", "2026-08-01", "2026-06-30", 2), ("Q3", "10-Q", "2026-11-01", "2026-09-30", 3))
+    e = Whole()
+    out, said = _refresh(tmp_path, monkeypatch, e)
+    assert len(e.urls) == 1 and len(out) == 4 and len(said) == 1
+
+
+def test_a_failed_follow_up_keeps_the_companys_own_facts(tmp_path, monkeypatch):
+    class Down(_Edgar):
+        def _body(self, url):
+            if "submissions" in url:
+                raise RuntimeError("down")
+            return super()._body(url)
+    out, said = _refresh(tmp_path, monkeypatch, Down())
+    assert set(out["val"]) == {100, 110}

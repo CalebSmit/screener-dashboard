@@ -191,7 +191,13 @@ def no_recent_filing(payload: dict, facts, today=None) -> dict:
     it: asked directly that morning, Regency Centers' record carried no fact of any kind filed
     after 2026-05-04, and Citigroup's nothing from a 10-Q in 2026. So a fresh cache file says
     nothing about whether a company's filings are in it. Reporting only; never a refusal.
-    research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md section 5."""
+    research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md section 5.
+
+    **Why, found the same afternoon:** the SEC now holds a jointly filed report's facts under one
+    of the *other* registrants on it. ``sec_fundamentals.refresh_companyfacts`` follows them
+    there, which took this count from 20 to 1 (Citigroup, which files alone and whose 2026 10-Qs
+    are in no record). This count is what is left after that - keep it, it is how the next such
+    change will show. research/2026-11-18-combined-filings-under-a-co-registrant.md"""
     import pandas as pd
     run = pd.Timestamp(today) if today is not None else pd.Timestamp(
         str((payload.get("kpis") or {}).get("run_timestamp") or pd.Timestamp.today())[:10])

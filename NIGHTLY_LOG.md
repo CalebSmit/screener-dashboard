@@ -22088,3 +22088,132 @@ plus two price-cache files long since regenerated. Dropped; it was commit
    The fallback goes first: it is measured on 26 stocks today, the other is +0.166 on one run.
 5. From yesterday, still open: the 14 quarterly cash-flow columns that are neither the filed
    quarter nor the year-to-date figure (DTE's is inside its twelve months).
+
+## 2026-11-18 (13:00) - QUEUE. Where twenty companies' filings went: the SEC now files a combined report under one co-registrant, and the weekly refresh follows it there
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-18_060000.log` (completed). Data loop published? yes - `logs/datarun-2026-11-18_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 131 rows across all horizons), newest 1m run date 2026-10-16 (33 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **37 days**; a standing programme, last advanced **12 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 42d; 0.14 35d.
+
+**Tests:** the runner's baseline was GREEN (4,363 passed / 1 skipped). **My own baseline had one
+failure**, `tests/test_lab_reading_and_access.py::test_a_web_font_that_lands_late_is_waited_for_and_one_that_cannot_land_is_not`
+(card heights 208 against 183 at the moment it read them): 1 failed / 4,362 passed / 1 skipped in
+4:39. It did not reproduce - the module alone, 35 passed - and it ran while I was making EDGAR
+requests on the same machine. Recorded as a flake, not fixed; the saved output is
+`logs/session-baseline-1300.txt`. After: **4,371 passed / 4 skipped / 0 failed** in 4:09 (11 new
+cases). **The three extra skips are mine and are by design:** `test_capex_lease_note`,
+`test_special_item_note` and `test_ytd_column_note` each skip, loudly, when the SEC cache on disk
+is not the one the committed payload was built from (2,446,742 rows then, 2,449,990 now). They
+skip the same way after every weekly refresh and run again once the 02:00 run publishes from the
+new cache. Gate 2 (dry-run) passes. Gate 3: no payload or page file touched. Gate 5,
+`scripts/rehearse_publish.py --changed-since origin/main`: **REHEARSAL PASSED**, files restored
+byte for byte. Gate 4 clean. The suite was run twice with the same counts, the second time (4:27)
+on the final tree with this entry already written; only this sentence changed after it.
+
+**Owner queue / rotation:** second session today; I read the 06:00 entry first and took its
+**Next 3** (Next 1 is Friday's, Next 2 needs tomorrow's run). `open_proposals()` is `[]`; no
+branch was held back; no `auto-rescue` stash (`git stash list` is empty). `OWNER_FOCUS.md`: not
+re-read item by item - the 06:00 session did four hours earlier and no commit has touched it
+since; nothing moved. 0.13 is not deferred (12 days against a bound of 21; Friday is its day).
+Nothing was deferred for a gate or a loop. No decision of this morning's was reversed; one of its
+numbers is superseded (below).
+
+### Did
+
+**The question:** this morning found 20 of 499 scored companies with nothing in the SEC
+`companyfacts` cache filed in 165 days, showed the SEC's record itself lacked them, and "did not
+establish why". `research/2026-11-18-combined-filings-under-a-co-registrant.md`.
+
+**1. The cause, for 19 of the 20.** Followed filing by filing through EDGAR's `submissions`
+record and each filing's header (`research/measurements/2026-11-18-where-the-missing-filings-went.py`,
+134 requests): the twenty have made **41** periodic filings since the newest in their own record,
+all XBRL, none with a single fact there. **37 of them, for 19 companies, are whole in exactly one
+co-registrant's record** - a subsidiary utility or an operating partnership, and a different one
+from quarter to quarter (Sempra's June quarter is under Southern California Gas, September's
+under San Diego Gas & Electric). Until mid-May the whole filing sat under the first registrant,
+the listed company. I did not find the rule that now picks the registrant, and found no SEC
+notice; the note says so.
+
+**2. The moved facts are the parent's - measured, not assumed.** Every 10-Q repeats earlier
+figures as comparatives, and the parent's own record already holds those. 7,004 of 7,326
+overlapping facts are equal (**95.6%**); the same parents' last *un-moved* filing agrees with
+their own history at **95.3%** (2,511 of 2,635). The 53% I first saw for American Electric Power
+is AEP rounding to whole millions from 2026 - its own un-moved filing shows the same.
+Independently, against the data source: total assets within 0.5% went from 440 of 440 to **459
+of 459**.
+
+**3. The fix, and four companies the age bar was hiding.**
+`sec_fundamentals.refresh_companyfacts` now looks for a gap of over 150 days between a company's
+periodic filings, and for a filing **the listed company leads** reads that one accession's facts
+from whichever co-registrant holds them. A live refresh of all 503 companies (362 s) recovered
+**41 filings for 23 companies, 3,248 facts** - 37 for the 19, plus one quarter each for Dow, Con
+Edison, Edison International and United Rentals, whose next quarter was not moved, which a
+165-day age bar cannot see. 0 of the old cache's 2,446,742 rows are absent from the new.
+
+**4. Applied to the machine (rule 11).** The rebuilt cache is installed at
+`data/sec/pit/facts.parquet`; the one it replaced is `logs/facts_before_1118_1300.parquet`. So
+tomorrow's 02:00 run reads it whether or not this branch merges - and if it does not merge, the
+old code's next weekly refresh simply rebuilds the old content. On the rebuilt cache
+`no_recent_filing` reads **1** (Citigroup).
+
+**5. What the next page shows.** From the rehearsal's regenerated payload against the published
+one: `xchk` differs for 19 stocks (463 with a compared field, from 449; Evergy, ranked 27th, goes
+from no check to five fields agreeing), `newer_filing` for 5 (Regency Centers' now names its
+November 10-Q, not May's), and **no composite or rank differs**. `summary` differs for 27 - that
+is this morning's sentence, not this change. **I did not open the page in a browser**: nothing in
+how the panel renders changed, only how many stocks have rows in it.
+
+### Evidence / research
+
+- A documented failure, measured: the two scripts above (the second,
+  `2026-11-18-whose-figures-the-moved-facts-are.py`, carries the baseline and the frames query).
+- The 150-day gap is the SEC deadline arithmetic the 2026-11-02 entry cites (10-Q within 40 days,
+  10-K within 60: at most ~142 days between consecutive filings). Not re-read today.
+- No literature. Nothing rests on a return, an IC or a backtest.
+
+### Methodology changed
+
+- **No score, weight, metric, threshold or rank.** `METHODOLOGY_CHANGELOG.md` 2026-11-18 (13:00)
+  records it as a data-source entry. The only engine reader of this cache is
+  `earnings_variability` (weight 0, 10-K facts); every recovered fact is from a 10-Q.
+- No `RESULT_PATHS` file edited; the ledger's verdict does not read this cache (`cache->red`).
+
+### Superseded from this morning
+
+- "20 ... with no filing in the cache for 165 days ... should fall only when the SEC's record
+  catches up" (changelog, expected effect) and Next 2's "expect 20": **expect 1.** The SEC's
+  record did not catch up; we now read the record the filing is in.
+- The synthesis's section 4 ("15 of 18 comparable") was measured on the old cache. Not re-run.
+
+### Tried and rejected
+
+- **Keying the fix on the 165-day age bar** - it would have missed the four companies with one
+  moved quarter.
+- **Reading a co-registrant's whole record.** Only the facts carrying the missing accession
+  number are taken; a subsidiary's own separate filings stay out (a test holds this).
+- **Following a filing the listed company does not lead.** None of the 41 is one, so it would
+  have been untested generality resting on a convention I could not check.
+- **Explaining Citigroup.** It files alone; its three 10-Qs of 2026 are in no record and it is
+  absent from the frames API for all three quarters. Same for one FirstEnergy filing. Cardinal
+  Health and Clorox each have a gap I did not follow. All four are named in the refresh's log
+  line every week.
+- **Changing the pre-registered 12-15 rule.** `research/2026-10-14-yahoo-vs-sec.md` section 7
+  now says its denominators step up on 2026-11-19; the rule is as written.
+
+### Next
+
+1. **Friday 2026-11-20 is the lab's day**: `EarningsSurprise` on Open Source Asset Pricing
+   (`plan/factor-lab.md`); add the dated Progress bullet.
+2. **Tomorrow's 02:00 run**: the health line should read "**1** stocks with no 10-K or 10-Q in the
+   SEC cache" (not 20); total assets about 459 compared; the three note tests un-skip (suite back
+   to 1 skipped). Then, from this morning's list: add "Its filings are flagged stale" to
+   `claims.FORBIDDEN` once the corrected payload is published.
+3. **The next weekly refresh (about 2026-11-25)** is the first by the data loop with this code:
+   read `SEC companyfacts:` in `logs/datarun-*.screener.txt` - "N companies' filings were under a
+   co-registrant's record" (41 filings / 23 companies today, more as later filings come) and the
+   "still have a gap" names (C, CAH, CLX, FE today). `fetch.sec_roe_history` should rise by about
+   100 s on that day only.
+4. **February 2027: the first combined 10-Ks.** `earnings_variability` (weight 0) reads 10-Ks;
+   the same follow-up covers them, and the gap line is the check. Worth a `COMING_UP` entry when
+   a session is next in `write_brief.py`.
+5. Unchanged from this morning: the Monday on a hole in the quarterly series (by 2026-12-07) -
+   **re-run its section-4 measurement on the new cache first** - and the 14 quarterly cash-flow
+   columns that are neither the filed quarter nor year-to-date.
