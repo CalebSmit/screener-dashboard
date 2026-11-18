@@ -485,6 +485,11 @@ def filing_check(lines: list[str]) -> str:
     late = re.search(r"(\d+) stocks scored a period behind a filing over 30 days old", body)
     if keep and late:
         keep.append(f"{late.group(1)} scored a quarter behind a filing over 30 days old")
+    # The stocks the check cannot see (2026-11-18): "filings cached 0 days ago" stood beside 20
+    # companies with nothing in the cache since May, because the file's age is not its contents'.
+    blind = re.search(r"(\d+) stocks with no 10-K or 10-Q in the SEC cache filed in the last (\d+) days", body)
+    if keep and blind:
+        keep.append(f"{blind.group(1)} with no filing in the cache for {blind.group(2)} days")
     age = re.search(r"SEC cache (\d+) days old", body)
     if keep and age:
         keep.append(f"filings cached {age.group(1)} days ago")

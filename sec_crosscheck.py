@@ -171,6 +171,42 @@ def newer_filings(payload: dict, facts, today=None) -> dict:
     return out
 
 
+# Two periodic filings of a large accelerated filer are never further apart than a third-quarter
+# 10-Q filed in mid-October and a 10-K due 60 days after the year end - about 142 days. 165 is
+# that plus the same two weeks `data_quality.stale_data_threshold_days` allows, so a company past
+# it has filed something the cache does not hold.
+NO_RECENT_FILING_DAYS = 165
+
+
+def no_recent_filing(payload: dict, facts, today=None) -> dict:
+    """``{ticker: date of the newest 10-K/10-Q fact in the cache}`` for every scored stock whose
+    newest one was filed more than ``NO_RECENT_FILING_DAYS`` before the run - or ``None`` where
+    the cache holds no periodic filing for it at all.
+
+    **Every comparison in this module is blind for these stocks' recent quarters**, and nothing
+    said so. 2026-11-18: the cache was "0 days old" and 20 of 499 scored companies had nothing
+    filed in it since May or earlier - nineteen utilities and REITs that file one combined report
+    with their subsidiaries or operating partnership, and Citigroup, whose newest was its 10-K of
+    2026-02-20. The gap is in the SEC's ``companyfacts`` itself, not in what the refresh keeps of
+    it: asked directly that morning, Regency Centers' record carried no fact of any kind filed
+    after 2026-05-04, and Citigroup's nothing from a 10-Q in 2026. So a fresh cache file says
+    nothing about whether a company's filings are in it. Reporting only; never a refusal.
+    research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md section 5."""
+    import pandas as pd
+    run = pd.Timestamp(today) if today is not None else pd.Timestamp(
+        str((payload.get("kpis") or {}).get("run_timestamp") or pd.Timestamp.today())[:10])
+    f = facts[facts["form"].isin(FORMS) & (facts["filed"] <= run)]
+    newest = f.groupby("ticker")["filed"].max()
+    out = {}
+    for t in (payload.get("stock_detail") or {}):
+        last = newest.get(t)
+        if last is None or pd.isna(last):
+            out[t] = None
+        elif (run - pd.Timestamp(last)).days > NO_RECENT_FILING_DAYS:
+            out[t] = str(pd.Timestamp(last).date())
+    return out
+
+
 def summary(df) -> dict:
     """Per field: how many were compared, how many agree within 0.5%, how many differ by over 10%."""
     import pandas as pd

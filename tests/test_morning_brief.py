@@ -351,6 +351,18 @@ class TestFilingCheckRow:
         health = (ROOT / "scripts" / "check_run_health.py").read_text(encoding="utf-8")
         assert "stocks scored a period behind a filing over 30 days old" in health
 
+    def test_the_stocks_the_check_cannot_see_are_counted(self):
+        """2026-11-18: "filings cached 0 days ago" beside 20 companies with nothing in the cache
+        since May. The file's age is not the age of what is in it."""
+        line = self.LINE.replace("; SEC cache 6 days old",
+                                 "; 20 stocks with no 10-K or 10-Q in the SEC cache filed in the last 165 days "
+                                 "(AEP, C, CNP, D, DLR, DTE, DUK, ETR...); SEC cache 0 days old")
+        assert wb.filing_check([line]).endswith(
+            "market value 447/487 within 5%; 20 with no filing in the cache for 165 days; "
+            "filings cached 0 days ago")
+        health = (ROOT / "scripts" / "check_run_health.py").read_text(encoding="utf-8")
+        assert "stocks with no 10-K or 10-Q in the SEC cache filed in the last " in health
+
     def test_an_attention_note_is_pointed_to(self):
         lines = [self.LINE, "[02:20:31] [INFO]     ok   ATTENTION - total assets differs from the companies' filings"]
         assert wb.filing_check(lines).endswith("see the ATTENTION note below**")

@@ -502,7 +502,9 @@ browser by `caseItems` / `renderCaseAgainst` (`_js_drilldown`) from `stock_detai
 weakest weighted categories (score and "N of W points" as the score tiles print them, plus the score
 row's own gloss for Risk / Size / Investment), and verbatim the summary's flags, target (mean target below
 the price), earnings (report 0-14 days after the run - Reporting soon's longer window), confidence (an
-unscored category, stale filings or the EPS disagreement) and change + input-churn sentences; the close
+unscored category, a stale statement or the EPS disagreement - since 2026-11-18 the sentence speaks of
+the income statement the score read, never of "its filings", and names the annual-statement fallback
+where that is why it is old) and change + input-churn sentences; the close
 against its 200-day average when below it (the Trend card's figure); officers' and directors'
 open-market sales over 90 days when there were no purchases or the sales were larger (the Insider card's
 figures); filing-check fields beyond its 2%; and Data provenance's newer-filing sentence. A check that ran
@@ -578,7 +580,8 @@ last. `tests/test_drilldown_presentation.py` (10, browser).
   (`research/measurements/2026-10-27-dead-badge-audit.py`, `tests/test_dead_badges.py`). Seven were
   covered: value trap (46 stocks) and growth trap (66) by the table's flag column, `summary` and
   "The case against"; Beneish (43) and channel stuffing (14) by the last two; stale financials (28)
-  by the Filing Age badge as well; EPS basis mismatch (100) by the provenance badge and the
+  by the **Statement age** badge as well (days since the income statement's period end; labelled
+  "Filing Age" until 2026-11-18, which it never was); EPS basis mismatch (100) by the provenance badge and the
   data-quality KPIs; bank-like (46) by the ROE/ROIC column label. Three are now sentences in
   **Data provenance**, which the drilldown does call - `#provenance-ltm-annualized` (4 stocks),
   `#provenance-ev-substituted` (18), `#provenance-beta-overlap` (1). The eleventh, the
