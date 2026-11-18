@@ -954,7 +954,23 @@ cash flow now say so (`srcn`, claim `drilldown.ytd_column_note`; **its own key, 
 each `cavs` note's publish-gate test compares the whole dict). **The score is not corrected**:
 whether a filing may act on one field of one stock is that note's proposal, **WAITING until
 2026-12-15** on four conditions written in advance (section 7; the brief's "Coming up" carries
-the date) - do not build it early, and do not build a statement-only detector at all. Each stock's Data
+the date) - do not build it early, and do not build a statement-only detector at all.
+**Three things the 2026-11-18 synthesis added**
+(`research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`): **(1) a caveat names
+the statement, column or field that is impaired, never the company** - "Its filings are flagged
+stale" was printed for 27 stocks that morning and all 27 had a newer filing on record, because
+the flag ages the income statement the score *read* (the sentence and the "Statement age" badge
+now say so; when a change moves a population into an existing flag, re-read the flag's sentence
+for that population). **(2) The check cannot see 20 companies** - fourteen utilities, five REITs
+and Citigroup have nothing in the SEC's `companyfacts` filed since May or earlier, with the cache
+"0 days old"; the health line and the brief now print that count every morning
+(`sec_crosscheck.no_recent_filing`, a count, never an ATTENTION line), and the 2026-10-14 note's
+section 7 tells whoever applies the 12-15 rule. **(3) 26 stocks are scored on last fiscal year's
+flows** because the source's quarterly table has a hole; scored net income is below the filed
+twelve months for 15 of 18 comparable (median absolute gap 32%). **Sized, not acted on** - it is
+the same question as DexCom's at 26 times the size, and a Monday is queued ahead of 12-15
+(`COMING_UP`, 2026-12-07). Do not patch it with a filings fallback (refused 2026-10-15, section
+3c). Each stock's Data
 Provenance panel shows the same check (`stock_detail[t].xchk`,
 `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`): which inputs agree
 within 2% with the filing. **Display-only** - a test fails if `xchk` or `sec_crosscheck` appears

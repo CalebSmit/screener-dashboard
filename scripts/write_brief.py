@@ -606,8 +606,16 @@ COMING_UP = (
     ("2026-12-15", "Re-run the filing cross-check's range table over the runs from 2026-11-18 "
                    "(`research/measurements/2026-11-17-filing-crosscheck-range.py`); promote total "
                    "assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 "
-                   "on every one. The 2026-11-16 re-run was NOT met (operating cash flow 10; section 6).",
+                   "on every one. The 2026-11-16 re-run was NOT met (operating cash flow 10; section 6). "
+                   "Read section 7 first: the check cannot see 20 companies whose filings the SEC's "
+                   "record stopped carrying, and the rule is unchanged by that.",
      "research/2026-10-14-yahoo-vs-sec.md"),
+    ("2026-12-07", "The last Monday before the year-to-date-column decision of 2026-12-15: research what "
+                   "vendors and index providers do with a hole in a company's quarterly series. 26 "
+                   "stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and "
+                   "it is the same question as DexCom's (may a filing do more than sit beside a scored "
+                   "input) at 26 times the size. Section 4; no design is proposed there.",
+     "research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md"),
     ("2026-12-15", "Decide the year-to-date-column proposal (score a stock on the filed twelve months "
                    "when its operating cash flow provably counts part of a year twice): re-run "
                    "`research/measurements/2026-11-17-ytd-signature-history.py`; section 7's four "

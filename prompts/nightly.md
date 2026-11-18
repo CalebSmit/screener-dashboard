@@ -71,8 +71,13 @@ salvage (`research/2026-10-19-session-ended-on-a-background-job.md`). So, as har
 
 - **Run `git stash list` straight away.** An `auto-rescue` entry is a
   previous session's work that was cut off or left behind: look at it
-  (`git stash show -p`) and recover it before starting anything new, or say in
-  the log why not. A rescued stash nobody reads is lost work with extra steps.
+  (`git stash show -p --include-untracked`, or `git ls-tree -r --name-only 'stash@{0}^3'`)
+  and recover it before starting anything new, or say in the log why not. A rescued stash
+  nobody reads is lost work with extra steps. **Plain `git stash show -p` prints nothing for a
+  stash that holds only untracked files** - the runner's rescue is made with `-u` - and "it is
+  empty" was logged of a three-file stash by session after session between 2026-10-28 and
+  2026-11-17, including several after the 2026-11-04 session had found the files (dropped 2026-11-18:
+  a refused run's context log, which the data loop's own discard rule deletes).
 - **Read `OWNER_FOCUS.md` first.** It is how the owner directs this routine.
   Anything under its **Open** heading outranks today's nominal focus. Work the
   top open item; if you finish it, take the next one. When an item is done,
