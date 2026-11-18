@@ -5460,3 +5460,87 @@ PASSED. Seen on a throwaway copy of DexCom's sheet at 1440 and 375 px.
 
 **Applied by:** 13:00 session, 2026-11-17.
 **Rollback:** `good/2026-11-17` (the tag before this change).
+
+## 2026-11-18 - Display: staleness is said of the statement the score read, never of the company's filings; the filing check counts what it cannot see
+
+**Area:** the per-stock summary's "Read with care" sentence, the Data Provenance badge, "The case
+against", and the data run's health note. **No score, weight, metric, threshold, input or rank
+changed.** `_stale_data` is read by no scoring code and its bar (165 days, 2026-11-02) is
+unchanged; what changed is the sentence the flag prints. This is the Wednesday synthesis's entry:
+it comes from reading the five entries since 2026-11-04 as one layer
+(`research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`).
+
+**Changed:**
+
+1. `stock_summary._sentence_confidence`: "Its filings are flagged stale (N days old)." becomes
+   "The income statement this score read is flagged stale (N days old)." - and, where the fetch
+   read the last fiscal year for the income statement (`flags.annual_instead` naming it, no
+   `q_rejected`; the condition the provenance panel's "Last fiscal year used" already uses),
+   "Its <statements> figures are the last fiscal year's (N days old): the data source's quarterly
+   figures could not be summed to twelve months."
+2. The Data Provenance badge "Filing Age: N days" is "Statement age: N days". The number is and
+   was days since the income statement's period end.
+3. "The case against" clears a stock with "no missing category, stale statement or EPS
+   disagreement" (was "stale filing").
+4. `sec_crosscheck.no_recent_filing` and one more figure on the health note, carried to the
+   morning brief: how many scored stocks have no 10-K or 10-Q in the SEC cache filed in the last
+   165 days. A count; not an ATTENTION line and not a gate.
+
+**Evidence (documented failures, measured; scripts under `research/measurements/2026-11-18-*`):**
+
+- *The sentence was false of every company it was printed for.* On the page published
+  2026-11-18, 27 stocks carried "Its filings are flagged stale". **27 of 27 had a newer filing on
+  record** in the SEC cache, 22 of them filed inside the 165-day bar; 27 of 27 had a balance
+  sheet inside the bar; 26 are stocks read from the annual statement because the source's
+  quarterly statement lacks a quarter, and the 27th is DuPont's refused quarterly statement.
+  Amazon: "filings ... stale (322 days old)" beside a 10-Q filed 19 days earlier, which the same
+  payload records (`newer_filing`). The flagged count on every page under the 165-day bar was 8,
+  8, 5, 1, 1, 1, 1 and then 27 - the day after statement dates became those of the statement the
+  figures were read from (2026-11-17), exactly as that entry predicted. Two correct changes met;
+  nobody re-read the sentence for the population the second one moved into the flag.
+- *The badge was never a filing's age.* For a company that filed its September quarter twenty
+  days before the run it read "Filing Age: 49 days".
+- *The filing check's only health number was the age of a file.* The cache was rebuilt that
+  morning and the brief read "filings cached 0 days ago", while 20 of 499 scored companies
+  (fourteen utilities, five REITs, Citigroup) had nothing in it filed since May or earlier, and
+  the check compared no field for 15 of them. The gap is in the SEC's `companyfacts` record:
+  queried directly, Regency Centers' carries no fact filed after 2026-05-04 and Citigroup's none
+  from a 10-Q in 2026.
+- *The 165-day bar in (4) is the filing calendar's,* the same arithmetic as the 2026-11-02
+  entry: large accelerated filers file a 10-Q within 40 days and a 10-K within 60, so two
+  periodic filings are never more than about 142 days apart (a third-quarter 10-Q in mid-October
+  to a 10-K at its deadline); plus two weeks.
+
+**Expected effect:** on the next full run the 27 stocks' "Read with care" sentence changes - 26
+to the fiscal-year wording, 1 to the generic one (confirmed on a rebuild of the 2026-11-18 run
+with this code: 26 / 1 / 0 carrying the old wording). Every stock's badge reads "Statement age".
+The health note and the brief's "Inputs vs SEC filings" row gain "20 ... with no filing in the
+cache for 165 days", and that number should fall only when the SEC's record catches up. No
+composite, category score, percentile or rank moves; `kpis.methodology_version` does not change
+(no `config.yaml` edit).
+
+**Not changed, and recorded as open:** whether the 26 stocks should be scored on something
+newer than their last fiscal year. Sized in the note's section 4 (scored net income is below the
+filed twelve months for 15 of 18 comparable, median absolute gap 32%; the three statement-fed
+categories are where those stocks score low) and **not acted on**: scoring may not read a filing
+(0.14), the source's trailing series cannot be corroborated from the source alone for a hole two
+quarters back, and it is the same question as DexCom's waiting proposal. A Monday is queued
+ahead of 2026-12-15 (`COMING_UP`). The pre-registered rule for promoting the filing check to a
+gate is unchanged; `research/2026-10-14-yahoo-vs-sec.md` gains section 7 so whoever applies it
+knows the check cannot see those 20 companies.
+
+**Validated by:** `tests/test_stock_summary.py` (three new tests, six cases: the generic
+wording and that it never says "filings"; an unknown age; an unflagged stock says nothing; both
+forms of the fallback wording; the fallback is not named when only the cash-flow statement was
+replaced, when the quarterly statement was refused, or when there was none) - all three
+registered on claim `summary.confidence`; `tests/test_dead_badges.py` (the badge's label in the
+generator) and `tests/test_case_against.py` (the cleared line, rendered); `tests/test_sec_crosscheck.py`
+(two new: the bar's edge on both sides, an amended filing counts, a non-periodic form does not, a
+filing dated after the run does not, a stock outside the run is not reported, the note never
+fails a run and prints 0 when there are none); `tests/test_morning_brief.py` (the row).
+`scripts/rehearse_publish.py` PASSED. Seen at 1440 and 375 px on a rebuild of today's run
+(Amazon and DuPont): the sentence unclipped at both widths, the badge wrapping to its own line
+on the phone.
+
+**Applied by:** 06:00 session, 2026-11-18.
+**Rollback:** `good/2026-11-17-1401` (the tag before this change).

@@ -411,10 +411,12 @@ def test_the_seven_covered_badges_still_have_their_other_route():
         assert field in summ, field
     assert "s.vt || s.gt || fl.beneish_flag || fl.channel_stuffing" in gen, \
         "the case-against block no longer collects the trap and manipulation flags"
-    # stale financials: the summary, the case against, and the Filing Age badge
+    # stale financials: the summary, the case against, and the Statement age badge - which is
+    # the age of the statement's period end and was mislabelled "Filing Age" until 2026-11-18
     assert "stale_data" in summ
     assert "missing || fl.stale_data || s.eps_mismatch" in gen
-    assert "Filing Age: ' + age + ' days" in gen
+    assert "Statement age: ' + age + ' days" in gen
+    assert "\">Filing Age" not in gen, "the badge is labelled as the age of a filing again"
     # EPS basis mismatch: the provenance badge and the data-quality KPI
     assert "EPS Mismatch (ratio: " in gen and "dqKpi('EPS Mismatch'" in gen
     # bank-like: the column label that changes with it

@@ -232,6 +232,58 @@ def test_a_cache_that_stopped_refreshing_calls_attention_but_does_not_fail(tmp_p
     assert h.CACHE_STALE_DAYS == 14
 
 
+# --------------------------------------------------------------------------- what the cache holds
+def _recency_case():
+    """Run date 2026-11-18. CUR filed 19 days ago; EDGE exactly on the bar; OLD one day past it;
+    AMEND is past it on its 10-Q but has a later 10-K/A; NONE has only a registration form;
+    GONE is not in the cache at all; LATER's only recent fact was filed after the run."""
+    run = T("2026-11-18")
+    day = lambda n: str((run - pd.Timedelta(days=n)).date())  # noqa: E731
+    facts = frame([
+        fact("CUR", "Assets", None, "2026-09-30", 1, day(19)),
+        fact("EDGE", "Assets", None, "2026-03-31", 1, day(X.NO_RECENT_FILING_DAYS)),
+        fact("OLD", "Assets", None, "2026-03-31", 1, day(X.NO_RECENT_FILING_DAYS + 1)),
+        fact("AMEND", "Assets", None, "2026-03-31", 1, day(300)),
+        fact("AMEND", "Assets", None, "2025-12-31", 1, day(40), "10-K/A"),
+        fact("NONE", "Assets", None, "2026-09-30", 1, day(5), "424B2"),
+        fact("LATER", "Assets", None, "2026-03-31", 1, day(200)),
+        fact("LATER", "Assets", None, "2026-09-30", 1, str((run + pd.Timedelta(days=3)).date())),
+    ])
+    payload = {"kpis": {"run_timestamp": "2026-11-18T02:00:00"},
+               "stock_detail": {t: {} for t in ("CUR", "EDGE", "OLD", "AMEND", "NONE", "GONE", "LATER")}}
+    return run, day, facts, payload
+
+
+def test_a_stock_whose_filings_stopped_arriving_in_the_cache_is_named():
+    """2026-11-18: the cache file was 0 days old and 20 scored companies had nothing filed in it
+    since May or earlier - the SEC's own record for them had stopped. Every comparison this
+    module makes is blind for those stocks and no figure said so."""
+    run, day, facts, payload = _recency_case()
+    got = X.no_recent_filing(payload, facts)
+    assert got == {"OLD": day(X.NO_RECENT_FILING_DAYS + 1), "NONE": None, "GONE": None,
+                   "LATER": day(200)}
+    assert X.NO_RECENT_FILING_DAYS == 165          # the filing calendar's bar, written down
+    # a stock that is not in the run is not reported, whatever the cache holds for it
+    assert "OLD" not in X.no_recent_filing({**payload, "stock_detail": {"CUR": {}}}, facts)
+
+
+def test_the_health_note_counts_them_and_never_fails_for_them():
+    _, _, facts, payload = _recency_case()
+    res = h.Result()
+    h.check_inputs_against_filings(payload, res, facts=facts)
+    assert res.healthy and not res.failures
+    note = next(n for n in res.notes if n.startswith("inputs against SEC filings: "))
+    assert "4 stocks with no 10-K or 10-Q in the SEC cache filed in the last 165 days (GONE, LATER, NONE, OLD)" in note
+    assert not any("ATTENTION" in n for n in res.notes)
+
+    # and when there are none it says 0, so a missing count is never read as a clean one
+    facts0, payload0 = _facts_and_payload()
+    res0 = h.Result()
+    h.check_inputs_against_filings(payload0, res0, facts=facts0)
+    note0 = next(n for n in res0.notes if n.startswith("inputs against SEC filings: "))
+    assert " stocks with no 10-K or 10-Q in the SEC cache filed in the last 165 days" in note0
+
+
 def test_revenue_is_compared_with_the_filed_line_nearest_the_runs():
     """Williams files Revenues of 12.20 and contract revenue of 15.43 for the same year; Yahoo
     reports the first. Republic Services the other way round. Either agrees with a line the company

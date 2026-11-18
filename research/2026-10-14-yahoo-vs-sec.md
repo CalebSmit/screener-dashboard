@@ -301,6 +301,27 @@ gate at the existing bar of 25. The bar, the fields and the window are section 5
 date moves, to the first run made with the corrected dates. If operating cash flow is still above
 5, say which stocks and why before proposing anything else.
 
+## 7. What the check cannot see (2026-11-18, 06:00 session)
+
+Added for whoever applies section 6's rule on 2026-12-15. **The rule is not changed.**
+
+On 2026-11-18 the SEC cache was rebuilt the same morning ("0 days old") and **20 of 499 scored
+companies had no 10-K or 10-Q in it filed in the last 165 days** - fourteen utilities, five REITs
+and Citigroup, nineteen of them last filed between 2026-04-23 and 2026-05-08. The check compares
+no field at all for 15 of the 20. The gap is in the SEC's `companyfacts` record itself: asked
+directly, Regency Centers' carries no fact of any kind filed after 2026-05-04 and Citigroup's
+nothing from a 10-Q in 2026 (`research/measurements/2026-11-18-filings-the-sec-cache-does-not-hold.py`,
+`--ask REG C`). Why was not established.
+
+So the section-2 agreement rates are rates **among the companies the SEC's record covers**, and a
+gate built on this check cannot fire for those twenty. The health line now prints the count every
+morning (`sec_crosscheck.no_recent_filing`; the 165-day bar is the filing calendar's - two
+periodic filings are never more than about 142 days apart - plus two weeks), and the brief's row
+carries it. It is a count, not an ATTENTION line: it read 20 on its first morning. A session
+promoting the three fields should state the denominators beside the decision (total assets:
+440 of 499 that morning) and say whether twenty unseeable companies changes it.
+`research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md` section 5.
+
 ## Sources
 
 - SEC EDGAR `companyfacts` for each company, cached 2026-10-09 (`sec_fundamentals.py`).

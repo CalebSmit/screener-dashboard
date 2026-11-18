@@ -485,6 +485,11 @@ def filing_check(lines: list[str]) -> str:
     late = re.search(r"(\d+) stocks scored a period behind a filing over 30 days old", body)
     if keep and late:
         keep.append(f"{late.group(1)} scored a quarter behind a filing over 30 days old")
+    # The stocks the check cannot see (2026-11-18): "filings cached 0 days ago" stood beside 20
+    # companies with nothing in the cache since May, because the file's age is not its contents'.
+    blind = re.search(r"(\d+) stocks with no 10-K or 10-Q in the SEC cache filed in the last (\d+) days", body)
+    if keep and blind:
+        keep.append(f"{blind.group(1)} with no filing in the cache for {blind.group(2)} days")
     age = re.search(r"SEC cache (\d+) days old", body)
     if keep and age:
         keep.append(f"filings cached {age.group(1)} days ago")
@@ -601,8 +606,16 @@ COMING_UP = (
     ("2026-12-15", "Re-run the filing cross-check's range table over the runs from 2026-11-18 "
                    "(`research/measurements/2026-11-17-filing-crosscheck-range.py`); promote total "
                    "assets, equity and operating cash flow to a gate at 25 only if each stayed <= 5 "
-                   "on every one. The 2026-11-16 re-run was NOT met (operating cash flow 10; section 6).",
+                   "on every one. The 2026-11-16 re-run was NOT met (operating cash flow 10; section 6). "
+                   "Read section 7 first: the check cannot see 20 companies whose filings the SEC's "
+                   "record stopped carrying, and the rule is unchanged by that.",
      "research/2026-10-14-yahoo-vs-sec.md"),
+    ("2026-12-07", "The last Monday before the year-to-date-column decision of 2026-12-15: research what "
+                   "vendors and index providers do with a hole in a company's quarterly series. 26 "
+                   "stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and "
+                   "it is the same question as DexCom's (may a filing do more than sit beside a scored "
+                   "input) at 26 times the size. Section 4; no design is proposed there.",
+     "research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md"),
     ("2026-12-15", "Decide the year-to-date-column proposal (score a stock on the filed twelve months "
                    "when its operating cash flow provably counts part of a year twice): re-run "
                    "`research/measurements/2026-11-17-ytd-signature-history.py`; section 7's four "

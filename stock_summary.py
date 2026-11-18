@@ -800,9 +800,24 @@ def _sentence_confidence(detail: dict) -> str | None:
             f"remaining categories were reweighted to fill the gap."
         )
     if flags.get("stale_data"):
+        # What is old is the statement the score READ, never "its filings" (2026-11-18). The
+        # flag ages `_stmt_date_financials`, the income statement's period end. Since 2026-11-17
+        # that is the fiscal year end whenever the fetch fell back to the annual statement, and
+        # on the first run after it 27 of 27 flagged stocks had a newer filing on record - 22 of
+        # them filed within the bar itself (Amazon: "filings ... stale (322 days old)", 10-Q
+        # filed 19 days earlier). research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md
         age = _num(flags.get("stmt_age_days"))
-        bits.append("Its filings are flagged stale"
-                    + (f" ({int(age)} days old)" if age else "") + ".")
+        old = f" ({int(age)} days old)" if age else ""
+        replaced = flags.get("annual_instead")
+        if (isinstance(replaced, str) and "income statement" in replaced
+                and not flags.get("q_rejected")):
+            # The same condition and the same cause the Data Provenance panel's "Last fiscal
+            # year used" states; the age is the income statement's, so the sentence is only
+            # this one when the income statement is among the statements replaced.
+            bits.append(f"Its {replaced} figures are the last fiscal year's{old}: the data "
+                        "source's quarterly figures could not be summed to twelve months.")
+        else:
+            bits.append(f"The income statement this score read is flagged stale{old}.")
     if detail.get("eps_mismatch"):
         bits.append("Its reported and normalised EPS disagree, so earnings-based "
                     "metrics carry more uncertainty.")

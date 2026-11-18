@@ -258,7 +258,7 @@ def test_each_check_is_listed_cleared_or_unavailable(data, cases, page):
         "trend": ("trend", "last close at or above its 200-day average", "the 200-day average"),
         "insider": ("insider", "no net insider sales in 90 days", "insider trades"),
         "report": ("report", "no report within 14 days of this run", "the next earnings date"),
-        "caveats": ("caveats", "no missing category, stale filing or EPS disagreement", None),
+        "caveats": ("caveats", "no missing category, stale statement or EPS disagreement", None),
         "filing": ("filing", "inputs agree with its SEC filing within 2%", "the filing check"),
     }
     for t, r in cases.items():

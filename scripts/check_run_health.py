@@ -655,6 +655,15 @@ def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None
                      + (f" ({', '.join(_late[:8])}{'...' if len(_late) > 8 else ''})" if _late else ""))
     except Exception as exc:  # noqa: BLE001
         parts.append(f"filing lag not checked ({type(exc).__name__})")
+    try:
+        # the stocks every figure above cannot see: nothing of theirs filed in the cache for longer
+        # than two periodic filings can be apart (2026-11-18: 20, with the cache "0 days old")
+        _blind = sorted(X.no_recent_filing(payload, facts))
+        parts.append(f"{len(_blind)} stocks with no 10-K or 10-Q in the SEC cache filed in the last "
+                     f"{X.NO_RECENT_FILING_DAYS} days"
+                     + (f" ({', '.join(_blind[:8])}{'...' if len(_blind) > 8 else ''})" if _blind else ""))
+    except Exception as exc:  # noqa: BLE001
+        parts.append(f"filings' recency not checked ({type(exc).__name__})")
     if cache_days is not None:
         parts.append(f"SEC cache {cache_days:.0f} days old")
     res.note("inputs against SEC filings: " + "; ".join(parts))

@@ -21914,3 +21914,177 @@ decided for a month. `COMING_UP` in `scripts/write_brief.py` carries the date.
    are unexplained. A Monday could take them; the cross-check counts them every morning meanwhile.
 4. The DexCom Monday question the 06:00 entry queued (its Next 2) is **done** - do not start it
    again.
+
+## 2026-11-18 - SYNTHESIS. Six weeks of "the page says when an input is impaired", read as one layer: a sentence that was false for all 27 stocks it was printed for, and twenty companies the filing check cannot see
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-17_130001-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-18_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 131 rows across all horizons), newest 1m run date 2026-10-16 (33 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **37 days**; a standing programme, last advanced **12 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 42d; 0.14 35d.
+
+**Tests:** before **4,354 passed / 1 skipped / 0 failed** (my baseline, 4:05 in parallel; `main`
+arrived green) -> after **4,363 passed / 1 skipped / 0 failed** in 3:58 (9 new tests). Gate 2
+(dry-run) passes before and after. Gate 3: the three payload files are untouched (`rebuild_page.py`
+reported "payload byte-identical"; `git status` clean after every gate) and `index.html` is what
+the generator builds (`tests/test_rebuild_page.py`); the parse itself is
+`tests/test_payload_parse_gate.py`'s and the runner's. Gate 4: `git status --porcelain` empty.
+Gate 5, `scripts/rehearse_publish.py --changed-since 5f55b79`: **REHEARSAL PASSED** (381 page
+tests, published claims 2,373 passed, files restored byte for byte). The suite ran on the tree
+before this entry was written; nothing but this file changed after it.
+
+**Owner queue / rotation:** I am today's first session. `write_brief.open_proposals()` returned
+`[]`, and no branch was held back by the gates. `OWNER_FOCUS.md`: nothing moved - its three open
+items are the owner's own decisions (Search Console, a byline, analytics), the long-horizon
+universe expansion (not worked: the rotation's focus had a real subject and no owner item was
+waiting on a session), and the second-reader queue, which is clear. **0.13 is not deferred** - it
+is a standing programme 12 days from its last advance against a bound of 21, and Friday
+2026-11-20 is its day. Nothing was deferred for a gate or a loop.
+
+**Yesterday's Next 1, read first:** both of 2026-11-17's changes landed in the 02:00 run.
+`src_notes` is **1** and DexCom carries its note on the FCF-yield and accruals rows. Operating
+cash flow over 10% from the filing fell from 10 to **1** (DexCom), as predicted. **26** stocks
+carry `annual_instead` - more than the "roughly 16" predicted; that count was of stocks the SEC
+cache could confirm (15 of 418 and 17 of 427 checked), which is the likely reason and not one I
+verified stock by stock. The brief's "scored a period behind a filing over 30 days
+old" reads **7**, not 16: the other stocks' newer 10-Q is under 30 days old, so they will join it
+over the next fortnight; the page's own note names 32. And looking at Amazon's sheet for the
+"Last fiscal year used" sentence is what started Did 1.
+
+### Did
+
+**The synthesis subject.** Five changelog entries since the 2026-11-04 synthesis; none moved a
+score; all five are the page learning to say an input is not what it appears to be - the same
+kind of change as most of the six weeks before them. Nobody had looked at what they add up to.
+`research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`, with five committed
+measurement scripts.
+
+**1. Two correct changes met and made a false sentence - fixed.** The 2026-11-02 stale bar and
+the 2026-11-17 statement dating were each sound and each verified. Together they printed, on
+Amazon's page this morning, *"Its filings are flagged stale (322 days old)"* - beside a 10-Q
+filed 19 days earlier that the same payload records. Measured: **27 stocks** carried the
+sentence; **27 of 27 had a newer filing on record**, 22 of them filed inside the 165-day bar;
+27 of 27 had a balance sheet inside the bar; 26 are the annual-statement fallback and the 27th
+is DuPont's refused quarterly statement. The flagged count on every page under the bar was 8, 8,
+5, 1, 1, 1, 1, then 27. The flag ages the income statement the score *read*; the sentence
+blamed the company.
+
+Now: *"Its income statement and cash-flow statement figures are the last fiscal year's (322 days
+old): the data source's quarterly figures could not be summed to twelve months."* where the
+fallback is the cause (the provenance panel's own condition, so the two cannot disagree), and
+*"The income statement this score read is flagged stale (N days old)."* otherwise. The badge
+"Filing Age" is **"Statement age"** - it was never a filing's age for any stock. "The case
+against" clears with "stale statement". Claim `summary.confidence` restated, three new checks.
+Display only; no score moves.
+
+What I saw, on a rebuild of today's run with the new code: 26 stocks get the first wording, 1
+the second, 0 the old. At **1440 px** Amazon's "Read with care" shows the sentence in three
+lines under "Why it ranks here", nothing clipped. At **375 px** the badge row wraps to two lines
+with "Statement age: 322 days" in the alert colour on its own, and the sentence is five lines at
+343 px; the document is no wider than the viewport. I read both screenshots, not only the
+measured boxes.
+
+**2. The layer, counted.** Sixteen kinds of input caveat on the page. **247 of 499 stocks carry
+at least one; 17 of the top 40; 11 of the top 25.** Every one is either a route the engine took
+(the score reads its output) or a sentence (the score is untouched) - there is no caveat that
+discounts a score a little, which is 0.14's rule holding everywhere. On today's page "statement
+flagged stale" (27) is a strict subset of "annual fallback" (27) and of "a period behind the
+filings" (32): redundant with two notes that say why. Kept as the coarse fallback it was built
+to be - on 11-04 half the flagged stocks had no newer filing on record - but reworded so it does
+not out-shout them. And one thing deliberately **not** designed: a per-stock "data quality"
+roll-up. Half the universe would light it, or it would need weights between unlike things.
+
+**3. What the fallback leaves out, by category - sized, not acted on.** 26 stocks have flows
+from a fiscal year most of a year old beside a September balance sheet and yesterday's prices.
+Momentum, Risk, Revisions, Size and Investment (43 points) read current data; **Valuation,
+Quality and Growth (57 points) read the old flows.** Against the twelve months the companies
+have filed: scored net income is below for **15 of 18** comparable (median gap -13.7%, median
+absolute gap 32%; Amazon $77.7bn against $134.8bn), and those stocks' mean Quality score is 41.0
+against 50.4 for everyone else (-2.9 se), with the market-fed categories level. That is a
+measurement of inputs against filings on one morning, on a non-random 27 (five utilities, five
+REITs); it sizes what is not being read and does not show the stocks are ranked too low. It is
+**the same question as DexCom's waiting proposal at 26 times the size** - may a filing do more
+than sit beside a scored input - so it should be researched before 2026-12-15 decides the
+principle on its smallest instance. Queued in `COMING_UP` for the Monday of 2026-12-07 at the
+latest.
+
+**4. The filing check cannot see twenty companies, and said "0 days old".** Following up the
+stocks section 3 could not compare: **20 of 499 scored companies have no 10-K or 10-Q in the SEC
+cache filed in the last 165 days** - fourteen utilities, five REITs and Citigroup - on a morning
+the cache was rebuilt. The check compares no field for 15 of them; one (Evergy) ranks 27th. I
+asked the SEC's API directly for two: Regency Centers' record has no fact of any kind filed
+after 2026-05-04, and Citigroup's nothing from a 10-Q in 2026. So it is the SEC's record, not
+our refresh. **I did not establish why.** `sec_crosscheck.no_recent_filing` now puts the count on
+the health line every morning and in the brief's row; the bar is the filing calendar's (two
+periodic filings are never more than ~142 days apart, plus two weeks). A count, not an ATTENTION
+line - it reads 20 on day one, and a line that fires daily is a line nobody reads.
+`research/2026-10-14-yahoo-vs-sec.md` gains section 7 for whoever applies the 12-15 promotion
+rule, **which I did not change**.
+
+**5. The `auto-rescue` stash: answered and dropped.** The 2026-11-04 synthesis found it was not
+empty (a `-u` stash; plain `git stash show -p` hides untracked files) and asked whether a refused
+run's context log belongs in `data/context_log/`. Every session since logged it as "empty"
+again. The answer has been in the data loop since the morning of that very run:
+`Undo-RunArtifacts` runs `git clean -fd -- ... data/context_log` on a discard (commit `ac294b1`,
+2026-10-28, "a discard that leaves no files"), and every refused day since - 11-02, 11-09,
+11-11, 11-12 - is absent from the tracked series. The stash held exactly what that rule deletes,
+plus two price-cache files long since regenerated. Dropped; it was commit
+`7571fb42bc68ed79251886dc429cadcb471cdeab` (untracked parent `f2a4a402`), recoverable with
+`git stash store` until git prunes it. `prompts/nightly.md` now gives the command that shows a
+`-u` stash's files.
+
+### Evidence / research
+
+- **Documented failures, measured**, every script under `research/measurements/2026-11-18-*`:
+  the sentence against the payload's own filing facts (and its history), the caveat census, the
+  fallback against the filed twelve months, the cache's blind spot (with the two API queries),
+  and the rendered page.
+- **The 165-day bar** is the SEC's deadline arithmetic already cited in the 2026-11-02 changelog
+  entry (10-Q within 40 days, 10-K within 60). Not re-read today.
+- **No new literature.** The note cites MSCI's Fundamental Data Methodology section 1.1.5
+  second-hand, from `research/2026-10-29-ttm-fills-the-empty-quarter.md`, and says so.
+- Nothing here rests on a return, an IC or a backtest.
+
+### Methodology changed
+
+- **No score, weight, metric, threshold, input or rank.** `METHODOLOGY_CHANGELOG.md` 2026-11-18
+  records the sentence, the badge and the health-line count as a display entry.
+- No `RESULT_PATHS` file was edited, so the research ledger is level.
+
+### Tried and rejected
+
+- **Adding "Its filings are flagged stale" to `claims.FORBIDDEN`.** That list is checked against
+  every published artifact, and the committed payload carries the old sentence until tomorrow's
+  02:00 run - it would have turned `main` red today for a page that is about to be corrected.
+  The three unit tests fail if the wording comes back; a later session can add the pattern once
+  a corrected payload is published.
+- **An ATTENTION line for the twenty.** See Did 4.
+- **Scoring the 26 on something newer today.** Three settled things stand in the way and each
+  was measured (note section 4). One thing I claimed less than I first wrote: that the 10-29
+  note's narrow rule "admits none of today's 26" - I had not re-fetched them, so the note says
+  what yesterday's fetch of nine showed and that the rest is unconfirmed.
+- **Changing the pre-registered promotion rule** in light of the blind spot. It is
+  pre-registered; the finding goes beside it, not into it.
+- **Finding out why the SEC's record stopped for those companies.** Combined filings with
+  subsidiaries or an operating partnership is the common feature and a guess. It would have
+  taken the session; it is Next 3.
+
+### Next
+
+1. **Friday 2026-11-20 is the lab's day** (ISO week 47, not a retrospective): `EarningsSurprise`
+   on Open Source Asset Pricing is next in `plan/factor-lab.md`'s queue. Add the dated Progress
+   bullet when it ships - the health line reads it.
+2. **Tomorrow's 02:00 run carries today's two changes.** Expect: the health line's "20 stocks
+   with no 10-K or 10-Q in the SEC cache filed in the last 165 days" and the brief's "20 with no
+   filing in the cache for 165 days"; 27 or so stocks with the new "Read with care" wording and
+   none with "filings are flagged stale"
+   (`python research/measurements/2026-11-18-stale-sentence-against-the-filings.py` prints "said
+   without the flag" and the list). Once that payload is published, add the old sentence to
+   `claims.FORBIDDEN`.
+3. **Why has the SEC's `companyfacts` stopped carrying those twenty companies' filings?** Start
+   from one filing: pull Regency Centers' June-quarter 10-Q from EDGAR and compare how its facts
+   are tagged with its March one. If the facts are there under an entity axis, the free fix is to
+   read the filing's own financial data instead of `companyfacts` for those companies; if EDGAR
+   simply has not processed them, it is a limit to state on the methodology page. Either way the
+   count on the health line is how to tell when it changes.
+4. **The Monday on a hole in the quarterly series** (by 2026-12-07; note section 4) - and the
+   Monday the 2026-11-04 synthesis queued on Investment's 5 points against Risk is still unwritten.
+   The fallback goes first: it is measured on 26 stocks today, the other is +0.166 on one run.
+5. From yesterday, still open: the 14 quarterly cash-flow columns that are neither the filed
+   quarter nor the year-to-date figure (DTE's is inside its twelve months).
