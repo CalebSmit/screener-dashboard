@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 18 November 2026, 02:27
+# Morning Brief - Wednesday 18 November 2026, 06:52
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -25,6 +25,13 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `0a4e4c0 NIGHTLY_LOG 2026-11-18: the synthesis, the gates' results, what is next`
+- `1aecd56 The synthesis note commits to the date COMING_UP gives it`
+- `e0f2c28 Synthesis note, changelog, CLAUDE.md 0.14: what the screener knows about its inputs`
+- `cfeb7bc wip: the health line counts the stocks the filing check cannot see`
+- `3751f4b wip: measurements - every input caveat on the page, counted; the reworded sentence seen at 1440 and 375`
+- `743f929 wip: staleness is said of the statement the score read, never of the company's filings`
+- `5f55b79 brief: data run 2026-11-18`
 - `3aecb1a data: screener run 2026-11-18 - 499 scored, top: HST EXPE VLO MU APA`
 - `fd62296 brief: code session 2026-11-17-midday`
 - `e68a574 NIGHTLY_LOG 2026-11-17 (13:00): the gates' results`
@@ -33,61 +40,54 @@ history is in `NIGHTLY_LOG.md`.
 - `c4e1e48 wip: the note seen on DexCom's sheet; nine mutations of its claim, nine caught`
 - `14663f2 wip: the rows that read operating cash flow say when the source counted part of a year twice`
 - `c64629a wip: measurement - year-to-date figures in the source's quarterly cash-flow columns`
-- `fea7cca Health line: a standing programme reports days since it last advanced, not only its age`
-- `bdd5c70 brief: code session 2026-11-17`
-- `c5b5766 NIGHTLY_LOG 2026-11-17: the gates' results`
-- `01d8ed8 Research engine: rerun all 32 rows on the new code hash (no statistic changed)`
-- `65af5f6 NIGHTLY_LOG 2026-11-17, CLAUDE.md 0.14 and 0.13, the drilldown spot check`
-- `fb7ed28 Filing cross-check: the pre-registered re-run (rule not met), changelog, inventory, rendered checks`
-- `1b68dac Figures read from the annual statement are dated by it, and the stock's page says so`
 
 ## The session's own account
 
-> 2026-11-17 (13:00) - QUEUE. The eighth-ranked stock counts half a year of cash flow twice: measured, said on the page, and the correction left for a dated review
+> 2026-11-18 - SYNTHESIS. Six weeks of "the page says when an input is impaired", read as one layer: a sentence that was false for all 27 stocks it was printed for, and twenty companies the filing check cannot see
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-17_060001.log` (completed). Data loop published? yes - `logs/datarun-2026-11-17_020000.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 130 rows across all horizons), newest 1m run date 2026-10-16 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **36 days**; a standing programme, last advanced **11 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 41d; 0.14 34d.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-17_130001-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-18_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 131 rows across all horizons), newest 1m run date 2026-10-16 (33 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **37 days**; a standing programme, last advanced **12 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 42d; 0.14 35d.
 > 
-> (The roadmap half of that line is in the form this session gave it - see Did 1.)
+> **Tests:** before **4,354 passed / 1 skipped / 0 failed** (my baseline, 4:05 in parallel; `main`
+> arrived green) -> after **4,363 passed / 1 skipped / 0 failed** in 3:58 (9 new tests). Gate 2
+> (dry-run) passes before and after. Gate 3: the three payload files are untouched (`rebuild_page.py`
+> reported "payload byte-identical"; `git status` clean after every gate) and `index.html` is what
+> the generator builds (`tests/test_rebuild_page.py`); the parse itself is
+> `tests/test_payload_parse_gate.py`'s and the runner's. Gate 4: `git status --porcelain` empty.
+> Gate 5, `scripts/rehearse_publish.py --changed-since 5f55b79`: **REHEARSAL PASSED** (381 page
+> tests, published claims 2,373 passed, files restored byte for byte). The suite ran on the tree
+> before this entry was written; nothing but this file changed after it.
 > 
-> **Tests:** before **4,334 passed / 2 skipped / 0 failed** (my baseline, 4:17 in parallel; the same
-> as the 06:00 session's "after", so `main` arrived green) -> after: **4,352 passed / 3 skipped /
-> 0 failed** in 4:01 (18 new passing tests; the one new skip is
-> `tests/test_ytd_column_note.py::test_the_published_payload_agrees_with_the_filings`, which skips
-> loudly until a payload built with the note is published - tomorrow's). Gate 2 (dry-run) exits
-> normally before and after. Gate 3: the three payload files are byte-identical to the base commit
-> (`git diff --stat bdd5c70` on them is empty), `index.html` is 944 KB and is what the generator
-> builds (`tests/test_rebuild_page.py`); the tool guard refuses `node` in this session, so the
-> parse itself is `tests/test_payload_parse_gate.py`'s (22 passed with the rebuild module) and the
-> runner's. Gate 4: `git status --porcelain` empty. Gate 5, `scripts/rehearse_publish.py
-> --changed-since bdd5c70`: **REHEARSAL PASSED**, published files restored byte for byte. The
-> suite ran on the tree before this paragraph's numbers were filled in; nothing but this file
-> changed after it.
+> **Owner queue / rotation:** I am today's first session. `write_brief.open_proposals()` returned
+> `[]`, and no branch was held back by the gates. `OWNER_FOCUS.md`: nothing moved - its three open
+> items are the owner's own decisions (Search Console, a byline, analytics), the long-horizon
+> universe expansion (not worked: the rotation's focus had a real subject and no owner item was
+> waiting on a session), and the second-reader queue, which is clear. **0.13 is not deferred** - it
+> is a standing programme 12 days from its last advance against a bound of 21, and Friday
+> 2026-11-20 is its day. Nothing was deferred for a gate or a loop.
 > 
-> **Owner queue / rotation:** this is today's second session, so I carried on from the 06:00
-> entry's Next. Its item 1 needs tomorrow's 02:00 run and cannot be done today. Its **item 2** (the
-> DexCom question, as research) is what this session did, end to end. Its **item 3** (0.13 has gone
-> six sessions) is resolved in Did 1. `write_brief.open_proposals()` returned `[]` at the start and
-> returns `[]` now. `OWNER_FOCUS.md`: nothing moved - its three open items are the owner's own
-> decisions, the long-horizon universe expansion (not worked today; the morning's Next outranked it
-> because it was a live defect on the public page's eighth-ranked stock) and the second-reader
-> queue, which is clear. `git stash list` still shows the empty `auto-rescue 2026-10-28_060001`,
-> left in place as every entry since 10-28 records. Nothing the 06:00 session decided is reversed.
+> **Yesterday's Next 1, read first:** both of 2026-11-17's changes landed in the 02:00 run.
+> `src_notes` is **1** and DexCom carries its note on the FCF-yield and accruals rows. Operating
+> cash flow over 10% from the filing fell from 10 to **1** (DexCom), as predicted. **26** stocks
+> carry `annual_instead` - more than the "roughly 16" predicted; that count was of stocks the SEC
+> cache could confirm (15 of 418 and 17 of 427 checked), which is the likely reason and not one I
+> verified stock by stock. The brief's "scored a period behind a filing over 30 days
+> old" reads **7**, not 16: the other stocks' newer 10-Q is under 30 days old, so they will join it
+> over the next fortnight; the page's own note names 32. And looking at Amazon's sheet for the
+> "Last fiscal year used" sentence is what started Did 1.
 > 
 > ### Did
 > 
-> **1. 0.13's age now measures something (the deferral-streak rule, resolved rather than deferred a
-> seventh time).** The Factor Lab is one experiment every lab Friday with no end. Its "age 36 days"
-> grew daily while it shipped on schedule (experiment 19 on 2026-11-06, second-read 11-07), six
-> sessions in a row logged it "deferred", and the streak rule - written for a task nobody touches -
-> was about to make a Tuesday session "resolve" a programme that is not late. An open item whose
-> heading names its progress file (`progress in \`plan/factor-lab.md\``) now also reports the days
-> since the newest dated bullet under that file's Progress, derived, with a 21-day bound (lab
-> Fridays alternate with retrospectives: 14 days, plus one lost week). It reads **11 days**.
-> `scripts/health_numbers.py`, 4 new tests; `CLAUDE.md` 0.13 and `prompts/nightly.md` say that a
-> non-Friday session has not deferred it, and that past 21 days it is late and the streak rule
-> applies. This is the "demote with the argument" branch of the rule, and the argument is the
-> number: nothing about the lab's rules or its Friday changed. **Friday 2026-11-20 is a lab day.**
+> **The synthesis subject.** Five changelog entries since the 2026-11-04 synthesis; none moved a
+> score; all five are the page learning to say an input is not what it appears to be - the same
+> kind of change as most of the six weeks before them. Nobody had looked at what they add up to.
+> `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`, with five committed
+> measurement scripts.
 > 
+> **1. Two correct changes met and made a false sentence - fixed.** The 2026-11-02 stale bar and
+> the 2026-11-17 statement dating were each sound and each verified. Together they printed, on
+> Amazon's page this morning, *"Its filings are flagged stale (322 days old)"* - beside a 10-Q
+> filed 19 days earlier that the same payload records. Measured: **27 stocks** carried the
+> sentence; **27 of 27 had a newer filing on record**, 22 of them filed inside the 165-day bar;
 > ...
 
 ---
