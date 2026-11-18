@@ -333,20 +333,28 @@ CLAIMS: tuple[Claim, ...] = (
             "How many of the stock's applicable metrics it has values for (35 for a "
             "bank-like stock, 41 otherwise - the same count the composite's coverage "
             "discount reads), which categories could not be scored and were "
-            "reweighted away, whether filings are flagged stale and how old, and "
+            "reweighted away, whether the income statement the score read is flagged "
+            "stale and how old it is - said of that statement and never of the company's "
+            "filings, and, where the fetch read the last fiscal year because the source's "
+            "quarters could not be summed, naming that as the cause - and "
             "whether reported and normalised EPS disagree."
         ),
         made_true_by="stock_summary:_sentence_confidence",
         checked_by=(
             "tests/test_stock_summary.py::test_metric_coverage_is_stated",
+            "tests/test_stock_summary.py::test_staleness_is_said_of_the_statement_the_score_read_never_of_the_filings",
+            "tests/test_stock_summary.py::test_a_stock_read_from_its_annual_statement_is_told_why_it_is_old",
+            "tests/test_stock_summary.py::test_the_fallback_is_named_only_where_it_is_the_cause_of_the_age",
             "tests/test_claims_register.py::test_confidence_metric_count_is_the_discount_coverage",
             "tests/test_defensibility_improvements.py::TestStalenessThreshold::test_default_threshold_is_120",
             "tests/test_defensibility_improvements.py::TestStalenessThreshold::test_config_override_threshold",
         ),
         caveat=(
             "**The staleness half became registered on 2026-10-25** (claims mutation audit, "
-            "`plan/claims-mutation-audit.md` row 48): the sentence says 'Its filings are flagged "
-            "stale (N days old)', and subtracting 30 days from the configured bar inside "
+            "`plan/claims-mutation-audit.md` row 48): the sentence then said 'Its filings are "
+            "flagged stale (N days old)' - reworded 2026-11-18, when all 27 stocks it was "
+            "printed for had a newer filing on record, to speak of the statement the score "
+            "read - and subtracting 30 days from the configured bar inside "
             "`compute_metrics` passed both registered checks. The two tests that do see it were "
             "already in the suite and are the only ones anywhere that pin the configured bar - "
             "they are class methods, which `checked_by` could not name until the same session "

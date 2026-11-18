@@ -4970,7 +4970,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // information actually reaches the reader, measured on the 2026-10-27 run:
     //   value trap (46 stocks), growth trap (66)  - the table's flag column, `summary`, "The case against"
     //   Beneish (43), channel stuffing (14)       - `summary`, "The case against"
-    //   stale financials (28)                     - the Filing Age badge above, `summary`, "The case against"
+    //   stale financials (28)                     - the Statement age badge above, `summary`, "The case against"
     //   EPS basis mismatch (100)                  - the badge above, and the data-quality KPIs
     //   bank-like (46)                            - the ROE/ROIC column label, and the methodology page
     //   LTM 3-of-4 annualised (4)                 - `#provenance-ltm-annualized`, added below that day
@@ -5575,7 +5575,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (fl.stmt_age_days !== null && fl.stmt_age_days !== undefined) {{
             const age = Math.round(fl.stmt_age_days);
             const cls = age <= 100 ? 'provenance-ok' : age <= 200 ? 'provenance-warn' : 'provenance-alert';
-            html += '<span class="provenance-badge ' + cls + '">Filing Age: ' + age + ' days</span>';
+            // "Statement age", not "Filing Age" (2026-11-18): the figure is days since the income
+            // statement's period end. It was never the age of a filing - a quarter filed 20 days
+            // ago read "Filing Age: 49 days" - and for a stock read from its annual statement it
+            // said 322 days beside a 10-Q filed 19 days earlier.
+            html += '<span class="provenance-badge ' + cls + '">Statement age: ' + age + ' days</span>';
         }}
         if (s.eps_mismatch) {{
             html += '<span class="provenance-badge provenance-alert">EPS Mismatch (ratio: ' + (s.eps_ratio !== null ? s.eps_ratio : '?') + ')</span>';
@@ -13886,7 +13890,7 @@ def _js_drilldown() -> str:
         const missing = CASE_CATS.some(k => !caseNum(scores[k]));
         if (missing || fl.stale_data || s.eps_mismatch) {
             if (sm.confidence) items.push({ k: 'caveats', label: 'Read with care', go: 'modal-summary', text: sm.confidence });
-        } else clear.push('no missing category, stale filing or EPS disagreement');
+        } else clear.push('no missing category, stale statement or EPS disagreement');
         if (sm.input_churn) items.push({ k: 'churn', label: 'Recent move', go: 'modal-summary', text: (sm.change ? sm.change + ' ' : '') + sm.input_churn });
 
         // 8. Inputs that disagree with the company's own filing, and a period the run is behind.

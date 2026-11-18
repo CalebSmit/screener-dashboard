@@ -551,6 +551,54 @@ def test_caveats_are_separate_sentences_not_one_run_on():
     assert "normalised EPS disagree" in fact
 
 
+def test_staleness_is_said_of_the_statement_the_score_read_never_of_the_filings():
+    """The flag ages the income statement's period end. On 2026-11-18 all 27 flagged stocks had
+    a newer filing on record, 22 of them filed inside the 165-day bar - so "Its filings are
+    flagged stale" was false of every company it was printed for
+    (research/measurements/2026-11-18-stale-sentence-against-the-filings.py)."""
+    flags = {**_detail()["flags"], "stale_data": True, "stmt_age_days": 322}
+    plain = _fact(_build(_detail(flags=flags)), "confidence")
+    assert "The income statement this score read is flagged stale (322 days old)." in plain
+    assert "filings" not in plain
+
+    # An unknown age drops the bracket, never prints "None" or "0".
+    no_age = _fact(_build(_detail(flags={**flags, "stmt_age_days": None})), "confidence")
+    assert "is flagged stale." in no_age and "days old" not in no_age
+
+    # A stock that is not flagged says nothing about staleness at all.
+    fresh = _fact(_build(_detail(flags={**flags, "stale_data": False,
+                                        "annual_instead": "income statement"})), "confidence")
+    assert "stale" not in fresh and "fiscal year" not in fresh
+
+
+@pytest.mark.parametrize("replaced", ["income statement",
+                                      "income statement and cash-flow statement"])
+def test_a_stock_read_from_its_annual_statement_is_told_why_it_is_old(replaced):
+    """26 of the 27 on 2026-11-18. The cause is the one Data Provenance's "Last fiscal year
+    used" gives, under the same condition (`annual_instead` and no `q_rejected`)."""
+    flags = {**_detail()["flags"], "stale_data": True, "stmt_age_days": 322,
+             "annual_instead": replaced}
+    fact = _fact(_build(_detail(flags=flags)), "confidence")
+    assert (f"Its {replaced} figures are the last fiscal year's (322 days old): the data "
+            "source's quarterly figures could not be summed to twelve months.") in fact
+    assert "filings" not in fact and "flagged stale" not in fact
+
+
+@pytest.mark.parametrize("flags_extra", [
+    # The age is the income statement's: if only the cash-flow statement was replaced, the
+    # income statement is old for some other reason and the fallback does not explain it.
+    {"annual_instead": "cash-flow statement"},
+    # A rejected quarterly statement has its own sentence on the panel ("Annual figures used").
+    {"annual_instead": "income statement", "q_rejected": "quarterly revenue of -1.871bn"},
+    {"annual_instead": None},
+])
+def test_the_fallback_is_named_only_where_it_is_the_cause_of_the_age(flags_extra):
+    flags = {**_detail()["flags"], "stale_data": True, "stmt_age_days": 200, **flags_extra}
+    fact = _fact(_build(_detail(flags=flags)), "confidence")
+    assert "The income statement this score read is flagged stale (200 days old)." in fact
+    assert "last fiscal year" not in fact
+
+
 def test_trap_flags_are_reported_with_their_severity():
     fact = _fact(_build(_detail(vt=True, flags={**_detail()["flags"],
                                                 "vt_severity": 42.1})), "flags")
