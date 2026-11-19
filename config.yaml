@@ -2,9 +2,21 @@
 # Version 2.0 | Last Updated: 2026-02-12
 
 # Universe Selection
+#
+# `index` names a definition in universe.py (its constituent source, the plausible member count,
+# the fewest a healthy run ranks, its size band). One is defined: 'SP500'. A name with no
+# definition stops the run - until 2026-11-19 this key was read by nothing, and its comment
+# offered 'R1000' and 'R2000', either of which silently ran the S&P 500.
+#
+# `min_market_cap` is 0 for every S&P index band: the index committee's rules govern membership,
+# and a member is not dropped for shrinking (plan/universe-expansion.md, pre-registration 3's
+# resolution, 2026-11-03). It read 2e9 until 2026-11-19 and had never excluded a stock - the
+# filter looked for a column the scoring frame does not carry (METHODOLOGY_CHANGELOG.md
+# 2026-11-19). A positive floor is now applied or the run stops; phase 4's all-listed universe is
+# where one is set (the NYSE 20th-percentile market cap, pre-registration 2).
 universe:
-  index: 'SP500'  # Options: 'SP500', 'R1000', 'R2000'
-  min_market_cap: 2e9  # $2B minimum
+  index: 'SP500'
+  min_market_cap: 0
   # NOTE: Volume filtering is done in portfolio construction via portfolio.min_avg_dollar_volume.
   exclude_sectors: []  # e.g., ['Utilities'] to exclude a sector
   exclude_tickers: []  # e.g., ['BRK.B'] for manual exclusions

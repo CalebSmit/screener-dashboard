@@ -146,7 +146,7 @@ Tests: `python scripts/run_tests.py tests/ test_screener.py -q`.
 
 All tuneable parameters live in **`config.yaml`**:
 
-- **`universe`** - index selection, minimum market cap and volume, exclusions.
+- **`universe`** - which index is run (a definition in `universe.py`; the S&P 500), the market-cap floor (0: index membership governs) and exclusions.
 - **`factor_weights`** - category weights (sum to 100).
 - **`metric_weights`** / **`bank_metric_weights`** - weights within each category (each sums to 100).
 - **`value_trap_filters`** / **`growth_trap_filters`** - the trap thresholds.
