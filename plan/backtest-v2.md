@@ -366,6 +366,35 @@ Two consequences for how to approach it:
   alone. When v2 lands, those are the first things to test. Keeping that list
   current is part of this project.
 
+### An open data defect: wrong market caps for sixteen tickers (found 2026-11-19, not fixed)
+
+Found while checking why `universe.min_market_cap` never fired
+(`research/measurements/2026-11-19-market-cap-floor-never-fires.py`, part 4). The point-in-time
+record builds market cap as price x filed shares (`pit_record.market_fields`), and for a handful
+of names the share count it picks is not the listed line's:
+
+- **Berkshire Hathaway (`BRK-B`) reads under $2B in 176 of 176 cached months** ($0.08B in 2012,
+  $0.47B in August 2026).
+- Under **$100M** - a size no index member has been - in **494 name-months across 16 tickers**:
+  SPG 163, FOX 90, FOXA 90, BKR 67, SYK 34, BRK-B 15, PSA 6, ROP 6, LH 4, VTRS 4, ETN 3, ICE 3,
+  AMCR 3, CMG 3, RMD 2, SW 1.
+- Against that, only about 17 name-months under $2B are real (First Solar in 2012, AMD, Super
+  Micro, NetApp).
+
+**What it touches:** the engine's `size_log_mcap` (those names score as the smallest in their
+sector) and every ratio with market cap in it - earnings yield, FCF yield, price-to-book,
+EV-based multiples - for about 0.75% of name-months (494 of 65,495; 1.0% counting Berkshire's
+other 161 months). **Not sized:** how far any ledger statistic moves. The causes were not
+followed; the pattern suggests more than one (a class-A-equivalent count for Berkshire, a
+per-class count for Fox, an operating-partnership or units figure for Simon Property, and
+isolated months that look like a filing's units slip).
+
+**To fix it** (a data fix, so it reruns every ledger row): follow each ticker's count to the
+filing fact it came from before choosing a rule; then a plausibility bound where the record is
+built - a guard in the record, not a market-cap filter on the universe, which would simply have
+deleted Berkshire from the backtest. Until then this is one more reason engine numbers decide
+nothing (rule 5).
+
 ## Why this matters more than any feature
 
 The system is now allowed to change its own methodology. The thing that decides

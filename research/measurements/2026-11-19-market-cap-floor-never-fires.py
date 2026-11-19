@@ -55,10 +55,16 @@ def main() -> None:
     print("3. the research engine's cached months (cache/v2_metrics), at a $2B floor that worked:")
     months = sorted((ROOT / "cache" / "v2_metrics").glob("????-??-??.parquet"))
     rows = []
+    absurd: dict[str, int] = {}      # under $100M: not a size an S&P 500 member has ever been
+    low: dict[str, int] = {}         # $100M-$2B: some real (a fallen member), some not
     for p in months:
         d = pd.read_parquet(p, columns=["Ticker", "size_log_mcap"])
         s = pd.to_numeric(d["size_log_mcap"], errors="coerce")
         rows.append({"month": p.stem, "n": int(s.notna().sum()), "below": int((-s < math.log(2e9)).sum())})
+        for tkr in d.loc[-s < math.log(1e8), "Ticker"]:
+            absurd[tkr] = absurd.get(tkr, 0) + 1
+        for tkr in d.loc[(-s >= math.log(1e8)) & (-s < math.log(2e9)), "Ticker"]:
+            low[tkr] = low.get(tkr, 0) + 1
     t = pd.DataFrame(rows)
     if t.empty:
         print("   no cached months on this machine")
@@ -70,6 +76,13 @@ def main() -> None:
     print(f"   all {len(t)} months: {int(t['below'].sum())} of {int(t['n'].sum())} name-months below $2B "
           f"({t['below'].sum() / t['n'].sum() * 100:.2f}%); months with at least one: {int((t['below'] > 0).sum())}; "
           f"newest month with one: {t.loc[t['below'] > 0, 'month'].max() if (t['below'] > 0).any() else 'none'}")
+    # 4. A side finding, recorded because a *working* $2B floor would have acted on it: some of
+    # those market caps are not small companies, they are wrong share counts in the point-in-time
+    # record (price x filed shares). Berkshire Hathaway at under $1B is the plainest.
+    print(f"4. of those, under $100M (no index member is): {sum(absurd.values())} name-months, "
+          f"{len(absurd)} tickers: {sorted(absurd.items(), key=lambda kv: -kv[1])}")
+    print(f"   $100M-$2B: {sum(low.values())} name-months, {len(low)} tickers; the ten most frequent: "
+          f"{sorted(low.items(), key=lambda kv: -kv[1])[:10]}")
 
 
 if __name__ == "__main__":

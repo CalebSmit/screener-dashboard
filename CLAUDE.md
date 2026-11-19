@@ -467,6 +467,13 @@ outcome.
 - `portfolio_constructor.py` - sector-constrained portfolio construction
 - `improvement_engine.py` - **the methodology learning loop** (see below)
 - `backtest.py` - decile backtest + IC validation. Known-weak; see `plan/backtest-v2.md`
+- `universe.py` - the universe being run: `config.yaml`'s `universe.index` names a definition
+  here (`UNIVERSES`, one entry) and a name with none stops the run (2026-11-19).
+  **`universe.min_market_cap` is 0 for an S&P index and a positive floor is applied or the run
+  raises** - the `2e9` it replaced never excluded a stock, because the filter looked for a column
+  the metrics frame does not carry and its unit test built a frame that did. A change to
+  `config.yaml`'s parsed contents also moves `kpis.methodology_version`, which arms the
+  bot-input gate's continuity override for the next run - say so in the changelog entry
 - `universe_history.py` - point-in-time S&P 500 membership (2026-09-24). Built, **not wired into `backtest.py`** on purpose
 - `lookahead.py` - **diagnostic**: classifies every weighted metric by what making
   it point-in-time would cost, and restates the price-dependent ones at a

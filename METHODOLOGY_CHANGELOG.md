@@ -5606,3 +5606,80 @@ for row with the cache it replaced. `scripts/rehearse_publish.py` on the rebuilt
 **Applied by:** 13:00 session, 2026-11-18.
 **Rollback:** `good/2026-11-18` (the tag before this change); the cache it replaced is
 `logs/facts_before_1118_1300.parquet`, and any refresh with the old code rebuilds the old content.
+
+## 2026-11-19 - Universe: the market-cap floor is 0, as decided on 2026-11-03 - and the $2B it replaces had never excluded a stock
+
+**Area:** `config.yaml` `universe:` (`min_market_cap`, `index`), `factor_engine.apply_universe_filters`,
+`universe.py`. Phase 1 of `plan/universe-expansion.md`, the `config.yaml` bullet. **No score,
+weight, metric, rank or published sentence changed.**
+
+**Changed:**
+
+- `universe.min_market_cap`: **2e9 -> 0**. This is pre-registration 3's resolution, adopted by the
+  2026-11-03 13:00 session and pinned in the plan since: one rule for every S&P index band, the
+  index committee's rules govern membership, and a member is not dropped for shrinking.
+- `apply_universe_filters` now applies a positive floor to the frame it is actually handed - from
+  `marketCap` where a caller has it, otherwise from the engine's own `size_log_mcap`
+  (`-ln(market cap)`) - and **raises** if a floor is set and neither is present. Unknown market
+  caps are kept, as before.
+- `universe.index` is read: `universe.from_config` resolves it to a definition in `universe.py`
+  (`UNIVERSES`; one entry, the S&P 500), `universe.CURRENT` is the configured one, the run resolves
+  its own config's before fetching, and `schemas.RunConfig` validates it. A name with no
+  definition stops the run.
+
+**Evidence (a documented failure, measured;
+`research/measurements/2026-11-19-market-cap-floor-never-fires.py`):**
+
+- *The floor could not fire.* `apply_universe_filters` ran only "if `marketCap` in df.columns".
+  Both callers - `run_screener.py` and `backtest_v2.rank_month` - pass the frame `compute_metrics`
+  returns, which has `size_log_mcap` and no `marketCap` (the raw fetch has it; the metrics frame
+  does not). On the 2026-11-19 run the shipped filter returns **502 of 502 rows at a floor of $2
+  billion, $1 trillion and $1 quadrillion**. `config.yaml` has said `# $2B minimum` since
+  February, the Blueprint says the line "eliminates micro-cap illiquidity", and
+  `tests/test_edge_cases.py::TestUniverseFilters` passed throughout because it builds a frame by
+  hand with the column production never has.
+- *So the change to 0 moves nothing, by construction, not only by today's data.* The 2026-11-03
+  review measured 0 of 503 members under $2B (smallest $6.050B; **$6.336B today**, still MOS) and
+  called the change byte-identical *today*. It is stronger than that: the old setting was a no-op
+  at every market cap, in the live run and in the research engine's 176 historical months alike.
+- *The index key was read by nothing.* Its comment offered `'R1000'` and `'R2000'`; either ran
+  the S&P 500 without a word.
+- *Why 0 is the right value* is the 2026-11-03 decision, not re-argued here:
+  `research/2026-11-02-universe-expansion-phase0.md` sections 7 and 9.3 (S&P admits to the
+  SmallCap 600 from $1.2B and does not remove a member for shrinking; a fixed dollar line would
+  silently drop the bottom of the S&P 600). The S&P methodology was read for that note, not
+  re-read today.
+- *Why fix a filter that is set to 0:* phase 4's universe is **defined** by a floor (the NYSE
+  20th-percentile market cap, pre-registration 2). Wired as it was, that floor would have admitted
+  every listed microcap and reported nothing.
+
+**Backtest observation (not decision-grade, rule 5; a description of the engine's data, not of
+returns):** had the $2B floor worked, it would have removed **672 of 65,495** name-months from
+the research engine's 2012-2026 history (1.03%) - and **about 655 of those are not small
+companies but wrong market caps** in the point-in-time record (price x filed shares): Berkshire
+Hathaway reads under $2B in **176 of 176 months**, Simon Property under $100M in 163, both Fox
+lines in 90, Baker Hughes in 67, Stryker in 34; 16 tickers in all under $100M. Only about 17
+name-months are real fallen members (First Solar 2012, AMD, Super Micro, NetApp). That defect
+reaches the engine's Size and every market-cap-based ratio for those names and is **not fixed
+here** - it is a data fix that reruns everything, recorded in `plan/backtest-v2.md`. It is also
+the 2026-11-03 resolution's last sentence demonstrated: "the guard against an absurd market cap
+belongs in `check_run_health.py`, not in a filter that silently drops index members" - a working
+floor would have deleted Berkshire from the backtest on a units error.
+
+**Expected effect:** none on any published number. `kpis.methodology_version` changes on the
+2026-11-20 run, because `config.yaml`'s parsed contents changed (`RunContext.config_hash`). **One
+consequence to know:** the bot-input gate's rank-continuity override arms when that hash changes
+and a changelog entry is dated on or after the published run's day - so for that one run a rank
+discontinuity would be read as explained by this entry, though this change cannot cause one. If
+the 2026-11-20 health line shows the override *used*, treat the discontinuity as unexplained.
+
+**Validated by:** `tests/test_universe_config_block.py` (19 tests; the floor is exercised on
+`compute_metrics`'s own output, and 4 of them fail against the filter as it was);
+`tests/test_universe_definition.py`, `tests/test_size_bands.py` and
+`tests/test_universe_expansion_preregistration.py` unchanged and passing. The research engine's 32
+rows were rerun because three `RESULT_PATHS` files changed; see the session's log entry for the
+comparison. `scripts/rehearse_publish.py`: see the log entry.
+
+**Applied by:** 06:00 session, 2026-11-19.
+**Rollback:** `good/2026-11-18` (the tag before this change). Reverting restores a `2e9` that
+does nothing.

@@ -124,6 +124,29 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-19 (06:00 session): the `config.yaml` block - shipped, and the floor it
+replaces turned out never to have worked.** `universe.index` is read now: `universe.from_config`
+resolves it against `universe.UNIVERSES` (one entry, the S&P 500), `universe.CURRENT` is the
+configured universe, `run_factor_engine` resolves its own config's before the first request and
+passes it to `assign_size_bands`, and `schemas.RunConfig` refuses a name with no definition (the
+old comment offered `'R1000'` and `'R2000'`; both silently ran the S&P 500). The measured bounds
+stay in `universe.py` beside the measurements that set them - the config names *which* universe,
+it does not hold tunable member counts - so phase 2 adds a `Universe` and a key, not a schema.
+The floor is set to 0, the resolution above. **What the session found on the way**
+(`research/measurements/2026-11-19-market-cap-floor-never-fires.py`): the `2e9` it replaced
+had never excluded a stock. `apply_universe_filters` looked for a `marketCap` column and both
+callers hand it the metrics frame, which has only `size_log_mcap` - 502 rows in, 502 out, at a
+floor of $1 quadrillion. So the change is a no-op by construction and not only on today's data;
+and a positive floor is now applied from the engine's own size figure, or the run stops.
+**Phase 4 depends on this**: its universe is *defined* by a floor, and as wired it would have
+admitted every listed microcap in silence. `tests/test_universe_config_block.py` (19 tests, the
+floor exercised on `compute_metrics`'s own output; 4 fail against the old filter).
+`METHODOLOGY_CHANGELOG.md` 2026-11-19. Three `RESULT_PATHS` files changed, so the engine's 32
+rows were rerun. **Still literal:** `data-run.ps1`'s `$universe = 500`.
+**Next in phase 1:** `inp`/`raw`/`pct`/`summary` out of first paint (each needs its own read-site
+audit), then bucketing the shard; the membership bounds and the auto-disable trigger wait for
+phase 2's `Universe` objects, as written below.
+
 **Progress, 2026-11-08 (06:00 weekend session): the `stock_detail` shard bullet - the mechanism
 and its first slice, measured at -19.8% of first paint.**
 `stock_detail`'s sheet-only fields now ship in a **third payload file**, `dashboard_detail.js`

@@ -121,7 +121,17 @@ Two things still outrank this file, and neither is negotiable:
   waiting rather than showing an em-dash that means "this run published none". The membership rule
   is restated in the plan. 7 of 7 mutations refused, the one that got through first recorded as an
   equivalent mutant and then closed. Gate 5 passed with all five published files byte-identical.
-  **Next in phase 1:** the `config.yaml` `universe:` block, then `inp`/`raw`/`pct`/`summary` (42.6%
+  **Phase 1, the `config.yaml` block: SHIPPED 2026-11-19 (06:00 session) - and the $2B floor it
+  replaces had never excluded a stock.** `universe.index` is read now and a name with no
+  definition stops the run (the old comment offered the Russell 1000 and 2000; either silently
+  ran the S&P 500). The floor is 0, as decided on 2026-11-03. Checking that the change was
+  byte-identical turned up why it had to be: the filter looked for a column the scoring frame
+  does not carry, so 502 stocks went in and 502 came out at a floor of $1 quadrillion. A floor
+  that is set is now applied, or the run stops - which phase 4 needs, because its universe is
+  *defined* by one. No published number moved. A side finding went to `plan/backtest-v2.md`: the
+  research engine's history has Berkshire Hathaway at under $2B in every month and 16 tickers
+  under $100M somewhere (wrong share counts), not yet fixed.
+  **Next in phase 1:** `inp`/`raw`/`pct`/`summary` (42.6%
   of what is left, each needing its own read-site audit), then bucketing - one file is right at 500
   stocks and wrong at 5,000, so the shard is "off first paint" today and not yet "flat in the
   universe". **Grep `tests/` for a field before moving it:** `tests/examples.py` reads `financials`
