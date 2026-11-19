@@ -163,19 +163,40 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
 
 
 def apply_universe_filters(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
-    """Apply min_market_cap and min_avg_volume filters from config.
+    """Apply the ``universe.min_market_cap`` floor from config.
 
-    These filters are applied post-fetch since the universe source
-    (Wikipedia S&P 500 list) doesn't include market cap / volume data.
+    Applied post-fetch, since the universe source (an index constituent list) carries no market
+    cap. A stock whose market cap is unknown is kept: the floor removes what is known to be too
+    small, never what could not be measured.
+
+    **A floor that is set is a floor that is applied, or the run stops** (2026-11-19). From
+    February to that day this function looked only for a ``marketCap`` column, and both of its
+    callers - the live run and ``backtest_v2.rank_month`` - hand it the frame ``compute_metrics``
+    returns, which carries the scored ``size_log_mcap`` (``-ln(market cap)``) and no ``marketCap``.
+    So ``min_market_cap: 2e9`` never excluded a stock anywhere: measured, the newest run's 502
+    rows come back as 502 at a floor of $1 quadrillion
+    (``research/measurements/2026-11-19-market-cap-floor-never-fires.py``). The unit tests passed
+    throughout because they built a frame with the column production never has. The S&P 500's
+    floor is 0 by decision (``plan/universe-expansion.md``, pre-registration 3's resolution), so
+    nothing published depended on it - but phase 4's universe is *defined* by a floor, and one
+    that silently does nothing would have admitted every microcap listed.
     """
     ucfg = cfg.get("universe", {})
     min_mc = float(ucfg.get("min_market_cap", 0))
-    # min_avg_volume is not currently fetched from yfinance, so we
-    # only enforce market cap for now (volume would require an
-    # additional API call that isn't in the fetch pipeline).
 
-    if min_mc > 0 and "marketCap" in df.columns:
-        mc = pd.to_numeric(df["marketCap"], errors="coerce")
+    if min_mc > 0:
+        if "marketCap" in df.columns:
+            mc = pd.to_numeric(df["marketCap"], errors="coerce")
+        elif "size_log_mcap" in df.columns:
+            # the engine's own figure: compute_metrics writes -ln(market cap) and nothing between
+            # there and here transforms it (winsorising comes later)
+            mc = np.exp(-pd.to_numeric(df["size_log_mcap"], errors="coerce"))
+        else:
+            raise ValueError(
+                f"universe.min_market_cap is {min_mc:,.0f} but the frame carries neither "
+                "'marketCap' nor 'size_log_mcap', so the floor cannot be applied. Refusing to "
+                "continue with a universe filter that silently filters nothing."
+            )
         low_mc = mc.notna() & (mc < min_mc)
         n_dropped = low_mc.sum()
         if n_dropped > 0:

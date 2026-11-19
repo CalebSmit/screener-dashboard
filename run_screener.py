@@ -1658,7 +1658,10 @@ def run_factor_engine(cfg, args, ctx=None):
     }
 
     # ---- Universe ----
-    print("Loading S&P 500 universe...")
+    # The universe the run's own config names (2026-11-19). A name with no definition stops
+    # here, before a single request is made, rather than running the S&P 500 under another label.
+    run_universe = universe.from_config(cfg)
+    print(f"Loading {run_universe.name} universe...")
     universe_df = get_sp500_tickers(cfg)
 
     # --tickers override
@@ -2099,7 +2102,7 @@ def run_factor_engine(cfg, args, ctx=None):
     # Set here, once the universe is settled, so every artifact from 01 onward carries it and
     # the percentiles below group on a column rather than on a default. One universe today, so
     # one band: nothing published moves (plan/universe-expansion.md, pre-registration 3).
-    df = universe.assign_size_bands(df)
+    df = universe.assign_size_bands(df, run_universe)
 
     # ---- Save raw metrics artifact (data lineage) ----
     if ctx is not None:

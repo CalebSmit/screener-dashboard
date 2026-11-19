@@ -352,7 +352,14 @@ class RunConfig(BaseModel):
 
     class UniverseConfig(BaseModel):
         index: str = "SP500"
-        min_market_cap: float = 2e9
+        min_market_cap: float = Field(0, ge=0)
+
+        @field_validator("index")
+        @classmethod
+        def _index_is_defined(cls, v: str) -> str:
+            import universe as _u
+            _u.from_name(v)          # raises, naming the defined universes
+            return v
         exclude_sectors: list[str] = []
         exclude_tickers: list[str] = []
 

@@ -1021,7 +1021,7 @@ Provide a **ready-to-use portfolio** that investment clubs can adopt or customiz
 
 - Start with composite-scored universe.
 - Apply hard filters:
-  - Minimum market cap: $2B (eliminates micro-cap illiquidity).
+  - Minimum market cap: $2B (eliminates micro-cap illiquidity). *(As built: the floor is 0 for an S&P index universe - membership is the index committee's - and this $2B line never excluded a stock; `METHODOLOGY_CHANGELOG.md` 2026-11-19.)*
   - Minimum average daily volume: $10M (ensures tradability for clubs).
   - Exclude stocks failing value trap filters (optional—flag but allow override).
 

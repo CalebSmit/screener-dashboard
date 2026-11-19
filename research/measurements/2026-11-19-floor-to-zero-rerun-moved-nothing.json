@@ -1,0 +1,453 @@
+{
+  "differences": {
+    "52-week-high": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "0dbb5c94b5d8",
+          "2751caf574af"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "baseline": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "bot-rule-v1.1": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "bot-rule-v1.1-stop10": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-growth": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "1bc94b8f2aed",
+          "73fb1ad27fba"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-investment": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "d8562f93c6cd",
+          "77bf4c9866fc"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-momentum": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "b8370a9775a0",
+          "1eda2f9eb29a"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-quality": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "2b2f31386782",
+          "374c8c12e7df"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-revenue-growth": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "0a8fc717c6ce",
+          "b49b9a0b5d8d"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-risk": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "2ddcc3f98335",
+          "229fe39e23cd"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-size": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "532813ebaf53",
+          "fba86105526f"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "drop-valuation": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "17f6b8323024",
+          "f9b4454a98f9"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "equal-categories": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "ea41b67d160f",
+          "dc938611d71e"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "fcf-yield-only": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "632235823c5a",
+          "6cf3c7813e96"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "lookahead-filings": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "dc8b4fd73573",
+          "2d9d2cf040a0"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "low-volatility-only": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "f2eb7aa61afe",
+          "96deb52a38d7"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "magic-formula": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "e4adf10d16c8",
+          "8dd527289bd9"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "momentum-12-1-only": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "1bf3d8f38910",
+          "3553ce9225fe"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "only-growth": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "7a6e34855f12",
+          "62aefa4085e9"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "only-investment": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "7a01b3b2309d",
+          "a47f00a5b8c0"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "only-momentum": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "9106748a4664",
+          "290edd6f2ea6"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "only-quality": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "e911233f9517",
+          "175de4728cac"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "only-risk": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "e78acb1c7a70",
+          "d94cd5119186"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "only-size": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "cf76ab3621a6",
+          "fcea89af12e3"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "only-valuation": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "a3f6dcc53915",
+          "05ae72c6d061"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "orthogonalised-categories": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "ab7e117ced1e",
+          "de52e5cf0b8a"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "piotroski-only": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "2216487eadbb",
+          "d996ec77277e"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "profitability-and-low-volatility": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "06005f47319c",
+          "65fbe45a861d"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "profitability-and-value": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "1e710ba10d15",
+          "89b7576f24f7"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "sector-relative-composite": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "3ea5cb45196c",
+          "ec5131e5e9c6"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "value-and-momentum": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "cb4dbe28e074",
+          "f3c71be22ca9"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    },
+    "whole-market-percentiles": {
+      "moved": {
+        "base_config_hash": [
+          "367377655f06",
+          "e1ef087e1305"
+        ],
+        "config_hash": [
+          "c5a0d03402b4",
+          "7339a2ee5f3c"
+        ]
+      },
+      "only_in_new": [],
+      "only_in_old": []
+    }
+  },
+  "ids_compared": 32,
+  "ids_whose_only_difference_is_the_config_hash": 32,
+  "ids_with_a_difference": 32,
+  "ids_with_any_other_difference": 0,
+  "live_code_hash": "5b839099f6a7",
+  "other_differences": {},
+  "statistics_compared": 27225,
+  "which_files_had_moved": "config.yaml, factor_engine.py, universe.py (code and config, not data)",
+  "why_it_could_not_have_mattered": "apply_universe_filters returned its input unchanged at min_market_cap 2e9 (no marketCap column on the metrics frame) and returns it unchanged at 0; universe.CURRENT is the same S&P 500 definition, now resolved from config.yaml."
+}

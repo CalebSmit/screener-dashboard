@@ -17,6 +17,7 @@ Still literal, deliberately, and listed so it is not forgotten: ``data-run.ps1``
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import pandas as pd
 
@@ -56,8 +57,52 @@ SP500 = Universe(
     size_band="S&P 500",
 )
 
-#: The universe this build runs. One today; phase 2 adds the S&P 400 and 600 beside it.
-CURRENT = SP500
+#: Every universe that has a definition. One today; phase 2 adds the S&P 400 and 600 beside it,
+#: each with bounds measured from its own constituent list, never copied from this one.
+UNIVERSES: dict[str, Universe] = {SP500.key: SP500}
+
+
+def from_name(name: object) -> Universe:
+    """The definition ``config.yaml``'s ``universe.index`` names, or a refusal.
+
+    Case and punctuation are ignored (``'SP500'``, ``'sp500'``, ``'S&P 500'``). A name with no
+    definition raises: until 2026-11-19 the key was read by nothing and its comment offered
+    ``'R1000'`` and ``'R2000'``, so asking for the Russell 2000 ran the S&P 500 and said nothing.
+    """
+    key = "".join(ch for ch in str(name).lower() if ch.isalnum())
+    if key not in UNIVERSES:
+        raise ValueError(
+            f"config.yaml universe.index is {name!r}, which has no definition in universe.py "
+            f"(defined: {', '.join(sorted(UNIVERSES))}). A universe is added there with its own "
+            "measured bounds - see plan/universe-expansion.md."
+        )
+    return UNIVERSES[key]
+
+
+def from_config(cfg: dict | None) -> Universe:
+    """The universe a parsed config asks for. A config with no ``universe.index`` (a test's
+    partial dict, an old run's snapshot) means the S&P 500, which is what it always meant."""
+    return from_name(((cfg or {}).get("universe") or {}).get("index", SP500.key))
+
+
+def _configured() -> Universe:
+    """What the repo's own ``config.yaml`` names, read once at import so the size constants in
+    ``check_run_health``, ``rehearse_publish`` and ``universe_history`` are the configured
+    universe's. A config that cannot be *read* falls back to the S&P 500 - those modules are
+    gates in an unattended loop and must not die on a missing file - but one that reads and
+    names an undefined universe raises: that is a wrong answer, not an absent one."""
+    path = Path(__file__).resolve().parent / "config.yaml"
+    try:
+        import yaml
+        cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception:
+        return SP500
+    return from_config(cfg if isinstance(cfg, dict) else None)
+
+
+#: The universe this build runs: the one ``config.yaml`` names (2026-11-19; a literal ``SP500``
+#: before that).
+CURRENT = _configured()
 
 #: The column every frame carries from the fetch onward. Named once so the grouping, the
 #: pipeline and the tests cannot disagree about its spelling.
