@@ -495,9 +495,11 @@ def test_confidence_metric_count_is_the_discount_coverage(payload, generated_ove
     'converted to a **cross-sectional percentile rank** (`rank(pct=True) * 100`) '
     '- so a score of 95 means "better than 95% of the universe."',
     "### 1. `Composite` is a percentile rank, not the weighted sum",
+    # published until 2026-11-18, for 27 stocks that each had a newer filing on record
+    "Its filings are flagged stale (412 days old).",
 ])
 def test_each_false_sentence_that_shipped_is_still_detected(sentence):
-    """Every one of these was published on the live site until 2026-10-07."""
+    """Every one of these was published on the live site - the first four until 2026-10-07."""
     assert claims.forbidden_hits(sentence), (
         f"FORBIDDEN no longer catches a sentence that shipped: {sentence[:80]!r}")
 

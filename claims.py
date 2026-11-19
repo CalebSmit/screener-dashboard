@@ -2960,6 +2960,14 @@ FORBIDDEN: tuple[Forbidden, ...] = (
         why="The run moves each weight 5 percentage points (Size 5% -> 0% and 10%), not 5% of itself.",
         fixed="2026-10-19",
     ),
+    Forbidden(
+        pattern=r"Its filings are flagged stale",
+        why=("The stock sheet's confidence caveat. The flag ages the income statement the score "
+             "read, not the company's filings: on 2026-11-18 it was printed for 27 stocks and all "
+             "27 had a newer filing on record. A caveat names the statement that is impaired, "
+             "never the company."),
+        fixed="2026-11-18",
+    ),
 )
 
 
