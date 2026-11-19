@@ -395,6 +395,37 @@ built - a guard in the record, not a market-cap filter on the universe, which wo
 deleted Berkshire from the backtest. Until then this is one more reason engine numbers decide
 nothing (rule 5).
 
+**Traced and designed 2026-11-19 (13:00 session); still not built.**
+`research/2026-11-19-engine-share-counts.md`. The paragraphs above understate it: measured against
+the candidate rule, **1,992 name-months (3.06%, 135 tickers) carry a market value more than 10%
+off, 473 of them by more than 10x, and 1,635 more have none where one is available** - against
+the 494-655 found by looking only for values under $100M. Four causes, each followed to the filed
+fact: a stale tag still read as "latest" (Simon Property's 8,000 shares dated 2012, Fox's 1);
+a units slip downward (Stryker's 383); **the same slip upward, which the first check could not
+see** (Garmin at $9.6 quadrillion); and **a logic error - the split basis is taken from the
+month-end instead of from the day the count was filed**, so NVIDIA reads $304bn in June 2024
+between $2,697bn and $2,928bn (194 name-months, 77 tickers, at exact split ratios). SEC Staff
+Accounting Bulletin Topic 4.C is why the filed date is the right basis.
+
+**Do not guard with the weighted-average share count alone.** It is the figure filed in
+thousands for ConocoPhillips for 97 months and for 69 other tickers; that guard would have
+replaced correct counts. No single share concept in the filings is reliable.
+
+**The candidate (version 3 in the note: a vote among three sources, net income / EPS as referee,
+a 460-day staleness bound, the filed-date split basis, a $50M backstop) passed three of its four
+criteria, which were committed before it was run, and failed the fourth:** it turns 436
+name-months from a value into "unknown" against a bar of 150. 368 of those are Visa, Berkshire
+and Simon Property, whose shipped values were wrong - but the bar was written without that
+distinction and **is not to be lowered after the fact.** Visa and Berkshire have no usable count
+in `companyfacts` at all (tagged per share class), so passing honestly needs the class-level
+facts, a fetch change.
+
+**Build order** (note section 7): decide criterion b in writing first; implement in
+`pit_record.market_fields` with the EPS basis moved in the same change and a fixture per cause;
+rebuild both eras' months (~95 minutes at the measured 81 months in 44) and rerun all 32 rows
+(~20-30 minutes) - **about two and a half hours, so a 06:00 session with nothing else in it**;
+then confirm the shipped and candidate columns agree on the rebuilt cache.
+
 ## Why this matters more than any feature
 
 The system is now allowed to change its own methodology. The thing that decides
