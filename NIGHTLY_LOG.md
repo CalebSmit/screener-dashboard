@@ -22343,3 +22343,117 @@ or size the effect on any ledger statistic.
    is built. Budget the full rerun.
 5. Unchanged: the Monday on a hole in the quarterly series (by 2026-12-07); the weekly SEC
    refresh's first run with the co-registrant code (about 2026-11-25).
+
+## 2026-11-19 (13:00) - QUEUE. The engine's wrong market caps traced to their filed facts: four causes, about 3% of name-months, and a candidate rule that failed one of its four criteria - designed, not built
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-19_060001.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (31 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **38 days**; a standing programme, last advanced **13 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 43d; 0.14 36d.
+
+**Tests:** before **4,393 passed / 1 skipped / 0 failed** (3:58). After **4,394 passed / 1 skipped /
+0 failed** (4:22) - one new parametrized case. Gate 2 (dry-run) completes. Gate 5,
+`scripts/rehearse_publish.py --changed-since origin/main`: **REHEARSAL PASSED**, all published
+files unchanged byte for byte (it parses the three payload files; I did not run a separate
+`node --check`). Gate 4 clean.
+
+**Owner queue / rotation:** second session today; this morning's entry read first. `git stash
+list` empty, no branch held back, `open_proposals()` is `[]`. `OWNER_FOCUS.md`'s top item is the
+owner's alone; the universe-expansion item advanced this morning. I carried on from the morning's
+**Next**: items 1 and 2 are tomorrow's by their nature; I did **3** (small) and the diagnosis half
+of **4**. No decision of the morning's was reversed. 0.13 is not deferred (13 days against 21;
+tomorrow is its day). Nothing deferred for a gate or a loop.
+
+### Did
+
+**1. The engine's share counts, followed to the filed facts**
+(`research/2026-11-19-engine-share-counts.md`). The morning found 16 tickers under $100M and
+Berkshire under $2B and said to follow each count to its filing before choosing a rule. Four
+causes, not the three it guessed at:
+
+- **A stale tag read as "latest".** Simon Property: 8,000 shares, dated 2012, picked in every
+  month to August 2026. Fox: 1 share, dated March 2019. Baker Hughes: 100.
+- **A units slip downward.** Stryker's balance sheet says 383; its cover page, same date,
+  382,672,989.
+- **The same slip upward - which this morning's check could not see**, because it looked only
+  for small values. Garmin reads $9.6 quadrillion in December 2016; 84 name-months across 15
+  tickers are over $4 trillion and only 32 of them (Apple, Alphabet, NVIDIA, 2025-26) are real.
+- **A logic error: the split adjustment is taken from the month-end, not from the day the count
+  was filed.** NVIDIA reads $2,697bn, **$304bn, $288bn**, $2,928bn across May-August 2024. 194
+  name-months, 77 tickers, at exact split ratios. The SEC's own rule (SAB Topic 4.C, fetched
+  today) is why the filed date is the right basis.
+
+**Size: 1,992 name-months (3.06%, 135 tickers) are more than 10% off, 473 by more than 10x, and
+1,635 have no market value where one is available** - against the 494-655 recorded this morning.
+Spread evenly, 2.6-3.5% of every year.
+
+**2. A guard I expected to use and measured out.** The weighted-average share count looked like
+the natural reference. It is itself filed in thousands or millions for **56 tickers**
+(ConocoPhillips for 97 months; 598 ticker-months more than 10x off), so a guard trusting it
+would have replaced correct counts.
+
+**3. Three candidate rules, evaluated offline on all 65,458 name-months.** Version 1 was
+committed before its evaluation ran (`280b983`); versions 2 and 3 were written after reading the
+one before and are labelled so; version 3's four acceptance criteria were committed before it
+ran (`8adeb3f`). **Version 3 met three and failed one, and I did not rewrite the one it failed:**
+under $100M 494 -> 0; false values over $4T 52 -> 0; count jumps over 5x 97 -> 3; newest month
+within 10% of the live fetch 454 -> 476 - but it turns **436** name-months from a value into
+"unknown" against a bar of 150. 368 of those are Visa, Berkshire and Simon Property, whose
+shipped values were wrong, which the criterion did not distinguish. Visa and Berkshire have no
+usable count in the SEC's `companyfacts` at all (tagged per share class).
+
+**4. Not built, and why.** `pit_record.py` is one of the nine files that stale the ledger, and a
+data fix needs the 176 months rebuilt (~95 minutes at the measured rate) plus the rerun. That did
+not fit after the diagnosis, and a rule passing three of four criteria is not one to build in
+the last hour. **No production line changed for this item.** `plan/backtest-v2.md` and CLAUDE.md
+priority 3 carry the build order.
+
+**5. The morning's Next 3.** "Its filings are flagged stale" is in `claims.FORBIDDEN` with a
+negative-control case (it was false for all 27 stocks it was printed for on 2026-11-18); and the
+first combined 10-Ks have a date in the brief's "Coming up" - **2027-03-02**, the day after a
+calendar-year large filer's 10-K is due - with the note committing to it.
+
+### Evidence / research
+
+- A documented failure, measured: `research/measurements/2026-11-19-engine-share-counts.py`
+  (`--trace`, `--sweep`, `--evaluate --version 1|2|3`) and `...-readout.py`. The emulation of the
+  shipped rule reproduces the engine's own price in 65,381 of 65,458 name-months (99.88%).
+- SEC Staff Accounting Bulletin Topic 4.C, "Change in Capital Structure"
+  (https://www.sec.gov/interps/account/sabcodet4.htm): the sentence "Such changes in the capital
+  structure must be given retroactive effect in the balance sheet" read verbatim today; the
+  surrounding Facts paragraph in fragments only.
+- No literature on how data vendors clean XBRL share counts was read. That is a gap in the note.
+- Nothing here is evidence about returns (rule 5).
+
+### Methodology changed
+
+- None. No `METHODOLOGY_CHANGELOG.md` entry: no score, weight, metric or published sentence
+  moved, and the research engine is unchanged.
+
+### Tried and rejected
+
+- **Guarding with the weighted-average count** - item 2 above.
+- **A market-value plausibility band as the main mechanism.** A 1,000x slip on a $150bn company
+  lands at $150M and on a $4bn company at $4T, both inside any band wide enough for real
+  members. Kept only as a $50M backstop.
+- **Lowering criterion b to 436 so version 3 "passes".** The bar was written before the run.
+- **Building version 3 today.** See Did 4.
+- **A fourth version.** Three passes over the same data is already enough to worry about; the
+  note says so.
+
+### Not verified
+
+- How far any ledger statistic moves: needs the rebuild.
+- The 460-day staleness bound was reasoned, not measured from the distribution of count ages.
+- EPS carries the same split-basis error (`trailingEps = eps / split`); not measured.
+- `sharesBS` / `sharesBS_prior` read the same balance-sheet concept; not examined.
+- The live-fetch comparison is one cross-section, August counts against November's.
+
+### Next
+
+1. **Friday 2026-11-20 is the lab's day**: `EarningsSurprise` on Open Source Asset Pricing
+   (`plan/factor-lab.md`); add the dated Progress bullet. (Unchanged from this morning.)
+2. **Tomorrow's 02:00 run**: confirm HEALTH: PASS without the continuity override being used, and
+   that `kpis.methodology_version` changed. (Unchanged from this morning.)
+3. **Build the share-count fix in a 06:00 session with nothing else in it** (about two and a half
+   hours): note section 7. Decide criterion b in writing first - build version 3 and record that
+   it fails b, or fetch class-level counts for Visa and Berkshire so it passes.
+4. Unchanged: the Monday on a hole in the quarterly series (by 2026-12-07); the weekly SEC
+   refresh's first run with the co-registrant code (about 2026-11-25).

@@ -624,6 +624,12 @@ COMING_UP = (
      "research/2026-11-17-ytd-in-a-quarterly-column.md"),
     ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
      "CLAUDE.md"),
+    ("2027-03-02", "The first combined 10-Ks since the SEC began holding a jointly filed report's facts "
+                   "under a co-registrant are all due by now. Read the weekly SEC refresh's log line "
+                   "naming the companies still gapped, and the health line's 'no filing in the cache' "
+                   "count (1, Citigroup, on 2026-11-19): the co-registrant follow was built and "
+                   "verified on 10-Qs only.",
+     "research/2026-11-18-combined-filings-under-a-co-registrant.md"),
 )
 COMING_UP_DAYS = 14
 

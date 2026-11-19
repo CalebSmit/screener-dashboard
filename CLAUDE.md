@@ -1052,6 +1052,15 @@ before quoting any number here, and remember nothing either produces decides any
   regime** - reading the current run's regime is a third look-ahead vector, inside the weights
   rather than the metrics.
 
+*An open data defect, designed and not built (2026-11-19):* **about 3% of the engine's
+name-months carry a wrong market value** (1,992 off by more than 10%, 473 by more than 10x), from
+stale share tags, units slips in both directions and a split basis taken from the month-end
+instead of the filing date. `research/2026-11-19-engine-share-counts.md` has the causes, three
+candidate rules and the pre-written criteria; `plan/backtest-v2.md` the build order. It needs a
+rebuild and a full rerun - **about two and a half hours, so give it a 06:00 session to itself** -
+and its fourth criterion failed as written and **is not to be lowered to pass**. Do not guard
+with the weighted-average share count alone: it is the slipped figure for 56 tickers.
+
 *Next:* the **34.1 free points** first (`lookahead.weight_buckets(cfg)` for the live figure). Then
 size the 49.0pp fundamentals half via SEC EDGAR's XBRL `companyconcept` endpoint, which is free
 and carries a `filed` date per fact; expect the 9.0pp of analyst-estimate metrics to have no free

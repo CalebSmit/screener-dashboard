@@ -161,3 +161,6 @@ this morning and reads **1** on the rebuilt cache.
 - Check 10-Ks. No combined 10-K has been filed since the change; **the first will be in February
   2027**, and `earnings_variability` (weight 0) reads 10-Ks. The same follow-up handles any
   periodic form, and the "still have a gap" line is what to read that month.
+  **Dated 2026-11-19: read it on 2027-03-02** - the day after a calendar-year large accelerated
+  filer's 10-K is due (60 days after the year end), so every combined 10-K is in by then. The
+  morning brief's "Coming up" carries the date (`scripts/write_brief.py`, `COMING_UP`).
