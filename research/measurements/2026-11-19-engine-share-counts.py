@@ -33,6 +33,7 @@ sys.path.insert(0, str(ROOT))
 
 import pit_record as pr  # noqa: E402
 
+OUT = ROOT / "logs"          # gitignored: the per-name-month tables are ~6 MB each
 SHARE = ("CommonStockSharesOutstanding", "EntityCommonStockSharesOutstanding")
 WAVG = ("WeightedAverageNumberOfDilutedSharesOutstanding",
         "WeightedAverageNumberOfSharesOutstandingBasic")
@@ -114,7 +115,7 @@ def sweep(facts: pd.DataFrame) -> None:
                                         last=("month", "max"), med=("ratio", "median"))
         print(f"\n{label}: {len(by)} tickers")
         print(by.sort_values("n", ascending=False).to_string())
-    d.to_csv(ROOT / "research" / "measurements" / "2026-11-19-engine-share-counts.sweep.csv", index=False)
+    d.to_csv(OUT / "2026-11-19-engine-share-counts.sweep.csv", index=False)
 
 
 # ----------------------------------------------------------------------------------------------
@@ -136,6 +137,63 @@ def sweep(facts: pd.DataFrame) -> None:
 STALE_DAYS = 460
 AGREE = 1.5
 FLOOR = 50e6
+
+# Version 2 - written AFTER version 1's result was read, and labelled as such wherever it is
+# quoted. Version 1 removed every market value under $100M but turned 766 name-months the shipped
+# rule had right into "unknown": where exactly two sources exist and one carries a units slip
+# (ConocoPhillips' weighted average is filed in thousands for 97 months), a vote of two cannot
+# say which. And it kept agreeing pairs that were both wrong (Garmin's two instants, both in
+# thousands). So a referee that carries no share-unit scaling at all:
+#
+#   R = net income / diluted EPS, both for the latest period that reports both (|EPS| >= 0.10,
+#       so the cent EPS is rounded to moves R by under ~5%), on the filed-date split basis.
+#
+#   4'. Where R exists: the first source in the preference order within REFEREE x of R; none
+#       within it -> R itself where no source was fresh, else unknown. Where R does not exist:
+#       version 1's vote.
+#   6.  A declared exception, not a rule: Berkshire Hathaway reports its count and its EPS in
+#       Class A equivalents and the line scored is Class B; one Class A share converts into
+#       1,500 Class B (its 10-K, note on common stock). EQUIVALENT_UNITS multiplies its count.
+REFEREE = 3.0
+MIN_EPS = 0.10
+EQUIVALENT_UNITS = {"BRK-B": 1500.0}
+EPS = ("EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted")
+NI = ("NetIncomeLoss",)
+
+
+# Version 3 - written after version 2's result was read, and the last one this session runs.
+# Version 2 cut "had a value, now unknown" from 766 to 559 but put 152 name-months under the
+# backstop where version 1 had 66: the referee is not unit-safe either (Halliburton, 43 months,
+# where version 1's vote was right). Each mechanism fails where the other holds, so:
+#
+#   4''. Version 1's vote first. Only where the vote gives nothing, or gives a market value
+#        under FLOOR at the month's price, does the referee decide: the first source within
+#        REFEREE x of R that clears FLOOR; none -> R itself if it clears FLOOR; else unknown.
+#   Steps 1-3, 5 and 6 as before.
+#
+# ACCEPTANCE, written and committed before version 3 was run. All four, or it is not accepted:
+#   a. no name-month under $100M, and none over $4T other than the four companies version 1
+#      showed are really that large (Apple, Alphabet's two lines, NVIDIA; 2025-07 onward);
+#   b. "the shipped rule had a market value, the candidate says unknown": at most 150 name-months
+#      (0.23% of 65,458), every ticker listed;
+#   c. at most 3 month-to-month jumps of more than 5x in the count on today's share basis;
+#   d. against the live fetch, newest month: at least 474 within 10% and at most 5 off by 2x.
+# A fifth number is reported and is not a criterion: how many name-months' market value moves by
+# more than 10% - that is the size of the rerun's possible effect, not a measure of correctness.
+
+
+def _referee(f: pd.DataFrame, ts: pd.Timestamp, sp):
+    e = f[f["concept"].isin(EPS) & f["start"].notna() & (f["val"].abs() >= MIN_EPS)]
+    n = f[f["concept"].isin(NI) & f["start"].notna()]
+    if e.empty or n.empty:
+        return None
+    m = e.merge(n, on=["start", "end"], suffixes=("_e", "_n"))
+    m = m[(ts - m["end"]).dt.days <= STALE_DAYS]
+    if m.empty:
+        return None
+    r = m.sort_values(["end", "filed_e"], kind="mergesort").iloc[-1]
+    v = r["val_n"] / r["val_e"]
+    return float(v) * _split_after(sp, r["filed_e"]) if v > 0 else None
 
 
 def _visible(g: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
@@ -165,10 +223,10 @@ def _split_after(sp, day) -> float:
     return float(np.prod(v)) if len(v) else 1.0
 
 
-def evaluate() -> None:
+def evaluate(version: int = 1) -> None:
     import backtest_v2 as b2
     facts = b2._load_facts(ROOT)
-    facts = facts[facts["concept"].isin(SHARE + WAVG) & facts["form"].isin(pr.FORMS)].copy()
+    facts = facts[facts["concept"].isin(SHARE + WAVG + EPS + NI) & facts["form"].isin(pr.FORMS)].copy()
     for c in ("start", "end", "filed"):
         facts[c] = pd.to_datetime(facts[c], errors="coerce")
     facts = facts.dropna(subset=["end", "val"])
@@ -212,12 +270,55 @@ def evaluate() -> None:
                         cand, why = v, ("first" if i == 0 else f"choice{i + 1}")
                         break
             cap = math.exp(-slm) if np.isfinite(slm) else np.nan
-            rows.append((t, p.stem, cap, cur, cand, why))
-    d = pd.DataFrame(rows, columns=["ticker", "month", "cap_cached", "cur", "cand", "why"])
+            if version == 3:
+                price = cap / cur if np.isfinite(cap) and np.isfinite(cur) and cur > 0 else np.nan
+                unit = EQUIVALENT_UNITS.get(t, 1.0)
+
+                def clears(v):          # unknown price: nothing to test against, so it stands
+                    return not np.isfinite(price) or v * unit * price >= FLOOR
+                cand2, why2, ref = cand, why, np.nan
+                if not np.isfinite(cand2) or not clears(cand2):
+                    ref = _referee(f, ts, sp)
+                    cand2, why2 = np.nan, (why if not np.isfinite(cand) else "under-floor")
+                    if ref is not None:
+                        for i, v in enumerate(vals):
+                            if 1 / REFEREE <= v / ref <= REFEREE and clears(v):
+                                cand2, why2 = v, f"referee-chose{i + 1}"
+                                break
+                        else:
+                            if clears(ref):
+                                cand2, why2 = ref, "referee"
+                    ref = ref if ref is not None else np.nan
+                cand2 *= unit
+                rows.append((t, p.stem, cap, cur, cand, why, cand2, why2, ref))
+                continue
+            # version 2
+            ref = _referee(f, ts, sp)
+            cand2, why2 = cand, why
+            if ref is not None:
+                cand2, why2 = np.nan, ("ref-refuses" if vals else "none")
+                for i, v in enumerate(vals):
+                    if 1 / REFEREE <= v / ref <= REFEREE:
+                        cand2, why2 = v, ("first" if i == 0 else f"choice{i + 1}")
+                        break
+                if not vals:
+                    cand2, why2 = ref, "referee"
+            cand2 *= EQUIVALENT_UNITS.get(t, 1.0)
+            cap = math.exp(-slm) if np.isfinite(slm) else np.nan
+            rows.append((t, p.stem, cap, cur, cand, why, cand2, why2, ref))
+    d = pd.DataFrame(rows, columns=["ticker", "month", "cap_cached", "cur", "cand", "why",
+                                    "cand2", "why2", "referee"])
     d["price"] = d["cap_cached"] / d["cur"]            # the engine's own price for the month
     d["cap_cand"] = d["price"] * d["cand"]
     d.loc[d["cap_cand"] < FLOOR, ["cand", "cap_cand"]] = np.nan
-    d.to_csv(ROOT / "research" / "measurements" / "2026-11-19-engine-share-counts.evaluate.csv", index=False)
+    d["cap_cand2"] = d["price"] * d["cand2"]
+    d.loc[d["cap_cand2"] < FLOOR, ["cand2", "cap_cand2"]] = np.nan
+    d.to_csv(OUT / ("2026-11-19-engine-share-counts.evaluate-v3.csv" if version == 3
+                    else "2026-11-19-engine-share-counts.evaluate.csv"), index=False)
+    if version >= 2:
+        print(f"VERSION {version} (written after the version before it was read):")
+        d = d.drop(columns=["cand", "why", "cap_cand"]).rename(
+            columns={"cand2": "cand", "why2": "why", "cap_cand2": "cap_cand"})
     n = len(d)
     print(f"name-months: {n:,}; tickers {d['ticker'].nunique()}; with a cached market value {d['cap_cached'].notna().sum():,}")
     print("how the candidate chose:", d["why"].value_counts().to_dict())
@@ -265,6 +366,7 @@ if __name__ == "__main__":
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--sweep", action="store_true")
     ap.add_argument("--evaluate", action="store_true")
+    ap.add_argument("--version", type=int, default=1, choices=(1, 2, 3))
     a = ap.parse_args()
     facts = pd.read_parquet(ROOT / "data" / "sec" / "pit" / "facts.parquet") if (a.trace or a.sweep) else None
     if a.trace:
@@ -272,4 +374,4 @@ if __name__ == "__main__":
     if a.sweep:
         sweep(facts)
     if a.evaluate:
-        evaluate()
+        evaluate(a.version)
