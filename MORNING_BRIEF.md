@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 19 November 2026, 02:23
+# Morning Brief - Thursday 19 November 2026, 06:58
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -25,6 +25,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `69ef668 NIGHTLY_LOG 2026-11-19: the universe block, the floor that never fired, the gates' results, what is next`
+- `07c7572 Research engine: all 32 rows rerun on the new config - 27,225 statistics, 0 moved; only the config hashes differ`
+- `a27370b Changelog, plans, CLAUDE.md: the market-cap floor is 0 and never fired; wrong market caps in the engine's history recorded`
+- `6911cd0 wip: the universe block is read - an undefined index is refused, and a market-cap floor that is set is applied`
+- `f949d3a brief: data run 2026-11-19`
 - `3017bd6 data: screener run 2026-11-19 - 499 scored, top: SNDK EXPE HST APA MPC`
 - `e365cfc brief: code session 2026-11-18-midday`
 - `4e34d62 NIGHTLY_LOG 2026-11-18 (13:00): where the missing filings went, the gates' results, what is next`
@@ -35,58 +40,54 @@ history is in `NIGHTLY_LOG.md`.
 - `1aecd56 The synthesis note commits to the date COMING_UP gives it`
 - `e0f2c28 Synthesis note, changelog, CLAUDE.md 0.14: what the screener knows about its inputs`
 - `cfeb7bc wip: the health line counts the stocks the filing check cannot see`
-- `3751f4b wip: measurements - every input caveat on the page, counted; the reworded sentence seen at 1440 and 375`
-- `743f929 wip: staleness is said of the statement the score read, never of the company's filings`
-- `5f55b79 brief: data run 2026-11-18`
-- `3aecb1a data: screener run 2026-11-18 - 499 scored, top: HST EXPE VLO MU APA`
 
 ## The session's own account
 
-> 2026-11-18 (13:00) - QUEUE. Where twenty companies' filings went: the SEC now files a combined report under one co-registrant, and the weekly refresh follows it there
+> 2026-11-19 - BUILD. The universe block in `config.yaml` is read now - and the $2B floor it held had never excluded a stock
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-18_060000.log` (completed). Data loop published? yes - `logs/datarun-2026-11-18_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (53 rows, but overlapping windows are not independent; 131 rows across all horizons), newest 1m run date 2026-10-16 (33 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **37 days**; a standing programme, last advanced **12 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 42d; 0.14 35d.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-18_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (31 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **38 days**; a standing programme, last advanced **13 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 43d; 0.14 36d.
 > 
-> **Tests:** the runner's baseline was GREEN (4,363 passed / 1 skipped). **My own baseline had one
-> failure**, `tests/test_lab_reading_and_access.py::test_a_web_font_that_lands_late_is_waited_for_and_one_that_cannot_land_is_not`
-> (card heights 208 against 183 at the moment it read them): 1 failed / 4,362 passed / 1 skipped in
-> 4:39. It did not reproduce - the module alone, 35 passed - and it ran while I was making EDGAR
-> requests on the same machine. Recorded as a flake, not fixed; the saved output is
-> `logs/session-baseline-1300.txt`. After: **4,371 passed / 4 skipped / 0 failed** in 4:09 (11 new
-> cases). **The three extra skips are mine and are by design:** `test_capex_lease_note`,
-> `test_special_item_note` and `test_ytd_column_note` each skip, loudly, when the SEC cache on disk
-> is not the one the committed payload was built from (2,446,742 rows then, 2,449,990 now). They
-> skip the same way after every weekly refresh and run again once the 02:00 run publishes from the
-> new cache. Gate 2 (dry-run) passes. Gate 3: no payload or page file touched. Gate 5,
-> `scripts/rehearse_publish.py --changed-since origin/main`: **REHEARSAL PASSED**, files restored
-> byte for byte. Gate 4 clean. The suite was run twice with the same counts, the second time (4:27)
-> on the final tree with this entry already written; only this sentence changed after it.
+> **Tests:** before **4,374 passed / 1 skipped / 0 failed** (4:03, my own baseline; yesterday's three
+> cache-dependent skips are running again, as predicted). After **4,393 passed / 1 skipped / 0
+> failed** (4:38) - 19 new cases, all in `tests/test_universe_config_block.py`. Gate 2 (dry-run)
+> passes. Gate 3: no payload or page file touched; the rehearsal's own parse of all three payload
+> files passed (a standalone `node --check` was refused by the tool guard this session, so I did not
+> run it separately). Gate 5, `scripts/rehearse_publish.py --changed-since origin/main`:
+> **REHEARSAL PASSED**, every published file unchanged byte for byte. Gate 4 clean.
 > 
-> **Owner queue / rotation:** second session today; I read the 06:00 entry first and took its
-> **Next 3** (Next 1 is Friday's, Next 2 needs tomorrow's run). `open_proposals()` is `[]`; no
-> branch was held back; no `auto-rescue` stash (`git stash list` is empty). `OWNER_FOCUS.md`: not
-> re-read item by item - the 06:00 session did four hours earlier and no commit has touched it
-> since; nothing moved. 0.13 is not deferred (12 days against a bound of 21; Friday is its day).
-> Nothing was deferred for a gate or a loop. No decision of this morning's was reversed; one of its
-> numbers is superseded (below).
+> **Owner queue / rotation:** first session today. `git stash list` empty; no branch held back;
+> `open_proposals()` is `[]`. `OWNER_FOCUS.md` read: the top open item (2026-11-17, three decisions)
+> is the owner's alone; the next is **universe expansion (2026-10-28)**, whose plan names the
+> `config.yaml` `universe:` block as next in phase 1 - that is what I took, and it is also what a
+> BUILD day is for (the week's research - Tuesday's dating fix, Wednesday's synthesis - shipped its
+> own builds and left dated reviews, not a pending change). Its Progress line is updated; the item
+> stays open (phases 1-4 continue). 0.13 is not deferred (13 days against 21; tomorrow is its day).
+> Nothing deferred for a gate or a loop.
+> 
+> **Yesterday's Next 2, checked first:** today's health line reads total assets **459/459**, "**1**
+> with no filing in the cache for 165 days" (was 20), and the three note tests run again (suite
+> back to 1 skipped). "Its filings are flagged stale" appears in **0** of the four published files.
+> **Not done:** adding that sentence to `claims.FORBIDDEN` - `claims.py` builds the page, and I kept
+> today's diff to one subject. It is Next 3.
 > 
 > ### Did
 > 
-> **The question:** this morning found 20 of 499 scored companies with nothing in the SEC
-> `companyfacts` cache filed in 165 days, showed the SEC's record itself lacked them, and "did not
-> establish why". `research/2026-11-18-combined-filings-under-a-co-registrant.md`.
+> **1. The finding.** The plan's resolution said `min_market_cap: 2e9 -> 0` is byte-identical
+> *today* because no member is under $2B. Checking whether that also held for the research
+> engine's history (S&P members were under $2B in 2012) I found it held for a different reason:
+> **the floor had never fired, anywhere.** `factor_engine.apply_universe_filters` acted only "if
+> `marketCap` in df.columns", and both callers (`run_screener.py`, `backtest_v2.rank_month`) hand
+> it `compute_metrics`'s frame, which carries `size_log_mcap` and no `marketCap`. Measured
+> (`research/measurements/2026-11-19-market-cap-floor-never-fires.py`): the shipped filter returns
+> **502 of 502 rows at floors of $2 billion, $1 trillion and $1 quadrillion**. `config.yaml` said
+> `# $2B minimum` since February; the Blueprint says it "eliminates micro-cap illiquidity".
+> `tests/test_edge_cases.py::TestUniverseFilters` passed throughout - it builds its frame by hand
+> with the column production does not have. Same shape as the 2026-11-09 `financials` shard miss
+> (settled row "gates"): the test and production disagreed about the input, and the test won.
+> Likewise `universe.index` was read by no code; its comment offered `R1000` and `R2000`, and
+> either silently ran the S&P 500.
 > 
-> **1. The cause, for 19 of the 20.** Followed filing by filing through EDGAR's `submissions`
-> record and each filing's header (`research/measurements/2026-11-18-where-the-missing-filings-went.py`,
-> 134 requests): the twenty have made **41** periodic filings since the newest in their own record,
-> all XBRL, none with a single fact there. **37 of them, for 19 companies, are whole in exactly one
-> co-registrant's record** - a subsidiary utility or an operating partnership, and a different one
-> from quarter to quarter (Sempra's June quarter is under Southern California Gas, September's
-> under San Diego Gas & Electric). Until mid-May the whole filing sat under the first registrant,
-> the listed company. I did not find the rule that now picks the registrant, and found no SEC
-> notice; the note says so.
-> 
-> **2. The moved facts are the parent's - measured, not assumed.** Every 10-Q repeats earlier
-> figures as comparatives, and the parent's own record already holds those. 7,004 of 7,326
+> **2. The build** (phase 1's `config.yaml` bullet):
 > ...
 
 ---
