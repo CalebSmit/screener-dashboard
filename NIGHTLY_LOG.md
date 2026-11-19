@@ -22217,3 +22217,129 @@ how the panel renders changed, only how many stocks have rows in it.
 5. Unchanged from this morning: the Monday on a hole in the quarterly series (by 2026-12-07) -
    **re-run its section-4 measurement on the new cache first** - and the 14 quarterly cash-flow
    columns that are neither the filed quarter nor year-to-date.
+
+## 2026-11-19 - BUILD. The universe block in `config.yaml` is read now - and the $2B floor it held had never excluded a stock
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-18_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (31 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **38 days**; a standing programme, last advanced **13 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 43d; 0.14 36d.
+
+**Tests:** before **4,374 passed / 1 skipped / 0 failed** (4:03, my own baseline; yesterday's three
+cache-dependent skips are running again, as predicted). After **4,393 passed / 1 skipped / 0
+failed** (4:38) - 19 new cases, all in `tests/test_universe_config_block.py`. Gate 2 (dry-run)
+passes. Gate 3: no payload or page file touched; the rehearsal's own parse of all three payload
+files passed (a standalone `node --check` was refused by the tool guard this session, so I did not
+run it separately). Gate 5, `scripts/rehearse_publish.py --changed-since origin/main`:
+**REHEARSAL PASSED**, every published file unchanged byte for byte. Gate 4 clean.
+
+**Owner queue / rotation:** first session today. `git stash list` empty; no branch held back;
+`open_proposals()` is `[]`. `OWNER_FOCUS.md` read: the top open item (2026-11-17, three decisions)
+is the owner's alone; the next is **universe expansion (2026-10-28)**, whose plan names the
+`config.yaml` `universe:` block as next in phase 1 - that is what I took, and it is also what a
+BUILD day is for (the week's research - Tuesday's dating fix, Wednesday's synthesis - shipped its
+own builds and left dated reviews, not a pending change). Its Progress line is updated; the item
+stays open (phases 1-4 continue). 0.13 is not deferred (13 days against 21; tomorrow is its day).
+Nothing deferred for a gate or a loop.
+
+**Yesterday's Next 2, checked first:** today's health line reads total assets **459/459**, "**1**
+with no filing in the cache for 165 days" (was 20), and the three note tests run again (suite
+back to 1 skipped). "Its filings are flagged stale" appears in **0** of the four published files.
+**Not done:** adding that sentence to `claims.FORBIDDEN` - `claims.py` builds the page, and I kept
+today's diff to one subject. It is Next 3.
+
+### Did
+
+**1. The finding.** The plan's resolution said `min_market_cap: 2e9 -> 0` is byte-identical
+*today* because no member is under $2B. Checking whether that also held for the research
+engine's history (S&P members were under $2B in 2012) I found it held for a different reason:
+**the floor had never fired, anywhere.** `factor_engine.apply_universe_filters` acted only "if
+`marketCap` in df.columns", and both callers (`run_screener.py`, `backtest_v2.rank_month`) hand
+it `compute_metrics`'s frame, which carries `size_log_mcap` and no `marketCap`. Measured
+(`research/measurements/2026-11-19-market-cap-floor-never-fires.py`): the shipped filter returns
+**502 of 502 rows at floors of $2 billion, $1 trillion and $1 quadrillion**. `config.yaml` said
+`# $2B minimum` since February; the Blueprint says it "eliminates micro-cap illiquidity".
+`tests/test_edge_cases.py::TestUniverseFilters` passed throughout - it builds its frame by hand
+with the column production does not have. Same shape as the 2026-11-09 `financials` shard miss
+(settled row "gates"): the test and production disagreed about the input, and the test won.
+Likewise `universe.index` was read by no code; its comment offered `R1000` and `R2000`, and
+either silently ran the S&P 500.
+
+**2. The build** (phase 1's `config.yaml` bullet):
+- `apply_universe_filters` applies a positive floor from `marketCap` where present, else from the
+  engine's own `size_log_mcap` (`exp(-x)`), and **raises** if a floor is set and neither exists.
+  Unknown market caps are kept, as before.
+- `config.yaml`: `min_market_cap: 0` (the 2026-11-03 decision), the dead options comment gone,
+  the block says what each key does.
+- `universe.py`: `UNIVERSES`, `from_name`, `from_config`; `CURRENT` is what `config.yaml` names
+  (falls back to the S&P 500 only if the file cannot be *read*; raises if it names an undefined
+  universe). `run_factor_engine` resolves the run's own config before the first request and
+  passes it to `assign_size_bands`. `schemas.RunConfig` validates both keys.
+- I kept the measured bounds (495-515, 490) in `universe.py` beside their measurements rather
+  than moving them into YAML: the config names *which* universe; member counts are measurements,
+  not tunables. Phase 2 adds a `Universe` and a key.
+
+**3. Proof nothing moved.** (a) By construction: a no-op at 2e9, a no-op at 0. (b) The research
+engine's 32 rows were rerun (three `RESULT_PATHS` files changed; `--jobs 4`, about 16 minutes):
+**32 ids, 27,225 statistics, 0 differences** other than the two config hashes, which should move
+(`research/measurements/2026-11-19-floor-to-zero-rerun-moved-nothing.py` + `.json`);
+`summary.json` is byte-identical. (c) Rehearsal: all published files unchanged. (d) A five-ticker
+live run (`--tickers AAPL,JPM,MOS,XOM,GOOGL --no-portfolio`, 21 s): prints "Loading S&P 500
+universe...", every row banded "S&P 500", calc trace reproduced 40 category scores and 5
+composites, `SCREENER_OVERVIEW.md` regenerated byte-identical. The run directory was deleted and
+the three files it rewrote restored; `run_context.latest_run_dir()` is the published run again.
+(e) Mutation: with the old filter restored, 4 of the 19 new tests fail.
+
+**4. A second finding, recorded and not fixed** (`plan/backtest-v2.md`, new section). Had the
+$2B floor worked it would have removed 672 of 65,495 name-months from the engine's history - and
+about 655 of those are **wrong market caps, not small companies**: Berkshire Hathaway reads under
+$2B in **176 of 176 months**, 16 tickers read under $100M somewhere (SPG 163 months, FOX and FOXA
+90 each, BKR 67, SYK 34). The point-in-time record's share count is wrong for those names, which
+reaches the engine's Size score and every market-cap ratio for them. I did not follow the causes
+or size the effect on any ledger statistic.
+
+### Evidence / research
+
+- A documented failure, measured: the two scripts above. No literature read today.
+- The reason 0 is the right floor is the 2026-11-03 decision
+  (`research/2026-11-02-universe-expansion-phase0.md` sections 7, 9.3; `plan/universe-expansion.md`
+  "Resolved for phase 1"). Not re-argued and the S&P methodology was not re-read.
+- The engine rerun is a *Backtest observation* about provenance, not evidence of anything (rule 5).
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` 2026-11-19: `universe.min_market_cap` 2e9 -> 0. **No score, weight,
+  metric, rank or sentence moves.** `kpis.methodology_version` will change on the 2026-11-20 run
+  because the parsed config changed.
+- **Read this tomorrow:** that version change plus today's changelog date makes the bot-input
+  gate's rank-continuity override *available* for the 2026-11-20 run
+  (`check_run_health.continuity_override`). This change cannot cause a discontinuity, so if
+  tomorrow's health output shows the override used, the discontinuity is unexplained - investigate
+  it as if the override did not exist.
+
+### Tried and rejected
+
+- **Making the $2B floor work and leaving it at 2e9.** It would have been the first time the
+  setting did anything, against a decision that says 0, and in the engine it would have deleted
+  Berkshire from every month on a units error.
+- **Carrying `marketCap` through `compute_metrics`.** A new column in every artifact from 01
+  onward for something `size_log_mcap` already holds exactly.
+- **Moving the member bounds into `config.yaml`.** They are measured facts with their provenance
+  in `universe.py`; in YAML they read as knobs.
+- **Fixing the engine's share counts today.** A data fix reruns every row and each of the 16
+  tickers looks like a different cause; guessing a rule in the last hour is how the next defect
+  gets written.
+- **Adding the S&P 400/600 `Universe` objects now** to share the rerun. That is phase 2's first
+  bullet and needs their bounds measured from their own lists.
+
+### Next
+
+1. **Friday 2026-11-20 is the lab's day**: `EarningsSurprise` on Open Source Asset Pricing
+   (`plan/factor-lab.md`); add the dated Progress bullet.
+2. **Tomorrow's 02:00 run**: confirm HEALTH: PASS without the continuity override being used, and
+   that `kpis.methodology_version` changed (expected).
+3. Add "Its filings are flagged stale" to `claims.FORBIDDEN` (the corrected payload is published;
+   0 occurrences today) and a `COMING_UP` entry for February 2027's first combined 10-Ks - both
+   carried from 2026-11-18.
+4. **The engine's wrong market caps** (`plan/backtest-v2.md`, "An open data defect"): follow each
+   of the 16 tickers' share count to its filing fact, then a plausibility bound where the record
+   is built. Budget the full rerun.
+5. Unchanged: the Monday on a hole in the quarterly series (by 2026-12-07); the weekly SEC
+   refresh's first run with the co-registrant code (about 2026-11-25).
