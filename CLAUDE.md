@@ -1059,7 +1059,7 @@ instead of the filing date. `research/2026-11-19-engine-share-counts.md` has the
 candidate rules and the pre-written criteria; `plan/backtest-v2.md` the build order. It needs a
 rebuild and a full rerun - **about two and a half hours, so give it a 06:00 session to itself** -
 and its fourth criterion failed as written and **is not to be lowered to pass**. Do not guard
-with the weighted-average share count alone: it is the slipped figure for 70 tickers.
+with the weighted-average share count alone: it is the slipped figure for 56 tickers.
 
 *Next:* the **34.1 free points** first (`lookahead.weight_buckets(cfg)` for the live figure). Then
 size the 49.0pp fundamentals half via SEC EDGAR's XBRL `companyconcept` endpoint, which is free

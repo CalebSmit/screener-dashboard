@@ -408,7 +408,7 @@ between $2,697bn and $2,928bn (194 name-months, 77 tickers, at exact split ratio
 Accounting Bulletin Topic 4.C is why the filed date is the right basis.
 
 **Do not guard with the weighted-average share count alone.** It is the figure filed in
-thousands for ConocoPhillips for 97 months and for 69 other tickers; that guard would have
+thousands or millions for ConocoPhillips for 97 months and for 55 other tickers; that guard would have
 replaced correct counts. No single share concept in the filings is reliable.
 
 **The candidate (version 3 in the note: a vote among three sources, net income / EPS as referee,

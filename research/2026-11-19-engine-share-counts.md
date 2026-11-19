@@ -52,9 +52,10 @@ basis of the day it was **filed**: it reflects every split up to then and none a
 
 The obvious guard is to compare the count with the company's own weighted-average share count
 from the same filings. Measured over 76,618 ticker-months (`--sweep`): the picked count is under
-half the weighted average in 941 ticker-months (22 tickers) - and **over twice it in 877 (70
-tickers), almost all of them at ratios of 1,000 or 1,000,000.** In those the *weighted average*
-is the figure filed in thousands: ConocoPhillips for 97 months, Garmin 70, McDonald's 31 (in
+half the weighted average in 941 ticker-months (22 tickers) - and over twice it in 877 (70
+tickers), **598 of them (56 tickers) by more than 10x, at ratios of about 1,000 or 1,000,000.**
+In those the *weighted average* is the figure filed in thousands or millions (the remaining 279
+are mostly share-class and partnership structures at 2-4x): ConocoPhillips for 97 months, Garmin 70, McDonald's 31 (in
 millions), Coca-Cola 12, Host Hotels 12. A guard that trusted the weighted average would have
 replaced ConocoPhillips' correct count with one a thousand times too small for a decade.
 
