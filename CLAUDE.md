@@ -180,41 +180,19 @@ improving.
    | Priority 0 | below | fixed, or still top of the queue |
    | Top open roadmap item | "Current priorities" below | **name it and give its age in days, as a literal number** |
 
-   The evidence-base line would have read "3 rows, newest 2026-02-22" on every
-   session from February to 2026-08-21, while the data loop ran successfully
-   every weekday. Nobody wrote it down, so nobody noticed it had stopped
-   moving.
-
-   **Read it at `1m` and nowhere else** - corrected 2026-09-18, because the
-   tripwire had quietly stopped being able to fire. Sessions were reporting the
-   whole file: "44 rows, newest 2026-09-10". Both numbers rise every single
-   weekday, because the `1w` horizon gains a row per run date as it ages. But
-   `1m` is the optimization horizon and the one the engine's gate reads, and on
-   2026-09-18 its newest `run_date` was **2026-08-14** - unmoved for six
-   consecutive sessions, every one of which logged a newer date. A tripwire
-   wired to a number that cannot stand still is decoration.
-
-   **The condition that replaces "has it moved":** the newest `1m` `run_date`
-   must be **within 40 days of today**. In steady state the lag is 30-33 days -
-   the 30-day horizon plus a weekend - so 40 tolerates a week of missed runs
-   and fires on anything worse. It reads 35 days today, which is the
-   2026-08-15..08-19 outage still working through the pipe, not a fault.
-   **If it exceeds 40, finding out why is that session's work, whatever the
-   rotation says.**
+   **Read the evidence base at `1m` and nowhere else** - the whole-file totals rise every weekday
+   whatever happens (a frozen `1m` horizon went six sessions unremarked before 2026-09-18). The
+   newest `1m` `run_date` must be **within 40 days of today** (steady state 30-33). **If it exceeds
+   40, finding out why is that session's work, whatever the rotation says.** Why both rules exist:
+   `DECISIONS.md` "Moved out of CLAUDE.md, 2026-11-20".
 
    **Items under "Open" carry an opened date and no age** - compute the age in
    the log. A hand-written "age 1 day" was still saying 1 day eight days later
    (removed 2026-10-16), and a number that can be wrong in the file a session
    reads first is worse than no number.
 
-   The roadmap line is there for the same reason, added 2026-09-04. Between
-   2026-08-25 and 2026-09-03 nine sessions all produced real work and **not one
-   north-star item shipped** - seven correctness fixes, a research note and two
-   pieces of infrastructure, every one of them defensible on the day. Priority 4
-   is an owner directive from 2026-08-10 and nobody had written down how long it
-   had been sitting there. Defect-fixing will always look more urgent than
-   product work; writing the age down is what makes the trade visible at the
-   moment it is being made.
+   The roadmap line's age makes the trade between defect-fixing and product work visible at the
+   moment it is made (2026-09-04: nine sessions of real work, no north-star item shipped).
 
 9. **You can edit your own instructions and plans - so keep them true.**
    `prompts/` and `plan/` are ordinary tracked directories, deliberately *not*
@@ -242,24 +220,11 @@ improving.
    `python v2_experiments.py report`; `tests/test_research_page.py` fails if the committed page is
    not exactly what the ledger produces.
 
-   **`SCREENER_OVERVIEW.md` is also generated** - added 2026-09-28, because
-   this list not naming it cost the project a live regression. It is written by
-   `build_screener_overview()` in `run_screener.py` (step 11) on **every full
-   run**, so the 02:00 data loop overwrites it five mornings a week. On
-   2026-09-25 a session corrected four false statements on the public
-   methodology page by editing the markdown, shipped 14 passing tests that read
-   the markdown, and the 2026-09-28 data run reverted all four and published
-   them - including a fetch-failure rate the same session had measured at **0 of
-   9,036** and the page put at "10-25% of tickers". Edit the generator, then
-   regenerate.
-
-   **Assert claims against the generator's output, not the committed file.**
-   That is the general lesson and it is what made the 09-25 tests unable to see
-   this: a test reading a generated artifact passes on a hand-edit and says
-   nothing about what the next run will publish.
-   `tests/test_overview_is_generated.py` does it the other way round and
-   includes a tripwire that fails if the committed file drifts from the
-   generator at all.
+   **`SCREENER_OVERVIEW.md` is also generated** - by `build_screener_overview()` in
+   `run_screener.py` on **every full run**, so the 02:00 loop overwrites a hand-edit five mornings a
+   week (it reverted four corrections on 2026-09-28). Edit the generator, then regenerate.
+   **Assert claims against the generator's output, not the committed file**
+   (`tests/test_overview_is_generated.py`, with a drift tripwire).
 
 11. **Finish what you find - apply the fix and verify it, don't leave a
     command for the owner to run.** Owner direction, 2026-08-29: the routine
@@ -269,17 +234,8 @@ improving.
     change outside git - do it in the same session and confirm it took effect
     the same way you'd verify any other change, before you finish.
 
-    The 2026-08-29 session found and fixed the logon-trigger collision, then
-    stopped short: it registered a stagger in the versioned script but left
-    `powershell -ExecutionPolicy Bypass -File scripts\register-tasks.ps1`
-    for the owner to run by hand, because `register-tasks.ps1` unregisters
-    both tasks before re-adding them and a failure partway through would have
-    left the machine with neither. That caution was reasonable but the
-    conclusion was wrong: run it and immediately re-read both tasks' triggers
-    with `Get-ScheduledTask`/`Get-ScheduledTaskInfo` to confirm the change
-    took, the same as re-running the test suite after a code change. It is
-    idempotent, so a bad outcome is fixed by running it again, not by asking
-    someone else to.
+    `scripts/register-tasks.ps1` is idempotent: run it and re-read the triggers with
+    `Get-ScheduledTask` rather than leaving it for the owner (2026-08-29).
 
     The only time it is legitimate to leave something outstanding is when
     verifying it genuinely requires something outside the session's reach -
@@ -290,13 +246,8 @@ improving.
 Run these before you finish. All must pass.
 
 **You push your branch. `nightly-screener.ps1` merges to `main`, and only after
-re-running all four gates itself** (changed by the 2026-09-04 retrospective).
-Until then the session merged and pushed `main` as its own last step and the
-runner re-checked *afterwards*, which made the gates an audit rather than a
-precondition: on 2026-09-02 a session published at 06:24:22, the independent
-test run failed two minutes later, and `scripts/revert-bad-merge.ps1` had to be
-written to undo a commit already live on the public site. That script stays as
-the second line of defence. It should now never have to fire.
+re-running the gates itself** (2026-09-04; before that the gates were an audit after a publish -
+`scripts/revert-bad-merge.ps1` stays as the second line of defence).
 
 Still run the gates yourself - they tell you whether the work is fit to ship,
 and a session that hands the runner a broken tree has wasted the day.
@@ -310,58 +261,34 @@ and a session that hands the runner a broken tree has wasted the day.
 | 4 | No stray uncommitted files | `git status --porcelain` |
 | 5 | The next data run's page passes its tests (whenever the branch changes more than prose; the runner runs it before gate 4, since 2026-11-02) | `python scripts/rehearse_publish.py --changed-since <base>` |
 
-**Gate 1 runs in parallel since 2026-10-26** (owner-run night): `scripts/run_tests.py` adds
-`-n auto` (pytest-xdist, pinned in `requirements.txt`) and runs the exact serial
-`python -m pytest tests/ test_screener.py -q` where xdist is not importable, or when xdist itself
-could not run the suite (pytest exit 3/4 - not a verdict). A failing test is never retried; the
-verdict is pytest's exit code. Measured on the combined tree that night: **3,248 passed, 1 skipped
-in 1:51 parallel against 6:09 serial** (7:19 at the start of the night). **A runner never needs a
-plugin to reach a verdict.** The `conftest.py` tripwire covers xdist: the controller snapshots
-before any worker starts, every worker checks against it, the controller restores.
-`tests/test_parallel_suite.py`.
+**Gate 1 runs in parallel** (`-n auto`, 2026-10-26) and falls back to the exact serial command
+where xdist is absent or could not run (exit 3/4). A failing test is never retried; **a runner never
+needs a plugin to reach a verdict.** `tests/test_parallel_suite.py`.
 
 On success the runner tags the commit `good/YYYY-MM-DD`. That tag is the
 rollback point - see `ROLLBACK.md`.
 
-**On failure the work is not lost and not forgotten** (2026-11-04): a failed gate 1 or 5 saves its
-whole output beside the run log (`logs/nightly-<stamp>.gate1.txt` / `.gate5.txt`), and every later
-session's health line names any `origin/nightly/*` branch holding commits `main` lacks
-(`health_numbers.held_back`), which the prompt makes that session's first job. That morning a
-gate-5 failure that never reproduced kept a finished decision off `main`, and the log said only
-"FAIL  check_published_claims". **Since 2026-11-05 a red gate-1 *baseline* keeps its output too**
-(`.baseline.txt`, on both red branches, at WARN because the baseline decides nothing) - the same
-gap one level up, and it cost the 13:00 session that day most of an hour: it was handed one test
-name from a browser module, with no assertion and no traceback, and the same command on the same
-commit reported 3,976 passed seven minutes later. **A red baseline is still that session's first
-job** - but read the transcript before you go looking, because an unreproducible one is a flake and
-`main` is green. `tests/test_gate_ordering.py`.
+**On failure the work is not lost and not forgotten**: a failed gate 1 or 5, and a red baseline,
+save their whole output beside the run log (`logs/nightly-<stamp>.gate1.txt` / `.gate5.txt` /
+`.baseline.txt`), and every later health line names any `origin/nightly/*` branch holding commits
+`main` lacks (`health_numbers.held_back`) - that session's first job. **A red baseline is too** -
+read its transcript first; an unreproducible one is a flake. `tests/test_gate_ordering.py`.
 
-**The four gates cannot see a generator change - run `python scripts/rehearse_publish.py` when
-your diff touches one** (added 2026-10-12). Gates 1 and 3 read the *committed* `index.html` and
-payload, which only a full run rewrites; a change to `generate_dashboard.py` or the methodology
-generator alters what the 02:00 loop publishes next without altering anything the gates look
-at. That evening an owner-run session passed all four gates eleven times while the regenerated
-page sat 8 elements over its first-paint budget - the 06:00 baseline would have been red for a
-reason no gate had shown. The script regenerates the page from the newest full run with the
-working tree's code, installs it, runs the tests that read it plus the data loop's claims gate,
-and restores the published files byte for byte. `tests/test_rehearse_publish.py`, 5 tests.
-**Since 2026-11-02 the runner enforces it as gate 5** (`--changed-since $BaseSha`): any branch that
-changed more than prose (`*.md`, `*.txt`) is rehearsed before gate 4, a failure keeps the work off
-`main`, and "no full run to rehearse from" (exit 3) is a warning, never a failure. Still run it
-yourself - a session that hands the runner a red rehearsal has wasted the day.
+**Gates 1 and 3 cannot see a generator change** - they read the *committed* page, which only a
+full run rewrites. **Gate 5** (`scripts/rehearse_publish.py`, enforced by the runner since
+2026-11-02 on any branch that changed more than prose) regenerates the page from the newest full run
+with the working tree's code, runs the page tests and the claims gate, and restores the published
+files byte for byte; "no full run" (exit 3) is a warning. Run it yourself too.
+**And gate 5 cannot see a scoring change** (2026-11-20): it regenerates from a run *scored before*
+the branch, so a new rule in the engine reaches the claims gate first at 02:00 - it prints
+`ENGINE CHANGED` when that is the case; `prompts/nightly.md` section 4 says what to do.
+`tests/test_rehearse_publish.py`.
 The fix that night is a constraint too: **the Methodology dialog is filled on first open**
 (`hydrateMethodology`); `.methodology-body` is empty before that by design.
 
-**Gate 3 became a real parse on 2026-09-18, on both publish paths** - it had
-claimed "`dashboard_data.js` parses" while only regex-matching the first line
-against a size floor, and a payload truncated to 50% is 2.5 MB, opens with the
-expected assignment, clears every check both loops had, and renders a blank page.
-**Since 2026-10-16 it covers `dashboard_context.js` too**, which had been published
-to the live site every weekday since the 2026-10-08 split with no size floor, no
-parse and no header check on either path. The tripwire is general now: **every `.js`
-file in `data-run.ps1`'s `$DataArtifacts` must be named in both runners' check
-specs**, so a third payload file cannot repeat it.
-`tests/test_payload_parse_gate.py`, 19 tests.
+**Gate 3 is a real parse on both publish paths**, and **every `.js` file in `data-run.ps1`'s
+`$DataArtifacts` must be named in both runners' check specs** (settled row "gates").
+`tests/test_payload_parse_gate.py`.
 
 ### The data loop's gates, and the asymmetry to keep checking
 
@@ -381,15 +308,8 @@ publishes**, so it also stops on a failed `git pull --ff-only` or a local `main`
 `origin/main`, and pushes only its one data commit (`<sha>:refs/heads/main`), never all of
 local `main`.
 
-**That last one closed gate 1's missing counterpart, 2026-10-02.** The data loop
-ran **no tests at all** while regenerating and publishing `SCREENER_OVERVIEW.md`,
-the public methodology page. On 2026-09-28 it reverted four corrections shipped
-three days earlier and published them - including a fetch-failure rate the same
-session had measured at 0 of 9,036 and the page put at "10-25% of tickers" - and
-left the tree red, so the next session's gate 1 failed at baseline. Measured at
-that exact commit: `pytest tests/test_overview_claims.py` reports **12 failed, 2
-passed in 0.36s.** The evidence to refuse the publish was already committed; the
-loop publishing never asked for it.
+**That last one is gate 1's counterpart** (2026-10-02, after the loop published a reverted
+methodology page having run no tests).
 
 The check is **scoped to the modules that speak for the artifacts that run
 rewrote**, not to the whole suite: one unrelated red test must not stop the
@@ -403,21 +323,11 @@ refusal, never a warning. Where pytest cannot run at all it **warns and publishe
 the `node` fallback precedent, because a gate that can only fail closed jams an
 unattended loop.
 
-**Its membership is derived from `claims.py`, not listed - 2026-10-16.** The
-hand-kept list had the defect the gate was built to fix, one level up: **15
-modules holding 64 of the register's own `checked_by` checks were outside it**,
-including all eight `context.*` claims, so the loop publishing the page did not
-run evidence this project had already written down. `module_paths()` is now the
-curated `MODULES` **union every module any claim names**; a registered claim whose
-check this gate never runs is impossible by construction. Measured: 916 tests in
-92s, from 237 in 15s; **1,576 tests in 71s on 2026-10-26, run with `-n auto` where pytest-xdist
-is importable** (same modules, flags and exit codes; the serial command where it is not, or on
-pytest exit 3/4; the PASS line names the mode). The two browser modules are in it deliberately - they are
-the data loop's missing counterpart to `scripts/rehearse_publish.py` and check the
-page *as regenerated*; they skip loudly without Chromium, so they cannot jam it.
-`EXCLUDED` is the named, printed place for a check that genuinely cannot run
-unattended - it is empty, and emptying it quietly is not an option.
-`tests/test_published_claims_gate.py`, 26 tests.
+**Its membership is derived from `claims.py`** - the curated `MODULES` **union every module any
+claim names** (2026-10-16), plus the evidence-file tripwire (settled row "evidence"); the browser
+modules are in it deliberately and skip loudly without Chromium. `EXCLUDED` is the named, printed
+place for a check that cannot run unattended - it is empty, and emptying it quietly is not an
+option. `tests/test_published_claims_gate.py`.
 
 ## The weekly cycle
 
@@ -606,24 +516,10 @@ live, regenerates the dashboard, records an improvement-engine snapshot, and
 pushes. Daily on weekdays to accumulate evidence as fast as possible. **A run its
 gates refuse is retried at 18:00 the same day** (`Screener Data Retry`, 2026-11-10), so a fault the
 06:00 session fixes reaches the site on that day's close rather than the next morning.
-**Repo growth was measured 2026-09-18 and is a non-issue - do not "fix" it.**
-This paragraph used to warn that a ~3 MB payload changing every run adds
-"roughly 60 MB/month of poorly delta-compressing JSON", and suggested
-downsampling the payload or committing data less often. Nobody had checked it
-in the six weeks it stood. Measured: 40 versions of `dashboard_data.js`
-totalling **151 MB raw** cost **14.3 MB in-pack** - **0.36 MB per version**,
-about a 10x delta ratio - and the entire repository packs to **34.6 MiB**. At
-21 weekday runs that is **~7.6 MB/month, not 60.** Acting on the old number
-would have cut the payload a reader depends on to save nothing.
-
-What *was* real: git had never repacked, so 1,301 loose objects and 4 packs
-occupied **99.5 MiB** on disk against 34.6 MiB of content. Loose objects carry
-no delta and git's own `gc.auto` threshold of 6,700 was most of a year away at
-~30 objects a run. `data-run.ps1` now runs a non-fatal `git gc --auto` at
-`gc.auto=200` after publishing. Re-measure with `git count-objects -vH` before
-believing any future claim here. This is what accumulates the evidence:
-forward returns, live ICs, dispersion history. Without it, methodology can
-never learn.
+**Repo growth is a non-issue - do not "fix" it** (measured 2026-09-18: ~0.36 MB per payload
+version in-pack; `data-run.ps1` runs a non-fatal `git gc --auto` at `gc.auto=200`). Re-measure with
+`git count-objects -vH` before believing any claim here. This loop is what accumulates the
+evidence: forward returns, live ICs, dispersion history.
 
 **Code loop (6:00 AM, Mon-Fri)** - your session. Improves the system that
 produces and uses that evidence.
@@ -660,18 +556,10 @@ when both conditions in the `config.yaml` comment are met. Those statistical
 gates are the safety mechanism - if you weaken them, you must justify it in
 `METHODOLOGY_CHANGELOG.md` with a reason better than "it wasn't firing."
 
-**The evidence base grows again as of 2026-08-24.** `live_ic_history.csv` had
-held 3 rows, all horizon `1w`, all February 2026, through every successful data
-run for 183 days, because `record_run_snapshot()` never called
-`compute_live_ic()`. It now does, for all three horizons, and the history is 23
-rows across `1w`/`1m`/`3m`. See priority 0 above.
-
 **Read the count that matters.** The gates read *effective* (non-overlapping)
-observations, not rows. `analyze_ic_trends()` returns both: `_n_observations`
-is the effective count, `_n_raw_observations` the row count. At the `1m`
-optimization horizon there are currently **6 rows but 2 effective
-observations**. Quote the effective number in the log; quoting the row count is
-how this went wrong the first time.
+observations, not rows: `analyze_ic_trends()` returns `_n_observations` (effective) and
+`_n_raw_observations` (rows). Quote the effective number - the health line prints it (54 rows,
+5 effective at `1m` on 2026-11-20).
 
 Good work here: more/faster evidence, better IC estimation, regime handling,
 smarter proposals. Every engine-applied change should also land in the
@@ -816,15 +704,10 @@ Defect 3 survived for months because **a test asserted it** - when you correct a
 published claim, grep the tests as well as the prose. `tests/test_claims_register.py`,
 24 tests, in the data loop's publish gate.
 
-**T0b is FIXED.** Coverage counts only metrics that carry weight (28 generic, 25 for banks;
-`factor_engine.weighted_metric_sets`), so a weight-0 candidate cannot move a composite, and the
-coverage filter that excludes thin stocks reads that same number.
-
 **0.11. The context layer - CLOSED 2026-10-20** (record: `DECISIONS.md` "0.11, closed";
 `plan/context-layer.md` "CLOSED 2026-10-20"). **The one remaining item is time, not work** - do
-not count it as deferred: each signal's first `1m` reading arrives with the **2026-11-09** run
-(the skew's about 11-16) and the engine's gate of 8 effective observations is about mid-2027;
-read the brief's `context_eval` line. Three constraints survive it, beyond settled row "ctx":
+not count it as deferred: the engine's gate of 8 effective observations is about mid-2027; read the
+brief's `context_eval` line. Three constraints survive it, beyond settled row "ctx":
 
 - **A claim whose check tests the plumbing instead of the assertion is an unchecked claim.** Every
   computational sentence on a context panel has a `context.*` claim checked by behaviour
@@ -870,22 +753,10 @@ deferral-streak rule was about to make one of them "resolve" a programme that wa
 number to read is the health line's **"last advanced N days ago"**, derived from the newest dated
 bullet under that plan's Progress (`health_numbers.last_advanced`): **past 21 days it is late, and
 then the streak rule applies** - so keep adding a dated Progress bullet when an experiment ships.
-**Nineteen experiments as of
-2026-11-06, 152 of 227 figures within tolerance**; the per-experiment record is in `DECISIONS.md`
-("0.13, the lab's first thirteen experiments" and "experiments 14-18", which now runs to 19).
-**All eight categories now have one** - Growth's arrived 2026-11-06 (Mohanram 2005 on Open Source
-Asset Pricing's `MS` groups) and corrected the lab's own claim that it could not be rerun on free
-data. Every new experiment needs a **second reader** before it counts as checked
-(`OWNER_FOCUS.md`, 2026-10-20 item 2) - experiment 18 (analyst revisions) had its second reading
-on 2026-11-02 (`research/2026-11-02-lab-revisions.md`, "Second reading"), and **19 on 2026-11-07**
-(`research/2026-11-06-lab-mohanram.md` section 8; it stands). The next experiment built needs its own.
-
-**The overview's phone budget is per row since 2026-11-06, and the measurement waits for the
-page to settle.** After-the-paper is one row per experiment, so the old fixed 6,000 px ceiling
-could only be met by having fewer experiments. It is now 150 px a row (measured: 6,123 over 44
-rows, 139); and the three tables stand 157 px taller once Inter has actually loaded, which
-`document.fonts.status` reports before it is true - reading early made the same commit pass
-serially and fail under xdist. `tests/test_lab_reading_and_access.py`.
+The per-experiment record is in `DECISIONS.md` (all eight categories have one since 2026-11-06).
+Every new experiment needs a **second reader** before it counts as checked (`OWNER_FOCUS.md`,
+2026-10-20 item 2); 18 and 19 have had theirs. The lab overview's phone budget is **per row**
+(150 px) and is measured only after the web font settles (`tests/test_lab_reading_and_access.py`).
 
 **The rules, which do not move:**
 
@@ -913,19 +784,18 @@ and the reasoning is there rather than here.
   weight** - and, since 2026-11-02, **how to hold the ranking near growth-neutral at all**: the
   exposure at 13% drifted from -0.009 to +0.058 in three weeks (neutral point 13.5 -> ~10), the
   publish gate refused that run as designed, and the page now states the drift instead of a
-  standing neutrality (old sentence in `claims.FORBIDDEN`). Open proposal:
-  `research/2026-11-02-growth-exposure-drift.md`; the brief reports the lean daily. **Do not
-  re-fit the weight to the day's neutral point without answering that note's section 4.**
+  standing neutrality (old sentence in `claims.FORBIDDEN`). `research/2026-11-02-growth-exposure-drift.md`
+  was DECIDED 2026-11-03 (the drift is the decay of a step the screener caused on 2026-10-09; nothing
+  re-fitted); the brief reports the lean daily. **Do not re-fit the weight to the day's neutral point
+  without answering that note's sections 4 and 6.**
 - **Momentum's weight stays** (2026-10-13). Lab and literature disagree, so it stands: **do not
   cut Momentum on the lab's number alone, and never quote an all-stock premium for either category
   on the methodology page** (`tests/test_large_company_evidence.py`).
 - **Size stays at 5%** (2026-10-20). The trigger to reopen it is lab experiment 4b, criterion
   pre-written in the note.
-- **Question 3 researched 2026-11-02** (`research/2026-11-02-investment-inside-quality.md`): keep
-  Investment standalone and state the practitioner convention on the page - **proposal OPEN** for a
-  session that did not write it; its section 4 lists where a weight-preserving fold is *not*
-  neutral (missing-data renormalisation, the panic rule, the profiles, trap flags). **Question 5 is
-  an open Monday.**
+- **Investment stays standalone** (fold REFUSED 2026-11-04,
+  `research/2026-11-02-investment-inside-quality.md`; the practitioner convention is on the page).
+  **Question 5 is an open Monday.**
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07).**
 A data change, not design - the residual of the transparency work. **(a)-(d) are BUILT**
@@ -1001,22 +871,10 @@ before quoting any number here, and remember nothing either produces decides any
 - **Any edit to any of the nine `v2_experiments.RESULT_PATHS` files - even a comment - stales every
   ledger row**, and `tests/test_ledger_is_level_with_the_code.py` stays red until
   `python scripts/rerun_experiments.py --jobs 4` (15-30 min, 32 rows) and `python v2_experiments.py
-  report` are committed. Budget the rerun before you start such an edit (2026-11-02: a one-number
-  display fix to `data_quality` cost one; gate 5's rehearsal is what caught it before a push).
-  **This line used to name `config.yaml` and `factor_engine.py` only, and the wrong test, and the
-  enforcement did not exist - corrected 2026-11-05 by measuring it.** `base_config_hash` moves only
-  when `config.yaml`'s *parsed* contents move, so the test it named was blind to a comment there and
-  to every other file: with `factor_engine.py`, `universe_history.py` or `backtest_v2.py` edited,
-  `tests/test_v2_experiments.py` reported **57 passed** each time. All 32 rows had in fact been
-  stale since **2026-11-03** (`universe_history.py`, the universe phase-1 slice) and two data runs
-  published `research.html` from them. The new module is deliberately **not** in the 02:00 publish
-  gate - a stale ledger is a code session's missed rerun and must block its merge, not discard a
-  night of the data loop's evidence - and a test there fails if a claim ever puts it in.
-  **The *data* half of that staleness was rescoped on 2026-11-10** - see the `cache->red` row
-  above. `content_hash` reads `DECIDING_PARTS` (the monthly records, their count, the base run and
-  the sources an experiment reads), not all five `DATA_SOURCES`, because the 02:00 loop's weekly
-  rewrite of the filings cache was turning `main` red with no number changed. **The code half is
-  unchanged and is the one above: it still fires on a comment, and it should.**
+  report` are committed. Budget the rerun before you start such an edit. That module is
+  deliberately **not** in the 02:00 publish gate (a stale ledger blocks a code session's merge, not
+  a night of evidence); the *data* half of staleness reads `v2_experiments.DECIDING_PARTS` only
+  (row "premise->red"). The code half fires on a comment, and it should.
 - `price_target_upside` is rebuilt from `pt_mean`, never by inverting the clamped metric;
   enterprise value is restated as `ev + mc*(r-1)`, never `ev*r`;
   `universe_history.validate_membership` refuses a universe outside 495-515; and availability of a
@@ -1045,9 +903,6 @@ and carries a `filed` date per fact; expect the 9.0pp of analyst-estimate metric
 retrospective source and to be reportable only as permanently unmeasurable. **Do not buy the
 $199/yr delisted-price feed** - the owner decided 2026-10-15 to use **no paid data**; survivorship
 is narrowed with free sources or stated, never bought.
-
-**4's residual - DONE 2026-10-09.** The 2026-08-10 owner directive's pieces are all built
-(`run_overview.py`, Reporting Soon); see `DECISIONS.md` "0.10, 4, 8".
 
 **5's residual: the hold band - settled 2026-09-16 as "not yet", with a date**
 (`research/2026-09-14-sell-discipline-and-hold-bands.md`). A band is warranted - the strict
@@ -1084,6 +939,3 @@ the page is the owner's call. `plan/investor-profiles.md`.
 
 **7. Investment-club readiness** - can a student open this on a phone and
 understand what they're looking at?
-
-**8. Test isolation - DONE 2026-10-09.** `conftest.py` is a tripwire: it restores published
-artifacts and **fails the session** if any test wrote one. See `DECISIONS.md` "0.10, 4, 8".
