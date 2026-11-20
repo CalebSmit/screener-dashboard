@@ -65,6 +65,36 @@ def needs_rehearsal(changed: list[str]) -> bool:
     return any(not p.lower().endswith(PROSE_SUFFIXES) for p in changed if p.strip())
 
 
+# The modules that write a run's scores (``05_final_scored.parquet``, ``effective_weights.json``):
+# a change here is invisible to this rehearsal, which regenerates the page from a run scored before
+# it. Added 2026-11-20, after the 2026-11-19 missing-category rule passed this gate (rehearsed on the
+# 11-19 run, scored under the old rule) and the first full run under it was refused by the claims
+# gate: four tests still asserted the old rule's wording, and only a payload scored by the new
+# engine took the page down the branch they could not read.
+ENGINE_FILES = ("factor_engine.py", "run_screener.py", "config.yaml", "presets.py", "universe.py",
+                "portfolio_constructor.py")
+
+
+def engine_changes(changed: list[str]) -> list[str]:
+    """The changed paths that alter how a run is scored, which no regenerated page can show."""
+    return sorted(p for p in changed if p.replace("\\", "/") in ENGINE_FILES)
+
+
+def engine_changed_since_run(run: Path) -> list[str]:
+    """Scoring modules that differ between the commit ``run`` was scored with and the working tree.
+    Empty when the run records no commit or git cannot compare: a note, never a guess."""
+    import json
+    try:
+        sha = json.loads((run / "meta.json").read_text(encoding="utf-8")).get("git_sha") or ""
+    except (OSError, ValueError):
+        return []
+    if not sha or sha == "unknown":
+        return []
+    out = subprocess.run(["git", "diff", "--name-only", sha, "--", *ENGINE_FILES], cwd=ROOT,
+                         capture_output=True, text=True)
+    return engine_changes(out.stdout.splitlines()) if out.returncode == 0 else []
+
+
 def changed_since(base: str) -> list[str]:
     out = subprocess.run(["git", "diff", "--name-only", f"{base}..HEAD"], cwd=ROOT,
                          capture_output=True, text=True)
@@ -184,6 +214,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"REHEARSAL SKIPPED: {e}")
         return NO_RUN
     print(f"regenerating from a copy of run {run.name} with the working tree's code")
+    moved = engine_changed_since_run(run)
+    if moved:
+        # A note, not a verdict: the runner logs it at WARN (nightly-screener.ps1, gate 5).
+        print(f"ENGINE CHANGED since run {run.name} was scored ({', '.join(moved)}): this rehearsal shows "
+              "the new page code on that run's old scores, so the next 02:00 run is the first to put the "
+              "new scores before the claims gate. A page branch keyed on a new payload field needs a test "
+              "that sets the field in the browser (prompts/nightly.md, section 4).")
     files = regenerate(run)
     for name, data in files.items():
         old = (ROOT / name).read_bytes() if (ROOT / name).exists() else b""

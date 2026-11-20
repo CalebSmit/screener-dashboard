@@ -935,6 +935,11 @@ try {
     # full run exists to rehearse from - a warning, never a failure (the node precedent above).
     $r5 = Invoke-Native 'python' @('scripts/rehearse_publish.py', '--changed-since', $BaseSha)
     $r5tail = ($r5.Output | Where-Object { "$_".Trim() } | Select-Object -Last 1)
+    # The rehearsal cannot see a scoring change (it regenerates from a run scored before it); say so
+    # whatever the verdict. 2026-11-20: the missing-category rule passed here and was refused at 02:00.
+    foreach ($ln in ($r5.Output | Where-Object { "$_" -match '^ENGINE CHANGED' } | Select-Object -First 1)) {
+        Write-Log "GATE 5 note: $("$ln".Trim())" 'WARN'
+    }
     if ($r5.ExitCode -eq 0) { Write-Log "GATE 5 publish rehearsal: PASS ($r5tail)" }
     elseif ($r5.ExitCode -eq 3) { Write-Log "GATE 5 publish rehearsal: SKIPPED ($r5tail)" 'WARN' }
     else {
