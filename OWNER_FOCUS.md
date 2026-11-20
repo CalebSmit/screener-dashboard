@@ -37,9 +37,14 @@ Two things still outrank this file, and neither is negotiable:
   **Still open, for the sessions:** (3) **what the ranking is for, given no measured edge, comes
   before universe expansion phase 2** - a Monday note (is it a screen to narrow 500 to 40, a longer
   horizon, fewer factors?), owner-agreed priority - its criteria pre-registered the same night in
-  `research/2026-11-19-what-the-ranking-is-for.md`; the ACCEPTED implied-volatility inversion (2026-11-04) - build it or write down why not; a note on
-  Jensen's alpha (12-month momentum again, no skip month, +0.87); collapse CLAUDE.md's four "->red"
-  rows into one rule. Close this item when those are done or argued down in the log.
+  `research/2026-11-19-what-the-ranking-is-for.md`; the ACCEPTED implied-volatility inversion (2026-11-04) - build it or write down why not
+  (queued for a 06:00 session on or after 2026-11-24, the brief's "Coming up": it needs a throwaway full
+  run); ~~a note on Jensen's alpha~~ **written 2026-11-20 (13:00)**,
+  `research/2026-11-20-jensens-alpha-in-momentum.md` - as built it ranks stocks 0.97-0.98 like the plain
+  12-month return and no source uses it; the literature's version is residual momentum (Blitz, Huij &
+  Martens 2011), proposed as a like-for-like replacement, **OPEN** for another session to decide;
+  ~~collapse CLAUDE.md's four "->red" rows into one rule~~ (done 2026-11-19, row "premise->red").
+  Close this item when those are done or argued down in the log.
 
 - **2026-11-17 - Three decisions only you can make, from the SEO article.** You asked a session to
   take what it could from a search-and-discovery playbook. What fit shipped that night (the live-site
