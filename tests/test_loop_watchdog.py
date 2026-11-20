@@ -539,3 +539,23 @@ class TestDidItDoItsJob:
         step = next(s for s in wf["jobs"]["check"]["steps"]
                     if "github-script" in str(s.get("uses", "")))
         assert "l.hint" in step["with"]["script"]
+
+
+# --------------------------------------------------------------------------- 2026-11-20
+def test_a_session_that_never_started_is_labelled_so_for_the_watchdog():
+    """Eleven code sessions (2026-11-11..16) aborted at the runner's tool check - "Required tool
+    'claude' is not on PATH" - and each still published `brief: code session <date>`, the label of a
+    session that ran, because only a transcript judged failed set the suffix. The watchdog's "Session
+    ran" question reads that label from outside the machine and reported OK all week. Any run that
+    publishes a brief without invoking Claude must carry the suffix."""
+    ps = (ROOT / "scripts" / "nightly-screener.ps1").read_text(encoding="utf-8-sig")
+    finally_block = ps[ps.rindex("finally {"):]
+    assert "$SessionFailed -or -not $SessionInvoked" in finally_block
+    # set true in exactly one place: on the line after the session is invoked
+    assert ps.count("$SessionInvoked = $true") == 1
+    at = ps.index("$SessionInvoked = $true")
+    invoked = ps.index('Write-Log "Invoking Claude Code..."')
+    assert invoked < at and not ps[invoked + len('Write-Log "Invoking Claude Code..."'):at].strip()
+    assert ps.index("$SessionInvoked = $false") < ps.index("\ntry {")   # the run's own block, not a helper's
+    assert RAN.matches("brief: code session 2026-11-12") and not RAN.matches(
+        "brief: code session 2026-11-12 - SESSION DID NOT RUN")
