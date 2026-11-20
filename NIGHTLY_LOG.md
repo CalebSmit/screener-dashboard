@@ -9829,3 +9829,94 @@ from `claims.py` (its tests pass). The new hole is on the code loop's side: gate
   sessions should hold scoring changes for a morning merge.
 - **Watchdog**: fixed at the label; nothing to decide. But note issue #3 was auto-closed on 11-13 as
   "recovered" while every code session was aborting - if you rely on it, that is the week it lied.
+
+
+## 2026-11-20 (13:00) - QUEUE. Jensen's alpha is the 12-month return with a beta tilt; the literature's version is residual momentum, proposed and left OPEN
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-20_060000.log`
+(completed). Data loop published? **no** - `logs/datarun-2026-11-20_020001.log` (refused by its publish
+gates (published-claims check failed); HEALTH: PASS) - fixed by this morning's retrospective (`c8e40ec`,
+merged); the 18:00 retry is the run that publishes. Evidence base at `1m`: **54 rows, newest 2026-10-19
+(32 days ago, bound 40), 5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top open roadmap
+item: **0.15, What the ranking is for** (opened 2026-11-19, **age 1 day**); also open 0.13 (39 d, a
+standing programme), 0.10 (44 d), 0.14 (37 d). Shipped to readers: 13 commits, 8 methodology changes in 7
+days.
+**Tests:** baseline 4,447 passed / 1 skipped (the runner's, 13:04, GREEN). After: TESTS_AFTER.
+**Owner queue / rotation:** `git stash list` empty; no owner-session marker. Today's earlier entry (the
+retrospective) left three Next items: (1) confirm the 18:00 retry - not yet possible at 13:00, and its
+precondition (the branch merged) is met: `origin/main` is `4d0f7ba`, which contains the fix; (2) Monday's
+0.15 note - left for Monday as nominated; (3) the share-count rebuild (a 06:00 session to itself) and the
+lab's Friday on 11-27 - not mine. So I took the next open owner item: `OWNER_FOCUS.md` 2026-11-19
+item 3's remaining sub-items. Of those, **the IV inversion** is dated for a 06:00 session on or after
+11-24 (the 11-19 review's decision: it needs a throwaway full live run, and one at 14:00 would be a second
+full fetch four hours before the 18:00 retry - the pattern behind every past throttle), so I did not
+reverse that; **the "->red" collapse** was already done 11-19; **the Jensen's-alpha note** was open, so
+that is today's work.
+
+### Did
+- **`research/2026-11-20-jensens-alpha-in-momentum.md`** - a complete note (literature, practice,
+  measurement, fit, options, proposal). Findings:
+  - **What the metric is.** Across one run `rf` and the market return are constants, so the scored
+    alpha is `return_12m - beta x (m12 - rf)` plus a constant: the 12-month return with a beta tilt
+    whose spread (s.d. 0.058) is an eighth of the return's (0.455). Same-window beta makes it, up to
+    compounding, the fitted intercept of a 12-month market model - the exact term Blitz, Huij & Martens
+    leave out of residual momentum on purpose.
+  - **Measured** (`research/measurements/2026-11-20-jensens-alpha-overlap.py` + `.json`, rank
+    correlations only, no forward return): today's run, sector percentiles, **0.981 with the 12-month
+    return, 0.871 with 12-1** (the fresh-eyes +0.87 reproduces), +0.18 with the latest month; month-ends
+    2012-2026 (177): median **0.969 / 0.918**, and **+0.28 with the latest month** where 12-1 is +0.02.
+    About 65 of Momentum's 100 points rank one 12-month move. Skipping the month alone leaves a 0.94-0.97
+    copy of 12-1; CAPM residual momentum (Blitz construction, 36-month fit) is **0.77** with 12-1 and
+    carries no load on the latest month.
+  - **No source uses the screener's construction.** Every momentum source skips the latest month for
+    stocks; the ones that remove market exposure use a longer-window residual, alpha excluded, skipped,
+    volatility-scaled - and report about half the volatility at a similar mean, including in the largest
+    decile (Blitz et al. Table 8: Sharpe 0.36 -> 0.60).
+  - **Fit:** the beta tilt flips sign with the market and rewards low beta a second time (Risk already
+    scores beta) in up years - the dynamic exposure the momentum literature blames for crashes,
+    entering through the adjustment meant to remove it.
+- **Proposal OPEN** (the brief lists it): replace `jensens_alpha` with CAPM residual momentum on
+  `^SP500TR`, weight unchanged at 25, with B (skip the month) as the fallback if the longer price
+  history costs requests. The note lists what deciding needs, including a trap found while writing it:
+  `price_history_fields` derives volatility, beta's return series and drawdown from the whole frame it is
+  given, so a longer `history()` period must be trimmed or every Risk metric changes window.
+- `OWNER_FOCUS.md` 2026-11-19 item: the Jensen sub-item and the "->red" collapse marked done; the IV
+  inversion's date noted. Item stays open (0.15 and the IV build remain).
+
+### Evidence / research
+- Blitz, Huij & Martens (2011), *JEF* 18(3) 506-521, doi 10.1016/j.jempfin.2011.01.003 - Tables 2, 7, 8
+  and the alpha-exclusion passage (p. 12) checked against the manuscript by this session.
+- Gutierrez & Pirinsky (2007), *JFM* 10(1) 48-75, doi 10.1016/j.finmar.2006.09.002 - construction and the
+  "ai set to zero" robustness checked; table figures as read by a sub-agent.
+- Jegadeesh & Titman (1993), *JF* 48(1) - Table I skip figures (1.31 vs 1.49) checked; Asness, Moskowitz &
+  Pedersen (2013), *JF* 68(3) - p. 936 skip rationale and its counter-case checked.
+- Not read, marked in the note: Jensen (1968), Jegadeesh (1990), Grundy & Martin (2001), Novy-Marx (2012),
+  Chaves (2016). Practice (section 4): MSCI Momentum Indexes (2014 methodology, checked) and AQR (Asness et al. 2014, checked) skip the month; S&P via an SEC filing; Barra not read first-hand; Robeco applies residualisation to momentum in all its quant models. None ranks on a CAPM alpha.
+
+### Methodology changed
+- none. A proposal, deliberately not built by its author.
+
+### Tried and rejected
+- **Fitting the residuals on the 12-month window.** First version of the measurement did this; with an
+  intercept the residuals sum to zero, so the 12-1 sum is minus the latest month (-0.92 against
+  `return_1m`). Recorded in the note so nobody repeats it; Blitz et al. fit on 36 months.
+- **Building the IV inversion today.** See Owner queue above - its own plan dates it 11-24 for a reason
+  that still holds this afternoon.
+- **Using JKP's `resff3_12_1` factor data** (in `data/lab/jkp/`) as evidence: CC BY-NC, teaching page only
+  (memory and `research/2026-10-20-lab-jkp.md`); a methodology note for a tool aimed at real money should
+  not lean on it.
+
+### Set aside
+- Retrospective Next 1 (confirm the 18:00 retry publishes): cannot be checked before 18:00; next session.
+- Retrospective Next 2 (Monday 0.15 note): Monday's, as nominated.
+- Retrospective Next 3 (share-count rebuild; the lab's Friday 11-27): a 06:00 session to itself, and a
+  Friday - not this slot's.
+- ACCEPTED, unbuilt: the IV inversion (2026-11-04) - dated 11-24, reason above.
+
+### Next
+1. **Check `logs/datarun-2026-11-20_180*.log` ends "Data loop complete"** - the retry is the first run
+   scored under the 11-19 missing-category rule to reach the site.
+2. **Decide the Jensen's-alpha proposal** (`research/2026-11-20-jensens-alpha-in-momentum.md` section 7) -
+   a session that did not write it; Monday's 0.15 note comes first if they collide, since residual
+   momentum is a change to a ranking whose purpose 0.15 is about to restate.
+3. Unchanged: the IV inversion on 11-24 (06:00); the share-count rebuild; the lab's Friday 11-27.

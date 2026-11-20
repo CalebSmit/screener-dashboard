@@ -15,7 +15,7 @@ support for "momentum after removing market exposure" is **residual momentum** (
 2011; Gutierrez & Pirinsky 2007), which is built differently on every axis that matters here - a
 36-month fit, the fitted alpha **excluded**, the latest month **skipped**, scaled by residual volatility -
 and which is far less of a duplicate (0.77 against 12-1, not 0.92). The note proposes replacing the
-metric with residual momentum; **Proposal status: OPEN**, for a session that did not write it (section 7).
+metric with residual momentum, left open for a session that did not write it (section 7).
 
 This is a Monday-type note written by a 13:00 QUEUE session; no production code changed.
 
@@ -182,7 +182,29 @@ the volatility and smaller crashes at a similar mean - including among the large
 
 ## 4. Documented practice
 
-PRACTICE_PLACEHOLDER
+Primary documents where obtained; MSCI and AQR quotes checked against the files by this session.
+
+| Provider | Skips the latest month | What it ranks | Read |
+|---|---|---|---|
+| **MSCI Momentum Indexes** (methodology, Sep 2014 ed., section 2.2) | Yes - "computed excluding recent 1-month" | `(P_T-1 / P_T-13 - 1) - risk-free`, divided by 3-year weekly volatility; 6- and 12-month z-scores averaged | Yes (checked) |
+| **S&P Momentum Indices** (via Invesco SPMO prospectus supplement, SEC 497K, 2018-02-28) | Yes - "excluding the most recent month" | 12-month price change, volatility-adjusted | Filing only; S&P's own PDF blocked (403) |
+| **Barra (USE4 / CNE5) relative strength** | Reportedly a 21-day lag | Excess log return, exponentially weighted over ~504 days | **Not read** - secondary summaries only; the USE4 Methodology Notes (read) do not define descriptors |
+| **AQR** - Asness, Frazzini, Israel & Moskowitz (2014), "Fact, fiction, and momentum investing", *JPM* 40(5) | Yes - "skipping the most recent month's return (to avoid microstructure and liquidity biases)" | Plain 12-1 total return; "simplest is best", residual momentum not discussed | Yes (checked) |
+| **Robeco** - Lansdorp (2013), "Robeco's residual momentum: less risky and more sustainable", robeco.com insight, 2013-10-25 | Yes (Blitz et al., its researchers) | A "proprietary 'residualization' technique ... applied to the momentum factor in all of Robeco's quantitative stock selection models" | Read by the sub-agent; no construction detail given |
+
+URLs: MSCI https://www.msci.com/eqb/methodology/meth_docs/MSCI_Momentum_Indexes_Methodology_Sep2014.pdf ;
+SEC https://www.sec.gov/Archives/edgar/data/1378872/000119312518063261/d520329d497k.htm ;
+AQR https://www.aqr.com/-/media/AQR/Documents/Journal-Articles/JPM-Fact-Fiction-and-Momentum-Investing.pdf ;
+Robeco https://www.robeco.com/en-ch/insights/2013/10/robecos-residual-momentum-less-risky-and-more-sustainable .
+MSCI's current edition was downloaded but its text could not be extracted; later editions are reported
+to keep the formula - check before quoting rebalancing rules.
+
+**Practice, net.** Every provider skips the latest month. None ranks stocks on a CAPM alpha. The
+documented adjustments are of two kinds: **divide by volatility** (MSCI, S&P) or **remove market/factor
+exposure** (Barra's excess-of-market return, reportedly; Robeco's residual). AQR uses neither and argues
+for the simplest measure. **Where literature and practice disagree:** AQR's "simplest is best" against
+Blitz et al.'s residual - both are large, serious shops, and the screener can follow either without
+contradicting the literature. Neither supports the current metric.
 
 ## 5. How it fits the rest of the screener
 
@@ -232,7 +254,11 @@ What deciding it involves, so the decision is not a skim:
 2. **Measure the fetch cost**: the core fetch's history call keeps 13 months; residual momentum needs 37
    month-ends. Whether that is a longer `period` on the same request (no extra call) or a second request
    (settled row "ctx": extra per-ticker calls inside the core fetch tripped the rate limiter) must be
-   read from the fetch code, not assumed. Coverage: how many of ~500 have 36 months (recent IPOs and
+   read from the fetch code, not assumed. Read so far: it is one `t.history(period="13mo")` call
+   (`factor_engine.py`, the per-ticker fetch), so a longer `period` is plausibly the same request -
+   **but `price_history_fields` derives volatility, the daily-return series behind beta and max
+   drawdown, and dollar volume from the whole frame it is handed**, so a longer history must be cut
+   back to 13 months for those, or every Risk metric silently changes window. Coverage: how many of ~500 have 36 months (recent IPOs and
    spin-offs will not) - and what the metric does for them (missing within the category, shared across
    the other two momentum metrics, which is the existing rule).
 3. **One change at a time** (`plan/factor-lab.md`, "From the lab to the weights"): the weight stays 25;
