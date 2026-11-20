@@ -22,13 +22,17 @@ Do not rely on impressions. Go and look:
   each: did it produce something real, or was it churn?
 - **`git log --oneline --since="4 weeks ago"`** - what actually shipped? How
   many merges, and how substantial?
-- **`logs/*.log`** - how many runs failed their ship gates, and which gate? Not
-  session duration: measured three times now, the range is 14-35 minutes against
-  a 4-hour limit and the worst ever was 93. Stop checking it. **Also count the
-  sessions that never got to start** - a runner can lose a day before invoking
-  anything (2026-10-28 06:00: "Could not stash the leftovers", a refused data run
-  having left three untracked files behind), and those logs are short enough to
-  skim past.
+- **`logs/*.log`** - how many runs failed their ship gates, and which gate? (Not session
+  duration - it has never mattered.) **Count the sessions that never got to start** (15 of ~43
+  scheduled slots, 2026-10-30..11-20: three on a lapsed login, one on a too-old CLI, eleven with no
+  CLI at all)
+  and **the 02:00 data runs its gates refused** (8 of 15 in the same window, 7 by the claims gate)
+  - for each refusal, was the page wrong or the test? Those logs are short enough to skim past.
+- **The watchdog's verdicts against the logs for the same days** (added 2026-11-20). `gh run list
+  --workflow loop-watchdog.yml`, then `gh run view <id> --log` for a day you know a loop failed. On
+  2026-11-13 it reported the code loop OK while its third straight day of sessions had aborted
+  before starting: the runner gave those briefs the label of a session that ran. A watchdog is
+  only as good as the label it reads.
 - **`BASELINE` in the newest session logs** (added 2026-10-30) - was `main` red
   when a session arrived, and did the session notice? The 02:00 data run can
   redden it with no commit touching code, and a session that spends its day on
@@ -76,13 +80,16 @@ Do not rely on impressions. Go and look:
   | 2026-10-02 | the data loop published regenerated public docs having run **no tests**, where the code loop had gate 1 | `scripts/check_published_claims.py` |
   | 2026-10-16 | `dashboard_context.js` - a second published payload file since 2026-10-08 - had no floor, no parse and no header check on **either** path; and 15 modules holding 64 of `claims.py`'s own checks were outside the claims gate | both runners' spec lists; the gate's membership derived from `claims.py` |
   | 2026-10-30 | the three **evidence** files the loop appends to (`dispersion_history.csv`, `improvement/snapshots/`, `factor_vol_history.csv` - the last read by `adjust_momentum_weight`, so it sets the *next* run's weight) had no gate on either path, and the test that excluded them asserted they were "guarded by `check_run_health.py`", which does not look at them | `tests/test_one_observation_per_run_date.py` in the publish gate |
+  | 2026-11-20 | gate 5 rehearses the next publish by regenerating the page from a run **scored before the branch** - so it sees a generator change and cannot see a scoring change. The 11-19 missing-category rule passed it; the first full run under the rule was refused at 02:00 by four tests still asserting the old wording | `rehearse_publish.py` prints `ENGINE CHANGED`; `prompts/nightly.md` section 4 (a mitigation - the real closure, re-scoring the run's own `01_raw_metrics.parquet` with the branch's engine, is not built) |
 
   The first four were one shape - *the strongest check guards the path that
   publishes least often*. **The fifth was a different one and is the more useful
   lesson: a derived membership rule is only as wide as the thing it derives from.**
   Deriving the gate from `claims.py` made a missing *page sentence* impossible and
   a missing *evidence file* permanent. When a list is replaced by a derivation,
-  ask what the derivation cannot reach.
+  ask what the derivation cannot reach. **The sixth is the code loop's version of
+  the same lesson: a rehearsal is only as wide as what it re-executes.** Gate 5
+  re-runs the generator, so it was blind to the engine.
 
   Gates 1, 3 and the brief have counterparts on both paths. **Gate 2
   (`--dry-run`) and gate 4 (clean tree) deliberately do not**, and that was
@@ -91,8 +98,8 @@ Do not rely on impressions. Go and look:
   only its own artifact list, which is stronger than a clean-tree check in the
   direction that matters. Do not "close" either.
 
-- **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 970 -> 1036 -> 959 lines
-  across five retrospectives. It grows back every fortnight by the same mechanism:
+- **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 970 -> 1036 -> 959 -> 1089
+  -> 940 lines across seven retrospectives. It grows back every fortnight by the same mechanism:
   an item closes and its record stays in "Open", in the one file every session
   must read before it starts. **Expect to move 100+ lines every time, and do it
   whatever the number says** - the test is not "is it longer than last time" but
@@ -105,11 +112,11 @@ Do not rely on impressions. Go and look:
 
 - **Who is doing the work.** Count `NIGHTLY_LOG.md` entries since the last
   retrospective, split by scheduled versus owner-run. It was **11 scheduled / 44
-  owner-run** on 2026-10-16 and **24 / 14** on 2026-10-30 - so the ratio is not a
-  stable fact and the rotation's job changes with it. Say what the current split
-  implies: at 11/44 the scheduled session's distinctive contribution was *deciding
-  what the owner's sessions left open*; at 24/14 it is most of the throughput and
-  the rotation has to carry the roadmap itself.
+  owner-run** on 2026-10-16, **24 / 14** on 2026-10-30 and **24 / 25** on 2026-11-20 -
+  so the ratio is not a stable fact and the rotation's job changes with it. Say what
+  the current split implies, and **whose changes the refused data runs came from**:
+  on 2026-11-20 the one scoring change in the window was owner-run, shipped at night,
+  and was the one the 02:00 run refused.
 
 **Read the product's pulse first** (added 2026-11-19): the "Shipped to readers" clause at the end of
 each health line since then - commits that changed what a reader sees, and methodology changes, per
