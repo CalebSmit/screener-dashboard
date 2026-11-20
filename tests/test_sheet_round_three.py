@@ -342,13 +342,22 @@ def test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history(browser
         _sheet(page, t)
         subs = page.evaluate("""() => [...document.querySelectorAll('#stock-modal .modal-score-card.is-na .modal-score-sub')].map(e => e.textContent)""")
         assert len(subs) == len(cats)
-        assert all(re.fullmatch(r"Not scored: (none of its \d+ metrics has data|its one metric has no data)", x) for x in subs), subs
+        # since 2026-11-19 a weighted unscored category adds what it counts for: "; counted at 50.0, 2.5 of 5 points"
+        fill_tail = r"(; counted at [\d.]+, [\d.]+ of [\d.]+ points)?"
+        assert all(re.fullmatch(r"Not scored: (none of its \d+ metrics has data|its one metric has no data)" + fill_tail, x)
+                   for x in subs), subs
         # the workings name the metrics, by the published labels
         c = cats[0]
         note = page.evaluate(f"document.querySelector('#cat-detail-{c} .wk-unscored').textContent")
         labels = page.evaluate(f"unscoredWhy('{c}', D.stock_detail['{t}']).metrics")
         assert labels and all(lbl in note for lbl in labels), (note, labels)
-        assert "its weight is shared across the others" in note
+        # the rule the payload states (weights.missing_category_score, 2026-11-19): counted at the
+        # sector median at full weight; a payload built before it shared the weight out
+        if page.evaluate("typeof D.weights.missing_category_score === 'number'"):
+            fill = page.evaluate("fmt(D.weights.missing_category_score, 'score')")
+            assert f"it counts at {fill}, the sector median, at its full weight" in note, note
+        else:
+            assert "its weight is shared across the others" in note, note
         # a rejected price history (no stock has one today): Momentum and Risk give the engine's reason.
         # The stock is any one with every category scored, never a named ticker (row "data->red").
         px = page.evaluate("""() => { const t = Object.keys(D.stock_detail).find(k => { const c = D.stock_detail[k].cat_scores;
@@ -358,7 +367,7 @@ def test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history(browser
             return t; }""")
         _sheet(page, px)
         subs = page.evaluate("""() => [...document.querySelectorAll('#stock-modal .modal-score-card.is-na .modal-score-sub')].map(e => e.textContent)""")
-        assert subs == ["Not scored: price history rejected"] * 2, subs
+        assert len(subs) == 2 and all(re.fullmatch(r"Not scored: price history rejected" + fill_tail, x) for x in subs), subs
         note = page.evaluate("document.querySelector('#cat-detail-risk .wk-unscored').textContent")
         assert "rejected this stock’s daily price history (series mixes pre- and post-split prices across a 2:1 split)" in note
         # Quality is not built from the price history and never claims it

@@ -372,7 +372,12 @@ _UNSCORED_JS = """([t, c, patch]) => { const s = structuredClone(D.stock_detail[
 _SHORT = re.compile(r"^Not scored: (?:none of its (\d+) metrics has data|its one metric has no data)$")
 _LONG = re.compile(r"^(?:None of the (\d+) metrics this category weights for this stock has data in this run "
                    r"\((.+)\)|Its one weighted metric, (.+), has no data for this stock in this run), so the "
-                   r"category is not scored and its weight is shared across the others\.")
+                   r"category is not scored(?: and its weight is shared across the others\.|; it counts at "
+                   r"([\d.]+), the sector median, at its full weight\.)")
+# The rule since 2026-11-19 (weights.missing_category_score): the category keeps its full weight and
+# counts at the sector median, and the contribution row prints that arithmetic.
+_FILLED = re.compile(r"Not scored for this stock, so counted at ([\d.]+), the sector median\s*"
+                     r"([\d.]+) × (\d+(?:\.\d)?)% = ([\d.]+) pts")
 _SHARED = re.compile(r"Not scored for this stock — its (\d+(?:\.\d)?)% was shared out across the categories below\.")
 
 
@@ -399,6 +404,18 @@ def _check_unscored(got: dict, cfg, data, t: str, c: str, s: dict) -> list[str]:
     if len(parts) != n or set(parts) != labels or got["metrics"] != parts:
         out.append(f"{t}/{c}: names {parts}, the engine's weighted metrics are {sorted(labels)}")
     fw = data["weights"]["factor_weights"][c]
+    fill = data["weights"].get("missing_category_score")
+    if isinstance(fill, (int, float)):
+        if ml.group(4) is None or abs(float(ml.group(4)) - fill) > 0.05 + 1e-9:
+            out.append(f"{t}/{c}: the workings do not say the category counts at {fill}: {got['long']!r}")
+        filled = [_FILLED.search(_text(r)) for r in got["rows"]]
+        filled = [tuple(float(g) for g in x.groups()) for x in filled if x]
+        if not any(abs(a - fill) <= 0.05 + 1e-9 and abs(b - fill) <= 0.05 + 1e-9 and abs(w - fw) <= 0.05 + 1e-9
+                   and abs(p - fill * fw / 100) <= 0.05 + 1e-9 for a, b, w, p in filled):
+            out.append(f"{t}/{c}: row printed {filled}, the rule is {fill} x this run's {c} weight {fw}")
+        return out
+    if ml.group(4) is not None:
+        out.append(f"{t}/{c}: the workings state a fill the payload does not carry")
     shared = [_SHARED.search(_text(r)) for r in got["rows"]]
     shared = [float(x.group(1)) for x in shared if x]
     if not any(abs(v - fw) <= 0.05 + 1e-9 for v in shared):
@@ -431,7 +448,10 @@ def test_an_unscored_category_made_by_hand_prints_the_engines_count(page, data, 
     t = next((t for t, s in sd.items() if all(s["cat_scores"].get(c) is not None for c in CATS)), None)
     assert t, "no fully scored stock in the payload"
     weighted = _weighted(cfg, cat, sd[t])
-    patch = ("s.cat_scores[c] = null; s.contrib[c] = 0; "
+    patch = ("s.cat_scores[c] = null; "
+             # as the engine would: 0 points under the old rule, the fill x the weight since 2026-11-19
+             "s.contrib[c] = typeof D.weights.missing_category_score === 'number' "
+             "? Math.round(D.weights.missing_category_score * D.weights.factor_weights[c]) / 100 : 0; "
              + "".join(f"s.pct[{json.dumps(m)}] = null; s.raw[{json.dumps(m)}] = null; " for m in weighted))
     got = page.evaluate(_UNSCORED_JS, [t, cat, patch])
     probs = _check_unscored(got, cfg, data, t, cat, {**sd[t]})
@@ -592,7 +612,10 @@ def test_an_unscored_category_gives_up_this_runs_weight_not_the_default(page, da
     t = next((t for t, s in sd.items() if all(s["cat_scores"].get(c) is not None for c in CATS)), None)
     assert t, "no fully scored stock in the payload"
     weighted = _weighted(cfg, "momentum", sd[t])
-    patch = ("s.cat_scores[c] = null; s.contrib[c] = 0; "
+    patch = ("s.cat_scores[c] = null; "
+             # as the engine would: 0 points under the old rule, the fill x the weight since 2026-11-19
+             "s.contrib[c] = typeof D.weights.missing_category_score === 'number' "
+             "? Math.round(D.weights.missing_category_score * D.weights.factor_weights[c]) / 100 : 0; "
              + "".join(f"s.pct[{json.dumps(m)}] = null; s.raw[{json.dumps(m)}] = null; " for m in weighted))
     rows = page.evaluate("""([t, patch, C]) => { const keep = D.weights.factor_weights;
         try { D.weights.factor_weights = Object.assign({}, keep, {momentum: 9.1, quality: 23.95, valuation: 23.95});
@@ -601,8 +624,14 @@ def test_an_unscored_category_gives_up_this_runs_weight_not_the_default(page, da
               return [...document.querySelectorAll('#contrib-visual .contrib-row-na')].map(r => r.innerHTML); }
         finally { D.weights.factor_weights = keep; } }""", [t, patch, CATS])
     texts = [_text(r) for r in rows]
-    assert any("Not scored for this stock — its 9.1% was shared out across the categories below." in x
-               for x in texts), texts
+    fill = data["weights"].get("missing_category_score")
+    if isinstance(fill, (int, float)):
+        # since 2026-11-19 the category keeps this run's weight and counts at the sector median
+        hits = [m for m in (_FILLED.search(x) for x in texts) if m]
+        assert any(abs(float(m.group(3)) - 9.1) <= 0.05 for m in hits), texts
+    else:
+        assert any("Not scored for this stock — its 9.1% was shared out across the categories below." in x
+                   for x in texts), texts
 
 
 _PEER_FIXTURE_JS = """([k, m, st, probe]) => { const added = [];
