@@ -9841,7 +9841,7 @@ merged); the 18:00 retry is the run that publishes. Evidence base at `1m`: **54 
 item: **0.15, What the ranking is for** (opened 2026-11-19, **age 1 day**); also open 0.13 (39 d, a
 standing programme), 0.10 (44 d), 0.14 (37 d). Shipped to readers: 13 commits, 8 methodology changes in 7
 days.
-**Tests:** baseline 4,447 passed / 1 skipped (the runner's, 13:04, GREEN). After: TESTS_AFTER.
+**Tests:** baseline 4,447 passed / 1 skipped (the runner's, 13:04, GREEN). After: **4,447 passed / 1 skipped** (no change); dry run OK; payload parses, index.html 949,596 bytes; rehearsal (gate 5) PASSED; tree clean.
 **Owner queue / rotation:** `git stash list` empty; no owner-session marker. Today's earlier entry (the
 retrospective) left three Next items: (1) confirm the 18:00 retry - not yet possible at 13:00, and its
 precondition (the branch merged) is met: `origin/main` is `4d0f7ba`, which contains the fix; (2) Monday's
