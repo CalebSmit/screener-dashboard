@@ -9425,3 +9425,79 @@ CLI and nobody noted it; Jensen's alpha correlates +0.87 with 12-1 momentum and 
 4. Either build the ACCEPTED implied-volatility inversion or write down why not.
 5. Unchanged from 13:00: Friday is the lab's day; tomorrow's 02:00 run - confirm HEALTH: PASS without
    the continuity override, and look for SNDK scored on all eight categories.
+
+## 2026-11-19 (owner-run, late evening) - The owner delegated the review's five decisions: a missing category counts at 50, the home page states the test result, layout-only failures no longer discard a night, and the process files lose two-thirds of their weight
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-19_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (31 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.15, What the ranking is for, given no measured edge** (age **0 days**); also open: 0.13 38d; 0.10 43d; 0.14 36d.
+
+**Owner request:** after the evening's review, *"do whatever you think is best!"* - read as the go-ahead
+on all five decisions it put to him. `logs/.owner-session` re-created at the start, removed at the end.
+
+### Did
+
+**1. A category a stock cannot be scored on counts at 50, the sector median** (methodology;
+`research/2026-11-19-missing-category-at-neutral.md`; changelog 2026-11-19 late). Before, its weight
+was shared across the stock's other categories - the same as filling it with the stock's own average
+- which is what put SanDisk at #1. Sources: Chen & McCoy (arXiv 2207.13071: cross-sectional means
+work because predictors are weakly correlated - and this screener's categories are built to be) and
+Bryzgalova et al. (missingness is not random - stated as the condition that would make this wrong).
+On the 11-19 payload **6 of 499 composites move**, the rest identical to the cent: SNDK 1 -> 3, ERIE
+413 -> 395, HONA 431 -> 409, FDXF 328 -> 316, DPZ, BRK-B by a few places. One engine helper
+(`factor_engine.category_terms`) feeds the composite, contributions and weight sensitivity. **Each run
+records the rule it was scored with** (`effective_weights.json` -> `weights.missing_category_score`):
+the first rehearsal regenerated today's run under the new generator, claimed the new rule for
+composites built under the old one, and the build refused it - so the generator now passes the
+record through and never adds it, `calc_trace` checks each payload by the rule it states, and the
+page keeps the old wording for an old payload. Seen in a browser on a throwaway 5-stock run
+(FedEx Freight: Momentum, Risk, Investment tiles "counted at 50.0", points adding up), the run
+deleted and its four files restored afterwards.
+
+**2. The EPS-mismatch caveat compares like with like** (display only; changelog). GAAP trailing EPS
+against the consensus basis's own last four quarters, flagged at opposite signs or more than 1.5x
+apart; the old forward/trailing ratio only where that figure is missing. 93 -> 104 flagged on 11-19,
+72 in both; SNDK, MU, AVGO no longer flagged, WDC, CINF, BRK-B now are.
+
+**3. The home page states the history test** beside the track record: "Tested on 176 months of
+2012-2026 history, the ranking has shown no measurable edge at predicting the next month's returns.
+See the test" (`generate_dashboard.history_verdict`, claim `page.hero_tested`, the same rule as the
+methodology page's line). Seen at 375px: no sideways scroll.
+
+**4. The 02:00 claims gate publishes on layout-only failures** (exit 6, `check_published_claims.
+PRESENTATION`, 22 named layout tests, each with a reason; `data-run.ps1` logs `ATTENTION - PAGE
+LAYOUT` and publishes). Any failure outside that list, a timeout, or no FAILED line to classify still
+refuses. `data-run.ps1` parse-checked with PowerShell's own parser (0 errors). Tests pin that no
+reproducibility, claims, advice, payload or evidence check can be listed.
+
+**5. Process weight cut:** `NIGHTLY_LOG.md` entries to 2026-10-19 moved verbatim to `log-archive/`
+(1.57 MB -> 0.73 MB live); `OWNER_FOCUS.md`'s Open section 1,194 -> ~120 lines (histories verbatim in
+`log-archive/OWNER_FOCUS-item-histories-2026-11-19.md`), the finished 2026-10-20 item closed;
+CLAUDE.md's four "->red" rows merged into one `premise->red` row (verbatim in `DECISIONS.md`), a
+settled row 0.8m for the missing-category rule, and **0.15 - what the ranking is for, given no
+measured edge - is the new top item, ahead of universe expansion phase 2** (decision 3; the universe
+item says so).
+
+**Research ledger rerun** (`factor_engine.py` changed; 32 rows, ~19 min with `--jobs 4`). *Backtest
+observation, not decision-grade:* pooled baseline IC -0.00116 -> -0.00133, interval still spans zero,
+0 alternatives better; `research.html`, `RESULTS.md`, `summary.json` rewritten by `report`.
+
+### Gates
+
+Gate 1: see the line below. Gate 2 (dry run) and gate 3 (`node --check` of all three payloads) ran
+after it. Gate 5, `rehearse_publish.py --changed-since origin/main`: **REHEARSAL PASSED** (claims gate
+2,390 passed / 1 skipped), published files restored byte for byte. Gate 4 clean.
+
+### Not done, and why
+
+- **A missed retrospective running at the next slot** - a runner change; the next scheduled one is
+  2026-11-27 and should cover 11-13's.
+- **Berkshire's year-ago balances, the implied-volatility inversion, the Jensen's-alpha note** - listed
+  in the 2026-11-19 owner item for the sessions.
+- **The bot** reads `signals.json`; tomorrow's run moves six stocks, SNDK out of #1. Its continuity
+  gate cannot be breached by six moves, and `methodology_version` (a config hash) does not change.
+
+### Next
+
+1. **Tomorrow's 02:00 run:** HEALTH: PASS; `weights.missing_category_score` = 50 in the payload; any
+   "History retry:" line in the log; whether SNDK has its price history back.
+2. Friday 2026-11-20 is the lab's day (unchanged).
+3. **0.15** - a Monday note: what the ranking is for, with what would count as an answer written first.
