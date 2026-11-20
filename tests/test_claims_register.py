@@ -1282,7 +1282,17 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'checked:tests/test_dashboard_printed_figures.py::test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_own_fetch',
     '${f.short_ratio.toFixed(1)} days to cover':
         'reported:tests/test_dashboard_printed_figures.py::test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_own_fetch',
-    '${CAT_LABELS[c]} no data Not scored for this stock - its ${fmtWeight(base[c] || 0)} was shared out across the categories below.':
+    # The pre-2026-11-19 wording, kept for a payload built before the rule changed (fillsMissing()).
+    'Not scored for this stock - its ${fmtWeight(base[c] || 0)} was shared out across the categories below.':
+        'claim:drilldown.unscored_category',
+    # Since 2026-11-19 an unscored category counts at the engine's constant, published in the payload.
+    "Not scored for this stock, so counted at ${fmt(D.weights.missing_category_score, 'score')}, the sector median ${fmt(D.weights.missing_category_score, 'score')} × ${fmtWeight(weight)} = ${contrib.toFixed(1)} pts":
+        'claim:drilldown.unscored_category',
+    "Such a category counts at ${fmt(D.weights.missing_category_score, 'score')}, the sector median, at its full weight:":
+        'claim:drilldown.unscored_category',
+    ", so the category is not scored; it counts at ${fmt(D.weights.missing_category_score, 'score')}, the sector median, at its full weight.":
+        'claim:drilldown.unscored_category',
+    "not scored; counted at ${fmt(D.weights.missing_category_score,'score')} → ${fmt(contrib,'score')} pts":
         'claim:drilldown.unscored_category',
     'Category points add up to ${runningTotal.toFixed(1)}':
         'claim:drilldown.composite_chain',

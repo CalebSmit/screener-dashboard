@@ -1143,8 +1143,11 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "An unscored category's tile and workings say why: a category is scored only when at "
             "least one metric carrying weight in the table this stock was scored with has a value, "
-            "so an unscored one names those metrics, none of which has data in this run, and its "
-            "weight is shared across the others. Where the run rejected the stock's daily price "
+            "so an unscored one names those metrics, none of which has data in this run, and - "
+            "since 2026-11-19, for a payload that publishes `weights.missing_category_score` - it "
+            "counts at that score (50, the sector median) at its full weight, the points printed "
+            "being the engine's own contribution; an older payload says its weight was shared "
+            "across the others, as it was. Where the run rejected the stock's daily price "
             "history (the split-scale integrity check), Momentum and Risk - whose weighted metrics "
             "are all built from that history - give that reason as well. Display only: the reason "
             "(flags.px_rejected) never enters raw, pct, a category score or the composite."
@@ -1159,6 +1162,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_printed_figures.py::test_every_unscored_category_prints_the_engines_count_and_the_runs_weight",
             "tests/test_dashboard_printed_figures.py::test_an_unscored_category_made_by_hand_prints_the_engines_count",
             "tests/test_dashboard_printed_figures.py::test_an_unscored_category_gives_up_this_runs_weight_not_the_default",
+            "tests/test_missing_category_neutral.py::test_contributions_count_the_filled_category_and_sum_to_the_composite",
+            "tests/test_missing_category_neutral.py::test_the_payload_publishes_the_constant_the_page_prints",
         ),
     ),
     Claim(

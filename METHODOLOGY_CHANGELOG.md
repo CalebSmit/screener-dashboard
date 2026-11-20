@@ -5683,3 +5683,49 @@ comparison. `scripts/rehearse_publish.py`: see the log entry.
 **Applied by:** 06:00 session, 2026-11-19.
 **Rollback:** `good/2026-11-18` (the tag before this change). Reverting restores a `2e9` that
 does nothing.
+
+## 2026-11-19 (late) - A category a stock cannot be scored on counts at 50, the sector median, instead of sharing its weight out
+
+**Area:** composite construction (`factor_engine.compute_composite`, `compute_factor_contributions`,
+`run_weight_sensitivity`, all through the new `category_terms`); `calc_trace.composite_trace`; the
+drilldown's points display; the methodology page's Step 5.
+
+**Changed:** When a stock has no score for a category whose weight is positive, that category now
+counts at `MISSING_CATEGORY_SCORE = 50` at its full weight. Before, its weight was shared across the
+stock's other categories - algebraically, the missing category was filled with the stock's own
+average of the rest. Unchanged: the within-category rule (a missing *metric's* weight is shared
+across its category), universe-wide auto-disable (a category switched off for everyone still has its
+weight redistributed), the coverage filter and the coverage discount.
+
+**Evidence:** `research/2026-11-19-missing-category-at-neutral.md`.
+- A documented failure: on 2026-11-19 SanDisk's price history alone failed to download; with
+  Momentum (75.5 the day before) and Risk (1.03) filled at its own ~79 it went from 7th (71.02) to
+  **1st (79.09)** on the live page and in `signals.json`. This refutes the 2026-09 entry's claim that
+  the renormalisation is "neutral by construction".
+- Chen & McCoy (arXiv 2207.13071, v6 2024): simple cross-sectional-mean imputation performs well
+  against EM for return predictors, because cross-sectional correlations among predictors are
+  small. This screener's categories are built to be weakly related (6.1 effective dimensions of 8;
+  pairwise -0.45 to +0.31), so a stock's other categories are a poor stand-in for a missing one.
+- Bryzgalova, Lerner, Lettau & Pelger ("Missing Financial Data", SSRN 4106794, 2022; read via a
+  secondary summary): missingness is not at random, so no simple rule is unbiased - stated in the
+  note as the condition that would make this rule wrong.
+- Practice: a missing exposure in a z-scored model is conventionally z = 0, the cross-sectional
+  mean; 50 is the equivalent on this 0-100 scale. Not sourced to a named vendor document.
+- Rule 4/5: no IC or backtest figure is used.
+
+**Expected effect:** Measured on the 2026-11-19 payload, 6 of 499 composites move and the other 493
+are identical to the cent: SNDK 79.09 -> 72.36 (1 -> 3), DPZ 56.37 -> 56.05, BRK-B 52.81 -> 52.67,
+FDXF 46.68 -> 47.25, ERIE 41.68 -> 43.34, HONA 39.89 -> 42.29. A strong stock no longer gains from a
+gap and a weak one no longer loses from one. `kpis.methodology_version` (a hash of the parsed config)
+does **not** change, so the bot-input gate's continuity override is not armed - and need not be:
+moving six stocks cannot breach its thresholds.
+
+**Validated by:** `tests/test_missing_category_neutral.py`; `calc_trace` reproduces every published
+composite under the new rule (the build refuses otherwise); the existing reproducibility suites;
+`scripts/rehearse_publish.py` on the 2026-11-19 run. The research engine's ledger was rerun because
+`factor_engine.py` changed (*Backtest observation, not decision-grade*: see the commit).
+
+**Applied by:** owner-run session, on the owner's delegation ("do whatever you think is best!")
+of the five proposals in `research/2026-11-19-fresh-eyes-review.md`.
+
+**Rollback:** `good/2026-11-19-owner-review`.

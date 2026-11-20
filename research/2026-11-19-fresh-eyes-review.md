@@ -14,8 +14,9 @@ of process - and every finding below that came from one of them was re-checked b
 in; the measurement scripts are in the session scratchpad and the figures are reproducible from the
 committed `dashboard_data.js` (run `3e881b94506b`) and the previous day's (`3aecb1a`).
 
-**Proposal status: OPEN** - findings 1, 2, 3, 4, 5, 6b, 7 and 8 propose changes for the owner or a later
-session to decide; `OWNER_FOCUS.md` carries them as one item opened today.
+**Proposal status: DECIDED 2026-11-19** - the owner delegated all five decisions the same evening ("do
+whatever you think is best!"); what was built and what was deferred is in `OWNER_FOCUS.md` (2026-11-19
+item) and the evening's second `NIGHTLY_LOG.md` entry.
 
 ---
 

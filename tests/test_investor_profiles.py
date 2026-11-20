@@ -93,6 +93,19 @@ def test_each_profile_is_what_the_preset_would_publish():
         c["factor_weights"] = fw
         comp = fe.compute_composite(df.copy(), c).set_index("Ticker")["Composite"]
         pub = P["c"][key]
+        if (d.get("weights") or {}).get("missing_category_score") is None:
+            # Built before 2026-11-19, when a missing category's weight was shared out: the rule
+            # differs only for a stock with a category missing, so compare the others (the
+            # payload's own premise, asserted - never a list of today's tickers).
+            cats = [f"{k}_score" for k in ("valuation", "quality", "growth", "momentum", "risk",
+                                           "revisions", "size", "investment")]
+            full = set(df.dropna(subset=cats)["Ticker"])
+            assert len(full) > 0.9 * len(pub), "most stocks have every category"
+            pub = {t: v for t, v in pub.items() if t in full}
+            # Ranks are over the whole universe, which the six moved stocks reorder; the
+            # composites above are the like-for-like check.
+            assert max(abs(round(float(comp[t]), 2) - v[0]) for t, v in pub.items()) < 1e-9, key
+            continue
         diffs = [abs(round(float(comp[t]), 2) - v[0]) for t, v in pub.items()]
         assert max(diffs) < 1e-9, key
         ranks = comp.rank(ascending=False, method="min")

@@ -32,6 +32,10 @@ SCORE_TOL = 0.002
 # to 2dp, so the composite chain is checked to a cent.
 COMPOSITE_TOL = 0.011
 CONTRIB_SUM_TOL = 0.05
+# What a category the stock has no score for counts as in the composite: the sector median. Written
+# here, not imported from factor_engine - this module's independence is the point (see above);
+# tests/test_missing_category_neutral.py fails if the two ever differ.
+MISSING_CATEGORY_SCORE = 50.0
 
 
 def profile_table(weights: dict, cat: str, stock: dict) -> tuple[str, dict]:
@@ -81,10 +85,26 @@ def category_trace(weights: dict, cat: str, stock: dict) -> dict:
 
 
 def composite_trace(weights: dict, stock: dict) -> dict:
-    """Category points -> composite, including the coverage discount."""
+    """Category points -> composite, including the coverage discount.
+
+    Every category with a positive weight is a term; one the stock has no score for counts at
+    MISSING_CATEGORY_SCORE (the engine's rule since 2026-11-19, stated on the page).
+    """
     fw = weights.get("factor_weights") or {}
     scores = stock.get("cat_scores") or {}
-    scored = {c: scores[c] for c in CATEGORIES if scores.get(c) is not None and fw.get(c, 0) > 0}
+    # A payload built under the rule says so (`weights.missing_category_score`, published with it);
+    # one built before 2026-11-19 does not, and its composites shared a missing category's weight
+    # out - so it is checked against the rule it was built with, never the newer one.
+    fill = weights.get("missing_category_score")
+    if fill is not None:
+        if float(fill) != MISSING_CATEGORY_SCORE:
+            raise ValueError(f"payload says a missing category counts at {fill}; this checker "
+                             f"knows {MISSING_CATEGORY_SCORE}")
+        scored = {c: (scores[c] if scores.get(c) is not None else MISSING_CATEGORY_SCORE)
+                  for c in CATEGORIES if fw.get(c, 0) > 0}
+    else:
+        scored = {c: scores[c] for c in CATEGORIES
+                  if scores.get(c) is not None and fw.get(c, 0) > 0}
     wsum = sum(fw[c] for c in scored)
     pre = sum(scored[c] * fw[c] / wsum for c in scored) if wsum > 0 else None
     cov = stock.get("cov") or {}
