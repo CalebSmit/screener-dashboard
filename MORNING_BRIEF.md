@@ -1,4 +1,4 @@
-# Morning Brief - Friday 20 November 2026, 02:21
+# Morning Brief - Friday 20 November 2026, 07:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,7 +7,7 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **stopped deliberately** - last ran today |
+| Data run (2 AM) | **refused by its publish gates (published-claims check failed)** - last ran today |
 | Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-11-19 02:00 |
 | Stocks scored | 499 |
@@ -48,6 +48,14 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `3677b3c NIGHTLY_LOG 2026-11-20: retrospective - the refused run fixed, the watchdog's blind week, gate 5's blind spot`
+- `a8e70a6 Retrospective prompt: the sixth hole, the watchdog cross-check, refusal counts, the split`
+- `107fb8a CLAUDE.md 1,089 -> 940 lines: closed record and narrative to DECISIONS.md, verbatim`
+- `99ebd1d A code run that never invoked Claude is labelled SESSION DID NOT RUN for the watchdog`
+- `b2edc70 Gate 5 says when it cannot see the change: a scoring change is rehearsed on old scores`
+- `a96295a The brief names the gate that refused a data run instead of "stopped deliberately"`
+- `c8e40ec Tests read the missing-category rule the payload states: the 02:00 run was refused for it`
+- `18f6d57 brief: data run 2026-11-20`
 - `08b86c6 Shipped-to-readers number in the brief and health line; Set aside section and a five-line lane in the prompt`
 - `c121314 Brief-skip test counts the lock-failure case; log text repaired`
 - `447b820 No brief from a loop that never got the lock; CLAUDE.md 0.14 narrative to DECISIONS.md`
@@ -55,67 +63,59 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `1386003 Drives column uses the page's percentage rule (pctPlain)`
 - `ae78520 NIGHTLY_LOG 2026-11-19 (owner-run, night); the sustainable-growth fallback test inverted`
 - `063486c Diagnostics shows what each category drives; a missed retrospective is owed next Friday; 0.15 pre-registered`
-- `b328dbd Sustainable growth keeps its stated ROE; brief names top stocks that lost a category; gate blind spots surfaced`
-- `e99fd9c Golden file regenerated for the missing-category rule; dated-item test reads a fixed future day`
-- `653c02d NIGHTLY_LOG 2026-11-19 (owner-run, late evening): the review's five decisions`
-- `138b176 wip: per-run rule record, EPS claim and test wording (gates follow)`
-- `e234f7f Home page states the history test; layout-only gate failures publish with a warning; process weight cut`
-- `be7455e A missing category counts at 50, the sector median; the EPS-mismatch flag compares like with like`
-- `9468d15 Owner-run fresh-eyes review: retry an empty price history, correct the coverage-discount claim, refuse a timed-out claims gate`
-- `69a7cab brief: code session 2026-11-19-midday`
 
 ## The session's own account
 
-> 2026-11-20 (owner-run, 00:30) - Three ideas from an agent-team prompt the owner shared: one number for product progress, a "Set aside" section, and a five-line lane for each session
+> 2026-11-20 - RETROSPECTIVE. The 02:00 run refused and fixed first; the watchdog was blind to a week of aborted sessions; gate 5 is blind to the engine
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-19_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.15, What the ranking is for, given no measured edge** (age **1 days**); also open: 0.13 39d; 0.10 44d; 0.14 37d. Shipped to readers: 13 commit(s) changed what a reader sees, 8 methodology change(s), in the last 7 days.
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-11-19_130000-midday.log`
+> (completed). Data loop published? **no** - `logs/datarun-2026-11-20_020001.log`, HEALTH: PASS, then
+> **refused by the published-claims gate (7 failed)**; fixed this session, see below - the 18:00 retry
+> publishes once this branch is merged. Evidence base at `1m`: **54 rows, newest 2026-10-19 (32 days ago,
+> bound 40), 5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top open roadmap item:
+> **0.15, What the ranking is for** (opened 2026-11-19, **age 1 day**); also open 0.13 (39 d, a standing
+> programme), 0.10 (44 d), 0.14 (37 d). Shipped to readers: 13 commits, 8 methodology changes in 7 days.
+> The health line also names `origin/nightly/2026-11-20` as held back - that is this branch, pushed
+> early; not a stranded one.
+> **Tests:** baseline **4,443 passed / 1 skipped** (green, matches the runner's 06:04 baseline). After: see
+> "Gates" below. No owner-session marker; `git stash list` empty.
 > 
-> **Owner request:** asked whether a generic "design your first AI agent team" prompt would improve
-> this system. Mostly no - the project is past that stage and needs less process, not more - but
-> three of its ideas fit, and the owner said to keep going. `logs/.owner-session` held throughout.
+> ### Did (before the retrospective): the refused data run
 > 
-> ### Did
+> The 02:00 run scored 499 stocks, passed every health check, and was refused by
+> `scripts/check_published_claims.py`: `test_case_against`, four in `test_dashboard_printed_figures`,
+> `test_sheet_round_three`. Reproduced with `scripts/rehearse_publish.py` against run `4793e4da8a1a` (FAIL,
+> same 7). **The page was right; the tests were stale.** The 2026-11-19 late-evening rule (an unscored
+> category counts at 50 at full weight) shipped its generator branch keyed on the payload's
+> `weights.missing_category_score`, but four tests still asserted the old "its weight is shared across the
+> others" wording and a renormalised weight. Gate 5 had passed the change because it regenerated the page
+> from the 11-19 run, scored *before* the rule, so the page took the old branch. Each test now checks the
+> branch the payload's own field selects (and the hand-made cases set the contribution as the engine
+> would). **Rehearsal against the refused run: PASS.** Commit `c8e40ec`.
 > 
-> 1. **"One number that shows the team is actually helping"** -> `write_brief.shipped_to_readers`:
->    commits in the last 7 days that changed a reader-facing file (the page generator, the per-stock
->    sentences, the methodology generator, the research page, the lab, lineage, calc trace) and
->    methodology changelog entries in the same window; "nothing reached a reader this week" when both
->    are zero. In the brief's "At a glance" and as a sixth clause of the health line (not a gate).
->    Reads 13 and 8 today, because of tonight; 17 scheduled sessions from 11-05 to 11-19 would have
->    shown how close to zero the routine's own share was. `tests/test_shipped_to_readers.py`.
-> 2. **"Explain why the others can wait"** -> a **Set aside** section in the log template
->    (`prompts/nightly.md`): every previous Next item and ACCEPTED proposal not done, one line each.
-> 3. **"What it never does / when it must stop and ask"** -> a five-line lane at the top of the
->    nightly prompt: what a session owns, never does, stops for, is judged on, and how it ends.
->    The retrospective prompt now reads the "Shipped to readers" clause first.
->    CLAUDE.md rule 8 documents both.
+> (A false alarm of my own on the way, recorded so nobody repeats it: `logs/rehearse-publish/site/index.html`
+> is a stale leftover from 11-06 - the rehearsal installs `dashboard.html` as the index. Copying the site
+> folder by hand installs an old page.)
 > 
-> ### Evidence / research
+> ### Retrospective findings
 > 
-> - None new; the reason is the fresh-eyes review's finding 4 (measured) and the owner's prompt.
-> 
-> ### Methodology changed
-> 
-> - None.
-> 
-> ### Tried and rejected
-> 
-> - **A role charter per agent as separate files.** Five lines in the prompt every session already
->   reads costs nothing; separate files would be one more thing to read and keep true.
-> - **Making "Shipped to readers" a gate.** A quiet week can be right (a research week); the number
->   is for the retrospective and the owner to read, not for a runner to act on.
-> 
-> ### Set aside
-> 
-> - The CLAUDE.md "->red" sibling rows' test modules were not consolidated - only the rows were; the
->   tests still protect what they did.
-> - A further CLAUDE.md trim (the data-loop gates section, ~50 lines of history) - not tonight, to
->   leave the 02:00 run a quiet tree.
+> - **Sessions reviewed: 49 log entries, 2026-10-30 13:00 to 2026-11-20 00:30 - 24 scheduled, 25 owner-run**;
+>   plus **15 scheduled slots that never started** (of ~43) and 1 gate-refused session (11-02 06:00, red
+>   baseline inherited).
+> - **Genuinely valuable: 24 of 24 scheduled entries, ~22 of 25 owner-run | Churn: 0 | Failed gates: 2**
+>   (11-02 gate 1 on an inherited red `main`; 11-04 gate 5, unreproducible, merged by hand after three
+>   passes) **| Never started: 15** (11-01 06:00, 11-01 13:00, 11-02 13:00 on a lapsed login; 11-10 13:00 on
+>   a too-old CLI; eleven from 11-11 07:38 to 11-16 13:00 with no CLI on PATH).
+> - **Data loop: 8 of 15 02:00 runs refused** (11-02, 06, 09, 10, 11, 12, 16, 20), all 8 by the
+>   claims gate. **3 caught a real page defect** - a false "growth-neutral" sentence (11-02), a false
+>   equality on 11 clamped rows (11-06), a 2 px sideways scroll on phones (11-12, twice); **5 were a wrong
+>   test** - FOXA's share-class premise and the lab's font timing (11-09), Best Buy read as advice (11-10),
+>   a footnote needing three movers (11-11 twice, 11-16), and today's stale rule. The 18:00 retry
 > ...
 
 ---
 
-If a run says **stopped deliberately** or **held back by its gates**, that is the safety
+If a run says **refused by its publish gates** or **held back by its gates**, that is the safety
 gates working: the live dashboard was left untouched rather than published with bad data.
 `logs/` has the detail, and `ROLLBACK.md` covers undoing anything.
 
