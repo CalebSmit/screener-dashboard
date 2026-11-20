@@ -548,3 +548,18 @@ def test_the_data_loop_publishes_on_exit_6_with_an_attention_line():
     i = ps.index("$claims.ExitCode -eq 6")
     block = ps[i:ps.index("elseif ($claims.ExitCode -ne 0)", i)]
     assert "ATTENTION - PAGE LAYOUT" in block and "Stop-Run" not in block
+
+
+def test_a_pass_with_many_skips_says_so(monkeypatch, capsys):
+    """2026-11-19: losing Chromium skips ~886 browser checks and pytest still exits 0."""
+    monkeypatch.setattr(subprocess, "run",
+                        lambda *a, **k: _Proc(0, "1500 passed, 886 skipped in 90.0s\n"))
+    assert gate.run([]) == 0
+    assert "ATTENTION - 886 published-claim checks were SKIPPED" in capsys.readouterr().out
+
+
+def test_an_ordinary_pass_says_nothing_about_skips(monkeypatch, capsys):
+    monkeypatch.setattr(subprocess, "run",
+                        lambda *a, **k: _Proc(0, "2390 passed, 1 skipped in 160.0s\n"))
+    assert gate.run([]) == 0
+    assert "SKIPPED" not in capsys.readouterr().out

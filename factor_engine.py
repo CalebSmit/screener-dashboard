@@ -2651,12 +2651,17 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # inconsistent with ROE and contradicting the config's own
             # "cash-flow > accounting" rationale.
             # SGR clamped to [0%, 100%].
-            if pd.notna(ni) and pd.notna(eq_v) and eq_v > 0 and ni > 0:
-                eq_prior = d.get("totalEquity_prior", np.nan)
-                if pd.notna(eq_prior) and eq_prior > 0:
-                    avg_eq = (eq_v + eq_prior) / 2
-                else:
-                    avg_eq = eq_v  # fall back to single-year
+            # Both balances present and positive, or no figure (2026-11-19). The bank ROE's rule
+            # (row "overview.bank_roe_roa": "none to an ending balance ... the same ROE as the one
+            # inside sustainable_growth"), which this metric broke: with the year-earlier equity
+            # missing it fell back to ending equity (BRK-B, NFLX), and with it negative it did the
+            # same - so MTD and STX, whose equity crossed zero, sat at the 100% clamp and BA read
+            # 29% on an equity that had just turned positive. A return across a sign change is not
+            # a growth rate. research/2026-11-19-fresh-eyes-review.md, finding 6b.
+            eq_prior = d.get("totalEquity_prior", np.nan)
+            if (pd.notna(ni) and pd.notna(eq_v) and eq_v > 0 and ni > 0
+                    and pd.notna(eq_prior) and eq_prior > 0):
+                avg_eq = (eq_v + eq_prior) / 2
                 roe = ni / avg_eq
 
                 # Retention: 1) cash dividendsPaid/NI, 2) dividendRate*shares/NI,
