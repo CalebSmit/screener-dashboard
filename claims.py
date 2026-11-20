@@ -2652,9 +2652,11 @@ CLAIMS: tuple[Claim, ...] = (
         surface=OVERVIEW,
         asserts=(
             "Since 2026-10-09 Forward EPS Growth sets the twelve-month consensus against the last "
-            "four quarters on the same basis, so the EPS-basis flag (forward over GAAP trailing "
-            "outside 0.3-2x) does not remove it; only the fallback construction, used where those "
-            "inputs are missing, still sets growth to NaN on an extreme ratio."
+            "four quarters on the same basis, so the EPS-basis flag does not remove it; only the "
+            "fallback construction, used where those inputs are missing, still sets growth to NaN "
+            "on an extreme forward-over-trailing ratio (outside 0.3-2x). Since 2026-11-19 the flag "
+            "itself compares GAAP trailing EPS with that same-basis four-quarter figure (opposite "
+            "signs or more than 1.5x apart), and uses the 0.3-2x ratio only on the fallback."
         ),
         made_true_by="factor_engine:compute_metrics",
         checked_by=(

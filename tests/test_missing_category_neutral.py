@@ -96,10 +96,19 @@ def test_the_checker_reproduces_a_filled_composite_and_rejects_the_old_rule():
     assert any("composite" in p for p in calc_trace.verify_stock(weights, old))
 
 
-def test_the_payload_publishes_the_constant_the_page_prints():
+def test_the_payload_publishes_the_constant_the_page_prints(tmp_path):
+    """The run records the rule it scored with; the generator passes it through and never adds it."""
+    import json
     import generate_dashboard as g
-    w = g._with_weight_profiles({"factor_weights": dict(FW)}, {})
-    assert w["missing_category_score"] == fe.MISSING_CATEGORY_SCORE
+    from run_context import RunContext
+    ctx = RunContext.__new__(RunContext)
+    ctx.run_dir = tmp_path
+    path = ctx.save_effective_weights({"factor_weights": dict(FW), "metric_weights": {}})
+    saved = json.loads(path.read_text())
+    assert saved["missing_category_score"] == fe.MISSING_CATEGORY_SCORE
+    assert g._with_weight_profiles(saved, {})["missing_category_score"] == fe.MISSING_CATEGORY_SCORE
+    # a run from before the rule: nothing claims it
+    assert "missing_category_score" not in g._with_weight_profiles({"factor_weights": dict(FW)}, {})
 
 
 def test_the_rank_sentence_says_a_gap_counted_at_50():

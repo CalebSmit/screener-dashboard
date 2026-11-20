@@ -104,6 +104,9 @@ def _frame(n=60, withhold=None, weights=None):
 
 
 def _payload(df, weights):
+    # The run's effective_weights.json records the rule its composites were built with (2026-11-19).
+    from factor_engine import MISSING_CATEGORY_SCORE
+    weights = dict(weights, missing_category_score=MISSING_CATEGORY_SCORE)
     return json.loads(g.prepare_dashboard_data({
         "df": df, "meta": {"run_date": "2026-08-28"},
         "weights": weights, "sens_df": None, "corr_df": None, "cfg": {},
@@ -377,7 +380,7 @@ class TestTheMethodologyDocumentSaysSo:
     def test_it_names_both_rules_that_move_a_weight(self):
         text = self._overview()
         assert "momentum regime rule" in text.lower()      # renamed 2026-10-09; off since then
-        assert "Missing-data redistribution" in text
+        assert "A category with no score for a stock" in text   # the rule since 2026-11-19
 
     def test_it_points_the_reader_at_where_the_real_weights_are(self):
         text = self._overview()

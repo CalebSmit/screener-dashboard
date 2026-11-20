@@ -643,10 +643,10 @@ def _with_weight_profiles(weights: dict, run_cfg: dict) -> dict:
     if profiles:
         weights["profiles"] = profiles
         weights["profile_labels"] = dict(WEIGHT_PROFILE_LABELS)
-    # What a category the stock has no score for counts as - the engine's constant, published so
-    # the page states it rather than re-deriving it (row 0.8; 2026-11-19).
-    from factor_engine import MISSING_CATEGORY_SCORE
-    weights["missing_category_score"] = MISSING_CATEGORY_SCORE
+    # What a category the stock had no score for counted as (2026-11-19) arrives with the run's own
+    # effective_weights.json and is passed through untouched - never added here, because a page
+    # regenerated from a run scored before the rule must not claim it (the rehearsal of 2026-11-19
+    # refused exactly that: 6 composites "did not reproduce" under a rule they were not built with).
     cov = (run_cfg.get("data_quality") or {}).get("coverage_discount") or {}
     if cov:
         weights["coverage_discount"] = {
