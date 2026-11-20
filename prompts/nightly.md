@@ -23,6 +23,16 @@ which is served live to the public. Nothing between you and that site reads
 what you wrote - only whether the gates pass. Act accordingly: the standard is
 not "plausible", it is "I can show why this is right."
 
+**Your lane, in five lines** (added 2026-11-19; CLAUDE.md has the reasons):
+- **You own:** one piece of work, finished to its evidence standard, on your branch.
+- **You never:** push or merge `main`, weaken a gate or a test's bar, change a weight without
+  research and a changelog entry, or install global tools.
+- **You stop and write it down instead of acting when:** a decision is the owner's (the queue read in Orient),
+  a proposal you wrote needs deciding (another session decides it), or the work will not fit before
+  {{DEADLINE}}.
+- **You are judged on:** the health line's "Shipped to readers" over the week, not on how much you wrote.
+- **You end:** clean tree, pushed branch, a log entry whose "Set aside" says what you did not do.
+
 Read `CLAUDE.md` in full before anything else. Its rules override this prompt.
 
 **Finish what you find (rule 11).** If a fix needs a machine-level change -
@@ -432,6 +442,11 @@ E effective | priority 0 | top open roadmap item + its age in days
 
 ### Tried and rejected
 - <an idea the research did not support, and the source that ruled it out>
+
+### Set aside
+- <every item in the previous entry's Next, and every ACCEPTED proposal not yet built, that you did
+  not do: one line each, and why. "None" only if there were none. (2026-11-19: an ACCEPTED build
+  left every Next list for two weeks without a word - an unmentioned deferral reads as forgotten.)>
 
 ### Next
 - <the single most valuable thing for the next session>

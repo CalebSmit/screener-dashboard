@@ -9576,3 +9576,55 @@ published files restored byte for byte; gate 4 clean.
   from 98.6 KB at the start of the evening.
 
 **Gates:** see the merge commit; this entry was written before the final run.
+
+## 2026-11-20 (owner-run, 00:30) - Three ideas from an agent-team prompt the owner shared: one number for product progress, a "Set aside" section, and a five-line lane for each session
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-19_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (32 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.15, What the ranking is for, given no measured edge** (age **1 days**); also open: 0.13 39d; 0.10 44d; 0.14 37d. Shipped to readers: 13 commit(s) changed what a reader sees, 8 methodology change(s), in the last 7 days.
+
+**Owner request:** asked whether a generic "design your first AI agent team" prompt would improve
+this system. Mostly no - the project is past that stage and needs less process, not more - but
+three of its ideas fit, and the owner said to keep going. `logs/.owner-session` held throughout.
+
+### Did
+
+1. **"One number that shows the team is actually helping"** -> `write_brief.shipped_to_readers`:
+   commits in the last 7 days that changed a reader-facing file (the page generator, the per-stock
+   sentences, the methodology generator, the research page, the lab, lineage, calc trace) and
+   methodology changelog entries in the same window; "nothing reached a reader this week" when both
+   are zero. In the brief's "At a glance" and as a sixth clause of the health line (not a gate).
+   Reads 13 and 8 today, because of tonight; 17 scheduled sessions from 11-05 to 11-19 would have
+   shown how close to zero the routine's own share was. `tests/test_shipped_to_readers.py`.
+2. **"Explain why the others can wait"** -> a **Set aside** section in the log template
+   (`prompts/nightly.md`): every previous Next item and ACCEPTED proposal not done, one line each.
+3. **"What it never does / when it must stop and ask"** -> a five-line lane at the top of the
+   nightly prompt: what a session owns, never does, stops for, is judged on, and how it ends.
+   The retrospective prompt now reads the "Shipped to readers" clause first.
+   CLAUDE.md rule 8 documents both.
+
+### Evidence / research
+
+- None new; the reason is the fresh-eyes review's finding 4 (measured) and the owner's prompt.
+
+### Methodology changed
+
+- None.
+
+### Tried and rejected
+
+- **A role charter per agent as separate files.** Five lines in the prompt every session already
+  reads costs nothing; separate files would be one more thing to read and keep true.
+- **Making "Shipped to readers" a gate.** A quiet week can be right (a research week); the number
+  is for the retrospective and the owner to read, not for a runner to act on.
+
+### Set aside
+
+- The CLAUDE.md "->red" sibling rows' test modules were not consolidated - only the rows were; the
+  tests still protect what they did.
+- A further CLAUDE.md trim (the data-loop gates section, ~50 lines of history) - not tonight, to
+  leave the 02:00 run a quiet tree.
+
+### Next
+
+1. **06:00 today is the overdue retrospective** - read the three owner-run entries of 11-19/20, the
+   review note, and judge the presentation-only exit and the "Shipped to readers" number.
+2. The 02:00 run: HEALTH: PASS; `missing_category_score` and `variance_share` in the payload.
