@@ -59,7 +59,7 @@ def test_an_echoed_stand_down_does_not_hide_a_real_session(tmp_path, monkeypatch
     ("[02:23:19] [INFO] === Data loop complete ===", "completed"),
     ("[13:54:25] [INFO] === Run complete: shipped to main ===", "completed"),
     ("[06:40:00] [INFO] === Run complete (no changes) ===", "completed, nothing to change"),
-    ("[02:20:00] [ERROR] Run discarded by health check - the live dashboard is unchanged.", "stopped deliberately"),
+    ("[02:20:00] [ERROR] Run discarded by health check - the live dashboard is unchanged.", "refused by its publish gates (health check)"),
     ("[06:30:00] [ERROR] SHIP GATES FAILED: tests. Not merging.",
      "held back by its gates (work kept on its branch, not on main)"),
     ("﻿[02:23:19] [INFO] === Data loop complete ===", "completed"),     # first line carries the BOM
@@ -113,4 +113,4 @@ def test_the_data_loop_reads_its_own_verdicts(tmp_path, monkeypatch):
          "[02:19:16] [INFO]     abc1234 data: the run where the Data loop complete line moved\n"
          "[02:19:17] [ERROR] Run discarded by health check - the live dashboard is unchanged.\n", 2000)
     got = hn.data_loop()
-    assert got.startswith("**no**") and "no HEALTH: PASS line" in got and "stopped deliberately" in got
+    assert got.startswith("**no**") and "no HEALTH: PASS line" in got and "refused by its publish gates (health check)" in got
