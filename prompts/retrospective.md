@@ -26,7 +26,7 @@ Do not rely on impressions. Go and look:
   duration - it has never mattered.) **Count the sessions that never got to start** (15 of ~43
   scheduled slots, 2026-10-30..11-20: three on a lapsed login, one on a too-old CLI, eleven with no
   CLI at all)
-  and **the 02:00 data runs its gates refused** (8 of 15 in the same window, 7 by the claims gate)
+  and **the 02:00 data runs its gates refused** (8 of 15 in the same window, all by the claims gate)
   - for each refusal, was the page wrong or the test? Those logs are short enough to skim past.
 - **The watchdog's verdicts against the logs for the same days** (added 2026-11-20). `gh run list
   --workflow loop-watchdog.yml`, then `gh run view <id> --log` for a day you know a loop failed. On
