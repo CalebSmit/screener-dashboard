@@ -9566,7 +9566,7 @@ published files restored byte for byte; gate 4 clean.
 
 **Health:** as the entry above (nothing has run since).
 
-- **A loop that never got the repo lock writes no brief** (both runners):  on a failed
+- **A loop that never got the repo lock writes no brief** (both runners): `Stop-Run` on a failed
   lock still reached `finally`'s Publish-Brief, which checks files out and fast-forwards `main` in
   the tree the other loop holds. `$SkipBrief = $true` first; parse-checked; pinned in
   `tests/test_loop_mutual_exclusion.py`. Never observed - found by reading the code path
