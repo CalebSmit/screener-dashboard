@@ -331,6 +331,11 @@ switch - and `MAX_REL_SPREAD` and the IV bounds are **not** to be loosened to wi
 
 #### Build order for the session that takes it
 
+*2026-11-19 (owner-run review): no session had taken it, and it had left every Next list since
+2026-11-05 without a deferral being written down. Re-queued for a 06:00 session on or after
+**2026-11-24** (the brief's "Coming up"); the QuantLib install belongs to that scheduled session,
+not to a desktop-app one, whose AppData is sandboxed.*
+
 1. **One inversion, feeding all three contracts** (ATM call, ATM put, XZZ put leg), so the panel's
    subtraction is arithmetic on published numbers and not a second computation (row 0.8).
 2. **No new per-ticker network call - and this is the one real obstacle, now measured.** The

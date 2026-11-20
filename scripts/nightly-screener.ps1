@@ -344,6 +344,24 @@ try {
         [System.DayOfWeek]::Monday)
     $IsRetro = ((Get-Date).DayOfWeek -eq [System.DayOfWeek]::Friday) -and ($weekNo % 2 -eq 0)
 
+    # A retrospective that did not run is owed at the next Friday, not two weeks later (2026-11-19:
+    # the 2026-11-13 one aborted on a missing CLI and nobody noticed; the last to run was 10-30).
+    # Any Friday whose newest logged RETROSPECTIVE is more than 14 days old is one.
+    if (((Get-Date).DayOfWeek -eq [System.DayOfWeek]::Friday) -and -not $IsRetro) {
+        $logForRetro = Join-Path $RepoPath 'NIGHTLY_LOG.md'
+        if (Test-Path $logForRetro) {
+            $retroDates = @(Select-String -Path $logForRetro -Pattern '^## (\d{4}-\d{2}-\d{2}) - RETROSPECTIVE' |
+                ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object)
+            if ($retroDates.Count -gt 0) {
+                $lastRetro = [datetime]::ParseExact($retroDates[-1], 'yyyy-MM-dd', $null)
+                if (((Get-Date).Date - $lastRetro).TotalDays -gt 14) {
+                    Write-Log "The last retrospective ran $($retroDates[-1]), over 14 days ago - this Friday is one."
+                    $IsRetro = $true
+                }
+            }
+        }
+    }
+
     # A retrospective with nothing to review is just churn. Require a real
     # history of sessions first - entries in NIGHTLY_LOG.md are the counter.
     $MinSessionsForRetro = 6

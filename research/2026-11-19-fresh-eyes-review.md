@@ -224,12 +224,16 @@ reproduced every figure to 4-5 significant figures. The defects are in inputs an
   a research-ledger rerun because `factor_engine.py` is a `RESULT_PATHS` file):** compare
   `trailingEps` with the consensus-basis trailing figure (`_feg_b12`) where it exists, keep the old
   ratio only for the few stocks on the fallback basis, and re-word the KPI.
-- **Berkshire's year-ago balance sheet is missing again** (`totalAssets_prior`, `totalEquity_prior`
+- **Berkshire's year-ago balance sheet is missing again** - *checked later that night: not a code
+  regression.* Yahoo's quarterly sheet for BRK-B now jumps from 2025-06-30 to 2025-12-31, so no
+  period lies within 35 days of a year before 2026-09-30, and the 2026-10-19 date rule correctly
+  finds none; a filings fallback was refused on 2026-10-15. Since the same night a missing
+  Investment category counts at 50. Original text: (`totalAssets_prior`, `totalEquity_prior`
   NaN for BRK-B in every run 11-13..11-19), so its Investment and ROE are unscored and sustainable
   growth falls back to ending equity - the three effects `METHODOLOGY_CHANGELOG.md` (2026-10-19,
   year-ago by date) records as fixed. Re-run `research/measurements/2026-10-19-year-ago-by-date.py`
   on its current statements. S.
-- Sustainable growth's "ROE uses average equity" silently falls back to ending equity when prior
+- *Fixed the same night (changelog 2026-11-19 night):* Sustainable growth's "ROE uses average equity" silently falls back to ending equity when prior
   equity is missing or negative (BA, MTD, STX at the 100% clamp, NFLX, BRK-B). Apply the bank ROE's
   rule (both balances positive, else not scored) or say so on the row. S.
 

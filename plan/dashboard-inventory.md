@@ -452,7 +452,10 @@ Last owner-run pass, on top of everything below:
 - **Holdings:** the Concentration block is a `<details>` with a one-line summary; category labels
   shorten below 400px. **Price targets:** marker labels above the bar, range labels below.
 - **Narrow screens:** analytics and diagnostics cards no longer run off 375/320px screens;
-  the sensitivity table drops its weight column on phones; the correlation grid scrolls.
+  the sensitivity table drops its Jaccard bar column on phones (since 2026-11-19; it dropped the
+  weight column before), keeping Weight beside **Drives** - each category's share of the composite's
+  spread (`D.variance_share`, `generate_dashboard.category_variance_shares`, display only); the
+  correlation grid scrolls.
 
 ## Top-level views (as rebuilt 2026-10-07)
 

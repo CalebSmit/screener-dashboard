@@ -5753,3 +5753,30 @@ is a judgement ("differ by more than half"), stated as such; the old 2.0/0.3 ban
 **Validated by:** measured offline on the run's own fetch; the suite.
 
 **Applied by:** owner-run session, 2026-11-19 (late). **Rollback:** `good/2026-11-19-owner-review`.
+
+## 2026-11-19 (night) - Sustainable growth's ROE needs positive equity now and a year earlier; no fallback to ending equity
+
+**Area:** metric definition, `sustainable_growth` (Growth, weight 15 of the category).
+
+**Changed:** ROE inside sustainable growth was net income over average equity, but fell back to
+*ending* equity when the year-earlier equity was missing or not positive. It now has no figure in
+those cases, exactly as the bank ROE (`roe`) has had since 2026-10-20; within Growth the metric's
+weight is shared across the category's other metrics, as for any missing metric.
+
+**Evidence:** a published claim the code did not make true. `claims.py` `overview.bank_roe_roa`
+says bank ROE has "none [fallback] to an ending balance" and is "the same ROE as the one inside
+sustainable_growth"; the lineage row says "ROE uses average equity". On the 2026-11-19 run five
+stocks took the fallback: **STX** (year-earlier equity -$63M; sustainable growth at the 100% clamp;
+rank 45), **MTD** (-$249M; at the clamp; rank 214), **BA** (-$8.25bn, now +$6.5bn; 29%), and BRK-B
+and NFLX (year-earlier balance missing from the source; 10% and 50%). A return on equity across a
+sign change is not a growth rate, and a ratio on one balance is not the average the page states.
+Found by the fresh-eyes review's number trace (`research/2026-11-19-fresh-eyes-review.md` 6b).
+
+**Expected effect:** those five lose the metric; their Growth score is rebuilt from the other
+weighted Growth metrics. STX and MTD lose a spurious 100th-percentile reading. No other stock moves
+except through sector percentiles of `sustainable_growth` (four fewer values in their sectors).
+
+**Validated by:** `tests/test_bank_roe_roa.py::test_sustainable_growth_has_no_ending_equity_fallback`;
+the suite; the research ledger rerun (*Backtest observation, not decision-grade*: see the commit).
+
+**Applied by:** owner-run session, 2026-11-19 (night). **Rollback:** `good/2026-11-19-owner-review-2`.

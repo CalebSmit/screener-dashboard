@@ -139,3 +139,18 @@ def test_the_ascii_rule_still_holds():
         raw = p.read_bytes()
         assert raw.startswith(b"\xef\xbb\xbf"), p.name
         assert all(b < 128 for b in raw[3:]), p.name
+
+
+def test_a_missed_retrospective_is_owed_at_the_next_friday():
+    """2026-11-19: the 11-13 retrospective aborted on a missing CLI and the next was not due until
+    11-27. Any Friday whose newest logged RETROSPECTIVE is over 14 days old is one now - before the
+    extra-slot override, so a 13:00 Friday still works."""
+    import re as _re
+    src = (ROOT / "scripts" / "nightly-screener.ps1").read_text(encoding="utf-8-sig")
+    i = src.index("A retrospective that did not run is owed at the next Friday")
+    block = src[i:src.index("if ($IsExtra) { $IsRetro = $false }")]
+    assert "TotalDays -gt 14" in block and "$IsRetro = $true" in block
+    pat = _re.search(r"-Pattern '([^']+)'", block).group(1)
+    # the pattern must match how retrospective entries are actually headed in the log
+    log = (ROOT / "NIGHTLY_LOG.md").read_text(encoding="utf-8")
+    assert _re.search(pat.replace("\d", r"\d"), log, _re.M), "no RETROSPECTIVE heading matches"

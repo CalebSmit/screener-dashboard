@@ -446,7 +446,8 @@ change turns out to be wrong, revert it and say so. But do not wait for proof
 before making a well-sourced change, and do not manufacture a backtest number
 from a backtest you know is biased.
 
-**Every other Friday is a RETROSPECTIVE instead** (even ISO week numbers). The
+**Every other Friday is a RETROSPECTIVE instead** (even ISO week numbers, **and any Friday whose
+last logged retrospective is over 14 days old** - a missed one is owed at the next Friday, 2026-11-19). The
 runner swaps in `prompts/retrospective.md` automatically. That session
 does not work on the screener - it evaluates whether this routine is actually
 producing value and rewrites its own process: these rules, the daily prompt,
@@ -849,8 +850,9 @@ track record. Before universe expansion phase 2 scales the ranking to 1,500 stoc
 answers what it is for and how the page should present it: a *screen* that narrows 500 to 40 worth
 reading (judged on what a club does with the 40, not on rank IC); a longer horizon (value and
 quality are slow, the engine tests one month); fewer, better-evidenced factors; or plainly a teaching
-tool. Pre-register what would count as an answer before measuring anything. Phase-1 plumbing may
-continue meanwhile. `research/2026-11-19-fresh-eyes-review.md` finding 2.
+tool. **The criteria are pre-registered** in `research/2026-11-19-what-the-ranking-is-for.md` section 3
+(fixed before any measurement; do not relax them). Phase-1 plumbing may continue meanwhile.
+`research/2026-11-19-fresh-eyes-review.md` finding 2.
 
 **0.13. The Factor Lab (opened 2026-10-12; a standing programme, progress in `plan/factor-lab.md`).**
 Owner item; `OWNER_FOCUS.md` has it and
