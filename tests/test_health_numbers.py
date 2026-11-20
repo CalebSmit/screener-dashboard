@@ -41,7 +41,9 @@ def test_open_items_are_read_in_order_with_computed_ages():
 
 def test_the_real_file_has_a_dated_open_item():
     """Asserts the premise, not which item: the list changes as items close."""
-    items = hn.open_items(today=DAY)
+    # A fixed day after any item can have opened: DAY (2026-11-02) is older than items opened since,
+    # which made an item opened on 2026-11-19 read as -17 days old.
+    items = hn.open_items(today=datetime(2100, 1, 1))
     assert items, "no dated item under ### Open - rule 8's roadmap line has nothing to read"
     assert all(age >= 0 for _, _, age in items)
 
