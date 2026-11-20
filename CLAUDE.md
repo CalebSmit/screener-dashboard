@@ -164,7 +164,13 @@ improving.
 8. **Update `NIGHTLY_LOG.md` every session.** It is the only memory that carries
    between sessions. Write it for a reader with no other context.
 
-   **Every entry starts with these five health numbers**, whatever the focus:
+   **Every entry starts with these five health numbers**, whatever the focus - and since 2026-11-19
+   the line `scripts/health_numbers.py` prints ends with a sixth clause, **"Shipped to readers"**:
+   commits in the last 7 days that changed what a reader sees, and methodology changes
+   (`write_brief.shipped_to_readers`). It is not a gate. A week of zeros while every session was
+   busy is the failure the 2026-11-19 review found (17 scheduled sessions, 0 reader-visible changes).
+   Every entry also has a **Set aside** section: each previous Next item or ACCEPTED proposal not
+   done, and why.
 
    | Check | Where | Healthy |
    |---|---|---|

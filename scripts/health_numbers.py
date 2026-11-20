@@ -249,6 +249,9 @@ def line(today: datetime | None = None) -> str:
             + ". Evidence base at `1m`: " + evidence_base(today)
             + ". Priority 0: " + priority_0()
             + ". Top open roadmap item: " + top_roadmap(today) + "."
+            # Not one of rule 8's five: the product's own pulse, beside them so the trade between
+            # defect-fixing and product work is visible when it is made (2026-11-19).
+            + " Shipped to readers: " + wb.shipped_to_readers(today=today) + "."
             + held_back_text(held_back()))
 
 

@@ -111,6 +111,11 @@ Do not rely on impressions. Go and look:
   what the owner's sessions left open*; at 24/14 it is most of the throughput and
   the rotation has to carry the roadmap itself.
 
+**Read the product's pulse first** (added 2026-11-19): the "Shipped to readers" clause at the end of
+each health line since then - commits that changed what a reader sees, and methodology changes, per
+week (`write_brief.shipped_to_readers`). A fortnight of zeros while every session was busy is the
+failure this routine is most prone to; say whether it happened and why.
+
 ## 2. Answer these honestly
 
 Write the answers into the log. Short and specific, no hedging.

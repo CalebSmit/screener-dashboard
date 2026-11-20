@@ -36,6 +36,48 @@ def git(*args: str) -> str:
         return ""
 
 
+# What a reader of the site or the lab sees: the page and its payload builder, the per-stock
+# sentences, the methodology page's generator, the research page, the lab. A commit that touches one
+# of these changed something a user can see or read; one that touches none did not (2026-11-19).
+READER_FACING = ("generate_dashboard.py", "stock_summary.py", "run_screener.py", "research_page.py",
+                 "lab.html", "lab_engine.js", "factor_lab.py", "metric_lineage.py", "calc_trace.py")
+# Commits that publish rather than change anything: the data loop's run and the brief.
+NOT_A_CHANGE = ("data: ", "brief: ", "Merge ")
+SHIPPED_DAYS = 7
+
+
+def shipped_to_readers(days: int = SHIPPED_DAYS, log_text: str | None = None,
+                       changelog: str | None = None, today: datetime | None = None) -> str:
+    """The one number for whether the routine is improving the product (2026-11-19).
+
+    Between 2026-11-05 and 11-19 seventeen scheduled sessions shipped no change a reader could see,
+    every one of them busy and defensible on the day, and no figure anywhere said so (the fresh-eyes
+    review, finding 4). Counted, not judged: commits in the last ``days`` days that changed a
+    READER_FACING file, and METHODOLOGY_CHANGELOG.md entries dated in the same window. Zero for a
+    week is the signal. ``log_text`` is ``git log --format=%x00%s --name-only`` output (tests).
+    """
+    today = today or datetime.now()
+    if log_text is None:
+        log_text = git("log", f"--since={days}.days", "--no-merges", "--format=%x00%s", "--name-only")
+    commits = 0
+    for block in log_text.split("\x00")[1:]:
+        lines = [ln.strip() for ln in block.strip().splitlines() if ln.strip()]
+        if not lines or lines[0].startswith(NOT_A_CHANGE):
+            continue
+        if any(f in READER_FACING for f in lines[1:]):
+            commits += 1
+    if changelog is None:
+        try:
+            changelog = (ROOT / "METHODOLOGY_CHANGELOG.md").read_text(encoding="utf-8")
+        except OSError:
+            changelog = ""
+    cutoff = (today - timedelta(days=days)).strftime("%Y-%m-%d")
+    entries = sum(1 for d in re.findall(r"^## (\d{4}-\d{2}-\d{2})", changelog, re.M) if d > cutoff)
+    flag = " - **nothing reached a reader this week**" if commits == 0 and entries == 0 else ""
+    return (f"{commits} commit(s) changed what a reader sees, {entries} methodology change(s), "
+            f"in the last {days} days{flag}")
+
+
 def newest(pattern: str) -> Path | None:
     files = sorted(LOGS.glob(pattern), key=lambda p: p.stat().st_mtime)
     return files[-1] if files else None
@@ -749,6 +791,7 @@ def main() -> int:
             a(f"| Top 5 | {', '.join(facts['top5'])} |")
         if facts.get("growth"):
             a(f"| Ranking's lean on growth | {facts['growth']} |")
+    a(f"| Shipped to readers | {shipped_to_readers()} |")
     a(f"| Evidence for weight changes | {ic_observations()} |")
     a(f"| Context signals | {context_record()} |")
     _filings = filing_check(tail(data_log))
