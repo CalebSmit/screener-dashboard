@@ -132,10 +132,13 @@ def _money(text: str) -> float:
     return float(m.group(1)) * {"B": 1e9, "M": 1e6, "K": 1e3, "": 1.0}[m.group(2)]
 
 
-def _eff_weights(fw: dict, scores: dict) -> dict:
-    total = sum(fw.get(c) or 0 for c in CATS if (fw.get(c) or 0) > 0 and _num(scores.get(c)))
-    return {c: ((fw.get(c) or 0) / total * 100 if total and (fw.get(c) or 0) > 0 and _num(scores.get(c)) else 0)
-            for c in CATS}
+def _eff_weights(fw: dict, scores: dict, fill: bool = False) -> dict:
+    """The weight each category carried for this stock, by the rule the payload states: since
+    2026-11-19 (``weights.missing_category_score``) an unscored category keeps its full weight and
+    counts at the sector median; a payload without that key shared the weight out instead."""
+    keeps = lambda c: (fw.get(c) or 0) > 0 and (fill or _num(scores.get(c)))  # noqa: E731
+    total = sum(fw.get(c) or 0 for c in CATS if keeps(c))
+    return {c: ((fw.get(c) or 0) / total * 100 if total and keeps(c) else 0) for c in CATS}
 
 
 def _days(data, s) -> int | None:
@@ -160,7 +163,7 @@ def test_every_line_is_the_payloads_own_fact_for_every_stock(data, ctx, cases):
         sm, fl, scores = _sm(s), s.get("flags") or {}, s.get("cat_scores") or {}
 
         # 1. the two lowest weighted categories, with the tiles' score and points
-        ew = _eff_weights(fw, scores)
+        ew = _eff_weights(fw, scores, _num(data["weights"].get("missing_category_score")))
         live = sorted((c for c in CATS if ew[c] > 0 and _num(scores.get(c))),
                       key=lambda c: (scores[c], CATS.index(c)))[:2]
         parts = re.findall(r"(\w+) at ([\d.]+) \(([\d.]+|—) of ([\d.]+) points\)", got["weakest"]["text"])

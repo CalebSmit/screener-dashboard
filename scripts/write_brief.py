@@ -148,6 +148,20 @@ def held_work_landed(lines: list[str]) -> bool:
     return False
 
 
+def refused_label(lines: list[str]) -> str:
+    """A data run its own gates discarded, and which gate (2026-11-20).
+
+    Called "stopped deliberately" until then. On 2026-11-20 the health line read "(stopped
+    deliberately; HEALTH: PASS)" for a run the published-claims gate had refused with seven failed
+    tests - accurate, and it sent the reader to the one gate that had passed. The runner's own
+    ``Run discarded`` line names the gate; say it."""
+    for msg in messages(lines):
+        if msg.startswith(STOPPED):
+            why = msg[len(STOPPED[0]):].lstrip(" :-").split(" - ")[0].strip().removeprefix("by ").rstrip(" .")
+            return f"refused by its publish gates ({why})" if why else "refused by its publish gates"
+    return "refused by its publish gates"
+
+
 # Written from the runner's `finally`, after everything else: a log without it is still running.
 FINISHED = ("Writing morning brief",)
 
@@ -207,7 +221,7 @@ def outcome(lines: list[str]) -> tuple[str, list[str]]:
             return "held back by its gates, and that work has since reached main", notable
         return "held back by its gates (work kept on its branch, not on main)", notable
     if said(lines, *STOPPED):
-        return "stopped deliberately", notable
+        return refused_label(lines), notable
     return "failed", notable
 
 
@@ -866,7 +880,7 @@ def main() -> int:
 
     a("---")
     a("")
-    a("If a run says **stopped deliberately** or **held back by its gates**, that is the safety")
+    a("If a run says **refused by its publish gates** or **held back by its gates**, that is the safety")
     a("gates working: the live dashboard was left untouched rather than published with bad data.")
     a("`logs/` has the detail, and `ROLLBACK.md` covers undoing anything.")
     a("")

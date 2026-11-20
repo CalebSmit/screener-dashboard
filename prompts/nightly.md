@@ -409,6 +409,15 @@ gates eleven times in an evening while the regenerated page sat 8 elements over 
 budget; the next session's baseline would have been red. (`--full` runs the whole suite against
 the regenerated page.)
 
+**The rehearsal cannot see a scoring change.** It regenerates the page from a run *scored before*
+your change, so a new rule in `factor_engine.py`, `run_screener.py` or `config.yaml` reaches the
+claims gate first at 02:00 (it prints `ENGINE CHANGED` when that is the case). So, for a scoring
+change: **grep the tests for the old rule's wording and numbers**, and wherever the page branches
+on a new payload field, **write a test that sets that field in the browser** and checks the new
+branch (`tests/test_dashboard_printed_figures.py`, "made by hand"). 2026-11-20: the missing-category
+rule passed gate 5 and the first full run under it was refused - four tests still asserted the old
+wording, and nothing could see them until a payload carried the new field.
+
 **Do not commit** `validation/data_quality_log.csv`, `factor_output.xlsx`, or
 `sp500_tickers.json` unless changing them *is* the work. Stage files explicitly;
 never `git add -A`.

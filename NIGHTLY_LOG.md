@@ -9628,3 +9628,204 @@ three of its ideas fit, and the owner said to keep going. `logs/.owner-session` 
 1. **06:00 today is the overdue retrospective** - read the three owner-run entries of 11-19/20, the
    review note, and judge the presentation-only exit and the "Shipped to readers" number.
 2. The 02:00 run: HEALTH: PASS; `missing_category_score` and `variance_share` in the payload.
+
+## 2026-11-20 - RETROSPECTIVE. The 02:00 run refused and fixed first; the watchdog was blind to a week of aborted sessions; gate 5 is blind to the engine
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-11-19_130000-midday.log`
+(completed). Data loop published? **no** - `logs/datarun-2026-11-20_020001.log`, HEALTH: PASS, then
+**refused by the published-claims gate (7 failed)**; fixed this session, see below - the 18:00 retry
+publishes once this branch is merged. Evidence base at `1m`: **54 rows, newest 2026-10-19 (32 days ago,
+bound 40), 5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top open roadmap item:
+**0.15, What the ranking is for** (opened 2026-11-19, **age 1 day**); also open 0.13 (39 d, a standing
+programme), 0.10 (44 d), 0.14 (37 d). Shipped to readers: 13 commits, 8 methodology changes in 7 days.
+The health line also names `origin/nightly/2026-11-20` as held back - that is this branch, pushed
+early; not a stranded one.
+**Tests:** baseline **4,443 passed / 1 skipped** (green, matches the runner's 06:04 baseline). After: see
+"Gates" below. No owner-session marker; `git stash list` empty.
+
+### Did (before the retrospective): the refused data run
+
+The 02:00 run scored 499 stocks, passed every health check, and was refused by
+`scripts/check_published_claims.py`: `test_case_against`, four in `test_dashboard_printed_figures`,
+`test_sheet_round_three`. Reproduced with `scripts/rehearse_publish.py` against run `4793e4da8a1a` (FAIL,
+same 7). **The page was right; the tests were stale.** The 2026-11-19 late-evening rule (an unscored
+category counts at 50 at full weight) shipped its generator branch keyed on the payload's
+`weights.missing_category_score`, but four tests still asserted the old "its weight is shared across the
+others" wording and a renormalised weight. Gate 5 had passed the change because it regenerated the page
+from the 11-19 run, scored *before* the rule, so the page took the old branch. Each test now checks the
+branch the payload's own field selects (and the hand-made cases set the contribution as the engine
+would). **Rehearsal against the refused run: PASS.** Commit `c8e40ec`.
+
+(A false alarm of my own on the way, recorded so nobody repeats it: `logs/rehearse-publish/site/index.html`
+is a stale leftover from 11-06 - the rehearsal installs `dashboard.html` as the index. Copying the site
+folder by hand installs an old page.)
+
+### Retrospective findings
+
+- **Sessions reviewed: 49 log entries, 2026-10-30 13:00 to 2026-11-20 00:30 - 24 scheduled, 25 owner-run**;
+  plus **15 scheduled slots that never started** (of ~43) and 1 gate-refused session (11-02 06:00, red
+  baseline inherited).
+- **Genuinely valuable: 24 of 24 scheduled entries, ~22 of 25 owner-run | Churn: 0 | Failed gates: 2**
+  (11-02 gate 1 on an inherited red `main`; 11-04 gate 5, unreproducible, merged by hand after three
+  passes) **| Never started: 15** (11-01 06:00, 11-01 13:00, 11-02 13:00 on a lapsed login; 11-10 13:00 on
+  a too-old CLI; eleven from 11-11 07:38 to 11-16 13:00 with no CLI on PATH).
+- **Data loop: 8 of 15 02:00 runs refused** (11-02, 06, 09, 10, 11, 12, 16, 20), all 8 by the
+  claims gate. **3 caught a real page defect** - a false "growth-neutral" sentence (11-02), a false
+  equality on 11 clamped rows (11-06), a 2 px sideways scroll on phones (11-12, twice); **5 were a wrong
+  test** - FOXA's share-class premise and the lab's font timing (11-09), Best Buy read as advice (11-10),
+  a footnote needing three movers (11-11 twice, 11-16), and today's stale rule. The 18:00 retry
+  (since 11-10) recovered 11-10 and 11-16 the same day.
+
+**1. What fraction produced something valuable?** Every scheduled entry did: six proposals decided
+(TTM fill refused on a measurement the note had not made; growth drift decided; Investment's fold
+refused; the IV inversion accepted; short interest and 13F refused as unmeasurable as written; share
+counts decided), lab experiment 19, the first-paint shard (-25% gzipped over a day), the per-band health
+gate, sixteen stocks found scored on last year's statements, a double-counted cash flow on the #8 stock,
+the co-registrant filings traced, the $2B floor that never fired, the engine's share counts traced. The
+owner-run sessions shipped most of the reader-facing storytelling (gauges, leader history, Compare,
+price age) and the infrastructure that saved later days (18:00 retry, CLI-login expiry check, gate 5,
+saved gate output). The ones I would not count: two late-night entries that are mostly polish
+(11-05 "professional and expensive", 11-06 00:00 Compare strip) are real but are exactly the design
+work CLAUDE.md says nightly sessions should not take on - the owner asked for them, so not churn.
+**The waste was not in sessions that ran; it was 15 that never started and 5 refused nights.**
+
+**2. Which rotation day earns its place?** Tuesday (product-through-numbers) earned it twice of three
+(11-17's sixteen stale statements is the best product fix of the window; 11-10's was eaten by refused
+runs). Wednesday's widened remit worked: 11-18 read six weeks of caveats as one layer and found a
+sentence false for all 27 stocks it was printed for. Thursday ran twice, both real. **Monday did not
+produce a literature note in three weeks** - 11-02 and 11-16 never started, 11-09 went to a stalled data
+loop first and then wrote a measurement note (share counts, 0 DOIs, 6 sources marked "not read"). Not a
+rotation fault, but the consequence is real: of 17 research notes in the window only 4 carry a DOI, and
+the one scoring rule that changed (missing category at 50) was argued from an arXiv preprint in a
+late-evening owner session. The next Monday (11-23) has 0.15 queued, pre-registered - the right subject.
+Friday: 11-06 deferred to the data loop and the 13:00 slot did the lab; 11-13 was lost. No change to the
+rotation; it is working when sessions run.
+
+**3. Is the evidence standard holding?** For the changelog, yes: 16 entries since 10-30, all 16 with an
+Evidence section, all specific. But 11 of 16 are display/context/data-source corrections, not scoring,
+which is the right kind of work for a tool with no measured edge. Research notes are mostly
+investigations of the project's own data, done properly (measurement scripts committed, proposals with
+status lines), and thin on literature. Not degraded into assertion; drifted toward engineering.
+
+**4. What keeps going wrong?** Three things.
+- **Tests whose premise moves without a commit**, still the top cost: 5 of 8 refusals. The
+  `premise->red` rules are right; today's instance is a new sub-kind - a test that was correct for the
+  old *rule* rather than the old *data*, and nothing ran it against a payload carrying the new rule.
+- **Machine state broken from a desktop-app session** (11-10's CLI install into the sandbox): eleven
+  sessions. The runner now reinstalls a missing CLI; memory records the cause.
+- **A failure label set on one path and not another.** The brief's `SESSION DID NOT RUN` suffix was set
+  only when a transcript was judged failed. A run that aborted before invoking Claude published the label
+  of a session that ran, and **the watchdog - whose 11-02 upgrade exists to ask "did a session actually
+  run?" - reported the code loop OK on 11-13**, the third day of the outage (its verdict: "0 of the last
+  11 weekdays missed" for "Session ran"). Its 11-12 alarm was about the data loop, and on 11-13 it closed
+  issue #3 as recovered. The owner found the outage by hand on 11-16. Fixed today.
+
+**5. Closer to the place you'd look before buying or selling?** Closer on honesty and inputs: the page
+now states that the ranking has no measured edge, says when a statement is a year old, when a quarterly
+column is year-to-date, when a price is stale, and why an unscored category counts at 50 - and SanDisk
+is no longer #1 because a download failed. The blocker is unchanged and now stated on the page: no
+demonstrated edge (pooled IC -0.001 over 176 months). 0.15 is the right next question - what the ranking
+is *for* - and it is a Monday, not a build.
+
+**6. What is the routine blind to?**
+- **Scoring changes, at gate 5** - it re-runs the generator, not the engine (sixth row of the score
+  table). Mitigated today, not closed.
+- **Whether its own watchdog tells the truth.** Nobody had compared its verdicts with the logs for the
+  same days; doing so took one command. Now an evidence item in the retrospective prompt.
+- **When a change lands relative to 02:00.** The one scoring change in the window shipped at night, a
+  few hours before the first run that could exercise it; the claims gate was its first real test.
+
+**Runner enumeration (step 1).** `scripts/retro_artifact_coverage.py`: no new unguarded artifact -
+`dashboard_detail.js` (new 11-08) is in both runners' parse specs and 16 gate modules;
+`sp500_tickers.json` has no gate module but a short or corrupt list fails `check_run_health`'s >= 490
+ranked; `signals.json` is written after every gate by construction. The claims gate is still derived
+from `claims.py` (its tests pass). The new hole is on the code loop's side: gate 5.
+
+### Process changes made
+
+1. **The brief names the gate that refused a data run** (`write_brief.refused_label`): "refused by its
+   publish gates (published-claims check failed)" instead of "stopped deliberately". Today's health line
+   read "(stopped deliberately; HEALTH: PASS)" for a run refused with 7 failures, pointing the reader at
+   the one gate that had passed; the 11-06 session had to add "the publish gate refused" by hand.
+   Commit `a96295a`, 3 tests updated.
+2. **Gate 5 says when it cannot see the change** (`rehearse_publish.engine_changed_since_run`): it
+   prints `ENGINE CHANGED` when `factor_engine.py`, `run_screener.py`, `config.yaml`, `presets.py`,
+   `universe.py` or `portfolio_constructor.py` differ from the commit the rehearsed run was scored with;
+   the runner logs it at WARN beside the verdict, which it does not change. `prompts/nightly.md` section
+   4 says what to do: grep the tests for the old rule's wording, and test any page branch keyed on a new
+   payload field by setting the field in the browser. Commit `b2edc70`, 3 new tests. **A mitigation**: the closure is
+   re-scoring the rehearsed run's `01_raw_metrics.parquet` with the branch's engine, which `run_screener.py`
+   has no entry point for (flagged below).
+3. **A code run that never invoked Claude is labelled `SESSION DID NOT RUN`** (`$SessionInvoked`, set on
+   the line after the invocation; the `finally` label requires it). Exits before the runner's `try` publish
+   no brief, so every brief published without an invocation now carries the suffix the watchdog's
+   "Session ran" question already excludes. Commit `99ebd1d`, 1 new test in `tests/test_loop_watchdog.py`.
+4. **`CLAUDE.md` 1,089 -> 940 lines**: 21 blocks moved verbatim to `DECISIONS.md` ("Moved out of
+   CLAUDE.md, 2026-11-20"), each replaced by its constraint - gate histories, rule 8/10/11 narratives,
+   repo growth, T0b, items 4 and 8, the lab chronology, the ledger-staleness measurement. **Three
+   statements were false** and are corrected: weight question 3 and the growth-drift proposal were named
+   OPEN 16 and 17 days after being decided, and the engine section said "6 rows but 2 effective" at `1m`.
+5. **`prompts/retrospective.md`**: the sixth row in the score table with its lesson (a rehearsal is only as
+   wide as what it re-executes); a new evidence item, the watchdog's verdicts against the logs for the
+   same days; counts of sessions that never started and refused data runs, page-wrong vs test-wrong; the
+   split at 24/25. The session-duration paragraph cut to a clause. Commits `107fb8a`, `a8e70a6`.
+
+### Methodology changed
+
+- none. Four tests were brought level with the 2026-11-19 rule; no weight, threshold or formula moved.
+
+### Tried and rejected
+
+- **Re-scoring inside gate 5** (re-run the engine on the rehearsed run's raw metrics). The right closure,
+  and not something to build unattended in a retrospective: `run_screener.py` has no stage entry point,
+  a full run writes the evidence files the publish gate guards, and a second live fetch within hours is
+  what has throttled every past run. Flagged.
+- **Making `ENGINE CHANGED` a gate failure.** It would refuse every scoring change unless the session ran
+  a full run first, which on the code path means a second live fetch the same day. A warning that names
+  the instruction is the stricter thing I can defend; gate 5's verdict is unchanged.
+- **Publishing with ATTENTION when a test of page *wording* fails** (today's 7 would have published the
+  correct page a day earlier). That is weakening a publish gate and not mine to do - the case is below.
+
+### Set aside
+
+- 11-20 00:30 Next 1 (retrospective judging the presentation-only exit and "Shipped to readers"): done -
+  the exit would have applied to 1 of 8 refusals (11-12, a real 2 px overflow, correctly published with a
+  warning under the new rule); "Shipped to readers" read 13/8 today, and the week it would have read near
+  zero (11-10..16) is the CLI outage, which it would have shown.
+- 11-19 13:00 Next 1, **the lab's Friday (`EarningsSurprise`)**: not done - today is the owed
+  retrospective, which takes Friday by rule. Lab last advanced 2026-11-07 per its plan; next Friday
+  (11-27) is a lab Friday.
+- 11-19 13:00 Next 2 (today's 02:00 HEALTH PASS without the continuity override): done - Spearman 0.998,
+  override not used; the run was refused later, by the claims gate, and fixed.
+- 11-19 13:00 Next 3 (the share-count rebuild, a 06:00 session to itself): not done - a retrospective
+  does not work on the screener. Still queued.
+- 11-19 13:00 Next 4 (Monday on the quarterly-series hole by 12-07; SEC refresh with co-registrant code
+  ~11-25): not due.
+
+### Next
+
+1. **Confirm the 18:00 retry publishes** (`logs/datarun-2026-11-20_180*.log` ends "Data loop complete")
+   once this branch is merged; if the merge did not happen, merging it is the 13:00 session's first job.
+2. **Monday 2026-11-23: 0.15**, the pre-registered note on what the ranking is for
+   (`research/2026-11-19-what-the-ranking-is-for.md` section 3) - with literature: two or more primary
+   sources on screens judged by what a user does with the shortlist, not by rank IC.
+3. Unchanged: the share-count rebuild (a 06:00 session to itself); the lab's Friday on 11-27.
+
+### Flagged for the owner
+
+- **The claims gate refused 8 of 15 nights; 5 of the 8 were a wrong test, not a wrong page.** The 18:00
+  retry turns most of those into a same-day delay when a session fixes the test, but on 11-11/12 (CLI
+  outage) the site went two days stale for a test needing three movers. You delegated the layout-only
+  exit on 11-19; the next candidate is the same idea for failures confined to *wording* tests whose page
+  arithmetic checks all pass. I have not done it - it weakens a publish gate - and I am not sure it is
+  right: 2 of the 3 true catches (11-02, 11-06) were wording and arithmetic. Worth a decision with those
+  numbers in front of you.
+- **Gate 5 cannot see a scoring change.** The honest fix is an offline re-score of the rehearsed run's
+  raw metrics with the branch's engine (no fetch, no evidence files written). It needs `run_screener.py`
+  split at the scoring stage - an owner-run or a dedicated session's work, not a retrospective's.
+- **The one scoring rule in three weeks shipped at ~23:00, three hours before the run that exercised it.**
+  Not a rule violation - and it was well argued - but a methodology change shipped by day leaves the
+  06:00 and 13:00 sessions a rehearsal and a look before 02:00. Your call whether late-night owner
+  sessions should hold scoring changes for a morning merge.
+- **Watchdog**: fixed at the label; nothing to decide. But note issue #3 was auto-closed on 11-13 as
+  "recovered" while every code session was aborting - if you rely on it, that is the week it lied.

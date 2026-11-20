@@ -160,3 +160,39 @@ def test_no_full_run_is_a_warning_not_a_verdict(monkeypatch, capsys):
     monkeypatch.setattr(rp, "changed_since", lambda base: ["generate_dashboard.py"])
     assert rp.main(["--changed-since", "abc123"]) == rp.NO_RUN == 3
     assert "SKIPPED" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------- engine changes (2026-11-20)
+def test_a_scoring_change_is_named_and_a_page_change_is_not():
+    """The rehearsal regenerates the page from a run scored before the change, so a scoring change
+    is the one thing it cannot show. It names those files; a generator change it can show is not one."""
+    got = rp.engine_changes(["factor_engine.py", "generate_dashboard.py", "tests\\test_x.py",
+                             "config.yaml", "README.md"])
+    assert got == ["config.yaml", "factor_engine.py"]
+    assert rp.engine_changes(["generate_dashboard.py", "stock_summary.py", "claims.py"]) == []
+
+
+def test_a_run_scored_before_an_engine_commit_is_reported(tmp_path):
+    """2026-11-19's missing-category rule (be7455e) changed factor_engine.py. A run whose meta.json
+    records the commit before it was scored by the old engine, and the note must say so. A run that
+    records no commit gets no note rather than a guess."""
+    import json
+    import subprocess
+    parent = subprocess.run(["git", "rev-parse", "be7455e~1"], cwd=ROOT, capture_output=True, text=True)
+    if parent.returncode != 0:
+        pytest.skip("MISSING DATA: history before be7455e is not in this clone")
+    (tmp_path / "meta.json").write_text(json.dumps({"git_sha": parent.stdout.strip()}), encoding="utf-8")
+    assert "factor_engine.py" in rp.engine_changed_since_run(tmp_path)
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    assert rp.engine_changed_since_run(bare) == []
+    (bare / "meta.json").write_text(json.dumps({"git_sha": "unknown"}), encoding="utf-8")
+    assert rp.engine_changed_since_run(bare) == []
+
+
+def test_the_runner_logs_the_engine_note_without_changing_the_verdict():
+    """The note is a WARN beside gate 5's verdict: it may not add to the gate failures."""
+    ps = (ROOT / "scripts" / "nightly-screener.ps1").read_text(encoding="utf-8-sig")
+    i = ps.index("'^ENGINE CHANGED'")
+    block = ps[i:ps.index("}", ps.index("Write-Log", i)) + 1]
+    assert "'WARN'" in block and "gateFailures" not in block

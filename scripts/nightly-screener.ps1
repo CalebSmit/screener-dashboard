@@ -287,6 +287,11 @@ Set-Content -Path $LockFile -Value $PID -Encoding utf8
 # here so `finally` can read them however the run ends.
 $SessionFailed = $false
 $SessionError  = ''
+# Whether Claude was invoked at all. A run that stops before it - a missing CLI, no network, an
+# unhandled error in setup - still publishes a brief, and until 2026-11-20 that brief carried the
+# label of a session that ran: eleven sessions aborted on 'claude is not on PATH' (11-11..11-16)
+# and the watchdog, which reads that label from outside the machine, counted every one as ran.
+$SessionInvoked = $false
 
 # --- Run-once-per-day guard --------------------------------------------------
 # These tasks use InteractiveToken, so they only fire while a user is logged on.
@@ -707,6 +712,7 @@ try {
 
     # --- Run the session ----------------------------------------------------
     Write-Log "Invoking Claude Code..."
+    $SessionInvoked = $true
     $JsonLog = Join-Path $LogDir "nightly-$Stamp$SlotTag.json"
     $Prompt | claude --print --permission-mode acceptEdits --output-format json |
         Out-File -FilePath $JsonLog -Encoding utf8
@@ -935,6 +941,11 @@ try {
     # full run exists to rehearse from - a warning, never a failure (the node precedent above).
     $r5 = Invoke-Native 'python' @('scripts/rehearse_publish.py', '--changed-since', $BaseSha)
     $r5tail = ($r5.Output | Where-Object { "$_".Trim() } | Select-Object -Last 1)
+    # The rehearsal cannot see a scoring change (it regenerates from a run scored before it); say so
+    # whatever the verdict. 2026-11-20: the missing-category rule passed here and was refused at 02:00.
+    foreach ($ln in ($r5.Output | Where-Object { "$_" -match '^ENGINE CHANGED' } | Select-Object -First 1)) {
+        Write-Log "GATE 5 note: $("$ln".Trim())" 'WARN'
+    }
     if ($r5.ExitCode -eq 0) { Write-Log "GATE 5 publish rehearsal: PASS ($r5tail)" }
     elseif ($r5.ExitCode -eq 3) { Write-Log "GATE 5 publish rehearsal: SKIPPED ($r5tail)" 'WARN' }
     else {
@@ -1096,7 +1107,7 @@ catch {
     exit 1
 }
 finally {
-    $briefLabel = if ($SessionFailed) { "code session $Date$SlotTag - SESSION DID NOT RUN" } else { "code session $Date$SlotTag" }
+    $briefLabel = if ($SessionFailed -or -not $SessionInvoked) { "code session $Date$SlotTag - SESSION DID NOT RUN" } else { "code session $Date$SlotTag" }
     # Publish-Brief runs git, so the repo lock is released after it, not before. A slot that
     # stood down touched nothing and has nothing to report.
     if (-not $SkipBrief) { Publish-Brief $briefLabel }

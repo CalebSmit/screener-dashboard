@@ -147,7 +147,7 @@ class TestStallBanner:
         )[0].startswith("held back by its gates")
         assert wb.outcome(
             ["[02:20:00] [ERROR] Run discarded by health check - the live dashboard is unchanged."]
-        )[0] == "stopped deliberately"
+        )[0] == "refused by its publish gates (health check)"
 
 
 class TestOpenProposals:
