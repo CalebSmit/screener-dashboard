@@ -9548,7 +9548,10 @@ interval -0.0177 to +0.015, 0 better). *Backtest observation, not decision-grade
 
 ### Gates
 
-See the gate line appended below after the final run.
+Gate 1 **4,438 passed / 1 skipped / 0 failed** (4:31; one failure on the first run - the Drives figure
+skipped the page's near-zero percentage rule - fixed). Gate 2 dry run passes; gate 3 `node --check` on
+all three payloads passes; gate 5 **REHEARSAL PASSED** (claims gate 2,391 passed / 1 skipped),
+published files restored byte for byte; gate 4 clean.
 
 ### Next
 
