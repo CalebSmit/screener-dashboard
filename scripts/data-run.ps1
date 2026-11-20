@@ -518,8 +518,9 @@ try {
     # days earlier, and pushed them live - while the tests that say those claims
     # are false sat in the repository, unread, failing in 0.36s.
     #
-    # Narrow on purpose: the modules that speak for the artifacts THIS run
-    # rewrote, ~15s against the full suite's 124s. Running everything would mean
+    # It is not narrow any more (~87 modules, ~2,400 tests, 2026-11-19), so since 2026-11-19 a
+    # failure confined to named layout checks publishes with an ATTENTION line instead of
+    # discarding the run (exit 6 below). Running everything would mean
     # one unrelated red test stops the evidence loop as well as the code loop.
     # See scripts/check_published_claims.py for the membership rule.
     #
@@ -532,6 +533,13 @@ try {
     Write-NativeOutput $claims
     if ($claims.ExitCode -eq 3) {
         Write-Log "Published claims NOT verified (pytest unavailable) - publishing on the earlier checks alone." 'WARN'
+        $GateVerdicts['published_claims'] = 'warn'
+    }
+    elseif ($claims.ExitCode -eq 6) {
+        # Exit 6: every number, payload and sentence check passed and only named layout checks
+        # (check_published_claims.PRESENTATION) failed. Publish, and say so in the brief - a page that
+        # looks wrong on a phone is not a reason to discard a day of evidence (owner, 2026-11-19).
+        Write-Log "ATTENTION - PAGE LAYOUT: only presentation checks failed (see above); the numbers and sentences passed, so publishing." 'WARN'
         $GateVerdicts['published_claims'] = 'warn'
     }
     elseif ($claims.ExitCode -ne 0) {

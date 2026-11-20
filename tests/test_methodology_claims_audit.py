@@ -603,11 +603,18 @@ def test_the_engine_flags_outside_03_to_2x_and_drops_growth_only_on_the_fallback
         # The fallback construction still sets growth to NaN on an extreme ratio, and only then.
         assert r["_feg_basis"] == "fy2_over_trailing"
         assert bool(np.isnan(r["forward_eps_growth"])) is flagged, (fwd / trail, r["forward_eps_growth"])
-    # The twelve-month construction does not use that pair, so the flag does not remove it.
+    # The twelve-month construction does not use that pair, so the flag does not remove it - and
+    # since 2026-11-19 the flag there compares GAAP trailing EPS with the consensus basis's own last
+    # four quarters (4 x 1.0 = 4.0 here), outside a 1.5x band either way, whatever forward EPS says.
     for fwd in (10.1, 1.45):
         r = _feg_row(fwd, trail, twelve_month=True)
-        assert r["_eps_basis_mismatch"] and r["_feg_basis"] == "msci_12m"
+        assert r["_feg_basis"] == "msci_12m"
+        assert not r["_eps_basis_mismatch"], "5.0 against 4.0 is the same basis; forward EPS is growth"
         assert np.isfinite(r["forward_eps_growth"]), "the flag removed a twelve-month growth figure"
+    for t, flagged in ((6.1, True), (5.9, False), (2.6, True), (2.7, False)):
+        r = _feg_row(10.1, t, twelve_month=True)
+        assert bool(r["_eps_basis_mismatch"]) is flagged, (t / 4.0, r["_eps_basis_mismatch"])
+        assert np.isfinite(r["forward_eps_growth"])
 
 
 # ---------------------------------------------------------------------------

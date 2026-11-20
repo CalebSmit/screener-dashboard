@@ -117,8 +117,12 @@ def _as_payload(df: pd.DataFrame, cfg: dict) -> dict:
         if wp:
             stock["wp"] = wp
         stocks[row["Ticker"]] = stock
+    # `missing_category_score` as `generate_dashboard._with_weight_profiles` publishes it - the
+    # payload states the rule its composites were built with (2026-11-19).
+    from factor_engine import MISSING_CATEGORY_SCORE
     weights = {"profiles": published_weight_profiles(cfg),
-               "factor_weights": dict(cfg["factor_weights"])}
+               "factor_weights": dict(cfg["factor_weights"]),
+               "missing_category_score": MISSING_CATEGORY_SCORE}
     return {"weights": weights, "stock_detail": stocks}
 
 

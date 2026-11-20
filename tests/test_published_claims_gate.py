@@ -491,3 +491,60 @@ def test_claude_md_records_that_the_data_loop_checks_published_claims():
         "CLAUDE.md must describe this gate, or the next session will not know it "
         "exists and may 'simplify' it away"
     )
+
+
+# ---------------------------------------------------------------------------
+# Presentation-only failures publish with a warning (owner decision, 2026-11-19)
+# ---------------------------------------------------------------------------
+
+def test_a_failure_confined_to_named_layout_checks_is_presentation_only(monkeypatch, capsys):
+    one = next(iter(gate.PRESENTATION))
+    out = (f"F.\nFAILED {one}[4] - AssertionError: 2px wider than the phone\n"
+           "1 failed, 1 passed in 3.0s\n")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _Proc(1, out))
+    assert gate.run([]) == gate.PRESENTATION_ONLY == 6
+    assert "PRESENTATION ONLY" in capsys.readouterr().out
+
+
+def test_any_other_failure_alongside_a_layout_one_still_refuses(monkeypatch):
+    one = next(iter(gate.PRESENTATION))
+    out = (f"FAILED {one} - AssertionError: x\n"
+           "FAILED tests/test_calculation_reproducibility.py::test_x - AssertionError: y\n"
+           "2 failed in 3.0s\n")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _Proc(1, out))
+    assert gate.run([]) == 1
+
+
+def test_an_error_in_a_layout_test_with_no_failure_lines_still_refuses(monkeypatch):
+    """No FAILED line to classify is never 'presentation only'."""
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _Proc(1, "1 failed in 3.0s\n"))
+    assert gate.run([]) == 1
+
+
+def test_every_presentation_entry_names_a_real_test_in_the_gate():
+    """A stale name would quietly stop matching; a name outside the gate would match nothing."""
+    import re
+    mods = set(gate.module_paths())
+    for node, why in gate.PRESENTATION.items():
+        mod, _, fn = node.partition("::")
+        assert mod in mods, f"{node}: module not in the publish gate"
+        src = (ROOT / mod).read_text(encoding="utf-8")
+        assert re.search(rf"^def {re.escape(fn)}\(", src, re.M), f"{node}: no such test"
+        assert why.strip(), f"{node}: give the reason"
+
+
+def test_no_check_of_a_number_or_sentence_is_presentation():
+    """The split's whole premise: only layout. A reproducibility, claims, advice or payload
+    module may never appear in PRESENTATION."""
+    never = ("calculation_reproducibility", "claims_register", "bot_payload_contract",
+             "stock_summary", "metric_lineage", "overview_claims", "one_observation",
+             "tradable_signals", "advice_ban", "missing_category")
+    for node in gate.PRESENTATION:
+        assert not any(n in node for n in never), node
+
+
+def test_the_data_loop_publishes_on_exit_6_with_an_attention_line():
+    ps = (ROOT / "scripts" / "data-run.ps1").read_text(encoding="utf-8-sig")
+    i = ps.index("$claims.ExitCode -eq 6")
+    block = ps[i:ps.index("elseif ($claims.ExitCode -ne 0)", i)]
+    assert "ATTENTION - PAGE LAYOUT" in block and "Stop-Run" not in block

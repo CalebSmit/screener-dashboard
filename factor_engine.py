@@ -2692,10 +2692,26 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         # the Growth category score only.
         # Flag when the ratio is extreme (>2x or <0.3x), which suggests
         # large non-recurring items distorting the growth metric.
+        # 2026-11-19: what the flag is *for* is the sentence the stock sheet prints with it - "its
+        # reported and normalised EPS disagree". Yahoo's `forwardEps` is next year's consensus, so
+        # forward / trailing measured expected *growth*: SNDK, MU and AVGO were flagged with GAAP
+        # and the consensus basis within 25% of each other, while WDC (28.43 vs 13.05) and CINF -
+        # the methodology page's own example of the two bases diverging - were not. Where the
+        # consensus basis's own last four quarters exist (`_feg_b12`, 496 of 499 stocks) the flag
+        # now compares like with like: GAAP trailing EPS against that figure, flagged when they
+        # have opposite signs or the larger is more than 1.5x the smaller. The old ratio is kept
+        # only where `_feg_b12` is missing. research/2026-11-19-fresh-eyes-review.md, finding 6b.
         try:
             _trail = d.get("trailingEps", np.nan)
             _fwd = d.get("forwardEps", np.nan)
-            if pd.notna(_trail) and pd.notna(_fwd) and abs(_trail) > 0.10:
+            _b12_flag = rec.get("_feg_b12", np.nan)
+            if (pd.notna(_trail) and pd.notna(_b12_flag) and abs(_trail) > 0.10
+                    and abs(_b12_flag) > 0.10):
+                _eps_ratio = _trail / _b12_flag
+                rec["_eps_ratio"] = round(_eps_ratio, 2)
+                rec["_eps_basis_mismatch"] = bool(_eps_ratio < 0 or _eps_ratio > EPS_BASIS_BAND
+                                                  or _eps_ratio < 1.0 / EPS_BASIS_BAND)
+            elif pd.notna(_trail) and pd.notna(_fwd) and abs(_trail) > 0.10:
                 _eps_ratio = _fwd / _trail
                 if _eps_ratio > 2.0 or _eps_ratio < 0.3:
                     rec["_eps_basis_mismatch"] = True
@@ -3958,6 +3974,50 @@ def coverage_minimum(n_applicable: int, min_pct: float) -> int:
     return max(1, int(n_applicable * (min_pct / 100)))
 
 
+# GAAP trailing EPS against the consensus basis's own last four quarters: flagged as disagreeing when
+# the larger is more than this multiple of the smaller, or they differ in sign (2026-11-19).
+EPS_BASIS_BAND = 1.5
+
+
+# A category a stock cannot be scored on counts at the sector median, at its full weight
+# (2026-11-19, research/2026-11-19-missing-category-at-neutral.md). Category scores are weighted
+# averages of sector percentiles, so 50 is "average for its sector" - the 0-100 equivalent of the
+# z = 0 a practitioner model gives a missing exposure. Before, the category's weight was shared
+# across the stock's other categories, which is the same as scoring the missing one at the
+# stock's own average of the rest: SNDK's price history failed to download on 2026-11-19, its
+# Momentum and Risk (Risk 1/100 the day before) were filled with its own ~79, and it went from
+# 7th to 1st. Within a category the metric-level rule is unchanged - a missing metric's weight is
+# shared across the category's other metrics, which measure the same thing.
+MISSING_CATEGORY_SCORE = 50.0
+
+
+def category_terms(df: pd.DataFrame, fw: dict, col_map: dict):
+    """(category, weight, score with a missing value counted at MISSING_CATEGORY_SCORE).
+
+    Every category with a positive weight whose score column exists. A category whose weight the
+    run set to 0 (auto-disable, a profile) is not a term at all, exactly as before.
+    """
+    for cat, col in col_map.items():
+        w = fw.get(cat, 0)
+        if col not in df.columns or not w:
+            continue
+        yield cat, w, df[col].astype(float).fillna(MISSING_CATEGORY_SCORE)
+
+
+def _composite_sums(df: pd.DataFrame, fw: dict, col_map: dict):
+    """(weighted sum, weight sum) per row. A stock with no category score at all has a weight
+    sum of 0 - and so no composite - rather than a composite of 50 made entirely of fill."""
+    weighted_sum = pd.Series(0.0, index=df.index)
+    weight_sum = pd.Series(0.0, index=df.index)
+    any_scored = pd.Series(False, index=df.index)
+    for cat, w, filled in category_terms(df, fw, col_map):
+        weighted_sum += filled * w
+        weight_sum += w
+        any_scored |= df[col_map[cat]].notna()
+    weight_sum = weight_sum.where(any_scored, 0.0)
+    return weighted_sum, weight_sum
+
+
 def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     if df.empty:
         df["Composite"] = pd.Series(dtype=float)
@@ -3971,20 +4031,11 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         "risk": "risk_score", "revisions": "revisions_score",
         "size": "size_score", "investment": "investment_score",
     }
-    # Per-row weighted average: only count categories that have data.
-    # NaN category scores are excluded and their weight is redistributed
-    # to available categories (mirrors compute_category_scores() logic).
-    # Without this, a single NaN category propagates to NaN composite
-    # and the stock silently vanishes from the ranking.
-    weighted_sum = pd.Series(0.0, index=df.index)
-    weight_sum = pd.Series(0.0, index=df.index)
-    for cat, col in col_map.items():
-        w = fw.get(cat, 0)
-        if col not in df.columns or w == 0:
-            continue
-        has_data = df[col].notna()
-        weighted_sum += df[col].fillna(0) * w * has_data.astype(float)
-        weight_sum += w * has_data.astype(float)
+    # Per-row weighted average over every weighted category. A category this stock could not be
+    # scored on counts at MISSING_CATEGORY_SCORE (50, the sector median) at its full weight -
+    # see `category_terms`. Until 2026-11-19 its weight was redistributed to the categories the
+    # stock did have, which fills the gap with the stock's own average and put SNDK at #1.
+    weighted_sum, weight_sum = _composite_sums(df, fw, col_map)
     df["Composite"] = np.where(weight_sum > 0, weighted_sum / weight_sum, np.nan)
 
     # Coverage discount: mildly penalize stocks with many missing metrics.
@@ -4110,7 +4161,9 @@ def compute_factor_contributions(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Compute each factor category's contribution to the composite score.
 
     For each stock, the contribution of category C is:
-        contrib_C = category_score_C * weight_C / sum_of_available_weights
+        contrib_C = category_score_C * weight_C / sum_of_weights
+
+    where a category the stock has no score for counts at MISSING_CATEGORY_SCORE (2026-11-19).
 
     This shows how many "points" each category adds to the weighted-average
     composite (before the final percentile-rank transform). The contributions
@@ -4127,31 +4180,18 @@ def compute_factor_contributions(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         "size": "size_score", "investment": "investment_score",
     }
 
-    # Compute weight sums per row (same logic as compute_composite)
-    weight_sum = pd.Series(0.0, index=df.index)
-    for cat, col in col_map.items():
-        w = fw.get(cat, 0)
-        if col not in df.columns or w == 0:
-            continue
-        has_data = df[col].notna()
-        weight_sum += w * has_data.astype(float)
-
-    # Compute contributions
-    for cat, col in col_map.items():
-        w = fw.get(cat, 0)
+    # Same terms as compute_composite: a category the stock has no score for contributes
+    # MISSING_CATEGORY_SCORE x its weight (2026-11-19).
+    _ws, weight_sum = _composite_sums(df, fw, col_map)
+    terms = {cat: (w, filled) for cat, w, filled in category_terms(df, fw, col_map)}
+    for cat in col_map:
         contrib_col = f"{cat}_contrib"
-        if col not in df.columns or w == 0:
+        if cat not in terms:
             df[contrib_col] = 0.0
             continue
-        has_data = df[col].notna()
-        # effective_weight = w / weight_sum (redistributed weight for this row)
+        w, filled = terms[cat]
         eff_w = np.where(weight_sum > 0, w / weight_sum, 0)
-        df[contrib_col] = np.where(
-            has_data,
-            df[col].fillna(0) * eff_w,
-            0.0,
-        )
-        df[contrib_col] = df[contrib_col].round(2)
+        df[contrib_col] = (filled * eff_w).round(2)
 
     return df
 
@@ -4208,15 +4248,7 @@ def run_weight_sensitivity(df: pd.DataFrame, cfg: dict,
 
             # Re-compute composite on the same scored data (no re-ranking of percentiles)
             df_p = df.copy()
-            weighted_sum = pd.Series(0.0, index=df_p.index)
-            weight_sum = pd.Series(0.0, index=df_p.index)
-            for c, col in col_map.items():
-                w = fw_p.get(c, 0)
-                if col not in df_p.columns or w == 0:
-                    continue
-                has_data = df_p[col].notna()
-                weighted_sum += df_p[col].fillna(0) * w * has_data.astype(float)
-                weight_sum += w * has_data.astype(float)
+            weighted_sum, weight_sum = _composite_sums(df_p, fw_p, col_map)
             comp = np.where(weight_sum > 0, weighted_sum / weight_sum, np.nan)
             df_p["_sens_composite"] = pd.Series(comp, index=df_p.index).rank(
                 pct=True) * 100

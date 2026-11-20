@@ -265,6 +265,15 @@ class RunContext:
         # on a day the rule changed nothing as well as on a day it did.
         if momentum_regime:
             data["momentum_regime"] = dict(momentum_regime)
+        # What a category a stock had no score for counted as in this run's composites (2026-11-19).
+        # Recorded per run because it is a fact about how *these* composites were built: a page
+        # regenerated from an older run, scored when the weight was shared out instead, must say so
+        # and be checked by that rule (generate_dashboard passes this through; calc_trace reads it).
+        try:
+            from factor_engine import MISSING_CATEGORY_SCORE
+            data["missing_category_score"] = MISSING_CATEGORY_SCORE
+        except Exception:  # noqa: BLE001 - provenance must never lose a run
+            pass
         # The metric-weight tables the scorer resolved (bank / Piotroski-conditional
         # / generic), so the dashboard can print the weights that were used rather
         # than re-deriving them. A failure here must not lose the run.

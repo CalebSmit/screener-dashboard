@@ -134,6 +134,9 @@ know before touching these:
 Presentation only (payload byte-identical). What a session must know before touching these:
 - **Hero**: title "The S&P 500, ranked on eight factors", `.hero-note` disclaimer; actions are one primary
   button, "How it works", and the two proof pages as `a.hero-link` text links.
+  **`#hero-tested`** (2026-11-19) under the disclaimer: the 15-year test's verdict in one sentence, built at
+  generation by `generate_dashboard.history_verdict()` from `research/experiments/summary.json` (claim
+  `page.hero_tested`), so the bold track-record tile is never the only thing said about performance.
 - **At a glance** (`renderKPIs`): Ranked / Moved materially / **Track record** (`#kpi-track`, filled by
   `contextMetas()` once `dashboard_context.js` lands, "not loaded" on failure) / Trap flags (or the
   momentum weight when the regime rule moved it). Metric coverage lives in Diagnostics.
@@ -1201,10 +1204,10 @@ now stated on the page by `weightNote()`:
    reading (`weights.momentum_regime`: the index's 24-month return, its 126-day
    volatility, the threshold, the state) is printed at the top of the Methodology
    modal by `methodologyRunNote()` on every run, whether or not the rule acted.
-2. **Per-stock renormalisation**, when a category could not be scored. The
-   category keeps its row, marked "no data", instead of disappearing - hiding
-   it would leave the reader unable to see why the rest add to more than the
-   defaults.
+2. **A category that could not be scored** - since 2026-11-19 it counts at 50 (the sector median,
+   `weights.missing_category_score`) at its full weight, and its row says so with its points; before,
+   the stock's other categories were renormalised. A payload built before the rule keeps the old
+   wording (`fillsMissing()`). The row is never hidden.
 
 **Do not revert these to `D.weights.factor_weights[c]`.** That is the bug:
 between February and 2026-08-28 the page printed `Score x 13% = 9.76 pts`,

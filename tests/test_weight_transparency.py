@@ -31,6 +31,10 @@ whose price series the split-integrity check rejects, showed
 
 These tests pin both, and pin the reconciliation guard that stops a third
 variant shipping silently. See ``METHODOLOGY_CHANGELOG.md`` 2026-08-28.
+
+Since 2026-11-19 a category the stock has no score for is no longer dropped: it counts at 50 at
+its full weight, so the survivors are not renormalised (``METHODOLOGY_CHANGELOG.md`` 2026-11-19
+late). The tests below pin that rule instead.
 """
 
 import json
@@ -81,24 +85,28 @@ def _frame(n=60, withhold=None, weights=None):
     for cat in withhold:
         df.loc[0, cat + "_score"] = np.nan
 
-    # Mirror factor_engine.compute_factor_contributions exactly.
+    # Mirror factor_engine.compute_factor_contributions exactly: since 2026-11-19 every weighted
+    # category is a term, and one the stock has no score for counts at 50.
     for cat in CATEGORIES:
         col, out = cat + "_score", cat + "_contrib"
         vals = []
         for _, row in df.iterrows():
-            live = [c for c in CATEGORIES
-                    if weights.get(c, 0) > 0 and pd.notna(row[c + "_score"])]
+            live = [c for c in CATEGORIES if weights.get(c, 0) > 0]
             total = sum(weights[c] for c in live)
             if cat not in live or total <= 0:
                 vals.append(0.0)
             else:
-                vals.append(round(row[col] * weights[cat] / total, 2))
+                v = row[col] if pd.notna(row[col]) else 50.0
+                vals.append(round(v * weights[cat] / total, 2))
         df[out] = vals
     df["Composite"] = sum(df[c + "_contrib"] for c in CATEGORIES).round(2)
     return df
 
 
 def _payload(df, weights):
+    # The run's effective_weights.json records the rule its composites were built with (2026-11-19).
+    from factor_engine import MISSING_CATEGORY_SCORE
+    weights = dict(weights, missing_category_score=MISSING_CATEGORY_SCORE)
     return json.loads(g.prepare_dashboard_data({
         "df": df, "meta": {"run_date": "2026-08-28"},
         "weights": weights, "sens_df": None, "corr_df": None, "cfg": {},
@@ -179,9 +187,8 @@ class TestPublishedPayloadAddsUp:
             for cat in CATEGORIES:
                 score = s["cat_scores"].get(cat)
                 if score is None:
-                    assert (s["contrib"].get(cat) or 0) == 0, (
-                        f"{ticker}/{cat}: no score but non-zero contribution")
-                    continue
+                    # Since 2026-11-19 a missing category counts at the sector median.
+                    score = payload["weights"]["missing_category_score"]
                 predicted = score * eff[cat] / 100.0
                 actual = s["contrib"].get(cat) or 0
                 if abs(predicted - actual) > tol:
@@ -206,13 +213,15 @@ class TestPublishedPayloadAddsUp:
         assert first["cat_scores"]["risk"] is None
         assert self._check(payload) == []
 
-    def test_the_withheld_stocks_surviving_weights_are_scaled_up_not_left_alone(self):
-        """The renormalisation is real, not cosmetic - quality must exceed 22%."""
+    def test_a_withheld_category_keeps_its_weight_and_counts_at_the_median(self):
+        """Since 2026-11-19 nothing is renormalised across categories: the surviving weights are
+        left alone, and the withheld ones keep theirs (they count at 50).
+        research/2026-11-19-missing-category-at-neutral.md."""
         fw = dict(REGIME)
         eff = g._effective_weight_row(fw, [c for c in CATEGORIES
                                            if c not in ("momentum", "risk")])
-        assert eff["quality"] > 22.0
-        assert eff["momentum"] == 0.0
+        for cat in CATEGORIES:
+            assert eff[cat] == pytest.approx(REGIME[cat] * 100.0 / sum(REGIME.values()), abs=1e-6)
         assert sum(eff.values()) == pytest.approx(100.0, abs=1e-6)
 
     def test_a_fully_scored_stock_is_not_renormalised(self):
@@ -325,8 +334,10 @@ class TestTheExplanationIsRendered:
         # is off; the note names the rule without claiming what it no longer does
         assert "momentum regime rule" in html
 
-    def test_the_renormalisation_is_explained(self, html):
-        assert "shares its weight across the rest" in html
+    def test_the_missing_category_rule_is_explained(self, html):
+        # Since 2026-11-19 a category with no score counts at the sector median, at full weight.
+        assert "the sector median, at its full weight" in html
+        assert "shares its weight across the rest" not in html
 
     def test_a_withheld_category_is_shown_rather_than_hidden(self, html):
         """Silently dropping the row would hide why the others add to >100%."""
@@ -369,7 +380,7 @@ class TestTheMethodologyDocumentSaysSo:
     def test_it_names_both_rules_that_move_a_weight(self):
         text = self._overview()
         assert "momentum regime rule" in text.lower()      # renamed 2026-10-09; off since then
-        assert "Missing-data redistribution" in text
+        assert "A category with no score for a stock" in text   # the rule since 2026-11-19
 
     def test_it_points_the_reader_at_where_the_real_weights_are(self):
         text = self._overview()

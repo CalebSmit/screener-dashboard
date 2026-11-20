@@ -512,14 +512,17 @@ def _turnover_fields(t: dict | None) -> dict:
 
 
 def _effective_weight_row(weights: dict, present: list) -> dict:
-    """Per-stock weights after redistributing away categories with no score.
+    """Per-stock category weights, as ``factor_engine.compute_factor_contributions`` uses them.
 
-    Mirrors ``factor_engine.compute_factor_contributions`` exactly: a category
-    with no data drops out and the survivors are renormalised over the weight
-    that remains. The JS does the same arithmetic for display; this is the
-    Python side used to verify it.
+    Since 2026-11-19 every weighted category keeps its weight whether or not the stock has a
+    score for it - a missing one counts at ``MISSING_CATEGORY_SCORE`` - so the row no longer
+    depends on which categories are ``present``, except that a stock with none has no weights.
+    Before, a missing category dropped out and the survivors were renormalised. The JS
+    (``effWeights``) does the same arithmetic for display; this is the Python side used to verify it.
     """
-    live = {c: weights.get(c, 0) for c in present if weights.get(c, 0) > 0}
+    if not present:
+        return {c: 0.0 for c in CATEGORIES}
+    live = {c: weights.get(c, 0) for c in CATEGORIES if weights.get(c, 0) > 0}
     total = sum(live.values())
     if total <= 0:
         return {c: 0.0 for c in CATEGORIES}
@@ -640,6 +643,10 @@ def _with_weight_profiles(weights: dict, run_cfg: dict) -> dict:
     if profiles:
         weights["profiles"] = profiles
         weights["profile_labels"] = dict(WEIGHT_PROFILE_LABELS)
+    # What a category the stock had no score for counted as (2026-11-19) arrives with the run's own
+    # effective_weights.json and is passed through untouched - never added here, because a page
+    # regenerated from a run scored before the rule must not claim it (the rehearsal of 2026-11-19
+    # refused exactly that: 6 composites "did not reproduce" under a rule they were not built with).
     cov = (run_cfg.get("data_quality") or {}).get("coverage_discount") or {}
     if cov:
         weights["coverage_discount"] = {
@@ -2164,6 +2171,38 @@ def score_key_html(cfg: dict | None = None) -> str:
                 </details>"""
 
 
+HISTORY_SUMMARY = ROOT / "research" / "experiments" / "summary.json"
+
+
+def history_verdict(path: Path | None = None) -> str:
+    """The home page's one line on whether the ranking has been shown to predict returns
+    (claim ``page.hero_tested``, 2026-11-19).
+
+    The hero showed a bold "+10.5%" nine-month track record while the 15-year test on
+    ``research.html`` says no edge has been shown - the first thing a sceptical reader would catch
+    (``research/2026-11-19-fresh-eyes-review.md`` finding 2). The rule is
+    ``run_screener.history_test_line``'s, from the same published summary: "no measurable edge"
+    only while the pooled 95% interval contains zero **and** no pre-registered alternative cleared
+    its bar; otherwise the pooled figure and its interval; with no summary, that it is untested.
+    Plain text; the caller escapes nothing because it contains no markup.
+    """
+    path = path or HISTORY_SUMMARY
+    try:
+        s = json.loads(Path(path).read_text(encoding="utf-8"))
+        mean = float(s["baseline_ic"]["pooled"])
+        lo, hi = (float(x) for x in s["baseline_ic_ci95"]["pooled"])
+        months = int(s["months"]["pooled"])
+        better = int(s["better"])
+    except (OSError, KeyError, TypeError, ValueError):
+        return "Whether the ranking predicts returns has not yet been tested."
+    if lo <= 0 <= hi and better == 0:
+        return (f"Tested on {months} months of 2012–2026 history, the ranking has shown no "
+                f"measurable edge at predicting the next month’s returns.")
+    return (f"Tested on {months} months of 2012–2026 history, its average monthly rank "
+            f"correlation with the next month’s return was {mean:+.3f} (95% interval "
+            f"{lo:+.3f} to {hi:+.3f}).")
+
+
 def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "",
                   context_version: str = "", detail_version: str = "") -> str:
     """Build the complete dashboard HTML string.
@@ -2281,6 +2320,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <h2 class="hero-title" id="hero-title">The S&amp;P&nbsp;500, ranked on eight factors</h2>
                 <p class="hero-sub">Every company is scored against its own sector on eight factors, from valuation and profitability to analyst revisions. Each score traces back to its inputs, weights and formulas.</p>
                 <p class="hero-note">For research and education. Not investment advice.</p>
+                <p class="hero-note hero-tested" id="hero-tested">{history_verdict()} <a href="research.html">See the test</a></p>
                 <!-- What the page has to say about its own loading (round three, 2026-10-27): data that
                      is still arriving, never arrived, is older than the schedule allows, or a context
                      file that failed. Filled by the page's script; empty when all is well. -->
@@ -4473,19 +4513,23 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     //   2. this renormalisation, when a category was withheld for this stock
     //      (e.g. a rejected price series takes out Momentum and Risk).
     // Mirrors factor_engine.compute_factor_contributions.
+    function fillsMissing() {{ return typeof (D.weights || {{}}).missing_category_score === 'number'; }}
+
     function effWeights(s) {{
         const fw = D.weights.factor_weights || {{}};
         const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
+        // Every weighted category keeps its weight; one this stock has no score for counts at
+        // the sector median (D.weights.missing_category_score) - the engine's rule since 2026-11-19.
+        // A payload built before the rule carries no missing_category_score: its composites shared a
+        // missing category's weight out, and the page shows that payload by the rule it was built with.
+        const fillOn = fillsMissing();
+        const has = c => s.cat_scores[c] !== null && s.cat_scores[c] !== undefined;
         let total = 0;
-        cats.forEach(c => {{
-            const w = fw[c] || 0;
-            if (w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined) total += w;
-        }});
+        cats.forEach(c => {{ const w = fw[c] || 0; if (w > 0 && (fillOn || has(c))) total += w; }});
         const out = {{}};
         cats.forEach(c => {{
             const w = fw[c] || 0;
-            const live = w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined;
-            out[c] = (live && total > 0) ? (w / total) * 100 : 0;
+            out[c] = (w > 0 && (fillOn || has(c)) && total > 0) ? (w / total) * 100 : 0;
         }});
         out._renormalised = total > 0 && Math.abs(total - 100) > 0.01;
         return out;
@@ -4544,14 +4588,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         cats.forEach(c => {{
             const score = s.cat_scores[c];
             const contrib = s.contrib[c];
-            const weight = (score === null || score === undefined) ? null : ew[c];
+            const na = score === null || score === undefined;
+            const weight = ew[c];
             // Spelled out for a first-year reader (club readiness, 2026-10-19): the category's points
             // out of the most it could add, which is its weight. It was "18.9 pts (22% wt)".
             // An unscored tile says why, from the payload (unscoredWhy, claim drilldown.unscored_category;
-            // it said only "Not scored: no data" until round three, 2026-10-27).
-            const ptsText = weight === null ? escapeHtml(unscoredWhy(c, s).short) : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+            // it said only "Not scored: no data" until round three, 2026-10-27), and since 2026-11-19
+            // what it counts as instead.
+            const pts = fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+            const ptsText = na ? escapeHtml(unscoredWhy(c, s).short) + (fillsMissing() && weight > 0 ? '; counted at ' + fmt(D.weights.missing_category_score, 'score') + ', ' + pts : '') : pts;
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
-            scoreHtml += `<div class="modal-score-card${{weight === null ? ' is-na' : ''}}" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" role="button" tabindex="0" title="Show how this score is built">
+            scoreHtml += `<div class="modal-score-card${{na ? ' is-na' : ''}}" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="modal-score-label">${{CAT_LABELS[c]}}</div>
                 <div class="modal-score-val">${{fmt(score,'score')}}</div>
                 <div class="modal-score-sub">${{ptsText}}</div>
@@ -5005,10 +5052,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         if (anyWithheld) {{
             parts.push(`<strong>One or more categories could not be scored for this stock</strong> &mdash; ` +
-                `usually missing fundamentals, or a price series the integrity check rejected. ` +
-                `Rather than score it as zero, which would penalise a stock for a data gap, ` +
-                `the screener drops the category and shares its weight across the rest. ` +
-                `That is why the weights above do not match the defaults, and why they still total 100%.`);
+                `usually missing fundamentals, or a price history that failed to download or that the integrity check rejected. ` +
+                (fillsMissing()
+                    ? `Such a category counts at ${{fmt(D.weights.missing_category_score, 'score')}}, the sector median, at its full weight: ` +
+                      `a data gap neither costs the stock points nor lets its other categories stand in for the one it lacks.`
+                    : `This run predates 2026-11-19, when the rule changed: the category was dropped and its weight shared across the rest, ` +
+                      `which is why the weights above do not match the defaults.`));
         }}
 
         if (!parts.length) return '';
@@ -5047,14 +5096,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="contrib-label">
                         <span class="contrib-cat-dot" style="background:${{CAT_COLORS[c]}};opacity:.35"></span>
                         <span class="contrib-cat-name">${{CAT_LABELS[c]}}</span>
-                        <span class="contrib-cat-weight">no data</span>
+                        <span class="contrib-cat-weight">${{fillsMissing() ? fmtWeight(weight) + ' weight &middot; ' : ''}}no data</span>
                     </div>
                     <div class="contrib-bar-area">
-                        <div class="contrib-bar-annotation">
-                            <span class="contrib-score-val">Not scored for this stock &mdash; its ${{fmtWeight(base[c] || 0)}} was shared out across the categories below.</span>
+                        <div class="contrib-bar-annotation">${{fillsMissing()
+                            ? `<span class="contrib-score-val">Not scored for this stock, so counted at ${{fmt(D.weights.missing_category_score, 'score')}}, the sector median</span>
+                            <span class="contrib-math">${{fmt(D.weights.missing_category_score, 'score')}} × ${{fmtWeight(weight)}} = <strong>${{contrib.toFixed(1)}} pts</strong></span>`
+                            : `<span class="contrib-score-val">Not scored for this stock &mdash; its ${{fmtWeight(base[c] || 0)}} was shared out across the categories below.</span>`}}
                         </div>
                     </div>
-                    <div class="contrib-pts">0.0</div>
+                    <div class="contrib-pts">${{contrib.toFixed(1)}}${{fillsMissing() ? `<span class="contrib-pts-max">/${{maxContrib.toFixed(1)}}</span>` : ''}}</div>
                 </div>`;
                 return;
             }}
@@ -5394,7 +5445,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined ? (dq.avg_metric_coverage * 100).toFixed(0) + '%' : '\u2014',
             'Average share of applicable metrics with a value', dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : '#fab219');
         kpiHtml += dqKpi('EPS Mismatch', dq.eps_mismatch_count !== undefined ? dq.eps_mismatch_count : '\u2014',
-            'Stocks where GAAP and adjusted EPS diverge enough to distort growth',
+            'Stocks whose GAAP and adjusted EPS for the same four quarters differ by more than half, or in sign',
             dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219');
         document.getElementById('defensibility-kpis').innerHTML = kpiHtml;
 
@@ -5809,7 +5860,9 @@ def _js_workings() -> str:
             : n === 1 ? 'Not scored: its one metric has no data'
             : n ? 'Not scored: none of its ' + n + ' metrics has data'
             : 'Not scored: no data';
-        const shared = ', so the category is not scored and its weight is shared across the others.';
+        const shared = fillsMissing()
+            ? ', so the category is not scored; it counts at ' + fmt(D.weights.missing_category_score, 'score') + ', the sector median, at its full weight.'
+            : ', so the category is not scored and its weight is shared across the others.';
         const long = (n === 1 ? 'Its one weighted metric, ' + names[0] + ', has no data for this stock in this run' + shared
             : n ? 'None of the ' + n + ' metrics this category weights for this stock has data in this run (' + listed(names) + ')' + shared
             : 'No weighted metric has data for this stock' + shared) +
@@ -5862,7 +5915,7 @@ def _js_workings() -> str:
             const wk = categoryWorkings(cat, s);
             const badge = scored
                 ? `${fmtWeight(ew[cat])} weight → ${fmt(contrib,'score')} pts`
-                : `not scored for this stock`;
+                : (fillsMissing() ? `not scored; counted at ${fmt(D.weights.missing_category_score,'score')} → ${fmt(contrib,'score')} pts` : `not scored for this stock`);
 
             let body = '';
             if (!wk) {
@@ -11858,6 +11911,8 @@ def _css_investor() -> str:
         .hero-title { font-size: 40px; font-weight: 650; letter-spacing: -.03em; line-height: 1.08; max-width: 18ch; text-wrap: balance; }
         .hero-sub { font-size: 16px; line-height: 1.65; max-width: 62ch; margin-top: 14px; }
         .hero-note { margin: 8px 0 0; font-size: 13px; color: var(--text-muted); }
+        .hero-tested { color: var(--text); }
+        .hero-tested a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
         .hero-actions { align-items: center; gap: 10px; }
         .hero-btn { height: 40px; padding: 0 18px; border-radius: 10px; }
         a.hero-link { background: transparent; border-color: transparent; color: var(--text-secondary); padding: 0 10px; }

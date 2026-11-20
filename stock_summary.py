@@ -303,6 +303,16 @@ def _sentence_rank(detail: dict, universe_size: int) -> str | None:
     cat_phrase = (
         f"its {n_cats} category scores" if n_cats else "its category scores"
     )
+    # Since 2026-11-19 a category the stock could not be scored on still counts, at the sector
+    # median (factor_engine.MISSING_CATEGORY_SCORE): it is the one with no score and a positive
+    # contribution. Said here so "its 6 category scores" is not read as "6 of 8 weighted".
+    _contrib = detail.get("contrib") or {}
+    _scores = detail.get("cat_scores") or {}
+    n_filled = sum(1 for c in CATEGORIES
+                   if _num(_scores.get(c)) is None and (_num(_contrib.get(c)) or 0) > 0)
+    if n_cats and n_filled:
+        cat_phrase += (f", with the {'one' if n_filled == 1 else n_filled} it could not be "
+                       f"scored on counted at 50, the sector median,")
     return (
         f"{sentence}. Its composite of {composite:.1f} is a 0–100 score "
         f"built from {cat_phrase} and their weights, not a percentile."

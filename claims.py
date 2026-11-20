@@ -1143,8 +1143,11 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "An unscored category's tile and workings say why: a category is scored only when at "
             "least one metric carrying weight in the table this stock was scored with has a value, "
-            "so an unscored one names those metrics, none of which has data in this run, and its "
-            "weight is shared across the others. Where the run rejected the stock's daily price "
+            "so an unscored one names those metrics, none of which has data in this run, and - "
+            "since 2026-11-19, for a payload that publishes `weights.missing_category_score` - it "
+            "counts at that score (50, the sector median) at its full weight, the points printed "
+            "being the engine's own contribution; an older payload says its weight was shared "
+            "across the others, as it was. Where the run rejected the stock's daily price "
             "history (the split-scale integrity check), Momentum and Risk - whose weighted metrics "
             "are all built from that history - give that reason as well. Display only: the reason "
             "(flags.px_rejected) never enters raw, pct, a category score or the composite."
@@ -1159,6 +1162,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_printed_figures.py::test_every_unscored_category_prints_the_engines_count_and_the_runs_weight",
             "tests/test_dashboard_printed_figures.py::test_an_unscored_category_made_by_hand_prints_the_engines_count",
             "tests/test_dashboard_printed_figures.py::test_an_unscored_category_gives_up_this_runs_weight_not_the_default",
+            "tests/test_missing_category_neutral.py::test_contributions_count_the_filled_category_and_sum_to_the_composite",
+            "tests/test_missing_category_neutral.py::test_the_payload_publishes_the_constant_the_page_prints",
         ),
     ),
     Claim(
@@ -2647,9 +2652,11 @@ CLAIMS: tuple[Claim, ...] = (
         surface=OVERVIEW,
         asserts=(
             "Since 2026-10-09 Forward EPS Growth sets the twelve-month consensus against the last "
-            "four quarters on the same basis, so the EPS-basis flag (forward over GAAP trailing "
-            "outside 0.3-2x) does not remove it; only the fallback construction, used where those "
-            "inputs are missing, still sets growth to NaN on an extreme ratio."
+            "four quarters on the same basis, so the EPS-basis flag does not remove it; only the "
+            "fallback construction, used where those inputs are missing, still sets growth to NaN "
+            "on an extreme forward-over-trailing ratio (outside 0.3-2x). Since 2026-11-19 the flag "
+            "itself compares GAAP trailing EPS with that same-basis four-quarter figure (opposite "
+            "signs or more than 1.5x apart), and uses the 0.3-2x ratio only on the fallback."
         ),
         made_true_by="factor_engine:compute_metrics",
         checked_by=(
@@ -2766,6 +2773,20 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_a_flag_changes_neither_the_score_nor_the_rank",
         ),
         detect=r"A flag changes neither the score nor the rank",
+    ),
+    Claim(
+        id="page.hero_tested",
+        surface=DRILLDOWN,
+        asserts=("The home page's hero says the ranking 'has shown no measurable edge' on 2012-2026 "
+                 "history only while the research engine's published summary has a pooled 95% "
+                 "interval containing zero and no alternative clearing its bar; otherwise it states "
+                 "the pooled figure and interval, and with no summary it says it is untested."),
+        made_true_by="generate_dashboard:history_verdict",
+        checked_by=(
+            "tests/test_hero_tested.py::test_no_edge_only_while_the_summary_says_so",
+            "tests/test_hero_tested.py::test_the_committed_page_carries_the_committed_summarys_verdict",
+        ),
+        detect=None,                      # a page sentence: tests/test_hero_tested.py reads it
     ),
     Claim(
         id="overview.at_a_glance_tested",

@@ -3516,6 +3516,8 @@
         .hero-title { font-size: 40px; font-weight: 650; letter-spacing: -.03em; line-height: 1.08; max-width: 18ch; text-wrap: balance; }
         .hero-sub { font-size: 16px; line-height: 1.65; max-width: 62ch; margin-top: 14px; }
         .hero-note { margin: 8px 0 0; font-size: 13px; color: var(--text-muted); }
+        .hero-tested { color: var(--text); }
+        .hero-tested a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
         .hero-actions { align-items: center; gap: 10px; }
         .hero-btn { height: 40px; padding: 0 18px; border-radius: 10px; }
         a.hero-link { background: transparent; border-color: transparent; color: var(--text-secondary); padding: 0 10px; }
@@ -4905,6 +4907,7 @@
                 <h2 class="hero-title" id="hero-title">The S&amp;P&nbsp;500, ranked on eight factors</h2>
                 <p class="hero-sub">Every company is scored against its own sector on eight factors, from valuation and profitability to analyst revisions. Each score traces back to its inputs, weights and formulas.</p>
                 <p class="hero-note">For research and education. Not investment advice.</p>
+                <p class="hero-note hero-tested" id="hero-tested">Tested on 176 months of 2012–2026 history, the ranking has shown no measurable edge at predicting the next month’s returns. <a href="research.html">See the test</a></p>
                 <!-- What the page has to say about its own loading (round three, 2026-10-27): data that
                      is still arriving, never arrived, is older than the schedule allows, or a context
                      file that failed. Filled by the page's script; empty when all is well. -->
@@ -5922,11 +5925,11 @@
 <p>The 8 category scores are combined using the category weights:</p>
 <pre><code>Raw Composite = 22% × Valuation + 22% × Quality + 13% × Growth + 13% × Momentum + 10% × Risk + 10% × Revisions + 5% × Size + 5% × Investment
 </code></pre>
-<p>The same missing-data redistribution logic applies: if a category score is missing (e.g., all revisions data missing for a stock), its weight is redistributed to available categories rather than leaving the composite blank.</p>
+<p><strong>A category a stock cannot be scored on counts at 50, the sector median, at its full weight.</strong> Inside a category a missing metric's weight is shared across the category's other metrics, which measure the same thing. Across categories that would be wrong: the eight are built to measure different things, so a stock's other categories say little about the one it lacks, and sharing the weight out would fill the gap with the stock's own average. Until 2026-11-19 that is what the screener did, and that morning a stock whose price history failed to download (Momentum and Risk) went from 7th to 1st on it. Counting the gap at the median means missing data neither costs a stock points nor earns them. Since 2026-11-19; <code>METHODOLOGY_CHANGELOG.md</code> has the evidence.</p>
 <p><strong>The weights above are the configured defaults, and an individual run may not use them.</strong> Two rules move them, both described in this document:</p>
 <ol>
 <li><strong>The momentum regime rule</strong> cuts the Momentum weight for the whole run when the market is in a panic state (see the Momentum section). In every other state it changes nothing.</li>
-<li><strong>Missing-data redistribution</strong> changes them for one stock, whenever a category could not be scored for it.</li>
+<li><strong>A category with no score for a stock</strong> keeps its weight but counts at 50 for that stock, so the stock's points in it are half its weight.</li>
 </ol>
 <p>So a stock's momentum score may be multiplied by something other than the 13% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows <strong>the weight each score was actually multiplied by</strong>, and explains any gap against this page – every row there is an equation you can check with a calculator. The run's own weights are also written to <code>runs/&lt;run_id&gt;/effective_weights.json</code>.</p>
 <p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key – so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data quality safeguards below – so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that carry weight in that stock's score</strong> – 24 for a bank-like stock and 27 for every other (26 for other financials, which are never given the Beneish score); a metric with no weight (a candidate, or one shown for reference) cannot lower it (since 2026-10-09). The drilldown's "Metrics: n/m" badge and its "The score rests on n of m metrics" sentence read <strong>this same figure</strong>, taken from the engine rather than recounted (until 2026-10-07 they counted a fixed 18-metric list, which made 62 stocks look under-covered when only 3 were discounted). The drilldown shows the discount as its own line, so the category points, the discount and the composite add up on screen. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" – read it as 95 points out of 100. See Limitation 8.</p>
@@ -5944,7 +5947,7 @@
 <li><strong>Denominator floors:</strong> Analyst surprise uses a $0.10 floor on estimated EPS; forward EPS growth uses a $1.00 floor on trailing EPS. These prevent near-zero denominators from producing extreme ratios.</li>
 <li><strong>Output clamping (configurable):</strong> Forward EPS growth is clamped to [-75%, +150%]; price target upside is clamped to [-50%, +100%]. These bounds are configurable in <code>config.yaml</code> under <code>metric_clamps</code>. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.</li>
 <li><strong>Coverage filter:</strong> A stock is excluded from the ranking entirely when it has values for fewer than 60% of the metrics that carry weight in its score, counted in whole metrics and rounded down: it needs 16 of 27 (59.3%), 14 of 24 if it is bank-like (58.3%), and 15 of 26 for another financial (57.7%). This is the same coverage the composite's discount reads.</li>
-<li><strong>Coverage discount:</strong> Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below 80% metric coverage, the composite is multiplied by 1 − (80% − coverage) × 15% (e.g., a stock with 20 of 27 metrics, 74.1% coverage, loses 0.89% of its composite; the deepest cut the coverage filter leaves possible is 3.35%, at 15 of 26). It counts missing <em>metrics</em>, not missing <em>weight</em>, and it is small: it does not undo the redistribution described under Missing data handling. A stock that loses a whole category for a day – its price history, say, which carries both Momentum and Risk – is scored on its other categories alone and can rank well above where it would with that category scored (on 2026-11-19 one stock rose from 7th to 1st that way, with a discount of 0.33%). The stock's drilldown marks every category it was not scored on. <strong>Currently enabled.</strong></li>
+<li><strong>Coverage discount:</strong> Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below 80% metric coverage, the composite is multiplied by 1 − (80% − coverage) × 15% (e.g., a stock with 20 of 27 metrics, 74.1% coverage, loses 0.89% of its composite; the deepest cut the coverage filter leaves possible is 3.35%, at 15 of 26). It counts missing <em>metrics</em>, not missing <em>weight</em>, and it is small – a few percent at most. It is not what keeps a stock with a missing category from ranking high on the categories it has: that is done by counting the missing category at the sector median (Step 5). The stock's drilldown marks every category it was not scored on. <strong>Currently enabled.</strong></li>
 <li><strong>Auto-disable (category-level):</strong> If fewer than 30% of the values the Revisions or Investment category's weighted metrics need are present across the universe, the entire category's weight is zeroed and redistributed proportionally to the remaining categories. Metrics at weight 0 are not counted.</li>
 <li><strong>Auto-reduce (metric-level):</strong> If any metric that carries weight is missing for more than 70% of the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed, in proportion, to the other weighted metrics in its category.</li>
 <li><strong>Metric-level alerts:</strong> A warning is printed, and written to the data-quality log, for any metric that carries weight and is missing for more than 50% of the stocks it applies to (a bank-only metric is counted against banks alone).</li>
@@ -6050,7 +6053,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <h3>Weight sensitivity</h3>
 <p>After scoring, the pipeline moves each factor category weight up and down by 5 percentage points, one category at a time, with the other categories rescaled in proportion so the weights still sum to 100 – Size's 5% is tried at 0% and 10% – and measures how much the top-20 ranking changes using <strong>Jaccard similarity</strong> (intersection / union of the two top-20 sets). A Jaccard of 1.0 means the ranking is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output – a key requirement for any defensible quantitative process.</p>
 <h3>EPS basis mismatches</h3>
-<p>Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward consensus EPS. When the ratio of Yahoo's forward EPS to its trailing EPS exceeds 2.0× or falls below 0.3× (and trailing EPS is above $0.10), the stock is flagged with <code>_eps_basis_mismatch = True</code>. Since 2026-10-09 the scored Forward EPS Growth does not use that pair – it sets the next twelve months' consensus against the last four quarters reported on the same basis – so for most flagged stocks the flag is a warning about the PEG ratio (shown, not scored), not about the growth score. Only where the consensus inputs are missing does the growth metric fall back to forward over trailing EPS, and there an extreme ratio leaves it blank (Limitation 2). Flagged stocks appear highlighted in the DataValidation sheet.</p>
+<p>Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) consensus EPS. A stock is flagged with <code>_eps_basis_mismatch = True</code> when its GAAP EPS over the last four quarters and the analysts' adjusted EPS for the same four quarters have opposite signs, or the larger is more than 1.5× the smaller (both above $0.10) – the stock sheet then says its reported and normalised EPS disagree. Where the adjusted four quarters are missing, the older test applies: forward EPS over trailing EPS above 2.0× or below 0.3×. Until 2026-11-19 that older test was used for every stock, and because forward EPS is next year's estimate it flagged expected growth rather than a difference in basis (it flagged SanDisk, whose two figures were 125.12 and 118.37, and missed Cincinnati Financial, 17.04 and 9.76). Since 2026-10-09 the scored Forward EPS Growth does not use that pair – it sets the next twelve months' consensus against the last four quarters reported on the same basis – so the flag is a caution about earnings-based metrics, not a change to the growth score. Only where the consensus inputs are missing does the growth metric fall back to forward over trailing EPS, and there an extreme ratio leaves it blank (Limitation 2). Flagged stocks appear highlighted in the DataValidation sheet.</p>
 <h3>Factor correlation</h3>
 <p>A Spearman rank correlation matrix of every metric's sector-relative percentile is computed and written to the Factor Correlation Excel sheet, and pairs above the configured alert level are printed in the run summary. This makes explicit the degree of overlap between metrics – for example, the 6-1 month return's window lies entirely inside the 12-1 month return's (they share five months), and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.</p>
 <h3>Data provenance</h3>
@@ -6176,10 +6179,10 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p><strong>GAAP vs. normalized EPS:</strong> Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. Since 2026-10-09 Forward EPS Growth avoids the mix: it sets the next twelve months' consensus against the last four quarters' actual EPS as the same analysts report it, and gives no growth rate at all when those four quarters sum to a loss. Where those inputs are missing it falls back to Yahoo's forward EPS over GAAP trailing EPS, and there, when the ratio is extreme (&gt;2x or &lt;0.3x – the signature of this contamination), <code>forward_eps_growth</code> is left blank and its weight is redistributed, rather than scoring a fabricated growth figure.</p>
 </li>
 <li>
-<p><strong>Point-in-time:</strong> The screener scores the latest available financial data. A backtest that applies today's figures to past dates has look-ahead bias, and for this screener it is large: <em>measured 2026-10-15</em>, scoring each month of 2020-2026 on the filings as they then stood, rather than as they stand today, puts <strong>72.5% of stock-months in a different tenth</strong> of the ranking. A research rebuild that reads each month's filings as they were filed now exists (<code>pit_record.py</code>, <code>backtest_v2.py</code>; <code>research/2026-10-15-pit-record-validation.md</code>). It does not set any weight on this page, and nothing it produces will before 2027-02-11. <strong>Tested against history, 2026-10-15:</strong> run on that rebuild over 176 months (2012-2026), the ranking's average monthly rank correlation with the next month's return was <strong>-0.002</strong> in 2012-2019 and <strong>0.000</strong> in 2020-2026 – indistinguishable from zero – and none of the 27 alternative weightings registered in advance did measurably better (<code>research/2026-10-15-research-engine-first-batch.md</code>). That test lacks the analyst inputs and the companies that have since left the index, so it is not the last word – but on public data this ranking has not been shown to predict returns, which is why this page presents it as decision support, not a forecast.</p>
+<p><strong>Point-in-time:</strong> The screener scores the latest available financial data. A backtest that applies today's figures to past dates has look-ahead bias, and for this screener it is large: <em>measured 2026-10-15</em>, scoring each month of 2020-2026 on the filings as they then stood, rather than as they stand today, puts <strong>72.5% of stock-months in a different tenth</strong> of the ranking. A research rebuild that reads each month's filings as they were filed now exists (<code>pit_record.py</code>, <code>backtest_v2.py</code>; <code>research/2026-10-15-pit-record-validation.md</code>). It does not set any weight on this page, and nothing it produces will before 2027-02-11. <strong>Tested against history, 2026-10-15:</strong> run on that rebuild over 176 months (2012-2026), the ranking's average monthly rank correlation with the next month's return was <strong>-0.002</strong> in 2012-2019 and <strong>-0.001</strong> in 2020-2026 – indistinguishable from zero – and none of the 27 alternative weightings registered in advance did measurably better (<code>research/2026-10-15-research-engine-first-batch.md</code>). That test lacks the analyst inputs and the companies that have since left the index, so it is not the last word – but on public data this ranking has not been shown to predict returns, which is why this page presents it as decision support, not a forecast.</p>
 </li>
 <li>
-<p><strong>Analyst coverage:</strong> The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.</p>
+<p><strong>Analyst coverage:</strong> The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the category cannot be scored for one stock it counts at 50, the sector median; when it is unavailable for most of the universe it is switched off for everyone and its weight redistributes to the other categories.</p>
 </li>
 <li>
 <p><strong>EPS revisions reach back only 90 days:</strong> the Revisions category <em>does</em> include a forward-EPS-consensus-change metric – FY1 EPS Revision (3-month), its heaviest at 48%, live since 2026-09-10. What is still missing is <strong>depth</strong>: yfinance's estimate history covers about 90 days, so the screener can see a recent revision but not whether the trend has persisted over the six-month window in which Chan, Jegadeesh &amp; Lakonishok (1996) measured the effect most strongly. That longer window would require a paid consensus feed (FactSet, Refinitiv I/B/E/S). <em>Corrected 2026-09-25: this limitation previously said the metric was not possible at all, which stopped being true on 2026-09-10.</em></p>
@@ -8344,19 +8347,23 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     //   2. this renormalisation, when a category was withheld for this stock
     //      (e.g. a rejected price series takes out Momentum and Risk).
     // Mirrors factor_engine.compute_factor_contributions.
+    function fillsMissing() { return typeof (D.weights || {}).missing_category_score === 'number'; }
+
     function effWeights(s) {
         const fw = D.weights.factor_weights || {};
         const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
+        // Every weighted category keeps its weight; one this stock has no score for counts at
+        // the sector median (D.weights.missing_category_score) - the engine's rule since 2026-11-19.
+        // A payload built before the rule carries no missing_category_score: its composites shared a
+        // missing category's weight out, and the page shows that payload by the rule it was built with.
+        const fillOn = fillsMissing();
+        const has = c => s.cat_scores[c] !== null && s.cat_scores[c] !== undefined;
         let total = 0;
-        cats.forEach(c => {
-            const w = fw[c] || 0;
-            if (w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined) total += w;
-        });
+        cats.forEach(c => { const w = fw[c] || 0; if (w > 0 && (fillOn || has(c))) total += w; });
         const out = {};
         cats.forEach(c => {
             const w = fw[c] || 0;
-            const live = w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined;
-            out[c] = (live && total > 0) ? (w / total) * 100 : 0;
+            out[c] = (w > 0 && (fillOn || has(c)) && total > 0) ? (w / total) * 100 : 0;
         });
         out._renormalised = total > 0 && Math.abs(total - 100) > 0.01;
         return out;
@@ -8415,14 +8422,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         cats.forEach(c => {
             const score = s.cat_scores[c];
             const contrib = s.contrib[c];
-            const weight = (score === null || score === undefined) ? null : ew[c];
+            const na = score === null || score === undefined;
+            const weight = ew[c];
             // Spelled out for a first-year reader (club readiness, 2026-10-19): the category's points
             // out of the most it could add, which is its weight. It was "18.9 pts (22% wt)".
             // An unscored tile says why, from the payload (unscoredWhy, claim drilldown.unscored_category;
-            // it said only "Not scored: no data" until round three, 2026-10-27).
-            const ptsText = weight === null ? escapeHtml(unscoredWhy(c, s).short) : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+            // it said only "Not scored: no data" until round three, 2026-10-27), and since 2026-11-19
+            // what it counts as instead.
+            const pts = fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+            const ptsText = na ? escapeHtml(unscoredWhy(c, s).short) + (fillsMissing() && weight > 0 ? '; counted at ' + fmt(D.weights.missing_category_score, 'score') + ', ' + pts : '') : pts;
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
-            scoreHtml += `<div class="modal-score-card${weight === null ? ' is-na' : ''}" style="--v:${sv.toFixed(3)}" onclick="openWorkings('${c}')" role="button" tabindex="0" title="Show how this score is built">
+            scoreHtml += `<div class="modal-score-card${na ? ' is-na' : ''}" style="--v:${sv.toFixed(3)}" onclick="openWorkings('${c}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="modal-score-label">${CAT_LABELS[c]}</div>
                 <div class="modal-score-val">${fmt(score,'score')}</div>
                 <div class="modal-score-sub">${ptsText}</div>
@@ -8876,10 +8886,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         if (anyWithheld) {
             parts.push(`<strong>One or more categories could not be scored for this stock</strong> &mdash; ` +
-                `usually missing fundamentals, or a price series the integrity check rejected. ` +
-                `Rather than score it as zero, which would penalise a stock for a data gap, ` +
-                `the screener drops the category and shares its weight across the rest. ` +
-                `That is why the weights above do not match the defaults, and why they still total 100%.`);
+                `usually missing fundamentals, or a price history that failed to download or that the integrity check rejected. ` +
+                (fillsMissing()
+                    ? `Such a category counts at ${fmt(D.weights.missing_category_score, 'score')}, the sector median, at its full weight: ` +
+                      `a data gap neither costs the stock points nor lets its other categories stand in for the one it lacks.`
+                    : `This run predates 2026-11-19, when the rule changed: the category was dropped and its weight shared across the rest, ` +
+                      `which is why the weights above do not match the defaults.`));
         }
 
         if (!parts.length) return '';
@@ -8918,14 +8930,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     <div class="contrib-label">
                         <span class="contrib-cat-dot" style="background:${CAT_COLORS[c]};opacity:.35"></span>
                         <span class="contrib-cat-name">${CAT_LABELS[c]}</span>
-                        <span class="contrib-cat-weight">no data</span>
+                        <span class="contrib-cat-weight">${fillsMissing() ? fmtWeight(weight) + ' weight &middot; ' : ''}no data</span>
                     </div>
                     <div class="contrib-bar-area">
-                        <div class="contrib-bar-annotation">
-                            <span class="contrib-score-val">Not scored for this stock &mdash; its ${fmtWeight(base[c] || 0)} was shared out across the categories below.</span>
+                        <div class="contrib-bar-annotation">${fillsMissing()
+                            ? `<span class="contrib-score-val">Not scored for this stock, so counted at ${fmt(D.weights.missing_category_score, 'score')}, the sector median</span>
+                            <span class="contrib-math">${fmt(D.weights.missing_category_score, 'score')} × ${fmtWeight(weight)} = <strong>${contrib.toFixed(1)} pts</strong></span>`
+                            : `<span class="contrib-score-val">Not scored for this stock &mdash; its ${fmtWeight(base[c] || 0)} was shared out across the categories below.</span>`}
                         </div>
                     </div>
-                    <div class="contrib-pts">0.0</div>
+                    <div class="contrib-pts">${contrib.toFixed(1)}${fillsMissing() ? `<span class="contrib-pts-max">/${maxContrib.toFixed(1)}</span>` : ''}</div>
                 </div>`;
                 return;
             }
@@ -9088,7 +9102,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             : n === 1 ? 'Not scored: its one metric has no data'
             : n ? 'Not scored: none of its ' + n + ' metrics has data'
             : 'Not scored: no data';
-        const shared = ', so the category is not scored and its weight is shared across the others.';
+        const shared = fillsMissing()
+            ? ', so the category is not scored; it counts at ' + fmt(D.weights.missing_category_score, 'score') + ', the sector median, at its full weight.'
+            : ', so the category is not scored and its weight is shared across the others.';
         const long = (n === 1 ? 'Its one weighted metric, ' + names[0] + ', has no data for this stock in this run' + shared
             : n ? 'None of the ' + n + ' metrics this category weights for this stock has data in this run (' + listed(names) + ')' + shared
             : 'No weighted metric has data for this stock' + shared) +
@@ -9141,7 +9157,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const wk = categoryWorkings(cat, s);
             const badge = scored
                 ? `${fmtWeight(ew[cat])} weight → ${fmt(contrib,'score')} pts`
-                : `not scored for this stock`;
+                : (fillsMissing() ? `not scored; counted at ${fmt(D.weights.missing_category_score,'score')} → ${fmt(contrib,'score')} pts` : `not scored for this stock`);
 
             let body = '';
             if (!wk) {
@@ -12889,7 +12905,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined ? (dq.avg_metric_coverage * 100).toFixed(0) + '%' : '—',
             'Average share of applicable metrics with a value', dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : '#fab219');
         kpiHtml += dqKpi('EPS Mismatch', dq.eps_mismatch_count !== undefined ? dq.eps_mismatch_count : '—',
-            'Stocks where GAAP and adjusted EPS diverge enough to distort growth',
+            'Stocks whose GAAP and adjusted EPS for the same four quarters differ by more than half, or in sign',
             dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219');
         document.getElementById('defensibility-kpis').innerHTML = kpiHtml;
 
