@@ -373,3 +373,15 @@ if ($p) {{ Write-Host 'GOT-IT' }} else {{ Write-Host 'BLOCKED' }}
     os.utime(lock, (old, old))
     r = _ps(script)
     assert "GOT-IT" in r.stdout and "names no owner" in r.stdout, f"an old ownerless lock jammed the loop: {r.stdout} {r.stderr}"
+
+
+def test_a_loop_that_never_got_the_lock_writes_no_brief():
+    """2026-11-19 review: Stop-Run on a failed lock still reached `finally`'s Publish-Brief, which
+    checks files out and fast-forwards main in the tree the other loop holds."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    for name in ("data-run.ps1", "nightly-screener.ps1"):
+        src = (root / "scripts" / name).read_text(encoding="utf-8-sig")
+        i = src.index("if (-not $RepoLock) {")
+        block = src[i:src.index("}", i)]
+        assert "$SkipBrief = $true" in block and block.index("$SkipBrief = $true") < block.index("Stop-Run"), name

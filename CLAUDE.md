@@ -938,72 +938,30 @@ without checking it.* Coverage measured 2026-10-08 at 15 exact equations of 29 w
 **re-measure rather than trusting that number.**
 
 **0.14. The inputs against the companies' own filings (opened 2026-10-14, owner-run).**
-`research/2026-10-14-yahoo-vs-sec.md` measured the agreement; **three input definitions are
-settled and the reasoning is in `DECISIONS.md` "0.14, the three input definitions settled against
-the filings"** - capex's lease subtraction REFUSED, operating income kept on the source's
-pre-special-items row, earnings yield kept on net income as reported. Each shipped a
-**display-only** row in its place, and each names the section a reopening must answer first. Do
-not reopen one without reading that entry.
+The narrative to 2026-11-19 is in `DECISIONS.md` "0.14, the filings cross-check - the record"
+(moved 2026-11-19 to keep this file to what binds). **The rules that bind:**
 
-What is still open is the check itself. `sec_crosscheck.py` (offline, read-only) runs in the data
-loop's health check as a **note**: per-field counts every morning, and an `ATTENTION -` line,
-surfaced in the brief, when any field disagrees by over 10% for more than **25** stocks
-(pre-registered; that day's counts were 0-13). Market value (market cap / price) against the filed
-share count has its own line of **60** (22 over 10% on 2026-10-14: splits after the filed quarter,
-partnership units, filers' tagging errors). **The pre-registered re-run of 2026-11-16 was NOT met** (2026-11-17,
-`research/2026-10-14-yahoo-vs-sec.md` section 6): total assets stayed at 0 and equity at 1-2 on all
-18 runs, but operating cash flow went 1, 3, **8, 9, 10** from 2026-11-03, so nothing was promoted.
-The cause was ours: **15-17 stocks whose quarterly statement lacks a quarter are scored on the
-annual statement, and their figures were dated by the newest quarter**, so the check compared
-fiscal 2025 with a different twelve months (and the "period behind the filings" note read 0 for
-exactly the stocks it was built for). **A statement's date is now the period end of the statement
-the figures were read from** (`_annual_instead`, `tests/test_annual_instead.py`, claim
-`drilldown.annual_instead`) - keep it that way. **Re-registered:** on the first data run on or
-after **2026-12-15**, re-run `research/measurements/2026-11-17-filing-crosscheck-range.py` over the
-runs from 2026-11-18; the same three fields become a gate at 25 only if each stayed at or below 5
-on every one. **Two things it left open, neither to be acted on without research:** those stocks'
-figures are up to three quarters old (`research/2026-10-29-ttm-fills-the-empty-quarter.md` section
-5.5 holds the narrow pre-registered alternative), and **DexCom's 2026-09-30 quarterly cash-flow
-column holds a nine-month cumulative figure** (four-quarter sum $2.209bn against $1.414bn filed,
-rank 8). **That one was measured the same afternoon**
-(`research/2026-11-17-ytd-in-a-quarterly-column.md`): 3 of 2,300 quarterly columns are
-year-to-date figures, 1 inside the twelve months scored; **nothing the source returns can
-recognise one** (the best statement-only rule raises 62 false alarms for the one true case, and
-the source's own trailing figure repeats the error), while an identity among three *filed*
-figures does, exactly - 8 of 10,446 stock-days, all DexCom. So the two rows that read operating
-cash flow now say so (`srcn`, claim `drilldown.ytd_column_note`; **its own key, never `cavs`** -
-each `cavs` note's publish-gate test compares the whole dict). **The score is not corrected**:
-whether a filing may act on one field of one stock is that note's proposal, **WAITING until
-2026-12-15** on four conditions written in advance (section 7; the brief's "Coming up" carries
-the date) - do not build it early, and do not build a statement-only detector at all.
-**Three things the 2026-11-18 synthesis added**
-(`research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`): **(1) a caveat names
-the statement, column or field that is impaired, never the company** - "Its filings are flagged
-stale" was printed for 27 stocks that morning and all 27 had a newer filing on record, because
-the flag ages the income statement the score *read* (the sentence and the "Statement age" badge
-now say so; when a change moves a population into an existing flag, re-read the flag's sentence
-for that population). **(2) The check cannot see 20 companies** - fourteen utilities, five REITs
-and Citigroup have nothing in the SEC's `companyfacts` filed since May or earlier, with the cache
-"0 days old"; the health line and the brief now print that count every morning
-(`sec_crosscheck.no_recent_filing`, a count, never an ATTENTION line), and the 2026-10-14 note's
-section 7 tells whoever applies the 12-15 rule. **The cause was found the same afternoon and
-fixed for 19 of the 20** (`research/2026-11-18-combined-filings-under-a-co-registrant.md`): since
-mid-May the SEC holds a jointly filed 10-Q's facts under one of the *other* registrants on it (a
-subsidiary, an operating partnership - a different one from quarter to quarter), so
-`sec_fundamentals.refresh_companyfacts` now follows a gap of over 150 days between a company's
-periodic filings to its co-registrants' records, **only for a filing the listed company leads**,
-taking only that accession's facts. 41 filings for 23 companies on the first refresh; the count
-reads **1** (Citigroup, which files alone - unexplained). The refresh's log names every company
-still gapped; **read that line in February 2027, when the first combined 10-Ks arrive.** **(3) 26 stocks are scored on last fiscal year's
-flows** because the source's quarterly table has a hole; scored net income is below the filed
-twelve months for 15 of 18 comparable (median absolute gap 32%). **Sized, not acted on** - it is
-the same question as DexCom's at 26 times the size, and a Monday is queued ahead of 12-15
-(`COMING_UP`, 2026-12-07). Do not patch it with a filings fallback (refused 2026-10-15, section
-3c). Each stock's Data
-Provenance panel shows the same check (`stock_detail[t].xchk`,
-`generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`): which inputs agree
-within 2% with the filing. **Display-only** - a test fails if `xchk` or `sec_crosscheck` appears
-in a scoring module.
+- **Three input definitions are settled** (capex's lease subtraction REFUSED; operating income on the
+  source's pre-special-items row; earnings yield on net income as reported) - read `DECISIONS.md`
+  "0.14, the three input definitions settled against the filings" before reopening one.
+- `sec_crosscheck.py` is a **note**, display-only (a test fails if it or `xchk` reaches a scoring
+  module): ATTENTION at 25 stocks over 10% per field, 60 for market value. **On the first data run
+  on or after 2026-12-15** re-run `research/measurements/2026-11-17-filing-crosscheck-range.py`
+  over the runs from 2026-11-18; total assets, equity and operating cash flow become a gate at 25
+  only if each stayed at or below 5 on every one.
+- **A statement's date is the period end of the statement the figures were read from**
+  (`_annual_instead`, claim `drilldown.annual_instead`) - keep it that way.
+- **DexCom's year-to-date column**: the page says so (`srcn`, its own key - never `cavs`); the score
+  is **not** corrected - that proposal is WAITING until 2026-12-15 on four pre-written conditions
+  (`research/2026-11-17-ytd-in-a-quarterly-column.md` section 7). Do not build it early, and do not
+  build a statement-only detector at all.
+- **A caveat names the statement, column or field that is impaired, never the company**; when a
+  change moves a population into an existing flag, re-read the flag's sentence for that population.
+- **Co-registrant filings**: `sec_fundamentals.refresh_companyfacts` follows a >150-day gap to the
+  co-registrants' records only for a filing the listed company leads. Read the refresh's "still
+  gapped" line in February 2027, when the first combined 10-Ks arrive.
+- **Do not patch a hole in the quarterly series with a filings fallback** (refused 2026-10-15,
+  section 3c); the question is a Monday queued for 2026-12-07.
 
 **0.6. One observation per run date - CLOSED 2026-10-08.** The record moved to `DECISIONS.md`
 ("0.6, closed") on 2026-10-16. The constraint: **every append-once-per-run file holds one row

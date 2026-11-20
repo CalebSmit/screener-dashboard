@@ -422,6 +422,9 @@ try {
     $RepoLock = Enter-RepoLock -LogDir $LogDir -Holder 'code loop' `
                     -Logger { param($m, $l) Write-Log $m $l }
     if (-not $RepoLock) {
+        # The brief is written and published from `finally`, which runs git checkout and a
+        # fast-forward of main - in a tree another loop holds. No lock, no brief (2026-11-19).
+        $SkipBrief = $true
         Stop-Run "Could not get exclusive use of the repo. Not running git alongside another loop."
     }
 
