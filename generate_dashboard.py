@@ -5505,7 +5505,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 tHtml += '<tr>';
                 tHtml += '<td style="font-weight:600">' + s.category + '</td>';
                 tHtml += '<td>' + (s.original_weight !== null ? fmtWeight(s.original_weight) : '\u2014') + '</td>';
-                tHtml += '<td>' + (vs && typeof vs[vsKey(s.category)] === 'number' ? (vs[vsKey(s.category)] * 100).toFixed(1) + '%' : '\u2014') + '</td>';
+                tHtml += '<td>' + (vs && typeof vs[vsKey(s.category)] === 'number' ? pctPlain(vs[vsKey(s.category)], 1) : '\u2014') + '</td>';
                 tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
                 tHtml += '<span class="sens-bar-labels"><span>+5pp: ' + pj + '</span><span>&minus;5pp: ' + mj + '</span></span></td>';
                 tHtml += '<td class="' + jClass + '" style="font-weight:600">' + verdict + '</td>';

@@ -12934,7 +12934,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 tHtml += '<tr>';
                 tHtml += '<td style="font-weight:600">' + s.category + '</td>';
                 tHtml += '<td>' + (s.original_weight !== null ? fmtWeight(s.original_weight) : '—') + '</td>';
-                tHtml += '<td>' + (vs && typeof vs[vsKey(s.category)] === 'number' ? (vs[vsKey(s.category)] * 100).toFixed(1) + '%' : '—') + '</td>';
+                tHtml += '<td>' + (vs && typeof vs[vsKey(s.category)] === 'number' ? pctPlain(vs[vsKey(s.category)], 1) : '—') + '</td>';
                 tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
                 tHtml += '<span class="sens-bar-labels"><span>+5pp: ' + pj + '</span><span>&minus;5pp: ' + mj + '</span></span></td>';
                 tHtml += '<td class="' + jClass + '" style="font-weight:600">' + verdict + '</td>';
