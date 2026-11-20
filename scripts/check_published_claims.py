@@ -376,6 +376,16 @@ def run(argv: list[str] | None = None) -> int:
     except FileNotFoundError:
         print("PUBLISHED CLAIMS: pytest is not available - claims NOT checked.")
         return PYTEST_MISSING
+    except subprocess.TimeoutExpired as exc:
+        # A run that started and never finished is not "pytest unavailable". Before 2026-11-19 it
+        # fell into the branch below and returned PYTEST_MISSING, which data-run.ps1 reads as
+        # "WARN and publish" - so a page that hung a browser test (a script that never settles,
+        # say) would have been published with `published_claims=warn` in signals.json. The modules
+        # run in ~160 s against a 600 s limit, so a timeout is a symptom, and the 18:00 retry is
+        # there for a transient one. research/2026-11-19-fresh-eyes-review.md, finding 6.
+        print(f"PUBLISHED CLAIMS: the checks did not finish within {exc.timeout:.0f}s - "
+              f"refusing rather than publishing an unchecked page.")
+        return 1
     except subprocess.SubprocessError as exc:
         print(f"PUBLISHED CLAIMS: could not run pytest ({exc}) - claims NOT checked.")
         return PYTEST_MISSING

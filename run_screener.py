@@ -1116,7 +1116,7 @@ The screener includes several layers of data quality protection:
 - **Denominator floors:** Analyst surprise uses a $0.10 floor on estimated EPS; forward EPS growth uses a $1.00 floor on trailing EPS. These prevent near-zero denominators from producing extreme ratios.
 - **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.50, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.50, 1.0])[1] * 100)}%]. These bounds are configurable in `config.yaml` under `metric_clamps`. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.
 - **Coverage filter:** A stock is excluded from the ranking entirely when it has values for fewer than {min_coverage}% of the metrics that carry weight in its score, counted in whole metrics and rounded down: it needs {_bars[_n_gen]} of {_n_gen} ({_cov_pct(_bars[_n_gen], _n_gen)}%), {_bars[_n_bank]} of {_n_bank} if it is bank-like ({_cov_pct(_bars[_n_bank], _n_bank)}%), and {_bars[_n_fin]} of {_n_fin} for another financial ({_cov_pct(_bars[_n_fin], _n_fin)}%). This is the same coverage the composite's discount reads.
-- **Coverage discount:** Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below {int(cov_disc.get('threshold', 0.80) * 100)}% metric coverage, the composite is multiplied by 1 − ({int(cov_disc.get('threshold', 0.80) * 100)}% − coverage) × {int(cov_disc.get('penalty_rate', 0.15) * 100)}% (e.g., a stock with {_ex_k} of {_n_gen} metrics, {_cov_pct(_ex_k, _n_gen)}% coverage, loses {_ex_disc:.2f}% of its composite; the deepest cut the coverage filter leaves possible is {_max_disc:.2f}%, at {_bars[_floor_n]} of {_floor_n}). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. {'**Currently enabled.**' if cov_disc.get('enabled', False) else '**Currently disabled.**'}
+- **Coverage discount:** Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below {int(cov_disc.get('threshold', 0.80) * 100)}% metric coverage, the composite is multiplied by 1 − ({int(cov_disc.get('threshold', 0.80) * 100)}% − coverage) × {int(cov_disc.get('penalty_rate', 0.15) * 100)}% (e.g., a stock with {_ex_k} of {_n_gen} metrics, {_cov_pct(_ex_k, _n_gen)}% coverage, loses {_ex_disc:.2f}% of its composite; the deepest cut the coverage filter leaves possible is {_max_disc:.2f}%, at {_bars[_floor_n]} of {_floor_n}). It counts missing *metrics*, not missing *weight*, and it is small: it does not undo the redistribution described under Missing data handling. A stock that loses a whole category for a day - its price history, say, which carries both Momentum and Risk - is scored on its other categories alone and can rank well above where it would with that category scored (on 2026-11-19 one stock rose from 7th to 1st that way, with a discount of 0.33%). The stock's drilldown marks every category it was not scored on. {'**Currently enabled.**' if cov_disc.get('enabled', False) else '**Currently disabled.**'}
 - **Auto-disable (category-level):** If fewer than {CATEGORY_AUTO_DISABLE_PCT}% of the values the Revisions or Investment category's weighted metrics need are present across the universe, the entire category's weight is zeroed and redistributed proportionally to the remaining categories. Metrics at weight 0 are not counted.
 - **Auto-reduce (metric-level):** If any metric that carries weight is missing for more than {auto_reduce_thresh}% of the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed, in proportion, to the other weighted metrics in its category.
 - **Metric-level alerts:** A warning is printed, and written to the data-quality log, for any metric that carries weight and is missing for more than {alert_thresh}% of the stocks it applies to (a bank-only metric is counted against banks alone).
@@ -1603,6 +1603,49 @@ def rate_limit_detail(tickers: list, raw: list[dict]) -> dict:
             "rate_limit_errors": dict(sorted(errors.items(), key=lambda kv: -kv[1])[:5])}
 
 
+def missing_price_history(raw: list[dict]) -> list[str]:
+    """Tickers whose fetch succeeded but whose daily price history came back empty.
+
+    ``fetch_single_ticker`` retries only on an ``_error``. An empty ``Ticker.history()`` is not an
+    error - yfinance returns an empty frame and the record simply has no ``price_latest`` - so it
+    went unretried, and every momentum and risk metric for that stock was missing. The composite
+    renormalises over the categories that remain, which is not neutral: on 2026-11-19 SanDisk's
+    history alone failed, its Momentum (13%) and Risk (10%) dropped out, and it went from #7
+    (71.02) to #1 (79.09) on the public page and in ``signals.json``
+    (``research/2026-11-19-fresh-eyes-review.md``, finding 1).
+    """
+    out = []
+    for r in raw:
+        if "_error" in r or not r.get("Ticker"):
+            continue
+        p = r.get("price_latest")
+        if p is None or (isinstance(p, float) and math.isnan(p)):
+            out.append(r["Ticker"])
+    return out
+
+
+def merge_recovered_history(raw: list[dict], retry_raw: list[dict]) -> tuple[list[dict], list[str]]:
+    """Replace a record with its re-fetch only where the re-fetch has a price history.
+
+    A re-fetch that errors, or comes back without history again, leaves the original record as it
+    was - never a worse record for a better one.
+    """
+    recovered = {}
+    for r in retry_raw:
+        p = r.get("price_latest")
+        if "_error" in r or p is None or (isinstance(p, float) and math.isnan(p)):
+            continue
+        recovered[r["Ticker"]] = r
+    merged = [recovered.get(r.get("Ticker"), r) if "_error" not in r else r for r in raw]
+    return merged, sorted(recovered)
+
+
+# A history retry is for the odd ticker the source dropped. If more than this share of the universe
+# has no history, it is an outage, which `check_run_health` judges on price coverage - re-fetching
+# hundreds of tickers one at a time would only add an hour to a run that will be refused anyway.
+HISTORY_RETRY_MAX_SHARE = 0.05
+
+
 def run_factor_engine(cfg, args, ctx=None):
     """Run the complete factor scoring pipeline. Returns (scored_df, stats_dict)."""
     pipeline_log = _init_pipeline_logger()
@@ -1868,6 +1911,26 @@ def run_factor_engine(cfg, args, ctx=None):
                 else:
                     print(f"  Retry pass: no additional tickers recovered")
                 _clock.note("fetch.retry", n=len(failed), cooldown=cooldown)
+
+            # ---- History retry: a successful fetch whose price history came back empty ----
+            # Not an `_error`, so the pass above never sees it; see `missing_price_history`.
+            no_hist = missing_price_history(raw)
+            if no_hist:
+                if len(no_hist) <= max(1, int(universe_size * HISTORY_RETRY_MAX_SHARE)):
+                    print(f"\n  History retry: {len(no_hist)} ticker(s) fetched with no price "
+                          f"history ({', '.join(no_hist[:10])}{'...' if len(no_hist) > 10 else ''})"
+                          f" - re-fetching once")
+                    hist_raw = fetch_all_tickers(no_hist, batch_size=10, max_workers=1,
+                                                 inter_batch_delay=5.0)
+                    raw, got = merge_recovered_history(raw, hist_raw)
+                    still = sorted(set(no_hist) - set(got))
+                    print(f"  History retry recovered {len(got)}/{len(no_hist)}"
+                          + (f"; still none for {', '.join(still)} - their momentum and risk "
+                             f"categories drop out and the composite renormalises" if still else ""))
+                    _clock.note("fetch.history_retry", n=len(no_hist), recovered=len(got))
+                else:
+                    print(f"\n  History retry skipped: {len(no_hist)} tickers have no price "
+                          f"history - an outage, left to the health check's price coverage")
         _clock.lap("fetch.retry")
 
         stats["tickers_api"] = len(raw)

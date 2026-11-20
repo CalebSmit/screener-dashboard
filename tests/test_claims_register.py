@@ -497,6 +497,9 @@ def test_confidence_metric_count_is_the_discount_coverage(payload, generated_ove
     "### 1. `Composite` is a percentile rank, not the weighted sum",
     # published until 2026-11-18, for 27 stocks that each had a newer filing on record
     "Its filings are flagged stale (412 days old).",
+    # published until 2026-11-19; false for that morning's #1, SNDK (7th with its categories scored)
+    "This prevents stocks with sparse data from ranking artificially high due to weight "
+    "redistribution concentrating the score on a few favorable metrics.",
 ])
 def test_each_false_sentence_that_shipped_is_still_detected(sentence):
     """Every one of these was published on the live site - the first four until 2026-10-07."""
