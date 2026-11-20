@@ -9560,3 +9560,19 @@ published files restored byte for byte; gate 4 clean.
 2. Tomorrow's 02:00 run: HEALTH: PASS, `missing_category_score` 50 in the payload, the new
    `variance_share`, any "History retry:" or "lost a category" line.
 3. Monday 2026-11-23: 0.15 against its pre-registered criteria.
+
+
+## 2026-11-20 (owner-run, just after midnight) - two small things before the 2 am run
+
+**Health:** as the entry above (nothing has run since).
+
+- **A loop that never got the repo lock writes no brief** (both runners): `Stop-Run` on a failed
+  lock still reached `finally`'s Publish-Brief, which checks files out and fast-forwards `main` in
+  the tree the other loop holds. `$SkipBrief = $true` first; parse-checked; pinned in
+  `tests/test_loop_mutual_exclusion.py`. Never observed - found by reading the code path
+  (review finding 8).
+- **CLAUDE.md 0.14 slimmed** from ~70 lines of narrative to the rules that bind; the narrative is
+  verbatim in `DECISIONS.md` "0.14, the filings cross-check - the record". CLAUDE.md is 91 KB,
+  from 98.6 KB at the start of the evening.
+
+**Gates:** see the merge commit; this entry was written before the final run.

@@ -98,7 +98,10 @@ def test_the_brief_is_skipped_only_when_asked():
     src = _src(DATA_RUN)
     assert "$SkipBrief = $false" in src
     assert 'if (-not $SkipBrief) { Publish-Brief "data run $Date" }' in src
-    assert src.count("$SkipBrief = $true") == 1                  # only the retry's stand-down sets it
+    # The retry's stand-down, and (2026-11-19) a run that never got the repo lock: its brief would be
+    # written and fast-forwarded in the tree the other loop holds. The other loop briefs, and the
+    # watchdog sees a missed publish.
+    assert src.count("$SkipBrief = $true") == 2
 
 
 def test_the_runner_updates_the_cli_once_when_the_api_says_it_is_too_old():
