@@ -289,6 +289,22 @@ PRESENTATION: dict[str, str] = {
 }
 
 
+# Skips that say a whole layer did not run. 38 browser modules (~886 tests) skip loudly when
+# Playwright or Chromium is missing, and pytest still exits 0 - so a lost browser would pass this
+# gate on half its checks with nothing in the brief (2026-11-19 review, finding 8). Not a verdict:
+# the node/pytest fallback precedent; an ATTENTION line the brief carries. Normal runs skip 1.
+SKIP_ATTENTION = 10
+
+
+def _warn_on_skips(line: str) -> int:
+    m = re.search(r"(\d+) skipped", line or "")
+    n = int(m.group(1)) if m else 0
+    if n > SKIP_ATTENTION:
+        print(f"ATTENTION - {n} published-claim checks were SKIPPED (the line is {SKIP_ATTENTION}); "
+              f"usually Playwright or Chromium is missing, so the page's browser checks did not run")
+    return n
+
+
 def failed_nodeids(lines: list[str]) -> list[str]:
     """The test ids pytest reported FAILED or ERROR, parameters stripped."""
     out = []
@@ -462,6 +478,7 @@ def run(argv: list[str] | None = None) -> int:
     mode = f"parallel, -n {XDIST_WORKERS}" if parallel else "serial"
     if proc.returncode == 0:
         print(f"PUBLISHED CLAIMS: PASS ({result_line(proc.stdout, proc.stderr)}) [{mode}]")
+        _warn_on_skips(result_line(proc.stdout, proc.stderr))
         return 0
 
     if proc.returncode == 1 and presentation_only(tail):

@@ -204,7 +204,11 @@ def fold_shards(payload: dict, read) -> dict:
     """
     try:
         import generate_dashboard as G
-    except Exception:  # noqa: BLE001 - never stop a run over the fold
+    except Exception as exc:  # noqa: BLE001 - never stop a run over the fold
+        # Said out loud since 2026-11-19: an unfolded payload is how sec_crosscheck compared 0 stocks
+        # of 485 for a day on 2026-11-08 with every line green. The brief keeps ATTENTION lines.
+        print(f"ATTENTION - payload shards NOT folded ({type(exc).__name__}: {exc}); every check "
+              f"that reads a sharded field sees none of it this run")
         return payload
     detail = payload.get("stock_detail")
     for file_attr, map_key, field, top_attr in SHARD_FOLD:
@@ -599,6 +603,47 @@ def check_top_of_ranking(payload: dict, res: Result) -> None:
         res.note(RA.TOP_LINE + "nothing")
         return
     res.note(RA.TOP_LINE + "; ".join(f"{f['ticker']} (#{f['rank']}: {', '.join(f['why'])})" for f in flags))
+
+
+LOST_CATEGORY_TOP = 40      # the depth signals.json names for the trading bot
+CATEGORY_KEYS = ("valuation", "quality", "growth", "momentum", "risk", "revisions", "size",
+                 "investment")
+
+
+def lost_categories(payload: dict, baseline: dict | None, top: int = LOST_CATEGORY_TOP) -> list[str]:
+    """Stocks ranked in the top ``top`` today with a category the last published run scored and
+    this one does not - "SNDK (#1): momentum, risk".
+
+    2026-11-19: SanDisk's price history alone failed to download, Momentum and Risk dropped out,
+    and it went from 7th to 1st with HEALTH: PASS and nothing in the brief. Since that evening a
+    missing category counts at 50 rather than at the stock's own average, so a gap no longer lifts
+    a strong stock - but it still moves it, and the reader of the brief should know which names
+    at the top are scored on less than they were yesterday.
+    """
+    if not baseline:
+        return []
+    before = {r.get("Ticker"): r for r in (baseline.get("table_data") or [])}
+    out = []
+    for r in sorted(payload.get("table_data") or [], key=lambda x: x.get("Rank") or 10**9):
+        rank = r.get("Rank")
+        if rank is None or rank > top:
+            continue
+        prev = before.get(r.get("Ticker"))
+        if not prev:
+            continue
+        lost = [c for c in CATEGORY_KEYS
+                if r.get(f"{c}_score") is None and prev.get(f"{c}_score") is not None]
+        if lost:
+            out.append(f"{r.get('Ticker')} (#{rank}: {', '.join(lost)})")
+    return out
+
+
+def check_lost_categories(payload: dict, baseline: dict | None, res: Result) -> None:
+    """An ATTENTION note, never a refusal: the data is what the source returned."""
+    lost = lost_categories(payload, baseline)
+    if lost:
+        res.note(f"ATTENTION - {len(lost)} stock(s) in the top {LOST_CATEGORY_TOP} lost a category "
+                 f"the last published run scored (each now counts at 50): " + "; ".join(lost))
 
 
 def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None:
@@ -1055,8 +1100,10 @@ def check_rank_continuity(payload: dict, baseline: dict | None, res: Result,
         res.note("rank continuity not checked - a --tickers subset run is never published")
         return
     if baseline is None:
-        res.note("rank continuity NOT checked - the last published dashboard_data.js could not be "
-                 "read from git")
+        # ATTENTION since 2026-11-19: still not a refusal (a gate that cannot read its baseline must
+        # not jam the loop), but the bot trades on this run, so the brief has to say it went unchecked.
+        res.note("ATTENTION - rank continuity NOT checked - the last published dashboard_data.js could "
+                 "not be read from git, so the bot's continuity gate had nothing to compare with")
         return
     c = rank_continuity(payload, baseline)
     if c["spearman"] is None:
@@ -1314,6 +1361,7 @@ def main() -> int:
     check_rank_continuity(payload, published, res, run_dir=run_dir)
     check_scored_universe(payload, run_dir, res)
     check_price_freshness(payload, published, res, run_dir)
+    check_lost_categories(payload, published, res)
     check_inputs_against_filings(payload, res)
     # New since the page the site is serving, so it needs the published payload's *shards* too -
     # `financials` has not been in the committed dashboard_data.js since 2026-11-08.

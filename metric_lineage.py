@@ -409,7 +409,7 @@ LINEAGE = {
                              [("Net income (TTM)", "netIncome", USD), ("Equity", "totalEquity", USD),
                               ("Equity (year earlier)", "totalEquity_prior", USD),
                               ("Dividends paid", "dividendsPaid", USD), ("Payout ratio", "payoutRatio", PCT)],
-                             how="ROE uses average equity; retention = 1 - dividends / net income. Clipped to 0..100%. Needs positive net income and equity.",
+                             how="ROE uses average equity; retention = 1 - dividends / net income. Clipped to 0..100%. Needs positive net income and positive equity now and a year earlier (no fallback to an ending balance, since 2026-11-19).",
                              caveat="This ROE is computed on the same basis as the ROE shown for banks and insurers - net income over average equity (one construction since 2026-10-20; it used to differ, because the bank metric read the data source's own ratio)."),
     # ---- momentum
     "return_12_1": _L("(Price 1 month ago - price 12 months ago) / price 12 months ago",

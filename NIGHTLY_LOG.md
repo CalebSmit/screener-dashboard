@@ -9501,3 +9501,62 @@ after it. Gate 5, `rehearse_publish.py --changed-since origin/main`: **REHEARSAL
    "History retry:" line in the log; whether SNDK has its price history back.
 2. Friday 2026-11-20 is the lab's day (unchanged).
 3. **0.15** - a Monday note: what the ranking is for, with what would count as an answer written first.
+
+## 2026-11-19 (owner-run, night) - "keep finding improvements until the 2 am run": one false claim made true, four blind spots surfaced, a Drives column, and the top priority pre-registered
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-19_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (31 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.15, What the ranking is for, given no measured edge** (age **0 days**); also open: 0.13 38d; 0.10 43d; 0.14 36d.
+
+**Owner request:** *"keep working and finding improvements in every aspect until the 2 am run please"*.
+`logs/.owner-session` re-created at the start, removed at the end; merged well before 02:00.
+
+### Did
+
+1. **Berkshire's missing year-ago balance sheet: not a code regression.** Checked live: Yahoo's
+   quarterly sheet for BRK-B now jumps from 2025-06-30 to 2025-12-31, so nothing lies within 35 days
+   of a year before 2026-09-30 and the 2026-10-19 date rule correctly finds none. A filings fallback
+   was refused on 2026-10-15; nothing changed. Recorded in the review note.
+2. **Sustainable growth keeps the ROE its claim says it shares** (changelog 2026-11-19 night). The
+   published claim `overview.bank_roe_roa` says bank ROE has no fallback to an ending balance and is
+   "the same ROE as the one inside sustainable_growth"; sustainable growth fell back to ending equity
+   for five stocks - STX and MTD (year-earlier equity negative) sat at the 100% clamp, BA read 29% on
+   equity that had just turned positive. Now: both balances positive or no figure.
+   `tests/test_bank_roe_roa.py`, `tests/test_metrics.py` (the old fallback test inverted).
+3. **The brief names a top-40 stock that lost a category since the last published run**
+   (`check_run_health.lost_categories`, an ATTENTION note, never a refusal) - today's SNDK would have
+   read "SNDK (#1: momentum, risk)". Also ATTENTION lines now, not quiet notes: rank continuity
+   unchecked because the published payload could not be read (the bot trades on that run), and
+   shards not folded (how 0 of 485 market values were compared on 11-08 with every line green); and
+   the claims gate says so when more than 10 checks were skipped (losing Chromium skips ~886 with
+   pytest still exiting 0).
+4. **Diagnostics shows what each category drives** beside its weight (`D.variance_share`, the
+   standard w·cov/var decomposition, display only): Valuation 34.1%, Quality 29.1%, Momentum 15.9%,
+   Revisions 7.2%, Risk 7.0%, Investment 3.1%, **Growth 1.9% on a 13% weight**, Size 1.7%. A caption
+   says why without naming a category, so it cannot go stale. Phones keep Weight and Drives and drop
+   the Jaccard bar column. Seen on the rehearsed page at desktop and 375px.
+5. **A missed retrospective is owed at the next Friday** (`nightly-screener.ps1`; parse-checked; a
+   test matches its pattern against the real log headings). The last ran 2026-10-30, so **tomorrow,
+   Friday 2026-11-20, is a RETROSPECTIVE**, not the lab's day; the lab's "last advanced" will read 20
+   days on 11-27 against its bound of 21 - the next Friday must be the lab's.
+6. **0.15 pre-registered** (`research/2026-11-19-what-the-ranking-is-for.md`): four candidate answers
+   (a screen; a slow forecast at 6-12 months; fewer factors; a teaching tool) and the criteria for
+   each, fixed before any measurement, with the engine's positive control required in the same run.
+   The brief's "Coming up" carries it for Monday 2026-11-23, and the dropped implied-volatility
+   build for 2026-11-24 (it needs QuantLib installed by a scheduled session, not the desktop app).
+
+**Research ledger rerun** for the `factor_engine.py` change: summary unchanged (pooled IC -0.00133,
+interval -0.0177 to +0.015, 0 better). *Backtest observation, not decision-grade.*
+
+### Gates
+
+Gate 1 **4,438 passed / 1 skipped / 0 failed** (4:31; one failure on the first run - the Drives figure
+skipped the page's near-zero percentage rule - fixed). Gate 2 dry run passes; gate 3 `node --check` on
+all three payloads passes; gate 5 **REHEARSAL PASSED** (claims gate 2,391 passed / 1 skipped),
+published files restored byte for byte; gate 4 clean.
+
+### Next
+
+1. **Tomorrow 06:00 is a retrospective** - it should read today's three owner-run entries and the
+   review note, and judge the presentation-only exit and the archived files.
+2. Tomorrow's 02:00 run: HEALTH: PASS, `missing_category_score` 50 in the payload, the new
+   `variance_share`, any "History retry:" or "lost a category" line.
+3. Monday 2026-11-23: 0.15 against its pre-registered criteria.

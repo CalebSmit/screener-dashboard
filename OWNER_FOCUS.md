@@ -36,8 +36,8 @@ Two things still outrank this file, and neither is negotiable:
   download is retried, the EPS-mismatch caveat compares like with like, a timed-out check refuses.
   **Still open, for the sessions:** (3) **what the ranking is for, given no measured edge, comes
   before universe expansion phase 2** - a Monday note (is it a screen to narrow 500 to 40, a longer
-  horizon, fewer factors?), owner-agreed priority; Berkshire's year-ago balance sheet missing again;
-  the ACCEPTED implied-volatility inversion (2026-11-04) - build it or write down why not; a note on
+  horizon, fewer factors?), owner-agreed priority - its criteria pre-registered the same night in
+  `research/2026-11-19-what-the-ranking-is-for.md`; the ACCEPTED implied-volatility inversion (2026-11-04) - build it or write down why not; a note on
   Jensen's alpha (12-month momentum again, no skip month, +0.87); collapse CLAUDE.md's four "->red"
   rows into one rule. Close this item when those are done or argued down in the log.
 

@@ -731,13 +731,13 @@ class TestSustainableGrowth:
         # ROE = 50/10 = 5.0; retention = 1.0; SGR = 5.0 → clamped to 1.0
         assert abs(row["sustainable_growth"] - 1.0) < 0.001
 
-    def test_fallback_to_single_year_equity(self):
-        """When prior equity is unavailable, uses current year only."""
+    def test_no_fallback_to_single_year_equity(self):
+        """When prior equity is unavailable there is no figure (2026-11-19): the page says ROE uses
+        average equity, the bank ROE's rule. It used to fall back to ending equity (0.20 here)."""
         row = _compute_one(_make_rec(
             netIncome=10e9, totalEquity=40e9, totalEquity_prior=np.nan,
             dividendsPaid=-2e9, payoutRatio=np.nan))
-        # ROE = 10/40 = 0.25; retention = 0.8; SGR = 0.20
-        assert abs(row["sustainable_growth"] - 0.20) < 0.01
+        assert np.isnan(row["sustainable_growth"])
 
     def test_negative_ni(self):
         row = _compute_one(_make_rec(netIncome=-5e9))

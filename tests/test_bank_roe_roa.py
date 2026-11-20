@@ -208,3 +208,14 @@ def test_a_point_in_time_record_no_longer_carries_the_sources_ratios():
         assert f in pr.FIELD_CLASSES["statement"], f"{f} must be a point-in-time statement field"
     src = (ROOT / "pit_record.py").read_text(encoding="utf-8")
     assert 'out["returnOnEquity"]' not in src and 'out["returnOnAssets"]' not in src
+
+
+def test_sustainable_growth_has_no_ending_equity_fallback():
+    """2026-11-19: with the year-earlier equity missing or not positive there is no figure - the
+    bank ROE's rule. It used to fall back to ending equity, which put two stocks whose equity
+    crossed zero at the 100% clamp."""
+    base = {"netIncome": 1.5e10, "totalEquity": 1.1e11, "dividendsPaid": -3.0e9}
+    assert np.isnan(_run(**base, totalEquity_prior=np.nan)["sustainable_growth"])
+    assert np.isnan(_run(**base, totalEquity_prior=-2.5e8)["sustainable_growth"])
+    assert np.isnan(_run(**base, totalEquity_prior=0.0)["sustainable_growth"])
+    assert _run(**base, totalEquity_prior=0.9e11)["sustainable_growth"] == pytest.approx(0.12, rel=1e-6)

@@ -3014,7 +3014,9 @@
         .hc-short { display: none; }
         @media (max-width: 760px) {
             .chart-container { min-width: 0 !important; width: 100%; padding: 16px; }
-            .sens-table th:nth-child(2), .sens-table td:nth-child(2) { display: none; }
+            /* 2026-11-19: Weight and Drives are read as a pair, so the phone keeps both and drops the
+               Jaccard bar instead; the Verdict column still states the stability. */
+            .sens-table th:nth-child(4), .sens-table td:nth-child(4) { display: none; }
             .sens-table th, .sens-table td { padding: 8px 6px; }
             .dq-kpi-card { min-width: 0; flex: 1 1 100%; }
         }
@@ -3517,6 +3519,7 @@
         .hero-sub { font-size: 16px; line-height: 1.65; max-width: 62ch; margin-top: 14px; }
         .hero-note { margin: 8px 0 0; font-size: 13px; color: var(--text-muted); }
         .hero-tested { color: var(--text); }
+        .sens-note { margin: 10px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
         .hero-tested a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
         .hero-actions { align-items: center; gap: 10px; }
         .hero-btn { height: 40px; padding: 0 18px; border-radius: 10px; }
@@ -12912,7 +12915,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // --- Sensitivity table with visual bars ---
         if (sens.length > 0) {
             let tHtml = '<table class="sens-table"><thead><tr>';
-            tHtml += '<th>Factor</th><th>Weight</th><th style="width:45%">Stability (Jaccard Similarity)</th><th>Verdict</th>';
+            // "Drives": the category's share of the composite's spread across stocks - its weight is
+            // not its influence (2026-11-19; generate_dashboard.category_variance_shares).
+            const vs = D.variance_share || null;
+            const vsKey = l => String(l || '').toLowerCase();
+            tHtml += '<th>Factor</th><th>Weight</th><th title="Share of the differences between stocks&rsquo; composites that this category accounts for">Drives</th><th style="width:40%">Stability (Jaccard Similarity)</th><th>Verdict</th>';
             tHtml += '</tr></thead><tbody>';
             sens.forEach(function(s) {
                 const aj = s.avg_jaccard;
@@ -12927,12 +12934,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 tHtml += '<tr>';
                 tHtml += '<td style="font-weight:600">' + s.category + '</td>';
                 tHtml += '<td>' + (s.original_weight !== null ? fmtWeight(s.original_weight) : '—') + '</td>';
+                tHtml += '<td>' + (vs && typeof vs[vsKey(s.category)] === 'number' ? pctPlain(vs[vsKey(s.category)], 1) : '—') + '</td>';
                 tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
                 tHtml += '<span class="sens-bar-labels"><span>+5pp: ' + pj + '</span><span>&minus;5pp: ' + mj + '</span></span></td>';
                 tHtml += '<td class="' + jClass + '" style="font-weight:600">' + verdict + '</td>';
                 tHtml += '</tr>';
             });
             tHtml += '</tbody></table>';
+            if (vs) tHtml += '<p class="sens-note">Weight is what a category is given; Drives is how much of the differences between composites it accounts for. A category that tends to move against the others drives less than its weight, and one that moves with them drives more.</p>';
             document.getElementById('sensitivity-table').innerHTML = tHtml;
         } else {
             document.getElementById('sensitivity-table').innerHTML =

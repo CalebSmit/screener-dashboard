@@ -1937,6 +1937,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "gt_by_sector": gt_by_sector,
         "sector_distributions": sector_distributions,
         "factor_correlation": factor_corr_data,
+        # What each category actually drives, beside the weight it is given (display only).
+        "variance_share": category_variance_shares(df, (weights or {}).get("factor_weights") or {},
+                                                   (weights or {}).get("missing_category_score")),
         "weight_sensitivity": weight_sens_data,
         "data_quality": data_quality_summary,
     }
@@ -2169,6 +2172,37 @@ def score_key_html(cfg: dict | None = None) -> str:
                         <p class="sk-foot">A flag is a prompt to read the detail. It changes neither the score nor the rank, and flagged stocks are left out of Leading the ranking. <a href="#" onclick="openMethodology();return false">Methodology</a> has every rule.</p>
                     </div>
                 </details>"""
+
+
+def category_variance_shares(df, factor_weights: dict, fill=None) -> dict | None:
+    """Each category's share of the cross-sectional variance of the composite (2026-11-19).
+
+    ``w_c * cov(S_c, C) / var(C)`` with ``C = sum_c w_c * S_c`` over the weighted categories, the
+    weights normalised to sum to one - the standard decomposition, so the shares sum to exactly
+    100%. ``fill`` is the run's own rule for a missing category (``weights.missing_category_score``);
+    a run from before it drops the stocks with a gap instead. The coverage discount is left out: it
+    is not a category. A category's weight is not its influence - on 2026-11-19 Growth was weighted
+    13% and drove 1.9% of the ranking, because it runs against Valuation and Investment
+    (``research/2026-11-19-fresh-eyes-review.md`` finding 7). Display only.
+    """
+    cats = [c for c in CATEGORIES if (factor_weights or {}).get(c, 0) > 0 and f"{c}_score" in df.columns]
+    if len(cats) < 2:
+        return None
+    S = df[[f"{c}_score" for c in cats]].astype(float)
+    S = S.fillna(float(fill)) if fill is not None else S.dropna()
+    if len(S) < 20:
+        return None
+    total = sum(factor_weights[c] for c in cats)
+    w = np.array([factor_weights[c] / total for c in cats])
+    C = S.values @ w
+    var = float(np.var(C, ddof=1))
+    if not var > 0:
+        return None
+    out = {}
+    for i, c in enumerate(cats):
+        cov = float(np.cov(S.values[:, i], C, ddof=1)[0, 1])
+        out[c] = round(float(w[i] * cov / var), 4)
+    return out
 
 
 HISTORY_SUMMARY = ROOT / "research" / "experiments" / "summary.json"
@@ -5452,7 +5486,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // --- Sensitivity table with visual bars ---
         if (sens.length > 0) {{
             let tHtml = '<table class="sens-table"><thead><tr>';
-            tHtml += '<th>Factor</th><th>Weight</th><th style="width:45%">Stability (Jaccard Similarity)</th><th>Verdict</th>';
+            // "Drives": the category's share of the composite's spread across stocks - its weight is
+            // not its influence (2026-11-19; generate_dashboard.category_variance_shares).
+            const vs = D.variance_share || null;
+            const vsKey = l => String(l || '').toLowerCase();
+            tHtml += '<th>Factor</th><th>Weight</th><th title="Share of the differences between stocks&rsquo; composites that this category accounts for">Drives</th><th style="width:40%">Stability (Jaccard Similarity)</th><th>Verdict</th>';
             tHtml += '</tr></thead><tbody>';
             sens.forEach(function(s) {{
                 const aj = s.avg_jaccard;
@@ -5467,12 +5505,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 tHtml += '<tr>';
                 tHtml += '<td style="font-weight:600">' + s.category + '</td>';
                 tHtml += '<td>' + (s.original_weight !== null ? fmtWeight(s.original_weight) : '\u2014') + '</td>';
+                tHtml += '<td>' + (vs && typeof vs[vsKey(s.category)] === 'number' ? pctPlain(vs[vsKey(s.category)], 1) : '\u2014') + '</td>';
                 tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
                 tHtml += '<span class="sens-bar-labels"><span>+5pp: ' + pj + '</span><span>&minus;5pp: ' + mj + '</span></span></td>';
                 tHtml += '<td class="' + jClass + '" style="font-weight:600">' + verdict + '</td>';
                 tHtml += '</tr>';
             }});
             tHtml += '</tbody></table>';
+            if (vs) tHtml += '<p class="sens-note">Weight is what a category is given; Drives is how much of the differences between composites it accounts for. A category that tends to move against the others drives less than its weight, and one that moves with them drives more.</p>';
             document.getElementById('sensitivity-table').innerHTML = tHtml;
         }} else {{
             document.getElementById('sensitivity-table').innerHTML =
@@ -10754,7 +10794,9 @@ def _css_ux() -> str:
         .hc-short { display: none; }
         @media (max-width: 760px) {
             .chart-container { min-width: 0 !important; width: 100%; padding: 16px; }
-            .sens-table th:nth-child(2), .sens-table td:nth-child(2) { display: none; }
+            /* 2026-11-19: Weight and Drives are read as a pair, so the phone keeps both and drops the
+               Jaccard bar instead; the Verdict column still states the stability. */
+            .sens-table th:nth-child(4), .sens-table td:nth-child(4) { display: none; }
             .sens-table th, .sens-table td { padding: 8px 6px; }
             .dq-kpi-card { min-width: 0; flex: 1 1 100%; }
         }
@@ -11912,6 +11954,7 @@ def _css_investor() -> str:
         .hero-sub { font-size: 16px; line-height: 1.65; max-width: 62ch; margin-top: 14px; }
         .hero-note { margin: 8px 0 0; font-size: 13px; color: var(--text-muted); }
         .hero-tested { color: var(--text); }
+        .sens-note { margin: 10px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
         .hero-tested a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
         .hero-actions { align-items: center; gap: 10px; }
         .hero-btn { height: 40px; padding: 0 18px; border-radius: 10px; }
