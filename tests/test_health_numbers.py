@@ -52,6 +52,34 @@ def _log(folder: Path, name: str, body: str, mtime: float):
     os.utime(p, (mtime, mtime))
 
 
+def test_an_evening_retry_that_did_nothing_is_not_the_data_run(tmp_path, monkeypatch):
+    """2026-11-19 21:00: the 18:00 retry's no-op log was read as a failed publish."""
+    monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
+    _log(tmp_path, "datarun-2026-11-19_020001.log",
+         "[02:20:00] [INFO]     HEALTH: PASS (all checks)\n"
+         "[02:23:57] [INFO] === Data loop complete ===\n", 1000)
+    _log(tmp_path, "datarun-2026-11-19_180000.log",
+         "﻿[18:00:00] [INFO] Data loop already completed successfully today (2026-11-19). "
+         "Nothing to do.\n", 2000)
+    _log(tmp_path, "datarun-2026-11-18_180001.log",
+         "[18:00:01] [WARN] Same-day retry standing down: an owner session is marked in progress "
+         "(logs/.owner-session). Nothing was touched; the next 02:00 run will publish.\n", 1500)
+    line = hn.data_loop()
+    assert line.startswith("yes - `logs/datarun-2026-11-19_020001.log`"), line
+    assert "HEALTH: PASS" in line
+
+
+def test_a_refused_retry_is_still_read_as_the_data_run(tmp_path, monkeypatch):
+    """The skip is for a retry that ran nothing - one that ran and was refused still counts."""
+    monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
+    _log(tmp_path, "datarun-a.log", "[02:23:57] [INFO] === Data loop complete ===\n", 1000)
+    _log(tmp_path, "datarun-b.log",
+         "[18:00:00] [INFO] Same-day retry: today's 02:00 run did not publish, so running again "
+         "on today's close.\n[18:25:00] [ERROR] Run discarded: published-claims check failed - fix "
+         "the generator, not the file.\n", 2000)
+    assert hn.data_loop().startswith("**no** - `logs/datarun-b.log`")
+
+
 def test_the_last_session_is_the_newest_finished_one(tmp_path, monkeypatch):
     monkeypatch.setattr(hn.wb, "LOGS", tmp_path)
     _log(tmp_path, "nightly-a.log", "[06:00:00] [INFO] === Run complete: shipped to main ===\n"

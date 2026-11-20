@@ -2968,6 +2968,15 @@ FORBIDDEN: tuple[Forbidden, ...] = (
              "never the company."),
         fixed="2026-11-18",
     ),
+    Forbidden(
+        pattern=r"prevents stocks with sparse data from ranking artificially high",
+        why=("The methodology page's coverage-discount bullet. The discount counts missing "
+             "metrics, not missing weight, and is at most a few percent: on 2026-11-19 SanDisk "
+             "lost its price history for one run (Momentum and Risk, 23% of the composite), was "
+             "discounted 0.33%, and ranked 1st where it ranks 7th with those categories scored "
+             "(research/2026-11-19-fresh-eyes-review.md, finding 1)."),
+        fixed="2026-11-19",
+    ),
 )
 
 

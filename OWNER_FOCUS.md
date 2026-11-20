@@ -24,6 +24,30 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-11-19 - Fresh-eyes review: five decisions for you, then work for the sessions.** You asked
+  for a review by a reader who had not been following along. The full findings, with evidence, are
+  `research/2026-11-19-fresh-eyes-review.md`. Three small defects were fixed that night (a stock
+  whose price download fails is now retried; a false sentence about the coverage discount is gone; a
+  timed-out claims check no longer publishes). **For you to approve or overrule:**
+  **(1) Missing categories.** Today's #1 (SanDisk) is #1 only because its price history failed to
+  download - with Momentum and Risk scored it is #7. Proposal: score a missing category at the
+  neutral 50 instead of the stock's own average (a methodology change: research note + changelog
+  first). **(2) Say the test result on the home page.** The hero shows "+10.5%" in bold; the 15-year
+  test says no measurable edge. Put the verdict beside the number. **(3) Make the ranking's purpose
+  the research priority, ahead of universe expansion** - what is it for if it does not rank next
+  month's returns (a screen to narrow 500 to 40? a longer horizon? fewer factors?). **(4) Split the
+  02:00 publish gate** into blocking checks (numbers reproduce, payload contract, advice ban, how a
+  number is computed) and warnings (layout, phone budgets, wording): 9 runs were refused in two
+  weeks, at most 2 for a real defect, and four weekdays never published. A session may not weaken a
+  gate without you. **(5) Cut the process weight**: archive `NIGHTLY_LOG.md` monthly, cap each item
+  here at ~20 lines, collapse CLAUDE.md's four "->red" rows into one rule - about a third of every
+  session's reading budget goes on these files today.
+  **For the sessions, no decision needed:** the EPS-mismatch caveat fires on expected growth rather
+  than on a basis difference (93 stocks; fix the flag, rerun the ledger); Berkshire's year-ago
+  balance sheet has gone missing again; the ACCEPTED implied-volatility inversion (2026-11-04) was
+  dropped without a word; the missed 2026-11-13 retrospective should run at the next slot; a Monday
+  note on Jensen's alpha (it is 12-month momentum again, without the skip month: +0.87 correlation).
+
 - **2026-11-17 - Three decisions only you can make, from the SEO article.** You asked a session to
   take what it could from a search-and-discovery playbook. What fit shipped that night (the live-site
   check after every publish, canonical URLs, a sitemap, `llms.txt`, honest structured data); the full

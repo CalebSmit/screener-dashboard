@@ -79,8 +79,20 @@ def last_code_session() -> str:
     return "unknown - no finished code-session log in logs/"
 
 
+# A data-run log that records no run: the 18:00 same-day retry finding the 02:00 run already
+# published, or standing down (data-run.ps1 -Retry, 2026-11-10). Read as "the newest run", it made
+# the health line say "Data loop published? **no** ... failed" on every evening after a good
+# morning - first seen by an owner-run session at 21:00 on 2026-11-19.
+DATA_NOT_A_RUN = ("Data loop already completed successfully today",
+                  "Same-day retry standing down")
+
+
 def data_loop() -> str:
-    path = wb.newest("datarun-*.log")
+    path = None
+    for p in sorted(wb.LOGS.glob("datarun-*.log"), key=lambda q: q.stat().st_mtime, reverse=True):
+        if not wb.said(wb.tail(p, 60), *DATA_NOT_A_RUN):
+            path = p
+            break
     if not path:
         return "unknown - no data-run log in logs/"
     lines = wb.tail(path, 2000)

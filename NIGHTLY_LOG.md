@@ -22457,3 +22457,91 @@ calendar-year large filer's 10-K is due - with the note committing to it.
    it fails b, or fetch class-level counts for Visa and Berkshire so it passes.
 4. Unchanged: the Monday on a hole in the quarterly series (by 2026-12-07); the weekly SEC
    refresh's first run with the co-registrant code (about 2026-11-25).
+
+## 2026-11-19 (owner-run, evening) - A fresh-eyes review: today's #1 is #1 because its price download failed, and three other things nobody was looking at
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-19_130000-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-19_020001.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (31 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **38 days**; a standing programme, last advanced **13 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 43d; 0.14 36d.
+(Computed after this session's fix to `health_numbers.py`; before it, the same script said "Data loop
+published? **no**", reading the 18:00 retry's no-op log as a failed run - see Did 4.)
+
+**Owner request:** review the project as a reader who had not been following the sessions' notes;
+use the product as its users would, then read the code. `logs/.owner-session` was created at the
+start and removed at the end. `stash@{0}` not touched (the list was empty). No global tools touched.
+
+**Tests:** baseline not re-run at session start; the 13:00 session's after-count on the same code
+(4,394 passed / 1 skipped / 0 failed) is the reference. After: see the gates line below.
+
+### Did
+
+**The review** - `research/2026-11-19-fresh-eyes-review.md`, ranked, every finding marked SAW or
+SUSPECT with evidence; four read-only reviewers in parallel (methodology, number tracing, runners and
+gates, two weeks of process), each finding re-checked before it went in. The live page at 1440px,
+the committed page plus `research.html` and `lab.html` at 375px.
+
+**1. SanDisk is #1 on the live page and in `signals.json` because its price history did not
+download.** Its Momentum and Risk are "—"; every price-history field in the run's raw fetch is empty
+while its other fields are present. Yesterday it was #7 at 71.02 with Risk 1.03; with those two
+scores back it is 71.02 again, #7. `compute_composite` renormalises over the categories present -
+which fills a missing category with the stock's own average, not a neutral 50 - and the coverage
+discount counts metrics, not weight (0.33% for 23% of the weight). An empty `history()` raises
+nothing, so the run's retry pass never saw it. The methodology page said the discount "prevents
+stocks with sparse data from ranking artificially high"; the changelog says renormalisation is
+"neutral by construction". Both false here.
+
+**2. Fixed (engineering, no score/weight/metric change):**
+- `run_screener.missing_price_history` / `merge_recovered_history`: a successful fetch with no price
+  history is re-fetched once (bounded at 5% of the universe; beyond that it is an outage the health
+  check owns), and a re-fetch replaces a record only if it has a history. `tests/test_history_retry.py`.
+- The coverage-discount sentence in `build_screener_overview` now says what the discount does not
+  do, with this case; `SCREENER_OVERVIEW.md` regenerated from the generator, page rebuilt with
+  `scripts/rebuild_page.py` (payload byte-identical); the old sentence is in `claims.FORBIDDEN` with
+  a negative control.
+- `check_published_claims.py`: a `TimeoutExpired` returned exit 3 ("pytest unavailable"), which the
+  data loop reads as WARN-and-publish. It now refuses (exit 1).
+- `health_numbers.data_loop` skips the 18:00 retry's "already completed / standing down" logs.
+
+**3. Proposed, not done** (the owner's item in `OWNER_FOCUS.md`, opened today): score a missing
+category at 50 (methodology - research note and changelog first); put the history test's "no
+measurable edge" beside the home page's "+10.5%"; make "what is the ranking for, given IC ~0" the
+research priority ahead of universe expansion; split the 02:00 claims gate into blocking and warning
+checks (9 refusals in two weeks, at most 2 for a real page defect, four weekdays unpublished); cut
+the process weight (log archive, ~20-line items in `OWNER_FOCUS.md`, one rule for the four "->red"
+rows).
+
+**4. For the sessions, verified and queued:** the EPS-mismatch caveat compares Yahoo's next-year
+`forwardEps` with trailing EPS, so it fires on expected growth (SNDK, MU, AVGO flagged with the two
+bases agreeing; WDC and CINF not flagged with them 50%+ apart) - 93 stock sheets print "reported and
+normalised EPS disagree"; Berkshire's year-ago balances are NaN again in every run 11-13..11-19 (the
+2026-10-19 fix regressed); the implied-volatility inversion ACCEPTED on 2026-11-04 has no code and has
+left every Next list since 11-05 without a word; the 2026-11-13 retrospective aborted on the missing
+CLI and nobody noted it; Jensen's alpha correlates +0.87 with 12-1 momentum and has no skip month.
+
+### Evidence / research
+
+- Measured: SNDK counterfactual and the 20-run history-missing scan (scratch scripts; figures in the
+  note), category variance shares, alpha/momentum correlation, data-run log outcomes 11-02..11-19.
+- No literature read tonight. The "missing factor = cross-sectional mean" convention in the proposal
+  is stated as practice to be sourced by the research note, not as a citation.
+
+### Methodology changed
+
+- None. The overview sentence is a correction of a false description, not a change in method.
+
+### Not verified
+
+- The history retry has not run against the live source; tomorrow's 02:00 log will show a "History
+  retry:" line only if a history comes back empty.
+- The machinery reviewer's code-path findings (a failed push jamming both loops, the health check
+  passing when it cannot read the published payload, Chromium's absence silently skipping ~20% of
+  the suite) were read in the code, not observed failing.
+
+### Next
+
+1. **The owner's five decisions** (`OWNER_FOCUS.md`, 2026-11-19 item). Until then, nothing in them is
+   to be built.
+2. **Fix the EPS-mismatch flag** (S, plus a research-ledger rerun - `factor_engine.py` is a
+   `RESULT_PATHS` file) and **find why BRK-B's year-ago balances went missing** (S).
+3. **Run the missed retrospective** at the next Friday slot, whatever the week number says.
+4. Either build the ACCEPTED implied-volatility inversion or write down why not.
+5. Unchanged from 13:00: Friday is the lab's day; tomorrow's 02:00 run - confirm HEALTH: PASS without
+   the continuity override, and look for SNDK scored on all eight categories.

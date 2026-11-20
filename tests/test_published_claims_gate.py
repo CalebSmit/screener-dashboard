@@ -351,6 +351,18 @@ def test_a_missing_pytest_is_not_a_verdict(monkeypatch, capsys):
     assert "NOT checked" in capsys.readouterr().out
 
 
+def test_a_timed_out_run_refuses_rather_than_warns(monkeypatch, capsys):
+    """A hung check is not a missing pytest: exit 1 (discard), never 3 (warn and publish).
+
+    2026-11-19: `TimeoutExpired` is a `SubprocessError`, and that branch returned PYTEST_MISSING.
+    """
+    def hang(*a, **k):
+        raise subprocess.TimeoutExpired(cmd="pytest", timeout=600)
+    monkeypatch.setattr(subprocess, "run", hang)
+    assert gate.run([]) == 1
+    assert "did not finish" in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("rc", [4, 5], ids=["usage-error", "collected-nothing"])
 def test_pytest_not_actually_running_the_tests_is_not_a_pass(monkeypatch, rc, capsys):
     """Exit 5 means zero tests ran. Reading that as 'safe' is how a gate dies."""
