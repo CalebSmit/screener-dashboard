@@ -1282,6 +1282,8 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'checked:tests/test_dashboard_printed_figures.py::test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_own_fetch',
     '${f.short_ratio.toFixed(1)} days to cover':
         'reported:tests/test_dashboard_printed_figures.py::test_the_snapshot_prints_net_income_growth_and_days_to_cover_from_the_runs_own_fetch',
+    'Tested on {months} months of 2012–2026 history, its average monthly rank correlation with the next month’s return was {mean} (95% interval {lo} to {hi}).':
+        'claim:page.hero_tested',
     # The pre-2026-11-19 wording, kept for a payload built before the rule changed (fillsMissing()).
     'Not scored for this stock - its ${fmtWeight(base[c] || 0)} was shared out across the categories below.':
         'claim:drilldown.unscored_category',

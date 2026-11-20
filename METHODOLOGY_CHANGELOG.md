@@ -5729,3 +5729,27 @@ composite under the new rule (the build refuses otherwise); the existing reprodu
 of the five proposals in `research/2026-11-19-fresh-eyes-review.md`.
 
 **Rollback:** `good/2026-11-19-owner-review`.
+
+## 2026-11-19 (late) - The EPS-mismatch flag compares GAAP and adjusted EPS for the same four quarters
+
+**Area:** data-quality flag `_eps_basis_mismatch` (display only: the stock sheet's confidence caveat,
+the Diagnostics "EPS flags" count, the Excel DataValidation sheet). **No score, weight or rank uses it.**
+
+**Changed:** from Yahoo's `forwardEps / trailingEps` outside [0.3, 2.0] to GAAP trailing EPS against
+the consensus basis's own last four quarters (`_feg_b12`, the denominator Forward EPS Growth already
+uses): flagged when they have opposite signs or the larger is more than 1.5x the smaller
+(`factor_engine.EPS_BASIS_BAND`), both above $0.10. The old test remains only where `_feg_b12` is
+missing (3 of 499 stocks on 11-19).
+
+**Evidence:** a documented failure. `forwardEps` is next fiscal year's consensus, so the old ratio
+measured expected growth, not a difference in basis - while the sheet printed "Its reported and
+normalised EPS disagree" on every flagged stock. On the 2026-11-19 run it flagged SNDK (GAAP 125.12,
+adjusted 118.37), MU (74.33 vs 75.51) and AVGO (7.83 vs 9.76) and did not flag WDC (28.43 vs 13.05)
+or CINF (17.04 vs 9.76), the methodology page's own example of the two bases diverging. The 1.5x band
+is a judgement ("differ by more than half"), stated as such; the old 2.0/0.3 band had no source either.
+
+**Expected effect:** on the 2026-11-19 run, 93 flagged -> 104; 72 in both. Display only.
+
+**Validated by:** measured offline on the run's own fetch; the suite.
+
+**Applied by:** owner-run session, 2026-11-19 (late). **Rollback:** `good/2026-11-19-owner-review`.

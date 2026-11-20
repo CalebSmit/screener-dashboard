@@ -2171,6 +2171,38 @@ def score_key_html(cfg: dict | None = None) -> str:
                 </details>"""
 
 
+HISTORY_SUMMARY = ROOT / "research" / "experiments" / "summary.json"
+
+
+def history_verdict(path: Path | None = None) -> str:
+    """The home page's one line on whether the ranking has been shown to predict returns
+    (claim ``page.hero_tested``, 2026-11-19).
+
+    The hero showed a bold "+10.5%" nine-month track record while the 15-year test on
+    ``research.html`` says no edge has been shown - the first thing a sceptical reader would catch
+    (``research/2026-11-19-fresh-eyes-review.md`` finding 2). The rule is
+    ``run_screener.history_test_line``'s, from the same published summary: "no measurable edge"
+    only while the pooled 95% interval contains zero **and** no pre-registered alternative cleared
+    its bar; otherwise the pooled figure and its interval; with no summary, that it is untested.
+    Plain text; the caller escapes nothing because it contains no markup.
+    """
+    path = path or HISTORY_SUMMARY
+    try:
+        s = json.loads(Path(path).read_text(encoding="utf-8"))
+        mean = float(s["baseline_ic"]["pooled"])
+        lo, hi = (float(x) for x in s["baseline_ic_ci95"]["pooled"])
+        months = int(s["months"]["pooled"])
+        better = int(s["better"])
+    except (OSError, KeyError, TypeError, ValueError):
+        return "Whether the ranking predicts returns has not yet been tested."
+    if lo <= 0 <= hi and better == 0:
+        return (f"Tested on {months} months of 2012–2026 history, the ranking has shown no "
+                f"measurable edge at predicting the next month’s returns.")
+    return (f"Tested on {months} months of 2012–2026 history, its average monthly rank "
+            f"correlation with the next month’s return was {mean:+.3f} (95% interval "
+            f"{lo:+.3f} to {hi:+.3f}).")
+
+
 def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "",
                   context_version: str = "", detail_version: str = "") -> str:
     """Build the complete dashboard HTML string.
@@ -2288,6 +2320,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <h2 class="hero-title" id="hero-title">The S&amp;P&nbsp;500, ranked on eight factors</h2>
                 <p class="hero-sub">Every company is scored against its own sector on eight factors, from valuation and profitability to analyst revisions. Each score traces back to its inputs, weights and formulas.</p>
                 <p class="hero-note">For research and education. Not investment advice.</p>
+                <p class="hero-note hero-tested" id="hero-tested">{history_verdict()} <a href="research.html">See the test</a></p>
                 <!-- What the page has to say about its own loading (round three, 2026-10-27): data that
                      is still arriving, never arrived, is older than the schedule allows, or a context
                      file that failed. Filled by the page's script; empty when all is well. -->
@@ -11878,6 +11911,8 @@ def _css_investor() -> str:
         .hero-title { font-size: 40px; font-weight: 650; letter-spacing: -.03em; line-height: 1.08; max-width: 18ch; text-wrap: balance; }
         .hero-sub { font-size: 16px; line-height: 1.65; max-width: 62ch; margin-top: 14px; }
         .hero-note { margin: 8px 0 0; font-size: 13px; color: var(--text-muted); }
+        .hero-tested { color: var(--text); }
+        .hero-tested a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
         .hero-actions { align-items: center; gap: 10px; }
         .hero-btn { height: 40px; padding: 0 18px; border-radius: 10px; }
         a.hero-link { background: transparent; border-color: transparent; color: var(--text-secondary); padding: 0 10px; }

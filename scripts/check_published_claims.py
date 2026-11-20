@@ -248,6 +248,62 @@ PYTEST_MISSING = 3
 # dropped from the register's reach silently. Keep the reason specific.
 EXCLUDED: dict[str, str] = {}
 
+# Exit code for "only presentation checks failed": the numbers, the payload contract and every
+# sentence's arithmetic passed, and what failed is how the page lays out. data-run.ps1 publishes
+# on it with a WARN and an ATTENTION line in the brief (owner decision, 2026-11-19).
+PRESENTATION_ONLY = 6
+
+# Checks of layout - phone fit, overflow, tap-target size, first-paint budgets - whose failure
+# says the page *looks* wrong, never that a number on it is wrong. Named and printed every run,
+# like EXCLUDED; the reason is the owner's 2026-11-19 decision on the fresh-eyes review
+# (research/2026-11-19-fresh-eyes-review.md finding 3): from 2026-11-02 to 11-19 this gate refused
+# 9 runs and at most 2 were a wrong number or sentence, while four weekdays never published - and
+# a refused run costs a day of evidence and leaves the trading bot's input a day stale. They still
+# run, still fail loudly, and still go red in gate 1 for the code loop; they no longer discard data.
+# Add a test here only if its failure cannot mean a wrong number, rank or sentence.
+PRESENTATION: dict[str, str] = {
+    "tests/test_page_fourth_pass.py::test_phone_side_by_side_fits_three_and_four_stocks":
+        "refused 2026-11-12: compare columns on a phone",
+    "tests/test_page_fourth_pass.py::test_phone_weighting_select_shows_its_whole_label": "phone fit",
+    "tests/test_page_fourth_pass.py::test_every_column_fits_and_the_spacers_span_only_shown_columns": "column fit",
+    "tests/test_page_fourth_pass.py::test_phone_flag_sits_under_the_name_and_both_flags_fit": "phone fit",
+    "tests/test_page_fourth_pass.py::test_phone_menu_steps_aside_while_scrolling_down_and_returns_on_the_way_up": "menu motion",
+    "tests/test_club_readiness.py::test_two_stocks_side_by_side_fit_a_phone": "phone fit",
+    "tests/test_club_readiness.py::test_the_phone_menu_stays_out_of_the_sheet_and_the_tray": "phone layering",
+    "tests/test_dashboard_browser.py::test_first_paint_is_not_dominated_by_the_rankings_table": "paint budget",
+    "tests/test_dashboard_browser.py::test_phone_has_no_horizontal_page_scroll": "phone overflow",
+    "tests/test_dashboard_browser.py::test_phone_kpis_have_no_orphan_card": "phone grid",
+    "tests/test_dashboard_browser.py::test_phone_table_rows_are_cards_of_a_fixed_height": "phone row height",
+    "tests/test_dashboard_browser.py::test_sort_to_paint_is_fast": "speed budget",
+    "tests/test_dashboard_navigation.py::test_phone_compare_and_sheet_do_not_scroll_the_page_sideways": "phone overflow",
+    "tests/test_factor_lab.py::test_on_a_phone_no_table_slides_sideways": "phone overflow",
+    "tests/test_lab_reading_and_access.py::test_on_a_phone_every_control_is_at_least_44_px_tall": "tap targets",
+    "tests/test_lab_reading_and_access.py::test_on_a_phone_an_equation_wraps_instead_of_scrolling_sideways": "phone overflow",
+    "tests/test_lab_reading_and_access.py::test_on_a_phone_the_overview_scans_as_a_list_with_every_experiment_on_it":
+        "refused 2026-11-06: the lab overview's phone height budget",
+    "tests/test_lab_reading_and_access.py::test_the_height_the_card_bound_reads_waits_for_the_page_and_sees_a_taller_card": "phone height",
+    "tests/test_lab_reading_and_access.py::test_on_a_phone_the_hero_figures_sit_beside_their_labels": "phone layout",
+    "tests/test_lab_reading_and_access.py::test_on_a_phone_the_153_factors_chart_is_a_row_per_theme_and_no_label_runs_into_another": "label overlap",
+    "tests/test_research_page.py::test_on_a_phone_its_controls_are_44_px_and_on_paper_it_is_ink": "tap targets, print",
+    "tests/test_special_item_note.py::test_a_long_filing_tag_can_wrap": "wrapping",
+}
+
+
+def failed_nodeids(lines: list[str]) -> list[str]:
+    """The test ids pytest reported FAILED or ERROR, parameters stripped."""
+    out = []
+    for ln in lines:
+        if ln.startswith(("FAILED ", "ERROR ")):
+            node = ln.split(" ", 1)[1].split(" - ", 1)[0].strip()
+            out.append(node.split("[", 1)[0])
+    return out
+
+
+def presentation_only(lines: list[str]) -> bool:
+    """True when pytest reported failures and every one is a named PRESENTATION check."""
+    ids = failed_nodeids(lines)
+    return bool(ids) and all(i in PRESENTATION for i in ids)
+
 
 def claim_check_modules() -> tuple[str, ...]:
     """Every test module ``claims.py`` names as the check for a published claim.
@@ -407,6 +463,13 @@ def run(argv: list[str] | None = None) -> int:
     if proc.returncode == 0:
         print(f"PUBLISHED CLAIMS: PASS ({result_line(proc.stdout, proc.stderr)}) [{mode}]")
         return 0
+
+    if proc.returncode == 1 and presentation_only(tail):
+        print(f"PUBLISHED CLAIMS: PRESENTATION ONLY ({result_line(proc.stdout, proc.stderr)}) "
+              f"[{mode}] - every number and sentence check passed; these layout checks failed:")
+        for ln in [ln for ln in tail if ln.startswith(("FAILED", "ERROR"))][-12:]:
+            print(f"    {ln}")
+        return PRESENTATION_ONLY
 
     print(f"PUBLISHED CLAIMS: FAIL (pytest exit {proc.returncode}) [{mode}]")
     for ln in [ln for ln in tail if ln.startswith("FAILED") or ln.startswith("ERROR")][-12:]:

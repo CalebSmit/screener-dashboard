@@ -5,9 +5,9 @@
  "worse": 0,
  "data_hash": "4a7a38dc3471",
  "baseline_ic": {
-  "presample": -0.00188,
-  "all": -0.0003,
-  "pooled": -0.00116
+  "presample": -0.00183,
+  "all": -0.00073,
+  "pooled": -0.00133
  },
  "months": {
   "presample": 96,
@@ -17,18 +17,18 @@
  "baseline_ic_ci95": {
   "presample": [
    -0.0218,
-   0.018
+   0.0181
   ],
   "all": [
-   -0.0277,
-   0.0271
+   -0.0282,
+   0.0267
   ],
   "pooled": [
-   -0.0175,
-   0.0152
+   -0.0177,
+   0.015
   ]
  },
- "pooled_t": -0.14,
+ "pooled_t": -0.16,
  "pooled_detectable": 0.0319,
  "method_version": 2,
  "control": {
@@ -36,11 +36,11 @@
   "sees": true,
   "period": "all",
   "months": 80,
-  "ic_vs_baseline": 0.05117,
-  "t": 5.59,
+  "ic_vs_baseline": 0.05161,
+  "t": 5.64,
   "detectable": 0.0373,
   "in_band": true,
   "arm_ic": 0.05089,
-  "baseline_ic_on_common": -0.00028
+  "baseline_ic_on_common": -0.00072
  }
 }

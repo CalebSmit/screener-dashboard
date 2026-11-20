@@ -2773,6 +2773,20 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"A flag changes neither the score nor the rank",
     ),
     Claim(
+        id="page.hero_tested",
+        surface=DRILLDOWN,
+        asserts=("The home page's hero says the ranking 'has shown no measurable edge' on 2012-2026 "
+                 "history only while the research engine's published summary has a pooled 95% "
+                 "interval containing zero and no alternative clearing its bar; otherwise it states "
+                 "the pooled figure and interval, and with no summary it says it is untested."),
+        made_true_by="generate_dashboard:history_verdict",
+        checked_by=(
+            "tests/test_hero_tested.py::test_no_edge_only_while_the_summary_says_so",
+            "tests/test_hero_tested.py::test_the_committed_page_carries_the_committed_summarys_verdict",
+        ),
+        detect=None,                      # a page sentence: tests/test_hero_tested.py reads it
+    ),
+    Claim(
         id="overview.at_a_glance_tested",
         surface=OVERVIEW,
         asserts=("'If you read nothing else' says the ranking did no better than chance on 2012-2026 "
