@@ -1,0 +1,132 @@
+{
+ "A_live_run": {
+  "run": "4793e4da8a1a",
+  "market_last_close": "2026-11-19",
+  "m12 (scored)": 0.1101,
+  "m12_1": 0.1735,
+  "m_1m": -0.0686,
+  "rf": 0.041469998359680176,
+  "reconstruction_max_abs_err": 0.0,
+  "n_stocks": 500,
+  "sd_return_12m": 0.455,
+  "sd_beta_term": 0.0578,
+  "spearman_sector_pct": {
+   "jensens_alpha": {
+    "jensens_alpha": 1.0,
+    "alpha_12_1": 0.918,
+    "return_12_1": 0.871,
+    "return_6m": 0.418,
+    "return_12m": 0.981,
+    "return_1m": 0.181
+   },
+   "alpha_12_1": {
+    "jensens_alpha": 0.918,
+    "alpha_12_1": 1.0,
+    "return_12_1": 0.94,
+    "return_6m": 0.435,
+    "return_12m": 0.906,
+    "return_1m": -0.108
+   },
+   "return_12_1": {
+    "jensens_alpha": 0.871,
+    "alpha_12_1": 0.94,
+    "return_12_1": 1.0,
+    "return_6m": 0.374,
+    "return_12m": 0.913,
+    "return_1m": -0.207
+   },
+   "return_6m": {
+    "jensens_alpha": 0.418,
+    "alpha_12_1": 0.435,
+    "return_12_1": 0.374,
+    "return_6m": 1.0,
+    "return_12m": 0.381,
+    "return_1m": -0.026
+   },
+   "return_12m": {
+    "jensens_alpha": 0.981,
+    "alpha_12_1": 0.906,
+    "return_12_1": 0.913,
+    "return_6m": 0.381,
+    "return_12m": 1.0,
+    "return_1m": 0.12
+   },
+   "return_1m": {
+    "jensens_alpha": 0.181,
+    "alpha_12_1": -0.108,
+    "return_12_1": -0.207,
+    "return_6m": -0.026,
+    "return_12m": 0.12,
+    "return_1m": 1.0
+   }
+  }
+ },
+ "B_history": {
+  "months": 177,
+  "first": "2012-01-31",
+  "last": "2026-09-30",
+  "median_n": 476,
+  "spearman_across_months": {
+   "jensens_alpha~return_12_1": {
+    "median": 0.918,
+    "p10": 0.837,
+    "p90": 0.961,
+    "months": 177
+   },
+   "jensens_alpha~return_12m": {
+    "median": 0.969,
+    "p10": 0.896,
+    "p90": 0.998,
+    "months": 177
+   },
+   "jensens_alpha~return_1m": {
+    "median": 0.279,
+    "p10": 0.004,
+    "p90": 0.496,
+    "months": 177
+   },
+   "alpha_12_1~return_12_1": {
+    "median": 0.966,
+    "p10": 0.902,
+    "p90": 0.999,
+    "months": 177
+   },
+   "resid_mom~return_12_1": {
+    "median": 0.774,
+    "p10": 0.713,
+    "p90": 0.83,
+    "months": 155
+   },
+   "resid_mom~alpha_12_1": {
+    "median": 0.779,
+    "p10": 0.7,
+    "p90": 0.83,
+    "months": 155
+   },
+   "jensens_alpha~alpha_12_1": {
+    "median": 0.953,
+    "p10": 0.934,
+    "p90": 0.966,
+    "months": 177
+   },
+   "return_12_1~return_1m": {
+    "median": 0.015,
+    "p10": -0.223,
+    "p90": 0.269,
+    "months": 177
+   },
+   "alpha_12_1~return_1m": {
+    "median": 0.015,
+    "p10": -0.232,
+    "p90": 0.273,
+    "months": 177
+   },
+   "resid_mom~return_1m": {
+    "median": -0.089,
+    "p10": -0.3,
+    "p90": 0.105,
+    "months": 155
+   }
+  }
+ }
+}
