@@ -10035,3 +10035,81 @@ I did it two days before its Monday rather than leave the weekend on something s
 2. 0.15's remaining page change: the Track record tile leads with "too short to tell skill from luck"
    rather than the return (note section 5) - a 13:00 slot is enough.
 3. Unchanged: IV inversion 11-24 (06:00); the share-count rebuild; the lab's Friday 11-27.
+
+
+## 2026-11-21 (13:00) - QUEUE. 0.15 closed: the Track record tile now leads with "too short to judge", the return beneath it
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-21_060001-weekend.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-20_180003.log` (completed; HEALTH: PASS);
+no 02:00 run on a Saturday, so nothing newer is expected. Evidence base at `1m`: **55 rows, newest
+2026-10-20 (32 days ago, bound 40), 5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top
+open roadmap item: was **0.15** (age **2 days**) - **closed by this session**; the line now reads **0.13,
+the Factor Lab** (age 40 days, a standing programme last advanced 15 days ago, bound 21 - not late);
+also open 0.10 45d, 0.14 38d. Shipped to readers: 15 commits, 8 methodology changes in 7 days.
+**Tests:** baseline 4,455 passed / 1 skipped; dry run OK. After: **4,455 passed / 1 skipped** (one
+existing browser test extended, none added); dry run OK; rehearsal (gate 5): see Gates below.
+**Owner queue / rotation:** `git stash list` empty; no owner-session marker. Carried on from the 06:00
+entry's Next 2 (Next 1 is dated for the 11-23 06:00 slot, Next 3 are weekday 06:00 / Friday items). No
+open proposals waiting (the morning session decided both).
+
+### Did
+- **The Track record tile leads with the lesson** (`research/2026-11-19-what-the-ranking-is-for.md`
+  section 5, item 2 - the page consequence of answer D, written before the measurement). While the
+  record's day-by-day lead over RSP is under two standard errors (today 0.1):
+  - the tile's heading reads **"Track record: too short to judge"** instead of "Track record";
+  - **"It cannot yet tell skill from luck: 0.1 standard errors, where two is the usual bar"** sits
+    *above* the +4.5% (it used to sit under the sub-line, after the number);
+  - the return and both benchmarks stay, as the note requires - hiding the figure would be worse.
+  Above two the tile reverts to "Track record" with no caveat (the existing branch, now also asserting
+  the heading). `generate_dashboard.contextMetas` (JS), `.kpi-caveat-lead` CSS. Presentation only:
+  `scripts/rebuild_page.py` reported the payload byte-identical.
+- **Why this is an improvement:** the answer to 0.15 (pre-registered 11-19, measured 11-21) is that the
+  ranking carries no return claim; the tile was the one place on the first screen that led with a
+  return in the page's largest numerals. Its own figure (0.1 SE) says that return is indistinguishable
+  from luck, so the page now says that first. The figure is the panel's own (claim
+  `context.track_luck`), not a new computation.
+- **Test:** `tests/test_page_fourth_pass.py::test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure`
+  now also pins the heading, a single caveat, and that the caveat precedes `.kpi-value`
+  (`compareDocumentPosition`). It ran (not skipped) against the published payload. Claim caveat in
+  `claims.py` rewritten to the new wording and order.
+- **Looked at it at 1440 and 375 px** (`logs/design/track-tile-*.png`): desktop 269x209 - heading on two
+  uppercase lines, amber-ruled caveat, then +4.5%, then the benchmarks; phone 171x243 - same order,
+  wraps cleanly; no horizontal overflow at either width.
+- **0.15 CLOSED** in CLAUDE.md (heading marked, so `health_numbers.open_items` drops it - verified, the
+  top item is now 0.13), with the constraint that survives: no surface presents the ranking's return as
+  a result. Note section 5 and `OWNER_FOCUS.md` say both page changes shipped;
+  `plan/dashboard-inventory.md` updated. The OWNER_FOCUS 2026-11-19 item stays open: the IV inversion
+  and residual momentum builds are still in it.
+
+### Evidence / research
+- None new: the change applies the pre-registered consequence of an answer measured this morning.
+
+### Methodology changed
+- none (presentation; payload byte-identical, no number, weight or rank moved).
+
+### Tried and rejected
+- **Renaming the tile outright** (e.g. "Short record"): the section, the nav and the search palette all
+  call it "Track record"; keeping that word first keeps the tile findable and the link to the section
+  obvious.
+- **Reframing the Track record section's header meta too** - the note names the tile; the section's
+  body already leads its prose with the standard-error sentence. Not worth a second change today.
+
+### Gates
+- Gate 1 at the end: 4,455 passed / 1 skipped. Two earlier foreground attempts came back cut off
+  mid-run (output stopped at 8-29% with no summary, tree clean); a third, run detached and waited on
+  with `scripts/wait_for.py`, finished in 301 s. Not reproduced or explained - recorded in case it
+  recurs; the runner's gate 1 is the judge.
+- Gate 2 dry run OK; gate 4 clean; gate 5: REHEARSAL PASSED (page tests, claims gate, published files restored byte for byte; regenerated page 950,559 bytes, unchanged).
+
+### Set aside
+- 06:00 Next 1 (build residual momentum): dated for the 2026-11-23 06:00 session - a scoring change that
+  wants a weekday slot with a 02:00 run behind it, per that entry.
+- 06:00 Next 3 / ACCEPTED, unbuilt: the IV inversion (dated 11-24, needs a throwaway full run); the
+  share-count rebuild (~2.5 h, a 06:00 session to itself); the lab's Friday 11-27.
+
+### Next
+1. **2026-11-23 06:00: build residual momentum** (`research/2026-11-20-jensens-alpha-in-momentum.md`
+   section 9) - unchanged from the 06:00 entry.
+2. A weekend 06:00 or 13:00 slot with nothing dated: 0.10's residual (Sharpe/Sortino equations) is the
+   low-value filler CLAUDE.md names; the universe-expansion phase-1 plumbing (`plan/universe-expansion.md`)
+   is unblocked by 0.15 and is the better use.
