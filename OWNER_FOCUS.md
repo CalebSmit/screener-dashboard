@@ -50,7 +50,9 @@ Two things still outrank this file, and neither is negotiable:
   is one, yet the top 40 were as likely as any stock to have one of the worst next months, and at 6 and
   12 months 14 years of history is too short to tell - so by the rule fixed beforehand the ranking is
   **a teaching tool with no return claim** (D). Most of that is already how the page reads; two page
-  changes follow (section 5). Universe expansion phase 2 is no longer blocked by it;
+  changes follow (section 5) - **both shipped 2026-11-21**: the hero's tested sentence says the top 40
+  were as likely as any stock to have one of the worst months, and the Track record tile now leads
+  with "too short to judge" above its return. Universe expansion phase 2 is no longer blocked by it;
   ~~collapse CLAUDE.md's four "->red" rows into one rule~~ (done 2026-11-19, row "premise->red").
   Close this item when those are done or argued down in the log.
 

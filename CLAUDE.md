@@ -732,7 +732,7 @@ brief's `context_eval` line. Three constraints survive it, beyond settled row "c
 - **Accruals are counted three times inside Quality** (0.49 with Beneish, 0.00 with Piotroski,
   13 points in all) - measured, deliberately unchanged. Do not "discover" it again.
 
-**0.15. What the ranking is for, given no measured edge (opened 2026-11-19, owner-delegated).**
+**0.15. What the ranking is for, given no measured edge (opened 2026-11-19, owner-delegated) - CLOSED 2026-11-21.**
 The research engine finds the ranking does not measurably order next month's returns (pooled IC
 -0.001 over 176 months; none of 27 alternatives better), and the home page now says so beside the
 track record. Before universe expansion phase 2 scales the ranking to 1,500 stocks, a Monday note
@@ -747,9 +747,12 @@ before the run). The positive control was seen (t 5.64); the top 40 fell in next
 9.8% of the time in both eras (A fails - no better than chance, with a tight interval); 6- and
 12-month IC are undecidable (detectable 0.057 / 0.065, eras of opposite sign). **Do not reopen A on
 survivorship** (section 4c says why it is a limit, not a reason) **and do not read the 2020-2026
-twelve-month +0.038 as a finding.** Universe expansion phase 2 is unblocked. **What remains open: the
-two page changes in section 5** - the hero's tested sentence states A and B as a registered claim, and
-the Track record tile leads with the lesson rather than the return.
+twelve-month +0.038 as a finding.** Universe expansion phase 2 is unblocked. **CLOSED 2026-11-21:
+both page changes in section 5 shipped** - the hero's tested sentence states A and B (claim
+`page.hero_screen`), and the Track record tile leads with the lesson: heading "Track record: too short
+to judge", the skill-or-luck line above the return (claim `context.track_luck`,
+`tests/test_page_fourth_pass.py`). Constraint that survives: **no surface may present the ranking's
+return as a result** - phase 3's universe inherits the same framing.
 
 **0.13. The Factor Lab (opened 2026-10-12; a standing programme, progress in `plan/factor-lab.md`).**
 Owner item; `OWNER_FOCUS.md` has it and
