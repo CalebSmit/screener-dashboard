@@ -33,7 +33,9 @@ def test_the_committed_page_carries_the_committed_summarys_verdict():
     page = (ROOT / "index.html").read_text(encoding="utf-8")
     m = re.search(r'<p class="hero-note hero-tested" id="hero-tested">(.*?) <a href="research.html">', page)
     assert m, "the hero's history-test line is missing from index.html"
-    assert m.group(1) == g.history_verdict()
+    # the one-month verdict, then (since 2026-11-21) the two narrower tests' sentence when they count
+    assert m.group(1) == g.hero_tested_line()
+    assert m.group(1).startswith(g.history_verdict())
 
 
 def test_the_line_carries_no_advice_language():

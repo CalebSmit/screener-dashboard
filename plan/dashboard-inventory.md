@@ -137,6 +137,12 @@ Presentation only (payload byte-identical). What a session must know before touc
   **`#hero-tested`** (2026-11-19) under the disclaimer: the 15-year test's verdict in one sentence, built at
   generation by `generate_dashboard.history_verdict()` from `research/experiments/summary.json` (claim
   `page.hero_tested`), so the bold track-record tile is never the only thing said about performance.
+  **Since 2026-11-21 a second sentence follows it** (`hero_tested_line()` = the verdict +
+  `screen_verdict()`): what CLAUDE.md 0.15's two pre-registered narrower tests found - whether the top 40
+  dodge next month's worst tenth, and 6- and 12-month IC - read by `screen_test_reading()` from
+  `research/measurements/2026-11-21-what-the-ranking-is-for.json` and omitted if that run's positive
+  control was not seen (claim `page.hero_screen`). The same reading fills `research.html`'s
+  `#screen-and-horizon` section (`research_page.purpose_section`, claim `research.screen_and_horizon`).
 - **At a glance** (`renderKPIs`): Ranked / Moved materially / **Track record** (`#kpi-track`, filled by
   `contextMetas()` once `dashboard_context.js` lands, "not loaded" on failure) / Trap flags (or the
   momentum weight when the regime rule moved it). Metric coverage lives in Diagnostics.

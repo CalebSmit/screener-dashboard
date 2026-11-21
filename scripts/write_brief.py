@@ -678,16 +678,18 @@ COMING_UP = (
                    "conditions were written before any further page was read. Its status line reads "
                    "WAITING, not OPEN, until then.",
      "research/2026-11-17-ytd-in-a-quarterly-column.md"),
-    ("2026-11-23", "Monday: CLAUDE.md 0.15, what the ranking is for given no measured edge - measure "
-                   "against the criteria pre-registered in section 3 (fixed 2026-11-19; do not relax "
-                   "them), registering each test in the engine's registry before it runs.",
-     "research/2026-11-19-what-the-ranking-is-for.md"),
     ("2026-11-24", "Build the implied-volatility inversion ACCEPTED on 2026-11-04 and dropped from every "
                    "Next list since 11-05 (found 2026-11-19). Section 1d's build order: exDividendDate "
                    "into the core .info fetch, a throwaway full run, QuantLib pinned and installed by a "
                    "scheduled session (never from the desktop app: its AppData is sandboxed). A 06:00 "
                    "session with nothing else in it.",
      "research/2026-11-03-open-source-quant-stack.md"),
+    ("2026-11-23", "Build residual momentum in place of `jensens_alpha` (ACCEPTED 2026-11-21, weight 25 "
+                   "unchanged) in a 06:00 session (0.15's section 4 is committed - done 2026-11-21): section 9's "
+                   "build list - 37-month history on the same request with the Risk inputs trimmed to "
+                   "13, `^SP500TR` to 4y, lineage/equation/claims, backtest v2, the engine rerun, a "
+                   "throwaway full run before the changelog entry.",
+     "research/2026-11-20-jensens-alpha-in-momentum.md"),
     ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
      "CLAUDE.md"),
     ("2027-03-02", "The first combined 10-Ks since the SEC began holding a jointly filed report's facts "

@@ -9920,3 +9920,118 @@ that is today's work.
    a session that did not write it; Monday's 0.15 note comes first if they collide, since residual
    momentum is a change to a ranking whose purpose 0.15 is about to restate.
 3. Unchanged: the IV inversion on 11-24 (06:00); the share-count rebuild; the lab's Friday 11-27.
+
+
+## 2026-11-21 - WEEKEND. The Jensen's-alpha proposal decided (ACCEPTED: residual momentum), and 0.15 answered: D, a teaching tool with no return claim - now on both pages
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-20_130000-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-20_180003.log` (completed; HEALTH: PASS) -
+the 18:00 retry, the first run under the 11-19 missing-category rule to reach the site, so the previous
+entry's Next 1 is confirmed. Evidence base at `1m`: **55 rows, newest 2026-10-20 (32 days ago, bound 40),
+5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.15, What the
+ranking is for** (opened 2026-11-19, **age 2 days**) - answered this session, two page changes remain open
+under it, one shipped here; also open 0.13 (40 d, a standing programme), 0.10 (45 d), 0.14 (38 d).
+Shipped to readers: 13 commits, 8 methodology changes in 7 days.
+**Tests:** baseline 4,447 passed / 1 skipped (dry run OK). After: **4,455 passed / 1 skipped** (+8, the
+new `tests/test_screen_and_horizon.py`); dry run PASSED; payload parse gate 20/20, index.html 949,749
+bytes; rehearsal (gate 5) PASSED (published files restored byte for byte); tree clean.
+**Owner queue / rotation:** `git stash list` empty; no owner-session marker; no earlier entry today. Two
+open proposals in the brief: the Jensen's-alpha one (a session that did not write it - me) and 0.15's
+Monday measurement. The rules make deciding a proposal the first job, so that came first; it then had
+nothing left blocking it but 0.15, and 0.15 is both the top roadmap item and an owner-agreed priority, so
+I did it two days before its Monday rather than leave the weekend on something smaller.
+
+### Did
+- **Decided `research/2026-11-20-jensens-alpha-in-momentum.md`: ACCEPTED, option C (CAPM residual
+  momentum, weight 25 unchanged), not built today.** Section 9 of the note. Done against its own
+  checklist rather than read:
+  - **Re-read the sources from the manuscript** (pypdf on `data/papers/blitz2011.pdf`): Table 2, Table 8
+    (largest 10%: Sharpe 0.36 -> 0.60, t 2.75 -> 5.32), Table 7 (no skip) and the p. 12 alpha exclusion
+    all reproduce; the sub-agent's unchecked Table 3 reading also reproduces (2000-2009: residual +4.65%,
+    t 1.18; total-return -8.54%).
+  - **Measured the fetch cost** (`research/measurements/2026-11-21-residual-momentum-fetch-cost.py` +
+    `.json`): `period="37mo"` is the same single request as today's `13mo`; median 0.126 s -> 0.163 s on
+    30 tickers (order alternated), 274 -> 774 bars. **Coverage 495 of 503** - short: FDXF, GEV, HONA, Q,
+    RDDT, SNDK, SOLV, VYLR (SNDK is in today's top five; they fall back to the existing within-category
+    share). `fetch_market_closes` pulls `^SP500TR` at `3y`, three weeks short of the needed close -
+    lengthen that one request. Neither refusal condition is met.
+  - **What the second reader added:** Blitz et al. is long-short, and this project already learned
+    (stop-loss note, 2026-10-22) that momentum's crash risk sits mostly in the losers leg a long-only
+    book never holds - so the changelog must not quote 0.36 -> 0.60 as what a reader should expect, and
+    the decision does not rest on it. It rests on: no source uses the current construction; C is a
+    construction change with no weight moved (D would move 3.25 composite points onto two 0.9-alike
+    metrics); it stops rewarding low beta a second time on top of Risk.
+  - **Not built today** because it collided with 0.15 (changing the composite two days after its
+    criteria were pre-registered, before they were measured) and is a full 06:00 session's build
+    (fetch trim, market series, lineage/equation/claims, backtest v2, engine rerun, throwaway full run).
+    `COMING_UP` carries it for **2026-11-23**, the slot 0.15 vacated.
+- **0.15 answered - `research/2026-11-19-what-the-ranking-is-for.md` sections 4-5.** The criteria were
+  fixed on 11-19; the operational choices they left open (eras, decile cut, which SE, window
+  construction, power formula) went into section 4a **in the same commit as the script, before its
+  first run** (`129ee13`); the result commit came after (`4c9583e`). Not registered in
+  `registry.yaml`: that file is a `RESULT_PATHS` file (any edit stales all 32 ledger rows for a
+  ~25-minute rerun that moves no number) and its `experiments:` loaders need a weighting transform; the
+  commit order gives the same proof. Results (`research/measurements/2026-11-21-what-the-ranking-is-for.*`):
+  - **Positive control seen** (`lookahead-filings`, +0.052, t 5.64, inside its band) - so it all counts.
+  - **A (screen) FAILS:** the top 40 landed in next month's bottom decile **9.79%** (2012-2019) and
+    **9.78%** (2020-2026) of the time; one-sided 95% upper bounds 10.6% / 10.7%, rule needs < 10% in
+    both. They also landed in the top decile 9.4% / 9.6%. A tight interval - the ranking, as measured,
+    does not steer a reader away from next month's worst names.
+  - **B (slow forecast) UNDECIDABLE** at 6 months (29 windows, detectable 0.057, pooled -0.007) and 12
+    (14 windows, detectable 0.065, pooled +0.004); the eras disagree in sign at both.
+  - **C not run; the pre-registered answer is D** - a teaching tool, no return claim. Section 4c records
+    what it does not say (survivorship hides exactly the worst outcomes A is about - a limit, not a
+    reason to reopen it; the 2020-2026 12-month +0.038 is not a finding).
+- **Shipped the first of section 5's two page changes** (reader-visible; payload byte-identical):
+  - The home page's tested line now reads, after the one-month verdict: *"Its top 40 were as likely as
+    any stock to have one of the next month's worst returns, and over six and twelve months the history
+    is too short to tell."* (`generate_dashboard.screen_verdict`, claim `page.hero_screen`).
+  - `research.html` gains **"Does it at least miss the worst, or work over a longer horizon?"** with the
+    era figures, intervals and power (`research_page.purpose_section`, claim
+    `research.screen_and_horizon`). One reading of the file (`screen_test_reading`) feeds both pages; a
+    run whose control was not seen publishes nothing. "Avoid" is on the advice ban list, so the heading
+    says "miss". `tests/test_screen_and_horizon.py` (8 tests) builds the file by hand for the branches
+    the real run did not hit.
+  - **Looked at both at 1440 and 375 px:** no horizontal overflow at either width; the research section
+    is three stat cards over two paragraphs (896x676 desktop, 343x1288 phone); the hero line wraps to six
+    lines at 375 above the buttons, reads cleanly.
+- `OWNER_FOCUS.md` 2026-11-19 item: the Jensen sub-item and (3) marked answered; the universe-expansion
+  item's pause lifted, with section 5's condition (phase 3 carries the no-return-claim framing).
+  CLAUDE.md 0.15 rewritten as ANSWERED with the one remaining page change; `plan/dashboard-inventory.md`
+  updated; `COMING_UP`: the 11-23 0.15 entry deleted (done), the residual-momentum build added for 11-23.
+
+### Evidence / research
+- Blitz, Huij & Martens (2011), *JEF* 18(3) 506-521, doi 10.1016/j.jempfin.2011.01.003 - Tables 2, 3, 7, 8
+  and p. 12 checked against the accepted manuscript by this session (page numbers are the manuscript's).
+- Han, Zhou & Zhu (2016) via this repo's 2026-10-22 note - the long-only caveat (not re-read today).
+- 0.15: no literature added; Grinold & Kahn's "0.05 is good" is cited in the note but **not re-read**, so
+  the research page's power sentence compares with the page's own 0.05 benchmark instead of
+  attributing the figure.
+
+### Methodology changed
+- none. The residual-momentum change is ACCEPTED and dated, not built; its changelog entry is the build
+  session's. The page changes report a measurement and move no number, weight or rank.
+
+### Tried and rejected
+- **Building residual momentum today.** Possible in the time, but it would have changed the composite
+  between 0.15's pre-registration and its measurement, and gate 5 cannot see a scoring change on a
+  weekend with no 02:00 run until Monday - the build wants a weekday 06:00 slot and a throwaway full run.
+- **Registering 0.15's tests in `registry.yaml`.** See Did; the rerun would have re-stamped 32 rows
+  without moving a number.
+- **Attributing "0.05 is good" to Grinold & Kahn on the page** - the note had not read it.
+
+### Set aside
+- Previous Next 1 (confirm the 18:00 retry published): done - the health line, HEALTH: PASS.
+- Previous Next 2 (decide the Jensen proposal): done.
+- Previous Next 3: the IV inversion (11-24, 06:00) and the share-count rebuild - each wants a weekday
+  06:00 slot to itself, not a weekend; the lab's Friday 11-27 is a Friday's.
+- ACCEPTED, unbuilt: the IV inversion (2026-11-04) - dated 11-24; residual momentum (today) - dated 11-23.
+- 0.15 section 5's second page change (the Track record tile leads with the lesson): not started - a
+  presentation change to a heavily-tested tile, better done fresh than at the end of this session.
+
+### Next
+1. **2026-11-23 06:00: build residual momentum** per `research/2026-11-20-jensens-alpha-in-momentum.md`
+   section 9 (its build list is complete; start with the fetch trim and its test).
+2. 0.15's remaining page change: the Track record tile leads with "too short to tell skill from luck"
+   rather than the return (note section 5) - a 13:00 slot is enough.
+3. Unchanged: IV inversion 11-24 (06:00); the share-count rebuild; the lab's Friday 11-27.

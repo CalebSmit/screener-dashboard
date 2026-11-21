@@ -96,6 +96,61 @@ def _load(path: Path) -> dict:
         return {}
 
 
+PURPOSE_NOTE = f"{REPO}/blob/main/research/2026-11-19-what-the-ranking-is-for.md"
+
+
+def purpose_section(r: dict | None) -> str:
+    """'Does it at least miss the worst, or work over a longer horizon?' (claim
+    ``research.screen_and_horizon``, CLAUDE.md 0.15, 2026-11-21).
+
+    ``r`` is ``generate_dashboard.screen_test_reading()`` - the one reading of the measurement the
+    home page's sentence also uses, so the two pages cannot describe it differently. Empty when the
+    measurement is missing or its positive control was not seen (then it does not count)."""
+    if not r:
+        return ""
+    e1, e2 = r["a_eras"].get("2012-2019"), r["a_eras"].get("2020-2026")
+    u1, u2 = r["a_upper"].get("2012-2019"), r["a_upper"].get("2020-2026")
+    if None in (e1, e2, u1, u2):
+        return ""
+    how = {"as": "as often as chance would put any stock there",
+           "less": "less often than chance, by enough to pass the rule in both periods",
+           "slightly less": ("a little less often than chance on average, but not by enough in both "
+                             "periods to pass the rule"),
+           "more": "more often than chance would put any stock there"}[r["a_word"]]
+    b6, b12 = r["b"][6], r["b"][12]
+
+    def _ic(b: dict) -> str:
+        return (f"<span class=\"num\">{num(b['mean'])}</span> across {b['windows']} separate windows "
+                f"(95% interval {num(b['ci'][0])} to {num(b['ci'][1])})")
+
+    undecidable = [h for h in (6, 12) if r["b"][h]["verdict"] == "undecidable"]
+    sign = ("At neither horizon did the two periods agree on the sign. "
+            if not b6["same_sign"] and not b12["same_sign"] else "")
+    power = ""
+    if undecidable:
+        power = ("With this much history the test could reliably see a correlation only of about "
+                 + " and ".join(f"<span class=\"num\">{r['b'][h]['detectable']:.3f}</span> at "
+                                f"{'six' if h == 6 else 'twelve'} months" for h in undecidable)
+                 + ", larger than the 0.05 the section above asks how long it would take to prove. ")
+    import generate_dashboard as gd     # the same clause the home page prints, from the same reading
+    clause = gd.horizon_clause(r)
+    ending = (" With neither passing, the rule set in advance describes the screener as a teaching tool: "
+              "a structured, checkable way to read companies, with no claim about returns.") if r["d"] else ""
+    return f"""
+  <section id="screen-and-horizon">
+    <h2>Does it at least miss the worst, or work over a longer horizon?</h2>
+    <p>A ranking with no edge at one month could still be useful as a screen, or work slowly. Both were tested on the same history, each with its pass rule <a href="{PURPOSE_NOTE}">written down before either was measured</a>, and the check that the test can see a signal ran alongside them and saw it.</p>
+    <div class="stats">
+      <div class="stat"><div class="v">{e1 * 100:.1f}%</div><div class="k">of the top 40&rsquo;s next months were among the index&rsquo;s worst tenth, 2012&ndash;2019 (chance is 10%)</div></div>
+      <div class="stat"><div class="v">{e2 * 100:.1f}%</div><div class="k">the same, 2020&ndash;2026</div></div>
+      <div class="stat"><div class="v">{num(b12['mean'])}</div><div class="k">average rank correlation with the next twelve months&rsquo; return</div></div>
+    </div>
+    <p><strong>As a screen.</strong> The 40 highest-ranked stocks landed in the following month&rsquo;s worst tenth {e1 * 100:.1f}% of the time in 2012&ndash;2019 and {e2 * 100:.1f}% in 2020&ndash;2026, {how} (the rule: the upper end of a one-sided 95% interval below 10% in both periods; it was {u1 * 100:.1f}% and {u2 * 100:.1f}%). Companies that later left the index are missing from this history, and they include the worst outcomes of all, so the test cannot say whether the ranking steers readers clear of those.</p>
+    <p><strong>Over longer horizons.</strong> Over six months the average rank correlation was {_ic(b6)}; over twelve, {_ic(b12)}. {sign}{power}So {clause}.{ending}</p>
+  </section>
+"""
+
+
 def display_label(e: dict) -> str:
     """An experiment's name for the page, as HTML: "(within sector)" where the screen is a
     within-sector version of a market-wide paper (``construction_note``), and a dagger where its
@@ -595,6 +650,8 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
         if rows and rows[0]["id"] == "only-size" else ""
 
     overfit_html = overfitting_section(reg, latest)
+    import generate_dashboard as gd    # one reading of the 0.15 measurement for both pages
+    purpose_html = purpose_section(gd.screen_test_reading())
 
     bot_html = ""
     ev = next((e for e in evaluations if e["id"] == "bot-rule-v1.1"), None)
@@ -954,7 +1011,7 @@ section[id], #top {{ scroll-margin-top: calc(var(--bar-h) + 16px); }}
     </div>
     <p>The ranking's monthly correlation swings by about <span class="num">{ic_sd:.2f}</span> from one month to the next, so any monthly ranking of large companies needs years of record before a realistic edge can be told apart from luck. That applies to this screener's live track record too. Here, the smallest difference the test could reliably see was about <span class="num">{mde_p:.3f}</span> over 2012&ndash;2019 and <span class="num">{mde_h:.3f}</span> over the held-out months.</p>
   </section>
-
+{purpose_html}
   <section id="what-it-means">
     <h2>What this means</h2>
     <div class="claims">

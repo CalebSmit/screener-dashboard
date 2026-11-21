@@ -740,8 +740,16 @@ answers what it is for and how the page should present it: a *screen* that narro
 reading (judged on what a club does with the 40, not on rank IC); a longer horizon (value and
 quality are slow, the engine tests one month); fewer, better-evidenced factors; or plainly a teaching
 tool. **The criteria are pre-registered** in `research/2026-11-19-what-the-ranking-is-for.md` section 3
-(fixed before any measurement; do not relax them). Phase-1 plumbing may continue meanwhile.
+(fixed before any measurement; do not relax them).
 `research/2026-11-19-fresh-eyes-review.md` finding 2.
+**ANSWERED 2026-11-21: D - a teaching tool, with no return claim** (sections 4-5; method committed
+before the run). The positive control was seen (t 5.64); the top 40 fell in next month's bottom decile
+9.8% of the time in both eras (A fails - no better than chance, with a tight interval); 6- and
+12-month IC are undecidable (detectable 0.057 / 0.065, eras of opposite sign). **Do not reopen A on
+survivorship** (section 4c says why it is a limit, not a reason) **and do not read the 2020-2026
+twelve-month +0.038 as a finding.** Universe expansion phase 2 is unblocked. **What remains open: the
+two page changes in section 5** - the hero's tested sentence states A and B as a registered claim, and
+the Track record tile leads with the lesson rather than the return.
 
 **0.13. The Factor Lab (opened 2026-10-12; a standing programme, progress in `plan/factor-lab.md`).**
 Owner item; `OWNER_FOCUS.md` has it and

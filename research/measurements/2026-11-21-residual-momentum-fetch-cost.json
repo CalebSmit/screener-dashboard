@@ -1,0 +1,434 @@
+{
+ "run_date": "2026-11-21",
+ "last_month_end": "2026-10-31",
+ "needed_from": "2023-10-31",
+ "coverage": {
+  "universe": 503,
+  "covered_by_v2_cache": 494,
+  "checked_live": 9,
+  "first_close_live": {
+   "FDXF": "2026-05-27",
+   "GEV": "2024-03-27",
+   "HONA": "2026-06-15",
+   "Q": "2025-10-27",
+   "RDDT": "2024-03-21",
+   "SNDK": "2025-02-13",
+   "SOLV": "2024-03-26",
+   "VYLR": "2026-10-01",
+   "OKTA": "2021-11-22"
+  },
+  "short_of_37_month_ends": [
+   "FDXF",
+   "GEV",
+   "HONA",
+   "Q",
+   "RDDT",
+   "SNDK",
+   "SOLV",
+   "VYLR"
+  ],
+  "n_short": 8,
+  "share_covered": 0.9841
+ },
+ "cost": {
+  "sample": 30,
+  "median_seconds_13mo": 0.1255,
+  "median_seconds_37mo": 0.1625,
+  "median_bars_13mo": 274.0,
+  "median_bars_37mo": 774.0,
+  "median_frame_bytes_13mo": 17536.0,
+  "median_frame_bytes_37mo": 49536.0,
+  "rows": [
+   {
+    "ticker": "WST",
+    "13mo": {
+     "seconds": 0.147,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.168,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "KMB",
+    "37mo": {
+     "seconds": 0.129,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.121,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "CBOE",
+    "13mo": {
+     "seconds": 0.202,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.175,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "DAL",
+    "37mo": {
+     "seconds": 0.127,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.107,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "P",
+    "13mo": {
+     "seconds": 0.116,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.112,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "SWKS",
+    "37mo": {
+     "seconds": 0.264,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.106,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "MSFT",
+    "13mo": {
+     "seconds": 0.113,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.148,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "ACGL",
+    "37mo": {
+     "seconds": 0.106,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.129,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "EQIX",
+    "13mo": {
+     "seconds": 0.122,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.151,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "APO",
+    "37mo": {
+     "seconds": 0.159,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.137,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "ABT",
+    "13mo": {
+     "seconds": 0.126,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.202,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "ZBRA",
+    "37mo": {
+     "seconds": 0.114,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.101,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "COR",
+    "13mo": {
+     "seconds": 0.129,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.176,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "COF",
+    "37mo": {
+     "seconds": 0.194,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.374,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "XOM",
+    "13mo": {
+     "seconds": 0.231,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.237,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "ES",
+    "37mo": {
+     "seconds": 0.182,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.179,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "CASY",
+    "13mo": {
+     "seconds": 0.169,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.31,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "CCL",
+    "37mo": {
+     "seconds": 0.182,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.115,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "MRK",
+    "13mo": {
+     "seconds": 0.125,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.165,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "FFIV",
+    "37mo": {
+     "seconds": 0.117,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.104,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "FTV",
+    "13mo": {
+     "seconds": 0.106,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.165,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "EG",
+    "37mo": {
+     "seconds": 0.177,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.144,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "MGM",
+    "13mo": {
+     "seconds": 0.198,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.127,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "VZ",
+    "37mo": {
+     "seconds": 0.159,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.161,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "BDX",
+    "13mo": {
+     "seconds": 0.145,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.16,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "CPRT",
+    "37mo": {
+     "seconds": 0.108,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.12,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "GEHC",
+    "13mo": {
+     "seconds": 0.119,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.137,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "WRB",
+    "37mo": {
+     "seconds": 0.166,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.113,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   },
+   {
+    "ticker": "AMAT",
+    "13mo": {
+     "seconds": 0.115,
+     "bars": 274,
+     "frame_bytes": 17536
+    },
+    "37mo": {
+     "seconds": 0.129,
+     "bars": 774,
+     "frame_bytes": 49536
+    }
+   },
+   {
+    "ticker": "IBM",
+    "37mo": {
+     "seconds": 0.22,
+     "bars": 774,
+     "frame_bytes": 49536
+    },
+    "13mo": {
+     "seconds": 0.16,
+     "bars": 274,
+     "frame_bytes": 17536
+    }
+   }
+  ]
+ }
+}
