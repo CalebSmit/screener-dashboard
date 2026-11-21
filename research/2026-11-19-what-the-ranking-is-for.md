@@ -72,8 +72,65 @@ finding.
 
 ## 4. Measurement (to be completed by the Monday session)
 
-*Empty on purpose.* Register each test in `research/experiments/registry.yaml` and commit it before
-it runs, as every engine experiment is.
+Done by the 2026-11-21 06:00 weekend session (Saturday, two days early; the Monday it was dated for
+is then free for the residual-momentum build this note's answer was blocking).
+
+### 4a. Method, committed before the first run
+
+Section 3 fixes the criteria. It leaves a handful of operational choices open; they are fixed here,
+in the commit that also adds the script, **before the script has been run once** - so, like the
+criteria, they cannot have been chosen after seeing a number. Script:
+`research/measurements/2026-11-21-what-the-ranking-is-for.py` (writes the `.json` beside it).
+
+**Where it is registered, and why not in `registry.yaml`.** Section 4 said to register each test in
+the engine's registry. Not done, deliberately: `registry.yaml` is one of `v2_experiments.RESULT_PATHS`,
+so any edit to it stales all 32 ledger rows and forces a ~25-minute rerun that changes no number; and
+its `experiments:` section holds weighting transforms that every loader reads `["transform"]` from
+(the 2026-10-23 session refused three registrations for exactly that). These are not weightings and
+must not join the multiple-testing denominator. The pre-registration's actual purpose - proof that
+nothing was chosen after seeing a result - is served identically by this commit, which carries the
+method and the script and precedes any output file. The script writes nothing to the ledger.
+
+**Data and ranking.** The research engine's own monthly records (`cache/v2_metrics/`, 176 month-ends
+2012-01 .. 2026-08), ranked with the baseline configuration by `v2_experiments.rank_all` - the same
+composite every engine row is paired against. Returns from `backtest_v2_returns.month_end_prices`
+(adjusted close on the last trading day on or before each month-end; the engine's own function,
+including its forward-fill of a price that stopped). Its caveats carry over unchanged: survivors
+only, no analyst inputs (Revisions and forward EPS growth carry no weight), not decision-grade before
+2027-02-11.
+
+**Eras.** 2012-01 .. 2019-12 (the engine's pre-sample, 96 months) and 2020-01 .. 2026-08 (its
+sample, 80 months). "Both eras" means these two; "pooled" means both together.
+
+**Positive control.** The registered `lookahead-filings` control, run in the same process through the
+engine's own `per_month` / `summarise` / `control_verdict` with N = the registry's experiment count.
+It exists for 2020-2026 only (as registered). **If it is not seen, nothing below counts.**
+
+**A (screen).** Each month: the stocks ranked that month with a next-month return; deciles of that
+return by `rank(pct=True, method="first")`, as the engine cuts deciles; the 40 with the highest
+composite (ties by ticker); the share of those 40 in the bottom decile. One observation per month
+(one-month windows do not overlap). Per era: the mean share and a one-sided 95% upper bound,
+mean + t(0.95, n-1) x SE, where **SE is the larger of the plain and the Newey-West (3-lag) standard
+error** - the 40 names in one month are not independent of each other, which is why the month is the
+unit, and the larger SE guards against month-to-month dependence too. Holds if the upper bound is
+below 0.10 in **both** eras.
+
+**B (slow forecast).** For h = 6 and 12: within each era, formation months are the era's first month
+and every h-th month after it, kept while a price exists h months later (prices end 2026-10-15, so
+the last usable month-end is 2026-09-30); a window's IC is the Spearman correlation of the composite
+with the h-month return over the stocks ranked that month with both prices. Pooled 95% interval on
+the t distribution from the windows' plain SE (the windows do not overlap). **Power first:** the
+smallest IC detected 80% of the time at two-sided 5%, (t(0.975, n-1) + t(0.80, n-1)) x SE, from the
+windows' own dispersion. Holds at a horizon if the pooled interval is entirely above zero and both
+eras' means have the same sign. A horizon that does not hold is **undecidable** if its detectable IC
+exceeds 0.05, **fails** otherwise. B holds if either horizon holds; no correction across the two
+(section 3 did not set one, and adding one would change a criterion).
+
+**C (fewer factors).** Only if B holds, at the horizon(s) where it holds: per window, each category
+score's IC minus the composite's, on the stocks with that category score; per era a two-sided
+interval at 0.05/8; holds for a category if the interval lies entirely above zero in both eras.
+
+**D.** The answer if A, B and C all fail or are undecidable.
 
 ## 5. What it would change on the page (to be completed after section 4)
 
