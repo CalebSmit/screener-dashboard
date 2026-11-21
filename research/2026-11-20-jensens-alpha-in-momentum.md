@@ -246,7 +246,9 @@ simplification is stated, not hidden.
 
 **Proposal status: ACCEPTED 2026-11-21 (06:00 weekend session), not yet built** - option C, as
 specified below; build in a 06:00 session after `research/2026-11-19-what-the-ranking-is-for.md`
-section 4 is committed, not before 2026-11-25 (Monday 11-23 is 0.15's, Tuesday 11-24 the IV inversion's). The decision, with what the review measured, is section 9.
+section 4 is committed. *Update, same session:* that measurement was done and committed the same
+morning (answer D), so the build is due from the 06:00 session of 2026-11-23 (Tuesday 11-24 is the IV
+inversion's). The decision, with what the review measured, is section 9.
 
 *As proposed:* replace `jensens_alpha` in Momentum with CAPM residual momentum (option C:
 36-month monthly regression on `^SP500TR` excess returns, residuals of months t-11..t-1 summed over

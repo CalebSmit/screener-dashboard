@@ -5,9 +5,10 @@ delegation. This note does **not** answer the question. It writes down, before a
 measured, what the candidate answers are and what result would count for or against each - so the
 Monday session that measures cannot choose its reading after seeing the numbers.
 
-**Proposal status: OPEN** - a Monday research session completes sections 4-5 against the criteria
-in section 3, which may not be changed after the first measurement runs. Due: the Monday of
-**2026-11-23** (the brief's "Coming up" carries it).
+**Proposal status: DECIDED 2026-11-21** - measured against section 3 unchanged (method fixed in
+section 4a and committed before the run): the positive control is seen; A fails, B is undecidable at
+6 and 12 months, C does not run, so **the answer is D - a teaching tool with no return claim**.
+Section 5 lists the two page changes that follow. (Originally due the Monday of 2026-11-23.)
 
 ## 1. The fact that makes this the question
 
@@ -131,6 +132,80 @@ score's IC minus the composite's, on the stocks with that category score; per er
 interval at 0.05/8; holds for a category if the interval lies entirely above zero in both eras.
 
 **D.** The answer if A, B and C all fail or are undecidable.
+
+### 4b. Results (first and only run: commit `129ee13`, inputs clean, 176 months ranked)
+
+Output: `research/measurements/2026-11-21-what-the-ranking-is-for.json`. A backtest observation
+(rule 5); read only against section 3.
+
+**The positive control is seen**, so the results below count: `lookahead-filings` +0.0516 IC over
+the baseline, t 5.64 over 80 months, against N = 29 and inside its registered band (+0.030 to
++0.075). The design can see a signal of that size at one month.
+
+**A (screen): FAILS.** The top 40 landed in the next month's bottom decile:
+
+| Era | Months | Mean share | SE used | One-sided 95% upper | Holds (< 10%) | For comparison: share in the top decile |
+|---|---|---|---|---|---|---|
+| 2012-2019 | 96 | 9.79% | 0.49% (NW) | 10.61% | no | 9.38% |
+| 2020-2026 | 80 | 9.78% | 0.56% (plain) | 10.71% | no | 9.63% |
+
+Every month had 40 names (at least 278 ranked a month). The interval is tight - this is not a test
+that ran out of data - and the answer is that the top 40 are **as likely as any stock to have one of
+the worst months, and no more likely to have one of the best**. As measured, the ranking does not
+steer a reader away from next month's worst outcomes.
+
+**B (slow forecast): UNDECIDABLE at both horizons.** Power first, as section 3 requires:
+
+| Horizon | Windows | Smallest IC detected 80% of the time | Pooled mean (95% interval) | 2012-2019 | 2020-2026 | Verdict |
+|---|---|---|---|---|---|---|
+| 6 months | 29 | **0.057** | -0.007 (-0.047 to +0.033) | -0.018 (16) | +0.006 (13) | undecidable |
+| 12 months | 14 | **0.065** | +0.004 (-0.042 to +0.051) | -0.021 (8) | +0.038 (6) | undecidable |
+
+Neither horizon holds (no interval above zero; the eras disagree in sign at both), and at neither can
+fourteen years of non-overlapping windows see an IC of 0.05, so both are recorded as undecidable, not
+failed. The 2020-2026 twelve-month figure (+0.038, t 2.08 on 6 windows) is the kind of number that
+tempts a reading; section 3 does not allow one, and the earlier era points the other way.
+
+**C: not run** (it is tested only if B holds).
+
+**So the pre-registered answer is D: a teaching tool, with no return claim.**
+
+### 4c. What the result does not say
+
+- **Survivorship bites A hardest.** The engine has only stocks still in the index, so the worst
+  outcomes of all - bankruptcies, delistings, distressed takeovers - are missing from every month's
+  bottom decile. A screen that kept readers out of *those* would not show it here. This is a limit of
+  the test, written down now so nobody later reads it as a reason to reopen A: section 3 fixed the
+  test, and the test failed.
+- **It is the filings-and-prices ranking**, without Revisions (10% of the published weight) or
+  forward EPS growth - the same caveat every engine row carries.
+- **B undecidable is not "no slow edge".** It means 2012-2026 cannot tell; the data that could
+  (decades more of point-in-time filings) is not free.
+- **Nothing is fitted to it** (section 3): no weight moves, no horizon is added.
+
+## 5. What it changes on the page (completed 2026-11-21)
+
+Section 2 wrote D's page consequence before any measurement: *no return claim at all; the
+track-record tile becomes a lesson in why short records mean nothing.* Against the live page:
+
+- **Most of D is already true.** The page's own description calls it "a research and teaching tool,
+  not investment advice"; the hero has said since 2026-11-19 that the 15-year test found no measurable
+  edge at one month (`page.hero_tested`); and the Track record tile has printed "Too short to tell skill
+  from luck: N standard errors" since 2026-10-27. Nothing on the page claims an edge.
+- **What D adds, and is to be built:** (1) the hero's tested sentence should also state today's two
+  results in plain words - the top 40 were as likely as any stock to have one of the worst months,
+  and at six and twelve months the history is too short to tell - from this file, as a registered
+  claim, so the sentence cannot outlive the measurement; (2) the Track record tile leads with the
+  lesson rather than the return: the return stays (hiding a number would be worse), but under a
+  heading that says what it is - a short record that cannot separate skill from luck.
+- **What D does not change:** the ranking, its weights and the screen itself stay - a structured,
+  checkable way to read 500 companies through published factors is what a teaching tool is. Residual
+  momentum (ACCEPTED the same morning) is justified on construction and explainability, not on a
+  return, so it is unaffected. **Universe expansion phase 2** was paused for this answer
+  (`OWNER_FOCUS.md` 2026-10-28): D does not forbid it - more companies to study is a teaching gain -
+  but phase 3's publication must carry the same no-return-claim framing, and the S&P 1500's ranking
+  inherits this result rather than being presumed better. The trading bot trades this ranking: that is
+  the bot repo's question (its `STRATEGY_LOG.md`), not this one's, and nothing here touches it.
 
 ## 5. What it would change on the page (to be completed after section 4)
 

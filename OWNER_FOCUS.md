@@ -44,8 +44,13 @@ Two things still outrank this file, and neither is negotiable:
   12-month return and no source uses it; the literature's version is residual momentum (Blitz, Huij &
   Martens 2011), proposed as a like-for-like replacement - **ACCEPTED 2026-11-21** by the weekend
   session (the paper's tables re-read; the longer price history is the same request, +0.04 s a stock;
-  495 of 503 have the three years it needs), **to be built after Monday's 0.15 measurement**, not
-  before 2026-11-25 (note section 9; the brief's "Coming up");
+  495 of 503 have the three years it needs), to be built by the 06:00 session of 2026-11-23 (note
+  section 9; the brief's "Coming up"); **(3) answered 2026-11-21** - the pre-registered measurement ran
+  (`research/2026-11-19-what-the-ranking-is-for.md` sections 4-5): the test can see a signal when there
+  is one, yet the top 40 were as likely as any stock to have one of the worst next months, and at 6 and
+  12 months 14 years of history is too short to tell - so by the rule fixed beforehand the ranking is
+  **a teaching tool with no return claim** (D). Most of that is already how the page reads; two page
+  changes follow (section 5). Universe expansion phase 2 is no longer blocked by it;
   ~~collapse CLAUDE.md's four "->red" rows into one rule~~ (done 2026-11-19, row "premise->red").
   Close this item when those are done or argued down in the log.
 
@@ -76,7 +81,9 @@ Two things still outrank this file, and neither is negotiable:
   phase 1 under way (the `config.yaml` universe block is read since 2026-11-19).
   **Paused before phase 2 (2026-11-19, owner-delegated):** first answer what the ranking is for,
   given the 15-year test shows no edge (see the 2026-11-19 item) - scaling it to 1,500 stocks
-  comes after. Phase-1 plumbing may continue. **Next in phase 1:** `plan/universe-expansion.md`.
+  comes after. Phase-1 plumbing may continue. **Answered 2026-11-21 (D: a teaching tool, no return
+  claim), so the pause is lifted** - with one condition from that note's section 5: whatever phase 3
+  publishes carries the same no-return-claim framing. **Next in phase 1:** `plan/universe-expansion.md`.
   History to 2026-11-19: `log-archive/OWNER_FOCUS-item-histories-2026-11-19.md`.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it
