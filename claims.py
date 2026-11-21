@@ -1695,9 +1695,11 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_printed_figures.py::test_the_track_panel_drops_the_clauses_it_has_no_figure_for",
         ),
         caveat=(
-            "Since 2026-10-27 the page's Track record tile repeats the same figure under the headline return "
-            "('Too short to tell skill from luck: N standard errors, where two is the usual bar') whenever it is "
-            "below two; the check asserts the tile and the panel print the same number. "
+            "Since 2026-10-27 the page's Track record tile repeats the same figure whenever it is below two; "
+            "since 2026-11-21 it leads with it - the tile's heading reads 'Track record: too short to judge' "
+            "and 'It cannot yet tell skill from luck: N standard errors, where two is the usual bar' sits above "
+            "the return (research/2026-11-19-what-the-ranking-is-for.md section 5, answer D). The check asserts "
+            "the order and that the tile and the panel print the same number. "
             "Fixed 2026-10-19: until then the panel set no figure against chance. The t treats daily differences as independent; Lo (2002) shows serial "
             "correlation changes the standard error, so the figure is a guide to scale, not a test "
             "result. The years figure extrapolates the lead seen so far, which makes it the most "

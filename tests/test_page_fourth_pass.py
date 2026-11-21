@@ -370,8 +370,17 @@ def test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure(b
             pytest.skip("the published track record carries no excess t")
         page.wait_for_function("document.getElementById('kpi-track-v').textContent.trim() !== '…'", timeout=8000)
         cav = page.evaluate("(document.querySelector('#kpi-track .kpi-caveat') || {}).textContent || ''")
+        label = page.inner_text("#kpi-track .kpi-label").strip()
         if abs(x["t"]) < 2:
             assert "skill from luck" in cav and f"{abs(x['t']):.1f} standard errors" in cav, cav
+            # Since 2026-11-21 the tile leads with the lesson (0.15, answer D): the heading says the
+            # record is too short, and the caveat sits above the return rather than under it.
+            assert label.lower() == "track record: too short to judge", label
+            assert page.evaluate("""(() => { const c = document.querySelector('#kpi-track .kpi-caveat'),
+                    v = document.querySelector('#kpi-track .kpi-value');
+                    return !!(c && v && (c.compareDocumentPosition(v) & Node.DOCUMENT_POSITION_FOLLOWING)); })()"""), \
+                "the caveat must come before the return"
+            assert page.locator("#kpi-track .kpi-caveat").count() == 1
             # the panel prints the same figure
             page.evaluate("goToSection('sec-track')")
             page.wait_for_function("document.getElementById('track-body') && document.getElementById('track-body').textContent.includes('standard errors')", timeout=8000)
@@ -379,6 +388,7 @@ def test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure(b
             assert f"{x['t']:.1f} standard errors" in panel
         else:
             assert cav == ""
+            assert label.lower() == "track record", label
         assert errors == []
     finally:
         ctx.close()

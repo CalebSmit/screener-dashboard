@@ -11852,11 +11852,19 @@ def _js_context() -> str:
                 // The headline figure is a short record; the tile says so in the panel's own terms
                 // (claim context.track_luck: the lead in standard errors against the usual two), so the
                 // first screen does not present a few months as a result (fourth pass, 2026-10-27).
+                // Since 2026-11-21 the tile LEADS with that lesson (research/2026-11-19-what-the-ranking-
+                // is-for.md section 5, answer D): the heading says what the record is and the caveat sits
+                // above the return, which stays - hiding the number would be worse than framing it.
                 const X = T.excess;
                 if (X && typeof X.t === 'number' && isFinite(X.t) && Math.abs(X.t) < 2) {
-                    let cv = ks.parentNode.querySelector('.kpi-caveat');
-                    if (!cv) { cv = document.createElement('span'); cv.className = 'kpi-caveat'; ks.parentNode.appendChild(cv); }
-                    cv.textContent = 'Too short to tell skill from luck: ' + Math.abs(X.t).toFixed(1) + ' standard errors, where two is the usual bar';
+                    const card0 = kv.closest('.kpi-card');
+                    const lab = card0 && card0.querySelector('.kpi-label');
+                    if (lab) lab.textContent = 'Track record: too short to judge';
+                    let cv = card0 && card0.querySelector('.kpi-caveat');
+                    const vd = kv.closest('.kpi-value');
+                    if (!cv && vd) { cv = document.createElement('span'); cv.className = 'kpi-caveat kpi-caveat-lead'; vd.parentNode.insertBefore(cv, vd); }
+                    if (cv)
+                    cv.textContent = 'It cannot yet tell skill from luck: ' + Math.abs(X.t).toFixed(1) + ' standard errors, where two is the usual bar';
                 }
                 const card = document.getElementById('kpi-track');
                 if (card) { card.classList.add('kpi-link'); card.tabIndex = 0; card.setAttribute('role', 'link');
@@ -13613,6 +13621,8 @@ def _css_page() -> str:
         /* The track record tile states how short its record is, in the caveat colour */
         .kpi-caveat { display: block; margin-top: 6px; padding-left: 9px; border-left: 2px solid var(--amber);
                       font-size: 11.5px; line-height: 1.45; color: var(--text-secondary); }
+        /* ...and since 2026-11-21 leads with it, above the return (answer D of 0.15) */
+        .kpi-caveat-lead { margin-top: 0; margin-bottom: 6px; }
 
         /* Phone filters: Weighting and Sort by take the full row - "Balanced (published)" was cut to
            "Balanced (publisl" in a half-width select - and the short controls pair up above them */

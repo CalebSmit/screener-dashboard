@@ -269,8 +269,10 @@ Presentation only. What a later session must know before touching these:
 - **Side by side below 480 px** is a grid per row with the category name as a caption row (`--n` columns).
 - **Phone filters**: Weighting and Sort by span the row.
 - **Phone Menu pill** tucks (`.tuck`) while scrolling down; `hidden` still means "header in view".
-- **Track record tile**: `.kpi-caveat` under the sub-line when `D.track.excess.t` is below two (claim
-  `context.track_luck`).
+- **Track record tile**: when `D.track.excess.t` is below two the heading becomes "Track record: too
+  short to judge" and the `.kpi-caveat` ("It cannot yet tell skill from luck: N standard errors...")
+  sits **above** the return (since 2026-11-21, 0.15 answer D; before that it sat under the sub-line).
+  Claim `context.track_luck`; `tests/test_page_fourth_pass.py` pins the order.
 - **My holdings**: `.holding-remove` has an `aria-label` and a 32 / 44 px target.
 - Desktop table header "Trap flags" is now **"Flags"** (tooltip unchanged).
 
