@@ -1,4 +1,4 @@
-# Morning Brief - Friday 20 November 2026, 13:33
+# Morning Brief - Friday 20 November 2026, 18:26
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,22 +7,22 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **refused by its publish gates (published-claims check failed)** - last ran today |
+| Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-11-19 02:00 |
+| Dashboard data from | 2026-11-20 18:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
-| Top 5 | SNDK, EXPE, HST, APA, MPC |
-| Ranking's lean on growth | +0.042 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
+| Top 5 | EXPE, VLO, MU, APA, SNDK |
+| Ranking's lean on growth | +0.054 (OUTSIDE the review's +-0.05 band; 2026-10-13 read -0.009) |
 | Shipped to readers | 13 commit(s) changed what a reader sees, 8 methodology change(s), in the last 7 days |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (54 rows, but overlapping windows are not independent; 133 rows across all horizons), newest 1m run date 2026-10-19 (32 days ago, bound 40) |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (55 rows, but overlapping windows are not independent; 135 rows across all horizons), newest 1m run date 2026-10-20 (31 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 458/458 within 0.5%; operating cash flow 443/444 within 0.5%; net income 432/456 within 0.5%; market value 453/487 within 5%; 2 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 2 days ago |
-| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#6: net income 1.29x after-tax operating income); PSX (#7: net income 1.28x after-tax operating income); DXCM (#8: operating cash flow 36% off the filing); TPR (#12: equity 5.2% of assets); CF (#21: net income 15% off the filing); ES (#23: a period behind its filings) |
-| Data run timing | **18 min** total; slowest `fetch.tickers` 593 s, `fetch.retry` 152 s, `context.sec_insider` 106 s; **45 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (13 days) |
-| Context coverage | options usable 494/499 (5 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
+| Inputs vs SEC filings | total assets 458/458 within 0.5%; operating cash flow 443/444 within 0.5%; net income 432/456 within 0.5%; market value 452/487 within 5%; 2 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 2 days ago - **see the ATTENTION note below** |
+| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#7: net income 1.29x after-tax operating income); PSX (#8: net income 1.28x after-tax operating income); TPR (#9: equity 5.2% of assets); DXCM (#11: operating cash flow 36% off the filing); ES (#18: a period behind its filings); CF (#23: net income 15% off the filing); WDC (#25: net income 2.13x after-tax operating income) |
+| Data run timing | **21 min** total; slowest `fetch.tickers` 644 s, `context.options_pass` 182 s, `fetch.retry` 149 s; **46 tickers rate-limited** |
+| Code-session login | 2026-12-03 09:01 (12 days) |
+| Context coverage | options usable 494/499 - insider from SEC 499/499 - earnings variability 440 |
 
 ## Waiting for a decision
 
@@ -43,12 +43,12 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## Things that needed attention
 
-- The regenerated artifacts contradict claims this project asserts about them.
-- Refusing to publish. The live site keeps the last good version.
-- Run discarded: published-claims check failed - fix the generator, not the file.
+- ok   ATTENTION - 1 stock(s) now carry a market value implying a share count over 10% from the one their filings report, which the published page does not: SNDK +639.2%. Usually a completed acquisition or a split: the market value is right and every valuation ratio built on it has moved, while the earnings behind those ratios have not. Not a refusal - see research/2026-11-09-share-counts-and-corporate-actions.md.
 
 ## What changed in the repo
 
+- `81f1d48 data: screener run 2026-11-20 - 499 scored, top: EXPE VLO MU APA SNDK`
+- `072a500 brief: code session 2026-11-20-midday`
 - `a467255 NIGHTLY_LOG 2026-11-20 (13:00): gates recorded`
 - `4a1d52f Research: Jensen's alpha in Momentum is the 12-month return with a beta tilt; residual momentum proposed (OPEN)`
 - `3a5d0a1 wip: research note - Jensen's alpha in Momentum (practice section pending)`
@@ -62,8 +62,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `a96295a The brief names the gate that refused a data run instead of "stopped deliberately"`
 - `c8e40ec Tests read the missing-category rule the payload states: the 02:00 run was refused for it`
 - `18f6d57 brief: data run 2026-11-20`
-- `08b86c6 Shipped-to-readers number in the brief and health line; Set aside section and a five-line lane in the prompt`
-- `c121314 Brief-skip test counts the lock-failure case; log text repaired`
 
 ## The session's own account
 
