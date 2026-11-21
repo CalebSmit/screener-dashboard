@@ -244,7 +244,11 @@ simplification is stated, not hidden.
 
 ## 7. Proposal
 
-**Proposal status: OPEN** - replace `jensens_alpha` in Momentum with CAPM residual momentum (option C:
+**Proposal status: ACCEPTED 2026-11-21 (06:00 weekend session), not yet built** - option C, as
+specified below; build in a 06:00 session after `research/2026-11-19-what-the-ranking-is-for.md`
+section 4 is committed, not before 2026-11-25 (Monday 11-23 is 0.15's, Tuesday 11-24 the IV inversion's). The decision, with what the review measured, is section 9.
+
+*As proposed:* replace `jensens_alpha` in Momentum with CAPM residual momentum (option C:
 36-month monthly regression on `^SP500TR` excess returns, residuals of months t-11..t-1 summed over
 their standard deviation; same 25 points, no weight change), for a session that did not write this note.
 
@@ -283,3 +287,83 @@ below the category's existing floor - then say so and take B.
 - Chaves (2016, *Journal of Investing* 25(2)) and Blitz, Huij, Lansdorp & Verbeek's short-term residual
   reversal were not obtained.
 - No forward return was computed; section 2 is rank correlations only.
+
+## 9. Decision (2026-11-21, 06:00 weekend session - a session that did not write this note)
+
+**ACCEPTED: option C, built later.** Taken against the note's own checklist (section 7), each item
+done rather than read.
+
+**1. The sources, re-read.** Blitz, Huij & Martens, accepted manuscript (`data/papers/blitz2011.pdf`,
+text extracted with pypdf by this session). Every figure section 3 quotes reproduces from the file:
+Table 2 panel A 1M 10.26 / 22.70 / Sharpe 0.45 / alpha 7.98, panel B 1M 11.20 / 12.49 / 0.90 / 10.85
+(manuscript p. 44); Table 8 (largest 10% by market value, p. 53) total-return 1M 8.87 / 24.55 / 0.36
+(t 2.75), residual 9.18 / 15.27 / 0.60 (t 5.32); Table 7 (no skip, J=12, K=3, p. 51) 4.58 / Sharpe
+0.21 against 7.59 / 0.66; the alpha exclusion, p. 12: "over two-thirds of the observations behind the
+estimated alpha are outside the 11-month formation period". The sub-agent's Table 3 reading, which the
+note had not re-checked, also reproduces (p. 45): 2000-2009 residual momentum 4.65% a year, **t 1.18**;
+total-return momentum **-8.54%**, t -1.19. So in the one decade both fail significance, the residual
+version lost nothing where the total-return version lost 8.5 points a year.
+
+**2. The fetch cost, measured** (`research/measurements/2026-11-21-residual-momentum-fetch-cost.py`
+and `.json`):
+- **Same request.** The core fetch's price history is one `t.history(period="13mo")` call
+  (`factor_engine.py`, the per-ticker fetch). `period="37mo"` on the same call, timed on 30 random
+  universe tickers with the order alternated: median **0.126 s -> 0.163 s** (+0.04 s), 274 -> 774 bars,
+  frame 17.5 KB -> 49.5 KB. No extra request, so the refusal condition ("costs per-ticker requests
+  inside the core fetch") is not met. About +20 s on a ~450 s fetch if it were serial; less in practice.
+- **Coverage: 495 of 503 (98.4%)** have the close at 2023-10-31 that a run on 2026-11-21 needs (494 from
+  backtest v2's daily cache, the other 9 probed live). Short: FDXF, GEV, HONA, Q, RDDT, **SNDK**, SOLV,
+  VYLR - spin-offs and listings since 2024. For them the metric is missing and its 25 points are shared
+  across `return_12_1` and `return_6m`, the existing within-category rule (settled row 0.8m: a missing
+  *metric* shares inside its category; only a missing *category* counts at 50). Well above
+  `MIN_CATEGORY_COVERAGE` (0.90), so the second refusal condition is not met either. SNDK is in today's
+  top five; the build session should say so in the changelog's expected effect.
+- **The market series.** `fetch_market_closes` already pulls `^SP500TR` for the panic rule, but at
+  `period="3y"`, which on 2026-11-21 starts 2023-11-21 - three weeks short of the 2023-10-31 close the
+  regression needs. Lengthen that one request (to `4y`) rather than add a second; the panic rule reads
+  only its last 24 months and 126 days, so it is unaffected - assert that in a test.
+
+**3. What a second reader adds - the case against, weighed.**
+- **The evidence is long-short; the screener is long-only.** Blitz et al. report top-minus-bottom
+  deciles. Han, Zhou & Zhu's stop-loss finding (`research/2026-10-22-stop-loss-on-the-bots-rule.md`)
+  already taught this project that momentum's crash risk sits mostly in the *losers* leg, which a
+  long-only book does not hold. So the crash-protection half of the case is weaker here than the paper's
+  Sharpe ratios suggest, and **the changelog must not quote 0.36 -> 0.60 as what a reader of this
+  screener should expect.** The decision does not rest on it.
+- **Why C and not D (drop it).** D is AQR's "simplest is best" and is defensible. But D moves 25
+  category points (3.25 composite) onto two metrics that are already 0.87-0.92 alike, deepening the
+  duplication this note exists to remove, and it is a weight change, which the lab-to-weights route
+  caps at 3 points a change. C moves no weight: it changes one metric's construction to the one the
+  literature tests (including in the largest decile, Table 8, t 5.32) and replaces a 0.97 copy of
+  the 12-month return with a signal 0.77 related to 12-1. And it removes, rather than adds, a second
+  low-beta reward on top of Risk's beta (section 5).
+- **Why not B (skip the month only).** Fixes the timing, keeps a 0.94-0.97 duplicate and the
+  same-window intercept the source excludes on purpose.
+- **Explainability.** One regression a student can follow; every term can be printed on the row
+  (row 0.8c). "Jensen's alpha" invites a reading as skill that the metric does not support.
+- **CAPM rather than FF3.** A stated simplification (Gutierrez & Pirinsky: "qualitatively similar");
+  it keeps a third-party factor file out of the scoring path.
+
+**4. Why not build it today.** Three reasons, none of them doubt about the change:
+- **It collides with 0.15.** The Monday session (2026-11-23) measures "the composite" against criteria
+  pre-registered on 2026-11-19. Changing a Momentum metric before that measurement runs changes the
+  object of a pre-registration two days old; doing it after keeps that measurement clean. The 13:00
+  session that wrote this note said the same.
+- **It is a full 06:00 session's build.** The fetch window (with `price_history_fields` handed the last
+  13 months only, so volatility, beta's daily returns, drawdown and dollar volume keep their window -
+  section 7 item 2's trap; the split-integrity check must still run over the whole 37 months the new
+  metric reads); the market series; `LINEAGE`/`RECOMPUTE`/`EQUATIONS` with the terms published through
+  `ENGINE_KEYS`; `jensens_alpha` retired with a `NOT_USED_BECAUSE` reason; backtest v2 computing the
+  same metric through the same function (`pit_record.FIELD_CLASSES`); and the research-engine rerun
+  that any `factor_engine.py` edit forces (15-30 min with `--jobs 4`).
+- **Gate 5 cannot see it** (it rescores nothing), so the first full run under it is the 02:00 claims
+  gate. Per `prompts/nightly.md` section 4, the build session greps the tests for `jensens_alpha`'s
+  wording and numbers and makes a throwaway full run (memory: verify a pipeline change with one) -
+  which also wants a 06:00 session, not a 13:00 one four hours before nothing, or a weekend with no
+  02:00 run until Monday.
+
+**What the build session does, in order:** (a) optionally register one research-engine experiment
+before building, prediction as section 7 item 5 wrote it; (b) build per section 7 items 2-4 and the
+bullets above, weight 25 unchanged; (c) changelog entry with the evidence above, the long-only caveat,
+and the expected effect measured on a throwaway full run (top-25 churn; SNDK and the other seven lose
+the metric); (d) open a drilldown at 1440 and 375 px and say what the new row shows.

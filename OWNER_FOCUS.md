@@ -42,7 +42,10 @@ Two things still outrank this file, and neither is negotiable:
   run); ~~a note on Jensen's alpha~~ **written 2026-11-20 (13:00)**,
   `research/2026-11-20-jensens-alpha-in-momentum.md` - as built it ranks stocks 0.97-0.98 like the plain
   12-month return and no source uses it; the literature's version is residual momentum (Blitz, Huij &
-  Martens 2011), proposed as a like-for-like replacement, **OPEN** for another session to decide;
+  Martens 2011), proposed as a like-for-like replacement - **ACCEPTED 2026-11-21** by the weekend
+  session (the paper's tables re-read; the longer price history is the same request, +0.04 s a stock;
+  495 of 503 have the three years it needs), **to be built after Monday's 0.15 measurement**, not
+  before 2026-11-25 (note section 9; the brief's "Coming up");
   ~~collapse CLAUDE.md's four "->red" rows into one rule~~ (done 2026-11-19, row "premise->red").
   Close this item when those are done or argued down in the log.
 
