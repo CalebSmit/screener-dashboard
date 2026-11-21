@@ -9932,7 +9932,9 @@ entry's Next 1 is confirmed. Evidence base at `1m`: **55 rows, newest 2026-10-20
 ranking is for** (opened 2026-11-19, **age 2 days**) - answered this session, two page changes remain open
 under it, one shipped here; also open 0.13 (40 d, a standing programme), 0.10 (45 d), 0.14 (38 d).
 Shipped to readers: 13 commits, 8 methodology changes in 7 days.
-**Tests:** baseline 4,447 passed / 1 skipped (dry run OK). After: see the gates line at the end.
+**Tests:** baseline 4,447 passed / 1 skipped (dry run OK). After: **4,455 passed / 1 skipped** (+8, the
+new `tests/test_screen_and_horizon.py`); dry run PASSED; payload parse gate 20/20, index.html 949,749
+bytes; rehearsal (gate 5) PASSED (published files restored byte for byte); tree clean.
 **Owner queue / rotation:** `git stash list` empty; no owner-session marker; no earlier entry today. Two
 open proposals in the brief: the Jensen's-alpha one (a session that did not write it - me) and 0.15's
 Monday measurement. The rules make deciding a proposal the first job, so that came first; it then had
