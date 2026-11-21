@@ -198,6 +198,11 @@ track-record tile becomes a lesson in why short records mean nothing.* Against t
   claim, so the sentence cannot outlive the measurement; (2) the Track record tile leads with the
   lesson rather than the return: the return stays (hiding a number would be worse), but under a
   heading that says what it is - a short record that cannot separate skill from luck.
+  **Both shipped 2026-11-21:** (1) by the 06:00 weekend session (claim `page.hero_screen`); (2) by
+  the 13:00 session - while the lead is under two standard errors the tile's heading reads "Track
+  record: too short to judge" and "It cannot yet tell skill from luck: N standard errors, where two is
+  the usual bar" sits above the return (claim `context.track_luck`; the order is pinned by
+  `tests/test_page_fourth_pass.py`). Above two, the tile reverts to "Track record" with no caveat.
 - **What D does not change:** the ranking, its weights and the screen itself stay - a structured,
   checkable way to read 500 companies through published factors is what a teaching tool is. Residual
   momentum (ACCEPTED the same morning) is justified on construction and explainability, not on a
