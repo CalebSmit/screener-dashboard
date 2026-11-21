@@ -1,4 +1,4 @@
-# Morning Brief - Saturday 21 November 2026, 06:51
+# Morning Brief - Saturday 21 November 2026, 13:39
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -15,7 +15,7 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, VLO, MU, APA, SNDK |
 | Ranking's lean on growth | +0.054 (OUTSIDE the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Shipped to readers | 14 commit(s) changed what a reader sees, 8 methodology change(s), in the last 7 days |
+| Shipped to readers | 15 commit(s) changed what a reader sees, 8 methodology change(s), in the last 7 days |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (55 rows, but overlapping windows are not independent; 135 rows across all horizons), newest 1m run date 2026-10-20 (32 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
 | Inputs vs SEC filings | total assets 458/458 within 0.5%; operating cash flow 443/444 within 0.5%; net income 432/456 within 0.5%; market value 452/487 within 5%; 2 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 2 days ago - **see the ATTENTION note below** |
@@ -39,6 +39,10 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `03de1b1 NIGHTLY_LOG 2026-11-21 (13:00): Track record tile leads with the lesson; 0.15 closed`
+- `638c684 0.15 CLOSED: both section-5 page changes shipped`
+- `294401c Track record tile leads with the lesson: heading 'too short to judge', caveat above the return (0.15 answer D, section 5 item 2)`
+- `bbcc74c brief: code session 2026-11-21-weekend`
 - `2e9da36 NIGHTLY_LOG 2026-11-21: gates recorded`
 - `01063c3 NIGHTLY_LOG 2026-11-21 (weekend): Jensen proposal decided, 0.15 answered`
 - `5758fa7 inventory: the hero's second tested sentence and the research section`
@@ -50,58 +54,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `81f1d48 data: screener run 2026-11-20 - 499 scored, top: EXPE VLO MU APA SNDK`
 - `072a500 brief: code session 2026-11-20-midday`
 - `a467255 NIGHTLY_LOG 2026-11-20 (13:00): gates recorded`
-- `4a1d52f Research: Jensen's alpha in Momentum is the 12-month return with a beta tilt; residual momentum proposed (OPEN)`
-- `3a5d0a1 wip: research note - Jensen's alpha in Momentum (practice section pending)`
-- `5377901 wip: measure how much of Jensen's alpha is the 12-month return Momentum already scores`
-- `4d0f7ba brief: code session 2026-11-20`
 
 ## The session's own account
 
-> 2026-11-21 - WEEKEND. The Jensen's-alpha proposal decided (ACCEPTED: residual momentum), and 0.15 answered: D, a teaching tool with no return claim - now on both pages
+> 2026-11-21 (13:00) - QUEUE. 0.15 closed: the Track record tile now leads with "too short to judge", the return beneath it
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-20_130000-midday.log`
-> (completed). Data loop published? yes - `logs/datarun-2026-11-20_180003.log` (completed; HEALTH: PASS) -
-> the 18:00 retry, the first run under the 11-19 missing-category rule to reach the site, so the previous
-> entry's Next 1 is confirmed. Evidence base at `1m`: **55 rows, newest 2026-10-20 (32 days ago, bound 40),
-> 5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.15, What the
-> ranking is for** (opened 2026-11-19, **age 2 days**) - answered this session, two page changes remain open
-> under it, one shipped here; also open 0.13 (40 d, a standing programme), 0.10 (45 d), 0.14 (38 d).
-> Shipped to readers: 13 commits, 8 methodology changes in 7 days.
-> **Tests:** baseline 4,447 passed / 1 skipped (dry run OK). After: **4,455 passed / 1 skipped** (+8, the
-> new `tests/test_screen_and_horizon.py`); dry run PASSED; payload parse gate 20/20, index.html 949,749
-> bytes; rehearsal (gate 5) PASSED (published files restored byte for byte); tree clean.
-> **Owner queue / rotation:** `git stash list` empty; no owner-session marker; no earlier entry today. Two
-> open proposals in the brief: the Jensen's-alpha one (a session that did not write it - me) and 0.15's
-> Monday measurement. The rules make deciding a proposal the first job, so that came first; it then had
-> nothing left blocking it but 0.15, and 0.15 is both the top roadmap item and an owner-agreed priority, so
-> I did it two days before its Monday rather than leave the weekend on something smaller.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-21_060001-weekend.log`
+> (completed). Data loop published? yes - `logs/datarun-2026-11-20_180003.log` (completed; HEALTH: PASS);
+> no 02:00 run on a Saturday, so nothing newer is expected. Evidence base at `1m`: **55 rows, newest
+> 2026-10-20 (32 days ago, bound 40), 5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top
+> open roadmap item: was **0.15** (age **2 days**) - **closed by this session**; the line now reads **0.13,
+> the Factor Lab** (age 40 days, a standing programme last advanced 15 days ago, bound 21 - not late);
+> also open 0.10 45d, 0.14 38d. Shipped to readers: 15 commits, 8 methodology changes in 7 days.
+> **Tests:** baseline 4,455 passed / 1 skipped; dry run OK. After: **4,455 passed / 1 skipped** (one
+> existing browser test extended, none added); dry run OK; rehearsal (gate 5): see Gates below.
+> **Owner queue / rotation:** `git stash list` empty; no owner-session marker. Carried on from the 06:00
+> entry's Next 2 (Next 1 is dated for the 11-23 06:00 slot, Next 3 are weekday 06:00 / Friday items). No
+> open proposals waiting (the morning session decided both).
 > 
 > ### Did
-> - **Decided `research/2026-11-20-jensens-alpha-in-momentum.md`: ACCEPTED, option C (CAPM residual
->   momentum, weight 25 unchanged), not built today.** Section 9 of the note. Done against its own
->   checklist rather than read:
->   - **Re-read the sources from the manuscript** (pypdf on `data/papers/blitz2011.pdf`): Table 2, Table 8
->     (largest 10%: Sharpe 0.36 -> 0.60, t 2.75 -> 5.32), Table 7 (no skip) and the p. 12 alpha exclusion
->     all reproduce; the sub-agent's unchecked Table 3 reading also reproduces (2000-2009: residual +4.65%,
->     t 1.18; total-return -8.54%).
->   - **Measured the fetch cost** (`research/measurements/2026-11-21-residual-momentum-fetch-cost.py` +
->     `.json`): `period="37mo"` is the same single request as today's `13mo`; median 0.126 s -> 0.163 s on
->     30 tickers (order alternated), 274 -> 774 bars. **Coverage 495 of 503** - short: FDXF, GEV, HONA, Q,
->     RDDT, SNDK, SOLV, VYLR (SNDK is in today's top five; they fall back to the existing within-category
->     share). `fetch_market_closes` pulls `^SP500TR` at `3y`, three weeks short of the needed close -
->     lengthen that one request. Neither refusal condition is met.
->   - **What the second reader added:** Blitz et al. is long-short, and this project already learned
->     (stop-loss note, 2026-10-22) that momentum's crash risk sits mostly in the losers leg a long-only
->     book never holds - so the changelog must not quote 0.36 -> 0.60 as what a reader should expect, and
->     the decision does not rest on it. It rests on: no source uses the current construction; C is a
->     construction change with no weight moved (D would move 3.25 composite points onto two 0.9-alike
->     metrics); it stops rewarding low beta a second time on top of Risk.
->   - **Not built today** because it collided with 0.15 (changing the composite two days after its
->     criteria were pre-registered, before they were measured) and is a full 06:00 session's build
->     (fetch trim, market series, lineage/equation/claims, backtest v2, engine rerun, throwaway full run).
->     `COMING_UP` carries it for **2026-11-23**, the slot 0.15 vacated.
-> - **0.15 answered - `research/2026-11-19-what-the-ranking-is-for.md` sections 4-5.** The criteria were
->   fixed on 11-19; the operational choices they left open (eras, decile cut, which SE, window
+> - **The Track record tile leads with the lesson** (`research/2026-11-19-what-the-ranking-is-for.md`
+>   section 5, item 2 - the page consequence of answer D, written before the measurement). While the
+>   record's day-by-day lead over RSP is under two standard errors (today 0.1):
+>   - the tile's heading reads **"Track record: too short to judge"** instead of "Track record";
+>   - **"It cannot yet tell skill from luck: 0.1 standard errors, where two is the usual bar"** sits
+>     *above* the +4.5% (it used to sit under the sub-line, after the number);
+>   - the return and both benchmarks stay, as the note requires - hiding the figure would be worse.
+>   Above two the tile reverts to "Track record" with no caveat (the existing branch, now also asserting
+>   the heading). `generate_dashboard.contextMetas` (JS), `.kpi-caveat-lead` CSS. Presentation only:
+>   `scripts/rebuild_page.py` reported the payload byte-identical.
+> - **Why this is an improvement:** the answer to 0.15 (pre-registered 11-19, measured 11-21) is that the
+>   ranking carries no return claim; the tile was the one place on the first screen that led with a
+>   return in the page's largest numerals. Its own figure (0.1 SE) says that return is indistinguishable
+>   from luck, so the page now says that first. The figure is the panel's own (claim
+>   `context.track_luck`), not a new computation.
+> - **Test:** `tests/test_page_fourth_pass.py::test_the_track_record_tile_states_the_record_is_short_in_the_panels_figure`
+>   now also pins the heading, a single caveat, and that the caveat precedes `.kpi-value`
+>   (`compareDocumentPosition`). It ran (not skipped) against the published payload. Claim caveat in
+>   `claims.py` rewritten to the new wording and order.
+> - **Looked at it at 1440 and 375 px** (`logs/design/track-tile-*.png`): desktop 269x209 - heading on two
+>   uppercase lines, amber-ruled caveat, then +4.5%, then the benchmarks; phone 171x243 - same order,
+>   wraps cleanly; no horizontal overflow at either width.
+> - **0.15 CLOSED** in CLAUDE.md (heading marked, so `health_numbers.open_items` drops it - verified, the
+>   top item is now 0.13), with the constraint that survives: no surface presents the ranking's return as
+>   a result. Note section 5 and `OWNER_FOCUS.md` say both page changes shipped;
+>   `plan/dashboard-inventory.md` updated. The OWNER_FOCUS 2026-11-19 item stays open: the IV inversion
+>   and residual momentum builds are still in it.
+> 
+> ### Evidence / research
 > ...
 
 ---
