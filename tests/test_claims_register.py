@@ -739,6 +739,19 @@ def _units(joined: str, markup: str, *, figure: list[bool], shown: list[str],
 # the failure this register exists to catch. Every verdict below was assigned by
 # reading the named assertion, not by its name.
 RESEARCH_PAGE_SENTENCES: dict[str, str] = {
+    # --- the screen and the longer horizons (CLAUDE.md 0.15, 2026-11-21) -------
+    "{e1 * 100}% of the top 40&rsquo;s next months were among the index&rsquo;s worst tenth, "
+    "2012-2019 (chance is 10%)": "claim:research.screen_and_horizon",
+    "{e2 * 100}% the same, 2020-2026 {num(b12['mean'])} average rank correlation with the next "
+    "twelve months&rsquo; return": "claim:research.screen_and_horizon",
+    "The 40 highest-ranked stocks landed in the following month&rsquo;s worst tenth {e1 * 100}% "
+    "of the time in 2012-2019 and {e2 * 100}% in 2020-2026, {how} (the rule:":
+        "claim:research.screen_and_horizon",
+    "the upper end of a one-sided 95% interval below 10% in both periods; it was {u1 * 100}% and "
+    "{u2 * 100}%).": "claim:research.screen_and_horizon",
+    "{num(b['mean'])} across {b['windows']} separate windows (95% interval {num(b['ci'][0])} to "
+    "{num(b['ci'][1])})": "claim:research.screen_and_horizon",
+
     # --- the headline, and what the record could show -----------------------
     "The ranking's average monthly rank correlation with the next month's return was "
     "{num(pre_ic)} over 2012-2019":

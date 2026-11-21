@@ -255,7 +255,7 @@ section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
     <li><strong>The test can see a signal when there is one.</strong> Fed the filings as they stand today for every past month &mdash; information nobody had at the time &mdash; the same test puts that ranking <span class="num">+0.052</span> of rank correlation a month ahead of the real one over <span class="num">80</span> months (t <span class="num">+5.6</span>), against the <span class="num">+0.037</span> it could reliably detect. So the flat results above are a finding about the ranking, not a test that cannot see anything.</li>
   </ul>
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
-  <nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ol><li><a href="#how-tested">How it was tested</a></li><li><a href="#alternatives">Each alternative against the current weighting, 2012&ndash;2019</a></li><li><a href="#best-backtest">If you had kept the best backtest</a></li><li><a href="#trading-rule">What a simple trading rule on the ranking would have done</a></li><li><a href="#how-long">How long would it take to prove an edge?</a></li><li><a href="#what-it-means">What this means</a></li><li><a href="#limits">Limits of the test</a></li></ol></nav>
+  <nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ol><li><a href="#how-tested">How it was tested</a></li><li><a href="#alternatives">Each alternative against the current weighting, 2012&ndash;2019</a></li><li><a href="#best-backtest">If you had kept the best backtest</a></li><li><a href="#trading-rule">What a simple trading rule on the ranking would have done</a></li><li><a href="#how-long">How long would it take to prove an edge?</a></li><li><a href="#screen-and-horizon">Does it at least miss the worst, or work over a longer horizon?</a></li><li><a href="#what-it-means">What this means</a></li><li><a href="#limits">Limits of the test</a></li></ol></nav>
 
   <section id="how-tested">
     <h2>How it was tested</h2>
@@ -330,6 +330,18 @@ section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
       <div class="stat"><div class="v">249</div><div class="k">months to show 0.03 with a t-statistic of 3</div></div>
     </div>
     <p>The ranking's monthly correlation swings by about <span class="num">0.12</span> from one month to the next, so any monthly ranking of large companies needs years of record before a realistic edge can be told apart from luck. That applies to this screener's live track record too. Here, the smallest difference the test could reliably see was about <span class="num">0.037</span> over 2012&ndash;2019 and <span class="num">0.063</span> over the held-out months.</p>
+  </section>
+
+  <section id="screen-and-horizon">
+    <h2>Does it at least miss the worst, or work over a longer horizon?</h2>
+    <p>A ranking with no edge at one month could still be useful as a screen, or work slowly. Both were tested on the same history, each with its pass rule <a href="https://github.com/CalebSmit/screener-dashboard/blob/main/research/2026-11-19-what-the-ranking-is-for.md">written down before either was measured</a>, and the check that the test can see a signal ran alongside them and saw it.</p>
+    <div class="stats">
+      <div class="stat"><div class="v">9.8%</div><div class="k">of the top 40&rsquo;s next months were among the index&rsquo;s worst tenth, 2012&ndash;2019 (chance is 10%)</div></div>
+      <div class="stat"><div class="v">9.8%</div><div class="k">the same, 2020&ndash;2026</div></div>
+      <div class="stat"><div class="v">+0.004</div><div class="k">average rank correlation with the next twelve months&rsquo; return</div></div>
+    </div>
+    <p><strong>As a screen.</strong> The 40 highest-ranked stocks landed in the following month&rsquo;s worst tenth 9.8% of the time in 2012&ndash;2019 and 9.8% in 2020&ndash;2026, as often as chance would put any stock there (the rule: the upper end of a one-sided 95% interval below 10% in both periods; it was 10.6% and 10.7%). Companies that later left the index are missing from this history, and they include the worst outcomes of all, so the test cannot say whether the ranking steers readers clear of those.</p>
+    <p><strong>Over longer horizons.</strong> Over six months the average rank correlation was <span class="num">&minus;0.007</span> across 29 separate windows (95% interval &minus;0.047 to +0.033); over twelve, <span class="num">+0.004</span> across 14 separate windows (95% interval &minus;0.042 to +0.051). At neither horizon did the two periods agree on the sign. With this much history the test could reliably see a correlation only of about <span class="num">0.057</span> at six months and <span class="num">0.065</span> at twelve months, larger than the 0.05 the section above asks how long it would take to prove. So over six and twelve months the history is too short to tell. With neither passing, the rule set in advance describes the screener as a teaching tool: a structured, checkable way to read companies, with no claim about returns.</p>
   </section>
 
   <section id="what-it-means">

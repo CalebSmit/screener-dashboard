@@ -2237,6 +2237,86 @@ def history_verdict(path: Path | None = None) -> str:
             f"{lo:+.3f} to {hi:+.3f}).")
 
 
+SCREEN_TEST = ROOT / "research" / "measurements" / "2026-11-21-what-the-ranking-is-for.json"
+_HORIZON_WORDS = {6: "six", 12: "twelve"}
+
+
+def screen_test_reading(path: Path | None = None) -> dict | None:
+    """CLAUDE.md 0.15's measurement, read once for the home page and the research page (claims
+    ``page.hero_screen`` and ``research.screen_and_horizon``, 2026-11-21).
+
+    ``research/2026-11-19-what-the-ranking-is-for.md`` section 3 pre-registered two narrower tests
+    than the one-month IC: (A) do the top 40 avoid the next month's bottom decile, (B) does the
+    composite order 6- and 12-month returns. This turns the measurement's file into the few facts
+    a sentence needs. ``None`` when the file is missing or unreadable, **or when its positive control
+    was not seen** - section 3 says such a result does not count, so it is not published at all.
+
+    ``a_word`` is ``"less"`` only when A held by its rule (one-sided upper bound below 10% in both
+    eras); otherwise it follows the pooled interval around 10%: ``"more"`` above it, ``"slightly
+    less"`` below it, ``"as"`` when it contains it.
+    """
+    try:
+        d = json.loads(Path(path or SCREEN_TEST).read_text(encoding="utf-8"))
+        if not d.get("counts"):
+            return None
+        a, b = d["A"], d["B"]
+        lo, hi = (float(x) for x in a["pooled"]["ci"])
+        if a["holds"]:
+            a_word = "less"
+        elif lo > 0.10:
+            a_word = "more"
+        elif hi < 0.10:
+            a_word = "slightly less"
+        else:
+            a_word = "as"
+        return {
+            "a_word": a_word,
+            "a_eras": {e: float(v["mean"]) for e, v in a["per_era"].items()},
+            "a_upper": {e: float(v["upper_one_sided_95"]) for e, v in a["per_era"].items()},
+            "b": {h: {"verdict": str(b[f"{h}m"]["verdict"]), "windows": int(b[f"{h}m"]["windows"]),
+                      "mean": float(b[f"{h}m"]["pooled"]["mean"]),
+                      "ci": [float(x) for x in b[f"{h}m"]["pooled"]["ci"]],
+                      "detectable": float(b[f"{h}m"]["detectable_80pct"]),
+                      "same_sign": bool(b[f"{h}m"]["same_sign"])} for h in _HORIZON_WORDS},
+            "d": bool(d.get("D_is_the_answer")),
+        }
+    except (OSError, KeyError, TypeError, ValueError):
+        return None
+
+
+_B_PHRASE = {"holds": "it ordered returns better than chance in both periods",
+             "fails": "it showed no edge the test could have seen",
+             "undecidable": "the history is too short to tell"}
+
+
+def horizon_clause(r: dict) -> str:
+    """The longer-horizon half of the result, one phrase per verdict; one clause when both agree."""
+    v = {h: r["b"][h]["verdict"] for h in _HORIZON_WORDS}
+    if len(set(v.values())) == 1:
+        return f"over six and twelve months {_B_PHRASE[v[6]]}"
+    return f"over six months {_B_PHRASE[v[6]]}, and over twelve {_B_PHRASE[v[12]]}"
+
+
+def screen_verdict(path: Path | None = None) -> str:
+    """The home page's second tested sentence (claim ``page.hero_screen``, 2026-11-21): what the
+    two pre-registered narrower tests found, in plain words, or nothing when they do not count."""
+    r = screen_test_reading(path)
+    if r is None:
+        return ""
+    a = {"as": "as likely as any stock to have one of the next month’s worst returns",
+         "less": "less likely than chance to have one of the next month’s worst returns",
+         "slightly less": ("about as likely as any stock to have one of the next month’s worst "
+                           "returns"),
+         "more": "more likely than chance to have one of the next month’s worst returns"}[r["a_word"]]
+    return f"Its top 40 were {a}, and {horizon_clause(r)}."
+
+
+def hero_tested_line() -> str:
+    """The hero's whole tested line: the one-month verdict, then the narrower tests if they count."""
+    s = screen_verdict()
+    return history_verdict() + (f" {s}" if s else "")
+
+
 def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "",
                   context_version: str = "", detail_version: str = "") -> str:
     """Build the complete dashboard HTML string.
@@ -2354,7 +2434,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <h2 class="hero-title" id="hero-title">The S&amp;P&nbsp;500, ranked on eight factors</h2>
                 <p class="hero-sub">Every company is scored against its own sector on eight factors, from valuation and profitability to analyst revisions. Each score traces back to its inputs, weights and formulas.</p>
                 <p class="hero-note">For research and education. Not investment advice.</p>
-                <p class="hero-note hero-tested" id="hero-tested">{history_verdict()} <a href="research.html">See the test</a></p>
+                <p class="hero-note hero-tested" id="hero-tested">{hero_tested_line()} <a href="research.html">See the test</a></p>
                 <!-- What the page has to say about its own loading (round three, 2026-10-27): data that
                      is still arriving, never arrived, is older than the schedule allows, or a context
                      file that failed. Filled by the page's script; empty when all is well. -->

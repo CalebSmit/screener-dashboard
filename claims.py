@@ -2789,6 +2789,47 @@ CLAIMS: tuple[Claim, ...] = (
         detect=None,                      # a page sentence: tests/test_hero_tested.py reads it
     ),
     Claim(
+        id="page.hero_screen",
+        surface=DRILLDOWN,
+        asserts=("The home page's hero adds, after the one-month verdict, what the two narrower "
+                 "pre-registered tests found (CLAUDE.md 0.15): whether the top 40 were less, as, or "
+                 "more likely than chance to have one of the next month's worst returns - 'less' only "
+                 "when the rule fixed beforehand passed in both eras - and, per horizon, whether 6- "
+                 "and 12-month rank correlation held, failed or was too short to tell; and says "
+                 "nothing at all when the measurement's positive control was not seen."),
+        made_true_by="generate_dashboard:screen_verdict",
+        checked_by=(
+            "tests/test_screen_and_horizon.py::test_a_result_whose_control_was_not_seen_is_not_published",
+            "tests/test_screen_and_horizon.py::test_the_screen_words_follow_the_rule_and_the_interval",
+            "tests/test_screen_and_horizon.py::test_the_horizon_words_follow_each_verdict",
+            "tests/test_screen_and_horizon.py::test_the_committed_measurement_is_what_both_pages_read",
+            "tests/test_hero_tested.py::test_the_committed_page_carries_the_committed_summarys_verdict",
+        ),
+        detect=None,                      # a page sentence: the tests above read it
+        caveat=("Fixed 2026-11-21 as written: reads "
+                "research/measurements/2026-11-21-what-the-ranking-is-for.json, a one-off "
+                "measurement on the research engine's survivors-only, filings-and-prices history; "
+                "rerunning that script rewrites the sentence's inputs."),
+    ),
+    Claim(
+        id="research.screen_and_horizon",
+        surface=RESEARCH,
+        asserts=("The research page's section on the screen and longer horizons prints the "
+                 "measurement's own figures - each era's bottom-decile share and one-sided upper "
+                 "bound, each horizon's pooled correlation, interval, window count and detectable "
+                 "size - says the eras disagreed on the sign only when both horizons say so, gives "
+                 "the power sentence only for an undecidable horizon, draws the teaching-tool "
+                 "conclusion only when the file records D, and ends on the same horizon clause the "
+                 "home page prints."),
+        made_true_by="research_page:purpose_section",
+        checked_by=(
+            "tests/test_screen_and_horizon.py::test_the_research_section_prints_the_files_own_figures",
+            "tests/test_screen_and_horizon.py::test_the_research_section_claims_only_what_the_file_says",
+            "tests/test_screen_and_horizon.py::test_the_committed_research_page_carries_the_section",
+        ),
+        detect=r"Does it at least miss the worst, or work over a longer horizon\?",
+    ),
+    Claim(
         id="overview.at_a_glance_tested",
         surface=OVERVIEW,
         asserts=("'If you read nothing else' says the ranking did no better than chance on 2012-2026 "
