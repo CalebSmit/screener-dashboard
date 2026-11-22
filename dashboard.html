@@ -37,7 +37,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=895e88de6835" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=cb2b96a44864" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -6316,7 +6316,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
          the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
          failed download is recorded so the page can say which of the failures it was. -->
     <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () { var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }, 4000);</script>
-    <script src="./dashboard_data.js?v=895e88de6835" onerror="window.SCREENER_DATA_FAILED = true"></script>
+    <script src="./dashboard_data.js?v=cb2b96a44864" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -8253,7 +8253,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // dashboard_detail.js and is fetched the first time a sheet is laid out. Until it lands the
     // block says which state it is in, because an empty gap here reads as "this company has no
     // description" - which is true of none of them.
-    const DETAIL_SRC = "./dashboard_detail.js?v=6e7432097a53";
+    const DETAIL_SRC = "./dashboard_detail.js?v=86dc254f8fec";
     function renderAbout(ticker, s) {
         loadDetail(DETAIL_SRC);
         const box = document.getElementById('modal-about');
@@ -9374,6 +9374,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             }
             if (s.raw[m] === null || s.raw[m] === undefined) sum = '';
             if (sum) h += `<div class="wk-sum">${sum}</div>`;
+        } else if (['analyst_surprise', 'earnings_acceleration', 'consecutive_beat_streak'].indexOf(m) >= 0 && detailPending(s, 'eq4')) {
+            // `eq4` is in dashboard_detail.js since 2026-11-22: say the quarters are on their way
+            // rather than print the row as if none were published. The loader redraws open rows.
+            h += `<div class="wk-k">The last quarters, oldest first</div><p class="wk-wait">${DETAIL_FAILED ? 'The quarterly figures could not be loaded; reopen the sheet to try again.' : 'Loading the quarterly figures…'}</p>`;
+        }
+        if (m === 'earnings_variability' && !s.roe5 && detailPending(s, 'roe5')) {
+            h += `<div class="wk-k">Return on equity, last five fiscal years</div><p class="wk-wait">${DETAIL_FAILED ? 'The five years of filings could not be loaded; reopen the sheet to try again.' : 'Loading the five years of filings…'}</p>`;
         }
         if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
             const pc = v => (v === null || v === undefined) ? '&ndash;' : pctPlain(v, 1);
@@ -9450,7 +9457,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // loaded means "not known yet". Present always wins, so a payload built by hand with the
     // inputs inline (the tests' stand-ins) renders exactly as before.
     function inputsPending(s) {
-        return !!s && !s.inp && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
+        return detailPending(s, 'inp');
+    }
+    // The same question for any field in dashboard_detail.js (`eq4`, `roe5` since 2026-11-22).
+    function detailPending(s, k) {
+        return !!s && !s[k] && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
     }
     function inputsWaitText() {
         return (typeof DETAIL_FAILED !== 'undefined' && DETAIL_FAILED)
@@ -11363,6 +11374,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const host = document.getElementById('reporting-body');
         if (!host) return;
         const rows = reportingRows(RP.days, RP.scope);
+        // The "Last quarter" column reads `eq4` from dashboard_detail.js (2026-11-22): a reader
+        // who opens this section before any sheet has pulled the file asks for it here, so the
+        // "…" it prints meanwhile is filled by the loader's redraw rather than by chance.
+        if (rows.length && typeof loadDetail === 'function' && !DETAIL_LOADED && !DETAIL_FAILED
+                && rows.some(x => detailPending(x.s, 'eq4'))) loadDetail(DETAIL_SRC);
         const seg = (k, opts) => '<div class="seg-control" role="group">' + opts.map(o =>
             '<button type="button" class="seg-btn' + (String(RP[k]) === String(o[0]) ? ' active' : '') + '" onclick="setReporting(\'' + k + '\',\'' + o[0] + '\')">' + o[1] + '</button>').join('') + '</div>';
         let h = '<div class="rp-controls">' + seg('days', [[7, 'Next 7 days'], [14, 'Next 14 days']]) +
@@ -11388,9 +11404,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 const insTxt = (ins && ins.buy_n) ? '<span class="rp-ins">' + ins.buy_people + ' bought</span>' : '';
                 // The last reported quarter's surprise, from the four quarters behind the surprise
                 // metrics (eq4: [date, actual, estimate, surprise]) - context for the next report.
+                // eq4 is in dashboard_detail.js since 2026-11-22: "…" while it is in flight, as
+                // the options column does for the context file; the loader redraws this table.
+                const lqWait = detailPending(x.s, 'eq4');
                 const lq = (x.s.eq4 || []).filter(q => q[3] !== null && q[3] !== undefined).slice(-1)[0];
                 const lqZ = lq ? pctNearZero(lq[3] * 100, 1) : null;
-                const lqTxt = lq ? (lqZ.zero ? '' : lq[3] > 0 ? '+' : '&minus;') + lqZ.mag + '%' : '<span class="rp-none">&ndash;</span>';
+                const lqTxt = lq ? (lqZ.zero ? '' : lq[3] > 0 ? '+' : '&minus;') + lqZ.mag + '%'
+                    : lqWait ? (DETAIL_FAILED ? '<span class="rp-none" title="The quarterly figures could not be loaded">&ndash;</span>' : '<span class="rp-none" title="Loading the quarterly figures">&hellip;</span>')
+                    : '<span class="rp-none">&ndash;</span>';
                 // On a phone the last two columns do not fit; the same two figures ride under the
                 // company name instead (shown below 640px only), so nothing is withheld from a phone
                 // reader (ui-elevation fourth pass, 2026-10-27).
@@ -11522,6 +11543,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 if (typeof renderProvenance === 'function') renderProvenance(s);
                 if (typeof redrawOpenMetricDetails === 'function') redrawOpenMetricDetails();
             }
+            // `eq4` (2026-11-22, 13:00): the reporting calendar's "Last quarter" column is the
+            // one reader outside the sheet; redraw it if it has been drawn.
+            if (typeof RP_DONE !== 'undefined' && RP_DONE) renderReporting();
         };
         el.onload = () => {
             const P = (window.SCREENER_DETAIL || {}).detail || {};

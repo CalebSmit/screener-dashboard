@@ -93,6 +93,11 @@ def test_the_published_roe_rows_rebuild_the_metric():
     p = ROOT / "dashboard_data.js"
     t = p.read_text(encoding="utf-8", errors="replace")
     d = json.loads(t[t.find("{"):t.rfind("}") + 1])
+    # `roe5` is in dashboard_detail.js since 2026-11-22: fold every shard back, as the publish
+    # gate does, or this check would skip as "payload predates" and see nothing.
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as _health
+    d =_health.fold_shards(d, _health._dir_reader(ROOT))
     rows = [s for s in d["stock_detail"].values() if s.get("roe5")]
     if not rows:
         pytest.skip("payload predates earnings variability")

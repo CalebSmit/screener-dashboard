@@ -867,10 +867,19 @@ DETAIL_FILE = "dashboard_detail.js"
 # split_detail, on the whole payload. `inp_bad`, `xcap` and `pio` stay in first paint: small,
 # and read by the category table itself.
 #
+#
+# `eq4` and `roe5` (2026-11-22, 13:00; 11.6% of first paint together) - the four quarters behind
+# the three surprise metrics and the five fiscal years behind earnings variability. In the page
+# `roe5` is read by metricDetailHtml alone; `eq4` by metricDetailHtml and by the reporting
+# calendar's "Last quarter" column (renderReporting) - a collapsed section, not the sheet, which
+# prints "…" while the file is in flight (as it already does for the options column), asks for
+# the file when it is opened, and is redrawn by the loader. Outside the page the readers are test
+# modules that check the published workings, and each folds the shard back.
+#
 # What is *not* in the shard, and why: `raw`, `pct` and `summary` are read by the movers strip,
 # the compare drawer, My Holdings (`summary`'s holding notes) and the calculation traces -
 # surfaces that are not the sheet and are live at first paint.
-DETAIL_KEYS = ("about", "industry", "financials", "inp")
+DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5")
 # The subset that is provider prose. The scoring-freedom rule applies to every key above; being
 # a string applies only to these (`tests/test_detail_payload_split.py`).
 PROSE_KEYS = ("about", "industry")
@@ -6263,6 +6272,13 @@ def _js_workings() -> str:
             }
             if (s.raw[m] === null || s.raw[m] === undefined) sum = '';
             if (sum) h += `<div class="wk-sum">${sum}</div>`;
+        } else if (['analyst_surprise', 'earnings_acceleration', 'consecutive_beat_streak'].indexOf(m) >= 0 && detailPending(s, 'eq4')) {
+            // `eq4` is in dashboard_detail.js since 2026-11-22: say the quarters are on their way
+            // rather than print the row as if none were published. The loader redraws open rows.
+            h += `<div class="wk-k">The last quarters, oldest first</div><p class="wk-wait">${DETAIL_FAILED ? 'The quarterly figures could not be loaded; reopen the sheet to try again.' : 'Loading the quarterly figures…'}</p>`;
+        }
+        if (m === 'earnings_variability' && !s.roe5 && detailPending(s, 'roe5')) {
+            h += `<div class="wk-k">Return on equity, last five fiscal years</div><p class="wk-wait">${DETAIL_FAILED ? 'The five years of filings could not be loaded; reopen the sheet to try again.' : 'Loading the five years of filings…'}</p>`;
         }
         if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
             const pc = v => (v === null || v === undefined) ? '&ndash;' : pctPlain(v, 1);
@@ -6339,7 +6355,11 @@ def _js_workings() -> str:
     // loaded means "not known yet". Present always wins, so a payload built by hand with the
     // inputs inline (the tests' stand-ins) renders exactly as before.
     function inputsPending(s) {
-        return !!s && !s.inp && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
+        return detailPending(s, 'inp');
+    }
+    // The same question for any field in dashboard_detail.js (`eq4`, `roe5` since 2026-11-22).
+    function detailPending(s, k) {
+        return !!s && !s[k] && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
     }
     function inputsWaitText() {
         return (typeof DETAIL_FAILED !== 'undefined' && DETAIL_FAILED)
@@ -11828,6 +11848,11 @@ def _js_context() -> str:
         const host = document.getElementById('reporting-body');
         if (!host) return;
         const rows = reportingRows(RP.days, RP.scope);
+        // The "Last quarter" column reads `eq4` from dashboard_detail.js (2026-11-22): a reader
+        // who opens this section before any sheet has pulled the file asks for it here, so the
+        // "…" it prints meanwhile is filled by the loader's redraw rather than by chance.
+        if (rows.length && typeof loadDetail === 'function' && !DETAIL_LOADED && !DETAIL_FAILED
+                && rows.some(x => detailPending(x.s, 'eq4'))) loadDetail(DETAIL_SRC);
         const seg = (k, opts) => '<div class="seg-control" role="group">' + opts.map(o =>
             '<button type="button" class="seg-btn' + (String(RP[k]) === String(o[0]) ? ' active' : '') + '" onclick="setReporting(\'' + k + '\',\'' + o[0] + '\')">' + o[1] + '</button>').join('') + '</div>';
         let h = '<div class="rp-controls">' + seg('days', [[7, 'Next 7 days'], [14, 'Next 14 days']]) +
@@ -11853,9 +11878,14 @@ def _js_context() -> str:
                 const insTxt = (ins && ins.buy_n) ? '<span class="rp-ins">' + ins.buy_people + ' bought</span>' : '';
                 // The last reported quarter's surprise, from the four quarters behind the surprise
                 // metrics (eq4: [date, actual, estimate, surprise]) - context for the next report.
+                // eq4 is in dashboard_detail.js since 2026-11-22: "…" while it is in flight, as
+                // the options column does for the context file; the loader redraws this table.
+                const lqWait = detailPending(x.s, 'eq4');
                 const lq = (x.s.eq4 || []).filter(q => q[3] !== null && q[3] !== undefined).slice(-1)[0];
                 const lqZ = lq ? pctNearZero(lq[3] * 100, 1) : null;
-                const lqTxt = lq ? (lqZ.zero ? '' : lq[3] > 0 ? '+' : '&minus;') + lqZ.mag + '%' : '<span class="rp-none">&ndash;</span>';
+                const lqTxt = lq ? (lqZ.zero ? '' : lq[3] > 0 ? '+' : '&minus;') + lqZ.mag + '%'
+                    : lqWait ? (DETAIL_FAILED ? '<span class="rp-none" title="The quarterly figures could not be loaded">&ndash;</span>' : '<span class="rp-none" title="Loading the quarterly figures">&hellip;</span>')
+                    : '<span class="rp-none">&ndash;</span>';
                 // On a phone the last two columns do not fit; the same two figures ride under the
                 // company name instead (shown below 640px only), so nothing is withheld from a phone
                 // reader (ui-elevation fourth pass, 2026-10-27).
@@ -11987,6 +12017,9 @@ def _js_context() -> str:
                 if (typeof renderProvenance === 'function') renderProvenance(s);
                 if (typeof redrawOpenMetricDetails === 'function') redrawOpenMetricDetails();
             }
+            // `eq4` (2026-11-22, 13:00): the reporting calendar's "Last quarter" column is the
+            // one reader outside the sheet; redraw it if it has been drawn.
+            if (typeof RP_DONE !== 'undefined' && RP_DONE) renderReporting();
         };
         el.onload = () => {
             const P = (window.SCREENER_DETAIL || {}).detail || {};
