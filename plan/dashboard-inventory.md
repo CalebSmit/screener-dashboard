@@ -1125,7 +1125,7 @@ surface printed 13%. See below and `METHODOLOGY_CHANGELOG.md` 2026-08-28.
 
 | Key | Size (MB) | Notes |
 |---|---|---|
-| `stock_detail` | 2.81 -> ~4.3 | **84.3% of the gzipped payload** (measured 2026-11-08). All ~500 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw), 2026-09-15 with `change_driver` (+0.10 raw / +10.5 KB gz); **`about` and `industry` left for `dashboard_detail.js` on 2026-11-08** (-307 KB gz off first paint), `financials` the same afternoon, **`inp` on 2026-11-22** (-217 KB gz). Field-by-field gzipped weights: `research/measurements/2026-11-08-stock-detail-field-weights.py` |
+| `stock_detail` | 2.81 -> ~4.3 | **84.3% of the gzipped payload** (measured 2026-11-08). All ~500 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw), 2026-09-15 with `change_driver` (+0.10 raw / +10.5 KB gz); **`about` and `industry` left for `dashboard_detail.js` on 2026-11-08** (-307 KB gz off first paint), `financials` the same afternoon, **`inp` on 2026-11-22** (-217 KB gz), `eq4` and `roe5` that afternoon (-107 KB gz). Field-by-field gzipped weights: `research/measurements/2026-11-08-stock-detail-field-weights.py` |
 | `history` | 0.27 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
 | `table_data` | 0.26 | 502 rows, 8 category scores + composite/rank/flags |
 | everything else | <0.02 | `portfolio` (0.010) and `spx_weights` removed 2026-08-26 |
@@ -1167,7 +1167,12 @@ lands, an open metric row says "Loading the reported figures…", the provenance
 recomputed-EV sentence says "Loading the figure used here…", and the workings CSV waits for it
 (`ensureDetail()`); `<html data-detail="loaded|failed">` carries the state. Python readers of the
 published payload fold it back with `check_run_health.fold_shards`
-(`tests/test_inputs_in_detail_shard.py`). **There is no `self_metrics` since 2026-11-08**: the peer table's nine
+(`tests/test_inputs_in_detail_shard.py`). **`eq4` and `roe5` (the four quarters behind the three
+surprise metrics, the five fiscal years behind earnings variability) joined it the same afternoon:
+first paint 908 -> 801 KB gzipped, -11.8%.** The workings say "Loading the quarterly figures…" /
+"Loading the five years of filings…"; the one reader outside the sheet, the Reporting calendar's
+*Last quarter* column (and its phone line), prints "…", requests the file itself, and is redrawn by
+the loader (`tests/test_quarters_in_detail_shard.py`). **There is no `self_metrics` since 2026-11-08**: the peer table's nine
 columns were built two ways - the open stock's row from that precomputed block, every peer's row
 from `buildPeerRow` in JS over `raw` + `financials` - and every stock is on both sides of that
 split, so one company's P/E could print two ways on two sheets. Measured before removing it:

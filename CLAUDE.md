@@ -436,8 +436,9 @@ outcome.
   `CTX_LOADED` flag is closure-scoped and not visible from `page.evaluate`.
 - `dashboard_detail.js` - `window.SCREENER_DETAIL`, **the third payload file** (2026-11-08),
   written by `generate_dashboard.split_detail()`: the fields only an open sheet reads, today
-  `DETAIL_KEYS = ("about", "industry", "financials", "inp")` (`inp` 2026-11-22: first paint
-  1,125 -> 908 KB gzipped; a Python reader of the published payload folds it back with
+  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5")` (`inp` 2026-11-22: first paint
+  1,125 -> 908 KB gzipped; `eq4`/`roe5` the same afternoon, -> 801 KB - `eq4` is also read by the
+  Reporting calendar, which says "…" and asks for the file, `tests/test_quarters_in_detail_shard.py`; a Python reader of the published payload folds it back with
   `check_run_health.fold_shards`, `tests/test_inputs_in_detail_shard.py`). It is **not** loaded from the start-up block - the
   first sheet laid out pulls it, which on an untouched page is the idle pre-warm, so the
   measured request order is `dashboard_data.js`, `dashboard_context.js`, `dashboard_detail.js`.

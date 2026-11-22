@@ -10209,3 +10209,80 @@ So I took the next owner item, universe expansion, at the stage its plan names n
    equation tests (`test_metric_lineage`) must report passes, not "payload predates the published inputs".
 3. Phase 1 next: the `raw`/`pct` read-site audit (the compare drawer could wait like the sheet; the
    movers strip cannot), or `summary` split into the holdings' six kinds and the rest.
+
+
+## 2026-11-22 (13:00) - QUEUE. Universe expansion phase 1, next slice: `eq4` and `roe5` leave first paint - 908 -> 801 KB gzipped, -11.8%; the first shard field with a reader outside the sheet
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-22_060001-weekend.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-20_180003.log` (completed; HEALTH: PASS);
+weekend, no newer run expected. Evidence base at `1m`: **55 rows, newest 2026-10-20 (33 days ago, bound
+40), 5 effective of 8**. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the
+Factor Lab** (age **41 days**; standing programme last advanced **16 days** ago, bound 21 - not late);
+also open 0.10 46d, 0.14 39d. Shipped to readers: 18 commits, 8 methodology changes in 7 days.
+**Tests:** baseline **4,461 passed / 1 skipped** (dry run OK). After: **4,467 / 1** at the first
+commit (+6, the new module); the final tree re-run is under Gates below.
+**Owner queue / rotation:** `git stash list` empty; no owner-session marker; no proposal waiting
+(`open_proposals()` = []). Carried on from today's 06:00 entry, Next 3 (phase 1's next slice). Its
+Next 1 and 2 are dated for Monday (see Set aside).
+
+### Did
+- **Re-measured before choosing** (`research/measurements/2026-11-08-stock-detail-field-weights.py`
+  on the committed payload): after `inp` the heaviest first-paint fields were `raw` 23.5%, `pct`
+  14.0%, `summary` 12.1%, then **`roe5` 6.9% and `eq4` 5.2%** - not on the plan's list, and moveable
+  without the redesign `raw`/`pct`/`summary` need. So this session moved those two.
+- **Read-site audit** (page and outside it): `roe5` - `metricDetailHtml` only (earnings variability's
+  five-year ROE table). `eq4` - `metricDetailHtml` (the three surprise metrics' quarter table) **and
+  `renderReporting`**, the Reporting soon calendar's *Last quarter* column: a collapsed section, not
+  the sheet. It qualifies under the shard rule's second half ("can say honestly that it is waiting"):
+  it prints "…" while the file is in flight - as its options column already does for the context
+  file - **requests the file itself** when drawn (so the "…" is not left waiting on the pre-warm by
+  chance), and the loader redraws it. Outside the page nothing in `scripts/` or any scoring module
+  reads either field; `test_sec_fundamentals`'s published-ROE check read `dashboard_data.js` alone
+  and would have **skipped** ("payload predates earnings variability") - it now folds the shard, as
+  `test_metric_lineage`, `test_methodology_claims_audit` and `test_dashboard_printed_figures` already did.
+- **Waiting states:** an open surprise row reads "Loading the quarterly figures…", earnings
+  variability "Loading the five years of filings…" (instead of "Needs all five years - not
+  computed", which would have been false); both have failure wording. `detailPending(s, k)`
+  generalises the morning's `inputsPending`.
+- **Published files regenerated** from the published run (2026-11-20 18:00), `logs/regen_eq4.py`:
+  folded whole, **0 differences**; 498 stocks carry `eq4` and 497 `roe5` in the shard, 0 in first paint.
+  First paint **907,972 -> 801,225 bytes gzipped**; the detail file 511 -> 612 KB.
+- **Looked at it** (`logs/shot_eq4.py`, first ranked stock with quarters, file held then released), 1440
+  and 375: the row waits then shows the four quarters and "Median of the 4 valid surprises (...) =
+  10.9%"; the calendar shows "…" then "+18.4%" etc. **At 375 it caught a defect in my first version:**
+  the phone line "Last quarter vs estimate" under each company was *omitted* while waiting and appeared
+  later - fixed to print "…" like the desktop column, with a test. No overflow (scrollWidth = viewport),
+  no page errors.
+- Tests: `tests/test_quarters_in_detail_shard.py` (6): per-field read-site tripwire (a new `.eq4`/`.roe5`
+  reader outside the audited functions fails), each reader checks the in-flight state, the calendar asks
+  for the file and the loader redraws it, the browser round trip for both. `test_health_reads_every_shard`'s
+  frame gained `_eps_q`/`_roe5` so the fold round trip exercises them.
+- Docs: `plan/universe-expansion.md` progress + Next, `plan/dashboard-inventory.md`, CLAUDE.md Front-end,
+  OWNER_FOCUS universe item (one line).
+
+### Evidence / research
+- None needed: engineering, no number moved. The evidence is the measured byte count and the 0-difference
+  fold.
+
+### Methodology changed
+- none.
+
+### Tried and rejected
+- **Leaving the calendar to wait on the idle pre-warm:** a reader who opens Reporting soon early would see
+  "…" with no request in flight if the pre-warm had not fired; the section requests the file itself.
+
+### Set aside
+- Previous Next 1 (build residual momentum): dated for the 2026-11-23 06:00 session - a scoring change
+  wants a weekday slot with a 02:00 run behind it; unchanged.
+- Previous Next 2 (read Monday's 02:00 claims-gate lines for the equation tests): Monday's job; now also
+  covers `eq4`/`roe5` - see Next.
+- ACCEPTED, unbuilt: the IV inversion (dated 11-24, needs a throwaway full run).
+- `raw`/`pct`/`summary`: the plan's named next slices; not started - each needs its own read-site
+  redesign (movers strip, compare drawer, My Holdings) and deserves a session to itself.
+
+### Next
+1. **2026-11-23 06:00: build residual momentum** (`research/2026-11-20-jensens-alpha-in-momentum.md` s9).
+2. **Monday's 02:00 run is the first to publish `inp`, `eq4` and `roe5` in the shard.** In its claims-gate
+   lines, `test_metric_lineage`, `test_dashboard_printed_figures` (sum-of-parts lines) and
+   `test_sec_fundamentals::test_the_published_roe_rows_rebuild_the_metric` must report passes, not skips.
+3. Phase 1: `raw`/`pct` audit, or `summary` split; then bucketing.

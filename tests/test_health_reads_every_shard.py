@@ -79,6 +79,10 @@ def _frame() -> pd.DataFrame:
         # a reported input, so each stock's `inp` has content - it is in the shard since
         # 2026-11-22, and sec_crosscheck's checks read it through this fold
         "_in_netIncome": [5.0e8, 1.2e9, 3.0e8],
+        # the quarters and fiscal years behind four metrics' workings - in the shard since
+        # 2026-11-22 (13:00); the published-workings checks read them through this fold
+        "_eps_q": ['[["2025-12-31",1.1,1.0,0.1],["2026-03-31",1.2,1.1,0.0909]]'] * 3,
+        "_roe5": ['[[2021,1.0e8,1.0e9,0.1],[2022,1.1e8,1.0e9,0.11]]'] * 3,
     })
     for cat in CATEGORIES:
         df[cat + "_score"] = 50.0
