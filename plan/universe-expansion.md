@@ -124,6 +124,21 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-22 (13:00 session): `eq4` and `roe5` leave first paint - 908 -> 801 KB
+gzipped, -107 KB, -11.8%.** Re-measured first: after `inp`, the heaviest fields left were `raw`
+(23.5%), `pct` (14.0%), `summary` (12.1%), then `roe5` (6.9%) and `eq4` (5.2%) - the last two
+not on the plan's list, and cleaner to move than the first three. Read-site audit: `roe5` is read
+by `metricDetailHtml` alone; `eq4` by `metricDetailHtml` **and the Reporting calendar's *Last
+quarter* column** (`renderReporting`), the first reader outside the sheet the shard has taken. It
+qualifies under the rule's second half: it prints "…" while the file is in flight (desktop column
+and phone line), requests the file itself, and the loader redraws it. Outside the page, only test
+modules read either; `test_sec_fundamentals` gained its fold (it would have skipped). Published
+files regenerated from the published run: folded whole, 0 differences.
+`tests/test_quarters_in_detail_shard.py` (6), with a per-field read-site tripwire.
+**Next in phase 1:** unchanged - `raw`/`pct` (the compare drawer could wait; the movers strip
+cannot), or `summary` split into the holdings' six kinds and the rest; then bucketing. What is
+left in first paint outside those three is ~25% of it, mostly `flags`, `cat_scores`, `contrib`.
+
 **Progress, 2026-11-22 (06:00 weekend session): `inp` leaves first paint - 1,125 -> 908 KB
 gzipped, -217 KB, -19.3%.** The first of the four fields the 11-19 entry named, and the heaviest.
 **The read-site audit corrected the plan's premise:** `inp` was listed with `raw`/`pct`/`summary`

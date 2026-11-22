@@ -87,7 +87,8 @@ Two things still outrank this file, and neither is negotiable:
   claim), so the pause is lifted** - with one condition from that note's section 5: whatever phase 3
   publishes carries the same no-return-claim framing. **2026-11-22:** each stock's reported figures now load with the stock's sheet
 instead of with the page - the page's first download is 19% smaller (1,125 -> 908 KB), nothing on
-it changed. **Next in phase 1:** `plan/universe-expansion.md`.
+it changed. That afternoon the quarterly and five-year figures behind four metrics' workings
+followed (908 -> 801 KB). **Next in phase 1:** `plan/universe-expansion.md`.
   History to 2026-11-19: `log-archive/OWNER_FOCUS-item-histories-2026-11-19.md`.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it
