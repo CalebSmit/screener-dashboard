@@ -37,7 +37,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=442842d71ebe" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=895e88de6835" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -6316,7 +6316,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
          the hero says the rankings are still loading, instead of skeletons pulsing with no word. A
          failed download is recorded so the page can say which of the failures it was. -->
     <script id="load-wait-timer">window.SCREENER_WAIT = setTimeout(function () { var n = document.getElementById('load-wait'); if (n && !window.SCREENER_DATA) n.hidden = false; }, 4000);</script>
-    <script src="./dashboard_data.js?v=442842d71ebe" onerror="window.SCREENER_DATA_FAILED = true"></script>
+    <script src="./dashboard_data.js?v=895e88de6835" onerror="window.SCREENER_DATA_FAILED = true"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -8253,8 +8253,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // dashboard_detail.js and is fetched the first time a sheet is laid out. Until it lands the
     // block says which state it is in, because an empty gap here reads as "this company has no
     // description" - which is true of none of them.
+    const DETAIL_SRC = "./dashboard_detail.js?v=6e7432097a53";
     function renderAbout(ticker, s) {
-        loadDetail("./dashboard_detail.js?v=2c5effbf44c0");
+        loadDetail(DETAIL_SRC);
         const box = document.getElementById('modal-about');
         const txt = document.getElementById('modal-about-text');
         const btn = document.getElementById('modal-about-toggle');
@@ -9337,6 +9338,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (shown.length) {
             h += `<div class="wk-k">Inputs, as reported</div><dl class="wk-inputs">` +
                 shown.map(x => `<div><dt>${escapeHtml(x[0])}</dt><dd>${fmtInput(inp[x[1]], x[2])}</dd></div>`).join('') + `</dl>`;
+        } else if ((info.in || []).length && inputsPending(s)) {
+            h += `<div class="wk-k">Inputs, as reported</div><p class="wk-wait">${inputsWaitText()}</p>`;
         }
 
         // Components for the two scores that are sums of parts.
@@ -9443,6 +9446,31 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         return INPUT_FMT;
     }
 
+    // `inp` is in dashboard_detail.js since 2026-11-22: absent from a stock *and* the file not yet
+    // loaded means "not known yet". Present always wins, so a payload built by hand with the
+    // inputs inline (the tests' stand-ins) renders exactly as before.
+    function inputsPending(s) {
+        return !!s && !s.inp && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
+    }
+    function inputsWaitText() {
+        return (typeof DETAIL_FAILED !== 'undefined' && DETAIL_FAILED)
+            ? 'The reported figures could not be loaded; reopen the sheet to try again.'
+            : 'Loading the reported figures…';
+    }
+
+    // Redraw the metric rows a reader has open, once the reported figures land.
+    function redrawOpenMetricDetails() {
+        if (!WK_CURRENT) return;
+        document.querySelectorAll('#modal-categories tr.wk-open').forEach(tr => {
+            const next = tr.nextElementSibling;
+            if (!next || !next.classList.contains('wk-detail')) return;
+            const sec = tr.closest('.cat-detail-section');
+            const wk = sec ? categoryWorkings(sec.dataset.cat, WK_CURRENT.s) : null;
+            const r = wk ? wk.rows.find(x => x.metric === tr.dataset.metric) : null;
+            next.innerHTML = '<td colspan="6">' + metricDetailHtml(tr.dataset.metric, WK_CURRENT.s, r) + '</td>';
+        });
+    }
+
     function pickTemplate(info, inp) {
         return (info.x || []).find(t => [...t.matchAll(SLOT_RE)].every(m => {
             const v = inp[m[1]];
@@ -9456,6 +9484,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (!info || val === null || val === undefined) return '';
         const inp = s.inp || {};
         const res = '<span class="wk-n wk-res">' + fmtMetric(val, meta.fmt) + '</span>';
+        // The reported figures ride dashboard_detail.js (2026-11-22). Until it has loaded a
+        // metric with an equation says so, rather than falling through to a line with no figures
+        // - which would read as "this stock's inputs were not published".
+        if ((info.x || []).length && inputsPending(s))
+            return '<span class="wk-l wk-wait">' + inputsWaitText() + '</span> <span class="wk-op">&rarr;</span> ' + res;
         const tpl = pickTemplate(info, inp);
         if (tpl) {
             const fmtOf = inputFormats();
@@ -10114,6 +10147,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             L.push(['INPUTS: as reported by the company and delivered by Yahoo Finance']);
             L.push(['Field', 'Value']);
             keys.sort().forEach(k => L.push([k, inp[k]]));
+        } else if (typeof DETAIL_FAILED !== 'undefined' && DETAIL_FAILED) {
+            // downloadWorkings waits for the inputs; this is only the case where they never came.
+            L.push([]);
+            L.push(['INPUTS: the reported figures could not be loaded - reopen the sheet and download again']);
         }
         return L.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
     }
@@ -10121,6 +10158,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     function downloadWorkings(ticker) {
         const t = ticker || UX.current;
         if (!t) return;
+        // The INPUTS block is dashboard_detail.js's `inp` (2026-11-22). A file downloaded before
+        // it lands would silently lack it, so wait for it - the sheet has already asked for it.
+        const s0 = D.stock_detail[t];
+        if (inputsPending(s0) && !DETAIL_FAILED && typeof ensureDetail === 'function') {
+            toast('Loading the reported figures…');
+            ensureDetail().then(() => downloadWorkings(t));
+            return;
+        }
         const blob = new Blob(['﻿' + workingsCsv(t)], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -11441,6 +11486,19 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // the critical path. It merges into D.stock_detail, so every existing reader of s.about /
     // s.industry keeps working unchanged once it lands.
     let DETAIL_LOADED = false, DETAIL_PENDING = false, DETAIL_FAILED = false;
+    let DETAIL_WAITERS = [];
+    // A promise for the shard: resolves true once it has merged, false if it failed. For the
+    // workings download, and for a test that reads a real stock's sheet-only fields without
+    // opening its sheet. The page's state is also on <html data-detail="loaded|failed">.
+    function ensureDetail() {
+        if (DETAIL_LOADED) return Promise.resolve(true);
+        return new Promise(res => { DETAIL_WAITERS.push(res); loadDetail(DETAIL_SRC); });
+    }
+    function settleDetailWaiters(ok) {
+        document.documentElement.setAttribute('data-detail', ok ? 'loaded' : 'failed');
+        const w = DETAIL_WAITERS; DETAIL_WAITERS = [];
+        w.forEach(res => res(ok));
+    }
     function loadDetail(src) {
         if (DETAIL_LOADED || DETAIL_PENDING) return;
         DETAIL_PENDING = true; DETAIL_FAILED = false;
@@ -11459,6 +11517,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 renderAbout(UX.current, s);
                 if (typeof renderCompanySnapshot === 'function') renderCompanySnapshot(s);
                 if (typeof renderPeerComparison === 'function') renderPeerComparison(UX.current, s);
+                // `inp` (2026-11-22): the provenance panel's recomputed-EV pair and any metric
+                // row the reader has open. A closed row is built on open, so it needs nothing.
+                if (typeof renderProvenance === 'function') renderProvenance(s);
+                if (typeof redrawOpenMetricDetails === 'function') redrawOpenMetricDetails();
             }
         };
         el.onload = () => {
@@ -11466,13 +11528,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             Object.keys(P).forEach(t => { if (D.stock_detail[t]) Object.assign(D.stock_detail[t], P[t]); });
             DETAIL_LOADED = true; DETAIL_PENDING = false; DETAIL_FAILED = false;
             redraw();
+            settleDetailWaiters(true);
         };
         el.onerror = () => {
-            // A failure is said once, in the block itself, and retried on the next sheet that
-            // opens - this is prose, so it never blocks a number or a score.
+            // A failure is said once, in each block that waited, and retried on the next sheet
+            // that opens. It never blocks a score: every score, rank and percentile is in the
+            // first-paint payload; only the reported figures behind the equations are here.
             DETAIL_PENDING = false; DETAIL_FAILED = true;
             el.remove();
             redraw();
+            settleDetailWaiters(false);
         };
         document.body.appendChild(el);
     }
@@ -13173,9 +13238,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // nothing on the page to explain it. Both figures are stated so the rule is checkable.
         if (fl.ev_flag) {
             const evApi = fl.ev_api, evUsed = (s.inp || {}).ev_used;
+            // `inp` arrives with dashboard_detail.js (2026-11-22), so until then the figure used
+            // here is not known yet - which is not the same as there being none.
+            const evWait = !s.inp && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
             const pair = (evApi !== null && evApi !== undefined && evUsed !== null && evUsed !== undefined)
                 ? ' Its figure was ' + fmtBig(evApi) + ' against the ' + fmtBig(evUsed) + ' used here.'
-                : '';
+                : (evWait && evApi !== null && evApi !== undefined
+                    ? (DETAIL_FAILED ? ' The figure used here could not be loaded.' : ' Loading the figure used here…')
+                    : '');
             // The limit is 25% for financials and 10% for everyone else, so the sentence states
             // the one that applied to *this* stock. The first draft printed "the wider limit
             // applies to financial companies" on every one of them, which on a utility's page

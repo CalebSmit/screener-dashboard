@@ -856,10 +856,21 @@ DETAIL_FILE = "dashboard_detail.js"
 # And both panels now have a waiting state rather than an em-dash, which for a number is the
 # difference between "loading" and "this company published none".
 #
-# What is *not* in the shard, and why, stays as the morning left it: `inp`, `raw`, `pct` and
-# `summary` are 42.6% more and are read by the movers strip, the compare drawer and the
-# calculation traces - surfaces that are not the sheet and are live at first paint.
-DETAIL_KEYS = ("about", "industry", "financials")
+# `inp` joined 2026-11-22 (the reported figures behind each metric's equation, 13.8% of the
+# 2026-11-08 first paint). Its read-site audit, browser and Python both: in the page it is read by
+# the open sheet alone - the metric rows' equation and "Inputs, as reported" (metricDetailHtml /
+# equationHtml), the provenance panel's recomputed-EV pair and the workings CSV - and each of the
+# three says it is loading rather than printing nothing; outside the page every reader of the
+# published payload folds the shard back (check_run_health.fold_shards, which sec_crosscheck's
+# checks go through, and the test modules that evaluate the equations). The build's own uses
+# (calc_trace, the input-mismatch and capped-figure checks, ranking_audit) all run before
+# split_detail, on the whole payload. `inp_bad`, `xcap` and `pio` stay in first paint: small,
+# and read by the category table itself.
+#
+# What is *not* in the shard, and why: `raw`, `pct` and `summary` are read by the movers strip,
+# the compare drawer, My Holdings (`summary`'s holding notes) and the calculation traces -
+# surfaces that are not the sheet and are live at first paint.
+DETAIL_KEYS = ("about", "industry", "financials", "inp")
 # The subset that is provider prose. The scoring-freedom rule applies to every key above; being
 # a string applies only to these (`tests/test_detail_payload_split.py`).
 PROSE_KEYS = ("about", "industry")
@@ -4528,8 +4539,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // dashboard_detail.js and is fetched the first time a sheet is laid out. Until it lands the
     // block says which state it is in, because an empty gap here reads as "this company has no
     // description" - which is true of none of them.
+    const DETAIL_SRC = "./dashboard_detail.js?v={det_version}";
     function renderAbout(ticker, s) {{
-        loadDetail("./dashboard_detail.js?v={det_version}");
+        loadDetail(DETAIL_SRC);
         const box = document.getElementById('modal-about');
         const txt = document.getElementById('modal-about-text');
         const btn = document.getElementById('modal-about-toggle');
@@ -5814,9 +5826,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // nothing on the page to explain it. Both figures are stated so the rule is checkable.
         if (fl.ev_flag) {{
             const evApi = fl.ev_api, evUsed = (s.inp || {{}}).ev_used;
+            // `inp` arrives with dashboard_detail.js (2026-11-22), so until then the figure used
+            // here is not known yet - which is not the same as there being none.
+            const evWait = !s.inp && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
             const pair = (evApi !== null && evApi !== undefined && evUsed !== null && evUsed !== undefined)
                 ? ' Its figure was ' + fmtBig(evApi) + ' against the ' + fmtBig(evUsed) + ' used here.'
-                : '';
+                : (evWait && evApi !== null && evApi !== undefined
+                    ? (DETAIL_FAILED ? ' The figure used here could not be loaded.' : ' Loading the figure used here…')
+                    : '');
             // The limit is 25% for financials and 10% for everyone else, so the sentence states
             // the one that applied to *this* stock. The first draft printed "the wider limit
             // applies to financial companies" on every one of them, which on a utility's page
@@ -6210,6 +6227,8 @@ def _js_workings() -> str:
         if (shown.length) {
             h += `<div class="wk-k">Inputs, as reported</div><dl class="wk-inputs">` +
                 shown.map(x => `<div><dt>${escapeHtml(x[0])}</dt><dd>${fmtInput(inp[x[1]], x[2])}</dd></div>`).join('') + `</dl>`;
+        } else if ((info.in || []).length && inputsPending(s)) {
+            h += `<div class="wk-k">Inputs, as reported</div><p class="wk-wait">${inputsWaitText()}</p>`;
         }
 
         // Components for the two scores that are sums of parts.
@@ -6316,6 +6335,31 @@ def _js_workings() -> str:
         return INPUT_FMT;
     }
 
+    // `inp` is in dashboard_detail.js since 2026-11-22: absent from a stock *and* the file not yet
+    // loaded means "not known yet". Present always wins, so a payload built by hand with the
+    // inputs inline (the tests' stand-ins) renders exactly as before.
+    function inputsPending(s) {
+        return !!s && !s.inp && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
+    }
+    function inputsWaitText() {
+        return (typeof DETAIL_FAILED !== 'undefined' && DETAIL_FAILED)
+            ? 'The reported figures could not be loaded; reopen the sheet to try again.'
+            : 'Loading the reported figures…';
+    }
+
+    // Redraw the metric rows a reader has open, once the reported figures land.
+    function redrawOpenMetricDetails() {
+        if (!WK_CURRENT) return;
+        document.querySelectorAll('#modal-categories tr.wk-open').forEach(tr => {
+            const next = tr.nextElementSibling;
+            if (!next || !next.classList.contains('wk-detail')) return;
+            const sec = tr.closest('.cat-detail-section');
+            const wk = sec ? categoryWorkings(sec.dataset.cat, WK_CURRENT.s) : null;
+            const r = wk ? wk.rows.find(x => x.metric === tr.dataset.metric) : null;
+            next.innerHTML = '<td colspan="6">' + metricDetailHtml(tr.dataset.metric, WK_CURRENT.s, r) + '</td>';
+        });
+    }
+
     function pickTemplate(info, inp) {
         return (info.x || []).find(t => [...t.matchAll(SLOT_RE)].every(m => {
             const v = inp[m[1]];
@@ -6329,6 +6373,11 @@ def _js_workings() -> str:
         if (!info || val === null || val === undefined) return '';
         const inp = s.inp || {};
         const res = '<span class="wk-n wk-res">' + fmtMetric(val, meta.fmt) + '</span>';
+        // The reported figures ride dashboard_detail.js (2026-11-22). Until it has loaded a
+        // metric with an equation says so, rather than falling through to a line with no figures
+        // - which would read as "this stock's inputs were not published".
+        if ((info.x || []).length && inputsPending(s))
+            return '<span class="wk-l wk-wait">' + inputsWaitText() + '</span> <span class="wk-op">&rarr;</span> ' + res;
         const tpl = pickTemplate(info, inp);
         if (tpl) {
             const fmtOf = inputFormats();
@@ -10013,6 +10062,10 @@ def _js_ux() -> str:
             L.push(['INPUTS: as reported by the company and delivered by Yahoo Finance']);
             L.push(['Field', 'Value']);
             keys.sort().forEach(k => L.push([k, inp[k]]));
+        } else if (typeof DETAIL_FAILED !== 'undefined' && DETAIL_FAILED) {
+            // downloadWorkings waits for the inputs; this is only the case where they never came.
+            L.push([]);
+            L.push(['INPUTS: the reported figures could not be loaded - reopen the sheet and download again']);
         }
         return L.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
     }
@@ -10020,6 +10073,14 @@ def _js_ux() -> str:
     function downloadWorkings(ticker) {
         const t = ticker || UX.current;
         if (!t) return;
+        // The INPUTS block is dashboard_detail.js's `inp` (2026-11-22). A file downloaded before
+        // it lands would silently lack it, so wait for it - the sheet has already asked for it.
+        const s0 = D.stock_detail[t];
+        if (inputsPending(s0) && !DETAIL_FAILED && typeof ensureDetail === 'function') {
+            toast('Loading the reported figures…');
+            ensureDetail().then(() => downloadWorkings(t));
+            return;
+        }
         const blob = new Blob(['﻿' + workingsCsv(t)], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -11890,6 +11951,19 @@ def _js_context() -> str:
     // the critical path. It merges into D.stock_detail, so every existing reader of s.about /
     // s.industry keeps working unchanged once it lands.
     let DETAIL_LOADED = false, DETAIL_PENDING = false, DETAIL_FAILED = false;
+    let DETAIL_WAITERS = [];
+    // A promise for the shard: resolves true once it has merged, false if it failed. For the
+    // workings download, and for a test that reads a real stock's sheet-only fields without
+    // opening its sheet. The page's state is also on <html data-detail="loaded|failed">.
+    function ensureDetail() {
+        if (DETAIL_LOADED) return Promise.resolve(true);
+        return new Promise(res => { DETAIL_WAITERS.push(res); loadDetail(DETAIL_SRC); });
+    }
+    function settleDetailWaiters(ok) {
+        document.documentElement.setAttribute('data-detail', ok ? 'loaded' : 'failed');
+        const w = DETAIL_WAITERS; DETAIL_WAITERS = [];
+        w.forEach(res => res(ok));
+    }
     function loadDetail(src) {
         if (DETAIL_LOADED || DETAIL_PENDING) return;
         DETAIL_PENDING = true; DETAIL_FAILED = false;
@@ -11908,6 +11982,10 @@ def _js_context() -> str:
                 renderAbout(UX.current, s);
                 if (typeof renderCompanySnapshot === 'function') renderCompanySnapshot(s);
                 if (typeof renderPeerComparison === 'function') renderPeerComparison(UX.current, s);
+                // `inp` (2026-11-22): the provenance panel's recomputed-EV pair and any metric
+                // row the reader has open. A closed row is built on open, so it needs nothing.
+                if (typeof renderProvenance === 'function') renderProvenance(s);
+                if (typeof redrawOpenMetricDetails === 'function') redrawOpenMetricDetails();
             }
         };
         el.onload = () => {
@@ -11915,13 +11993,16 @@ def _js_context() -> str:
             Object.keys(P).forEach(t => { if (D.stock_detail[t]) Object.assign(D.stock_detail[t], P[t]); });
             DETAIL_LOADED = true; DETAIL_PENDING = false; DETAIL_FAILED = false;
             redraw();
+            settleDetailWaiters(true);
         };
         el.onerror = () => {
-            // A failure is said once, in the block itself, and retried on the next sheet that
-            // opens - this is prose, so it never blocks a number or a score.
+            // A failure is said once, in each block that waited, and retried on the next sheet
+            // that opens. It never blocks a score: every score, rank and percentile is in the
+            // first-paint payload; only the reported figures behind the equations are here.
             DETAIL_PENDING = false; DETAIL_FAILED = true;
             el.remove();
             redraw();
+            settleDetailWaiters(false);
         };
         document.body.appendChild(el);
     }

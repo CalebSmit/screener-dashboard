@@ -271,6 +271,11 @@ def test_there_is_no_dead_refresh_control(desktop):
 def _open_stock(page, ticker):
     page.evaluate(f"openStockDetail('{ticker}')")
     page.wait_for_selector("#stock-modal .modal-body", state="visible")
+    # Opening a sheet asks for dashboard_detail.js, which carries the reported figures (`inp`)
+    # behind every equation since 2026-11-22; until it lands a metric row says "Loading". Wait
+    # for it to settle either way - a failed load is the page's to say, and the test's to see.
+    page.wait_for_function("['loaded', 'failed'].includes(document.documentElement.dataset.detail)",
+                           timeout=30000)
     _animations_done(page)  # let the sheet finish sliding in before measuring it
 
 

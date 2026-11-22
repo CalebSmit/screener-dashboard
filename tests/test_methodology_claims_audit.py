@@ -41,6 +41,7 @@ from __future__ import annotations
 import inspect
 import json
 import re
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -72,7 +73,12 @@ def payload() -> dict:
     if not PAYLOAD.exists():
         pytest.skip("dashboard_data.js not present")
     text = PAYLOAD.read_text(encoding="utf-8", errors="replace")
-    return json.loads(text[text.find("{"):text.rfind("}") + 1])
+    d = json.loads(text[text.find("{"):text.rfind("}") + 1])
+    # `inp` ships in dashboard_detail.js since 2026-11-22: fold the shards back as the publish
+    # gate does, or the checks below that read the inputs would compare nothing.
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as _health
+    return _health.fold_shards(d, _health._dir_reader(ROOT))
 
 
 def _num(x) -> bool:

@@ -38,7 +38,18 @@ MIN_PEERS_DEFAULT = 10
 
 def load(path: Path) -> dict:
     text = path.read_text(encoding="utf-8", errors="replace")
-    return json.loads(text[text.find("{"):text.rfind("}") + 1])
+    payload = json.loads(text[text.find("{"):text.rfind("}") + 1])
+    # The reported figures (`inp`) the equations are recomputed from ship in the sheet-only shard
+    # beside the payload since 2026-11-22, so fold it back - the published page, not half of it.
+    # Read here rather than through check_run_health: this script shares no code on purpose.
+    shard = path.with_name("dashboard_detail.js")
+    if shard.exists():
+        st = shard.read_text(encoding="utf-8", errors="replace")
+        part = json.loads(st[st.find("{"):st.rfind("}") + 1]).get("detail") or {}
+        for t, extra in part.items():
+            if t in payload.get("stock_detail", {}):
+                payload["stock_detail"][t].update(extra)
+    return payload
 
 
 def _avg_rank_pct(values, mine):

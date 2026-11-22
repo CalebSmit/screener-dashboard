@@ -31,6 +31,9 @@ sys.path.insert(0, str(ROOT))
 
 import metric_lineage as ml  # noqa: E402
 import run_context  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "scripts"))
+import check_run_health as _health  # noqa: E402
 from factor_engine import CAT_METRICS, METRIC_DIR, SECTOR_MIN_PEERS  # noqa: E402
 
 PAYLOAD = ROOT / "dashboard_data.js"
@@ -42,6 +45,9 @@ def payload() -> dict:
         pytest.skip("dashboard_data.js not present")
     text = PAYLOAD.read_text(encoding="utf-8", errors="replace")
     d = json.loads(text[text.find("{"):text.rfind("}") + 1])
+    # `inp` ships in dashboard_detail.js since 2026-11-22: fold every shard back, exactly as the
+    # publish gate does, or every equation check below would skip as "predates the inputs".
+    d = _health.fold_shards(d, _health._dir_reader(ROOT))
     if not any(s.get("inp") for s in d["stock_detail"].values()):
         pytest.skip("payload predates the published inputs")
     return d
@@ -627,6 +633,9 @@ def test_a_regenerated_page_attaches_the_uncapped_figure_to_the_stock(payload):
         pytest.skip(f"MISSING DATA: {exc}")
     body = files["dashboard_data.js"].decode("utf-8")
     fresh = json.loads(body[body.index("=") + 1:].rstrip().rstrip(";"))
+    # the regenerated shards too (`inp` is in dashboard_detail.js since 2026-11-22)
+    fresh = _health.fold_shards(fresh, lambda name: files[name].decode("utf-8") if name in files else None)
+    assert any(s.get("inp") for s in fresh["stock_detail"].values()), "the regenerated page carries no inputs"
     wrong = []
     for t, s in fresh["stock_detail"].items():
         want = _binding_clamps(s.get("inp") or {}, s["raw"])
