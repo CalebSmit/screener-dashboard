@@ -85,7 +85,9 @@ Two things still outrank this file, and neither is negotiable:
   given the 15-year test shows no edge (see the 2026-11-19 item) - scaling it to 1,500 stocks
   comes after. Phase-1 plumbing may continue. **Answered 2026-11-21 (D: a teaching tool, no return
   claim), so the pause is lifted** - with one condition from that note's section 5: whatever phase 3
-  publishes carries the same no-return-claim framing. **Next in phase 1:** `plan/universe-expansion.md`.
+  publishes carries the same no-return-claim framing. **2026-11-22:** each stock's reported figures now load with the stock's sheet
+instead of with the page - the page's first download is 19% smaller (1,125 -> 908 KB), nothing on
+it changed. **Next in phase 1:** `plan/universe-expansion.md`.
   History to 2026-11-19: `log-archive/OWNER_FOCUS-item-histories-2026-11-19.md`.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it

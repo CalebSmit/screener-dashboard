@@ -227,6 +227,11 @@ def test_the_published_payload_agrees_with_the_filings():
     from sec_fundamentals import FACTS_PATH
     text = (ROOT / "dashboard_data.js").read_text(encoding="utf-8")
     payload = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    # the published inputs the notes are rebuilt from (`inp`) are in dashboard_detail.js since
+    # 2026-11-22 - fold the shards back as the publish gate does
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as _health
+    payload = _health.fold_shards(payload, _health._dir_reader(ROOT))
     published = {t: (d.get("cavs") or {}).get("earnings_yield")
                  for t, d in payload["stock_detail"].items()
                  if (d.get("cavs") or {}).get("earnings_yield")}
