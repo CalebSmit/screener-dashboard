@@ -124,6 +124,31 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-22 (06:00 weekend session): `inp` leaves first paint - 1,125 -> 908 KB
+gzipped, -217 KB, -19.3%.** The first of the four fields the 11-19 entry named, and the heaviest.
+**The read-site audit corrected the plan's premise:** `inp` was listed with `raw`/`pct`/`summary`
+as "read by the movers strip, the compare drawer and the calculation traces"; it is read by none
+of them. In the page, four functions read it, all in the open sheet (`metricDetailHtml`,
+`equationHtml`, `renderProvenance`'s recomputed-EV pair, `workingsCsv`); the build's
+`calc_trace`, input-mismatch and capped-figure checks and `ranking_audit` run on the whole payload
+before `split_detail`. Outside the page (the 11-09 rule): `sec_crosscheck` reads it through
+`check_run_health.fold_shards`, which already folded every shard generically; `scripts/audit_stock.py`
+and three test modules (`test_metric_lineage`, `test_methodology_claims_audit`,
+`test_ytd_column_note`) now fold it back - without that, the equation tests' fixture would have
+**skipped** as "payload predates the published inputs" on the first run after this, which is the
+2026-11-09 failure shape exactly (a check reading a moved field sees nothing, quietly).
+Each reader says it is waiting, the loader redraws provenance and any open metric row, and the CSV
+download waits (`ensureDetail()`, a promise) rather than writing a file without its INPUTS block.
+Published files regenerated from the published run with the new generator: folded whole, **0
+differences** from the committed payload; `audit_stock.py --all` 499/499.
+`tests/test_inputs_in_detail_shard.py` (6), including a tripwire: a `.inp` read in any page
+function outside the audited four fails the suite.
+**Re-measured before moving the next one:** `summary` **cannot** move as a whole - My Holdings'
+card (live at first paint for a reader with saved names) prints six kinds of its sentence
+(`HOLDINGS_FACTS`); its other two readers, `renderSummary` and `caseItems`, are the sheet's. `raw` and `pct` are read by the movers strip and the compare drawer.
+**Next in phase 1:** the audit for `raw`/`pct` (the compare drawer could wait like the sheet; the
+movers strip cannot), or `summary` split into the holdings' six kinds and the rest; then bucketing.
+
 **Progress, 2026-11-19 (06:00 session): the `config.yaml` block - shipped, and the floor it
 replaces turned out never to have worked.** `universe.index` is read now: `universe.from_config`
 resolves it against `universe.UNIVERSES` (one entry, the S&P 500), `universe.CURRENT` is the

@@ -32,9 +32,11 @@ column of figures means "this run published none". It also only became true toda
 is the *only* reader: until the peer table was unified onto `buildPeerRow`, the subject's row
 came from a precomputed `self_metrics` block (`tests/test_peer_row_one_path.py`).
 
-Still outside, and why: `inp`, `raw`, `pct` and `summary` are 42.6% between them and are read by
-the movers strip, the compare drawer and the calculation traces - surfaces that are not the sheet
-and are live at first paint. Each needs its own read-site audit before it moves.
+**`inp` joined 2026-11-22** after its own read-site audit: only the open sheet reads it (a metric
+row, the provenance panel's EV pair, the workings CSV), and each says it is waiting -
+`tests/test_inputs_in_detail_shard.py`. Still outside, and why: `raw`, `pct` and `summary` are
+read by the movers strip, the compare drawer and My Holdings - surfaces that are not the sheet and
+are live at first paint.
 
 The tests are in three groups:
 

@@ -256,6 +256,11 @@ def test_the_published_payload_agrees_with_the_filings():
     from sec_fundamentals import FACTS_PATH
     text = (ROOT / "dashboard_data.js").read_text(encoding="utf-8")
     payload = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    # `inp` (the published operating cash flow ytd_columns reads) is in dashboard_detail.js since
+    # 2026-11-22 - fold the shards back as the publish gate does.
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as _health
+    payload = _health.fold_shards(payload, _health._dir_reader(ROOT))
     if "src_notes" not in payload:
         pytest.skip("published payload was built before the note existed (2026-11-17)")
     if not FACTS_PATH.exists():

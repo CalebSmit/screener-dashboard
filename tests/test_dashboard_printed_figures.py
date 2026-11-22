@@ -61,7 +61,14 @@ def _payload(name: str) -> dict:
 
 @pytest.fixture(scope="module")
 def data() -> dict:
-    return _payload("dashboard_data.js")
+    d = _payload("dashboard_data.js")
+    # The sheet-only shard merged back, as the page's loader does: `inp`, which the equation
+    # tests below hand to equationHtml, is in dashboard_detail.js since 2026-11-22.
+    if (ROOT / "dashboard_detail.js").exists():
+        for t, part in (_payload("dashboard_detail.js").get("detail") or {}).items():
+            if t in d.get("stock_detail", {}):
+                d["stock_detail"][t].update(part)
+    return d
 
 
 @pytest.fixture(scope="module")

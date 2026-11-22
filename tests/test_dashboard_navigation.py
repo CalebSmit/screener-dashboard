@@ -522,6 +522,9 @@ def test_every_metric_row_shows_its_own_numbers(browser):
     try:
         page.evaluate(f"openStockDetail({EX!r})")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        # the figures through the formula ride dashboard_detail.js (2026-11-22), which the sheet
+        # has just asked for; the waiting state itself is tests/test_detail_payload_split.py's
+        page.wait_for_function("document.documentElement.dataset.detail === 'loaded'", timeout=30000)
         page.evaluate("openWorkings('valuation')")
         page.wait_for_timeout(300)
         assert "Select any metric to see the numbers behind it" in page.inner_text("#modal-categories")

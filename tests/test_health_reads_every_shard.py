@@ -76,6 +76,9 @@ def _frame() -> pd.DataFrame:
         "_industry": ["Software - Infrastructure", "Banks - Diversified", "Oil & Gas E&P"],
         "_mcap": [2_100.0, 4_000.0, 900.0],
         "_current_price": [20.0, 40.0, 9.0],
+        # a reported input, so each stock's `inp` has content - it is in the shard since
+        # 2026-11-22, and sec_crosscheck's checks read it through this fold
+        "_in_netIncome": [5.0e8, 1.2e9, 3.0e8],
     })
     for cat in CATEGORIES:
         df[cat + "_score"] = 50.0
@@ -145,6 +148,7 @@ def test_every_field_the_shard_takes_is_folded_back(run_dir: Path):
     # AAA and CCC carry every field; BBB's description is NaN, so the shard omits it by design.
     assert missing["AAA"] == [] and missing["CCC"] == []
     assert "financials" in loaded["stock_detail"]["BBB"]
+    assert loaded["stock_detail"]["BBB"]["inp"]["netIncome"] == pytest.approx(1.2e9)
 
 
 def test_the_fold_is_what_puts_them_back_not_the_first_file(run_dir: Path):
