@@ -11889,7 +11889,7 @@ def _js_context() -> str:
                 // On a phone the last two columns do not fit; the same two figures ride under the
                 // company name instead (shown below 640px only), so nothing is withheld from a phone
                 // reader (ui-elevation fourth pass, 2026-10-27).
-                const mob = [lq ? '<span class="rp-m-k">Last quarter vs estimate</span> ' + lqTxt : '',
+                const mob = [(lq || (lqWait && !DETAIL_FAILED)) ? '<span class="rp-m-k">Last quarter vs estimate</span> ' + lqTxt : '',
                              (ins && ins.buy_n) ? '<span class="rp-m-k">Insiders</span> ' + ins.buy_people + ' bought' : ''].filter(Boolean);
                 h += '<tr class="rp-row" tabindex="0" onclick="openStockDetail(\'' + x.r.Ticker + '\')" onkeydown="if(event.key===\'Enter\')openStockDetail(\'' + x.r.Ticker + '\')">' +
                      '<td><span class="rp-tk">' + escapeHtml(x.r.Ticker) + '</span><span class="rp-co">' + escapeHtml(x.r.Company || '') + '</span>' +

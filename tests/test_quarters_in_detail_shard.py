@@ -229,6 +229,10 @@ def test_the_reporting_calendar_waits_asks_and_redraws(site):
     cells = page.evaluate("""() => [...document.querySelectorAll('#reporting-body tr.rp-row')]
         .map(tr => tr.children[4].textContent.trim())""")
     assert cells and all(c == "…" for c in cells), cells[:10]
+    # a phone reads the same figure under the company name: it waits there too, not vanishes
+    mob = page.evaluate("""() => [...document.querySelectorAll('#reporting-body tr.rp-row .rp-m')]
+        .map(e => e.textContent)""")
+    assert len(mob) == len(cells) and all("Last quarter vs estimate …" in m for m in mob), mob[:5]
     page.wait_for_function("() => true")
     # Either the pre-warm had already asked (the request is held, so it is still in flight) or the
     # calendar asked itself; a waiting column with no request in flight would wait forever.
