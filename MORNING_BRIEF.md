@@ -1,4 +1,4 @@
-# Morning Brief - Monday 23 November 2026, 06:00
+# Morning Brief - Monday 23 November 2026, 13:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
