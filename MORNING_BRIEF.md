@@ -1,4 +1,4 @@
-# Morning Brief - Monday 23 November 2026, 02:23
+# Morning Brief - Monday 23 November 2026, 06:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **failed** - last ran today |
-| Code session (latest) | **completed** - last ran today |
+| Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-11-23 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
@@ -37,6 +37,8 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 ## Things that needed attention
 
 - Push to main failed. Local main is ahead.
+- Could not fast-forward local main to the published brief: hint: Diverging branches can't be fast-forwarded, you need to either:
+- git pull --ff-only failed - main diverged locally. Resolve by hand.
 
 ## What changed in the repo
 
