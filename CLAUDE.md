@@ -618,6 +618,18 @@ meaning, not decoration; every figure uses tabular numerals; and presentation wo
 must leave every number, rank and sentence byte-identical, which you verify by
 diffing the rebuilt payload against the live one.
 
+**On a phone, a long part is a heading that opens** - owner direction, 2026-11-22, after reading
+the dashboard on his phone: *"there is too much info and it got way too long and hard to know where
+to go."* Measured at 375px that day: the ranking began 4,514px down the home page, one stock's sheet
+was 9,819px, Market backdrop opened to 6,760px and the Methodology was a 73,020px column with no
+contents list. The rule that outlives the pass (`generate_dashboard._css_phone` / `_js_phone`,
+`tests/test_phone_pass.py`, `plan/dashboard-inventory.md` top entry): **anything new that is long on
+a phone arrives folded under a heading that says what is inside; nothing is removed, every link that
+targets a folded part opens it, print shows everything, and "Read with care" and the disclaimers are
+never folded.** Measure the page's height at 375px before and after a dashboard change and write both
+numbers in the log - a section that is fine at 1440px can be eight screens on a phone. A browser test
+at 375px taps first (`tests/phone.py`).
+
 **Every number on the page must be checkable from the page** - owner direction,
 2026-10-06: *"we can see how things score, but we don't actually see the numbers
 going into any calculations... This will add trust to the screener."* Writing the plan

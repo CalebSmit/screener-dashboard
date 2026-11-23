@@ -120,6 +120,8 @@ def test_desktop_reporting_soon_shows_the_columns_not_the_phone_line(browser):
 def test_phone_weighting_select_shows_its_whole_label(browser):
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
+        from tests import phone as phone_taps
+        assert phone_taps.open_filters(page) == "open"  # Weighting sits behind Filters on a phone (2026-11-22)
         fit = page.evaluate("""() => {
             const s = document.getElementById('filter-profile'), cs = getComputedStyle(s);
             const c = document.createElement('canvas').getContext('2d');
@@ -317,6 +319,8 @@ def test_the_filters_do_not_stack_in_a_column_at_768(browser):
 def test_phone_flag_sits_under_the_name_and_both_flags_fit(browser):
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
+        from tests import phone as phone_taps
+        phone_taps.open_filters(page)  # the trap-flag filter sits behind Filters on a phone (2026-11-22)
         page.select_option("#filter-vt", "any")
         page.wait_for_function("document.querySelector('#universe-tbody .vt-cell .flag') !== null", timeout=8000)
         page.evaluate("""() => { tableState.filtered.sort((a, b) => ((b.Value_Trap_Flag && b.Growth_Trap_Flag) ? 1 : 0) - ((a.Value_Trap_Flag && a.Growth_Trap_Flag) ? 1 : 0));

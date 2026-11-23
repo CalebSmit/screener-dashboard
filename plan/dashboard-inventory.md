@@ -1,5 +1,32 @@
 # Dashboard inventory (as of 2026-10-07, pass 2)
 
+**2026-11-22 (owner-run, the phone pass):** owner on his phone - *"too much info and it got way too
+long and hard to know where to go"*. One rule, phone widths only (`_css_phone`, `_js_phone`, emitted
+last; every rule inside `@media screen and (max-width: 760px)` or behind `isPhone()`): **a long part
+is a heading that says what is inside it, and it opens with one tap.** Nothing left the page, no
+number or sentence changed, desktop and print are untouched (`tests/test_phone_pass.py`, 11).
+Measured at 375px, before -> after:
+
+| Surface | Before | After | What folds on a phone |
+|---|---|---|---|
+| Home, top of the ranking's first row | ~5,000px | 2,687px | the dot chart (`#dist`, its title is the opener; folded by height so it keeps its drawn width) and the guide (`#guide-open-m`) are one line each; leader cards drop the eight bars and the run strip; the seven tiles drop blurb and mini chart; filters other than search and sort sit behind **Filters** (`#filters-more-m`, counts the ones in use - a folded filter is never a silent one) |
+| Stock sheet (EXPE) | 9,819px | ~3,500px | How it adds up, The workings, Before you decide, Rank history and Analyst price targets arrive folded like the last three always did (`SHEET_FOLD_M`, once at load - after that the reader's choice stands from stock to stock); every folded heading shows a one-line `data-hint`; score tiles are one line shorter; Why it ranks here folds its "What changed" and "Context" groups behind `#summary-more-m` (**never** "Read with care") |
+| Market backdrop, opened | 6,760px | 3,460px | each reading's paragraph shows three lines + "Read more"; the ten charts sit under their three group headings |
+| Methodology dialog | 73,020px | 4,956px | every `h2` section folds under its heading, Overview open (its contents rail hides below 900px, so a phone had no way to navigate it); an in-text cross-reference opens its target section first (`methOpenFor`) |
+
+**Before you add a browser test at 375px:** a filter or a panel inside one of those sections is not
+in view on arrival. Tap first, as the reader does - `tests/phone.py` (`open_filters`, `open_section`;
+both do nothing on a wide screen). `toggleAllWorkings(true)` does not unfold the section it lives in.
+The node harnesses run the page script against a stub document, so anything `_js_phone` does at load
+must tolerate a bare element (no `closest`, no `classList`).
+Not done, deliberately: the KPI row (its Track record tile carries the lesson line), ranking-row
+density, and the opened Analytics / Diagnostics / Reporting / Track sections (1,800-2,600px each,
+opt-in). **The other two pages got the same rule the same night:** `research.html` 15,518 -> 3,516px
+(`research_page.PHONE_CSS` / `PHONE_JS` / `with_phone_reading`: the answer's figures behind one
+toggle, six sections fold to their headings, "What this means" and "Limits of the test" never fold;
+`tests/test_research_phone.py`) and `lab.html`'s overview 14,249 -> 5,904px (compact experiment rows,
+the four sections after them fold with their first sentence kept; `tests/test_lab_phone.py`).
+
 **2026-11-06 (owner-run night, the UI audit):** the **insider list** marks where its 90 days end - a
 "Before the 90 days" divider (or "Latest trades on file, all before the 90 days") and dimmed older
 rows, cut by `insWindowStart` exactly as `summarise_rows` cuts (`tests/test_context_cards_printed.py`);

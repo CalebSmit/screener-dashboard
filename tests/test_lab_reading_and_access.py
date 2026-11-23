@@ -635,6 +635,12 @@ def test_on_a_phone_the_three_overview_tables_read_as_rows_with_every_row_kept(b
     ctx, page, errors = _page(browser)
     try:
         _goto(page, "overview")
+        # 2026-11-22: on a phone these tables fold under their headings (tests/test_lab_phone.py).
+        # Open them first, so every row is measured as the reader who opened its section meets it;
+        # the bounds below are unchanged.
+        page.wait_for_function("document.querySelectorAll('section.fold.shut').length === 4", timeout=WAIT)
+        page.evaluate("document.querySelectorAll('.sec-t[aria-expanded=false]').forEach(b => b.click())")
+        assert page.evaluate("document.querySelectorAll('section.fold.shut').length") == 0
         n_after = page.evaluate("LAB_DATA.after_the_paper.length")
         rows = page.evaluate("""[...document.querySelectorAll('#t-after tbody tr')].map(tr => {
             const c = [...tr.children].map(td => td.getBoundingClientRect()), t = tr.getBoundingClientRect();
