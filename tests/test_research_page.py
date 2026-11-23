@@ -381,7 +381,13 @@ def test_on_a_phone_its_controls_are_44_px_and_on_paper_it_is_ink():
             page.on("pageerror", lambda e: errors.append(str(e)))
             page.goto(rp.PAGE.as_uri(), wait_until="load", timeout=60000)
             page.wait_for_selector(".toc a", timeout=8000)
-            short = page.evaluate("""[...document.querySelectorAll('.bar nav a, .toc a, details summary, .next-nav a')]
+            # 2026-11-22: on a phone six sections fold to their headings (tests/test_research_phone.py).
+            # Open them first, so a control inside one is measured as the reader who opened it meets
+            # it; the fold headings and the answer's own toggle are held to the same 44 px.
+            page.wait_for_function("document.querySelectorAll('main > section.fold').length > 0", timeout=8000)
+            page.evaluate("document.querySelectorAll('.sec-t[aria-expanded=false]').forEach(b => b.click())")
+            assert page.evaluate("document.querySelectorAll('main > section.shut').length") == 0
+            short = page.evaluate("""[...document.querySelectorAll('.bar nav a, .toc a, details summary, .next-nav a, .sec-t, .ans-t')]
                 .map(e => [e.textContent.trim().slice(0, 30), e.getBoundingClientRect().height]).filter(x => x[1] < 43.5)""")
             assert short == []
             assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")

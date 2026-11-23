@@ -89,7 +89,8 @@ def test_every_sheet_section_title_is_a_heading_in_the_markup():
     for title in ("Why it ranks here", "The case against", "About", "How it adds up", "The workings",
                   "Before you decide", "Rank history", "Analyst price targets", "Company snapshot",
                   "Sector peers", "Data provenance"):
-        assert re.search(r"<h3[^>]*>\s*(?:<div[^>]*>\s*)?(?:<span>)?" + re.escape(title), sheet), title
+        # (the title's span carries a class and a phone hint since the phone pass, 2026-11-22)
+        assert re.search(r"<h3[^>]*>\s*(?:<div[^>]*>\s*)?(?:<span[^>]*>)?" + re.escape(title), sheet), title
     # no section header is a bare role="button" outside a heading any more
     assert sheet.count('class="collapsible-header"') == sheet.count('<h3 class="collapsible-h">') == 8
 

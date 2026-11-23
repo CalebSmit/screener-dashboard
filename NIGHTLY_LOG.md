@@ -10286,3 +10286,109 @@ Next 1 and 2 are dated for Monday (see Set aside).
    lines, `test_metric_lineage`, `test_dashboard_printed_figures` (sum-of-parts lines) and
    `test_sec_fundamentals::test_the_published_roe_rows_rebuild_the_metric` must report passes, not skips.
 3. Phase 1: `raw`/`pct` audit, or `summary` split; then bucketing.
+
+
+## 2026-11-22 (owner-run, evening) - The phone pass: every long part is a heading that opens. Home, stock sheet, Market, Methodology, research page and Factor Lab at 375px
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-22_130001-midday.log` (completed). Data loop published? yes - `logs/datarun-2026-11-20_180003.log` (completed; HEALTH: PASS). Evidence base at `1m`: 5 of 8 needed at the 1m horizon (55 rows, but overlapping windows are not independent; 135 rows across all horizons), newest 1m run date 2026-10-20 (33 days ago, bound 40). Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, The Factor Lab** (age **41 days**; a standing programme, last advanced **16 days** ago per `plan/factor-lab.md` (bound 21)); also open: 0.10 46d; 0.14 39d. Shipped to readers: 19 commit(s) changed what a reader sees, 8 methodology change(s), in the last 7 days.
+
+**Owner request:** *"i want you to do a full review of the UX and frontend of all of these things, the
+dashboards, etc, on the phone version. Right now I tried goign trhough the screener dashboard on my
+phone, and there is too much info and it got way too long and hard to know where to go ... this pass
+is just for the phone."* `logs/.owner-session` held from 21:02; removed at the end.
+
+### What I measured first (375 x 812, the live page as committed)
+
+| Surface | Height | What a phone reader met |
+|---|---|---|
+| Home page | 9,635px; the ranking's section began at 4,514px | hero, four KPI tiles, the dot chart, a 526px guide, an 884px leaders carousel and seven teaser tiles (1,606px) before the first row |
+| Stock sheet (EXPE) | 9,819px in a 484px window | ten sections, seven of them open; "Before you decide" alone was 3,365px |
+| Market backdrop, opened | 6,760px | five readings with a long paragraph each, then ten charts |
+| Methodology dialog | 73,020px | one column; its contents rail is hidden below 900px, so no way to navigate it |
+| `research.html` | 15,518px | the answer, then eight sections end to end |
+| `lab.html` | 14,249px | a 717px hero, then nineteen experiment cards |
+
+### Did
+
+One rule, applied everywhere, at phone widths only: **a long part is a heading that says what is
+inside it, and it opens with one tap.** Nothing left any page; no number, rank or sentence changed
+(`scripts/rebuild_page.py`: payload byte-identical; the research page's `report` changed only
+`research.html`); the desktop pages are untouched (the sub-agent's four 1440px before/after
+screenshots are pixel-identical; `tests/test_phone_pass.py` asserts the dashboard's phone controls
+and folds are absent at 1440px); print shows everything.
+
+| Surface | Before | After |
+|---|---|---|
+| Home: top of the ranking's first row | ~5,000px | 2,687px |
+| Stock sheet (EXPE) | 9,819px | ~3,500px |
+| Market backdrop, opened | 6,760px | 3,460px |
+| Methodology | 73,020px | 4,956px |
+| `research.html` | 15,518px | 3,516px |
+| `lab.html` overview | 14,249px | 5,904px |
+
+- **Dashboard** (`generate_dashboard._css_phone`, `_js_phone`, emitted last): the dot chart and the
+  guide are one line each; leader cards keep name, composite and reasons; the seven tiles are a title
+  and their headline; filters other than search and sort sit behind a **Filters** button that counts
+  the ones in use. The sheet's five long sections arrive folded with a one-line hint each; score tiles
+  are shorter; "Why it ranks here" folds "What changed" and "Context" (never "Read with care"). Market
+  backdrop clamps each reading to three lines and puts the ten charts under three headings. The
+  Methodology folds under its eighteen section headings, Overview open, and a cross-reference opens
+  its target first.
+- **Research page and Factor Lab** (a sub-agent, on `research_page.py` and `lab.html`; I read its
+  diff of the two existing tests it touched and its after screenshots): research keeps "Not
+  measurably." and the plain-terms sentence on the first screen, the statistics behind one toggle,
+  six sections fold, "What this means" and "Limits of the test" never do. The lab's experiment cards
+  are compact rows and its four closing sections fold with their first sentence kept.
+- `tests/phone.py`: what a phone reader taps first, for any browser test at 375px.
+- `CLAUDE.md` (a standing rule under "The dashboard is the product"), `plan/dashboard-inventory.md`
+  (top entry, with the table), `OWNER_FOCUS.md` (Done).
+
+### Evidence / research
+
+- A documented failure, measured: the owner's report and the six heights above. No literature.
+
+### Methodology changed
+
+- None. Presentation only.
+
+### Tests
+
+- New: `tests/test_phone_pass.py` (11), `tests/test_research_phone.py` (8), `tests/test_lab_phone.py` (6).
+- **Eleven existing tests assumed a phone reader arrived with everything open, and were changed
+  deliberately - each now taps first; no bound was loosened:** the two sheet-title markup checks (the
+  title span carries a class and a hint), the guide's 140-word budget (now on the three steps, not
+  the phone opener's label), the phone Calculation-chevron test, two club-readiness and two
+  fourth-pass tests that set a filter at 375px, the dot chart at 375px, the research page's 44px
+  control check and the lab's per-row 150px check (both open the folds, then measure as before).
+- A fault of my own on the way: the first build broke 50 node-harness tests, because `_js_phone` ran
+  at load against the harness's stub document (`b.closest is not a function`). Everything it does at
+  load now tolerates a bare element; the inventory says so.
+
+### Gates
+
+Gate 1: **4,492 passed / 1 skipped**, 0 failed (the tree before this session: 4,467 tests; +25 new). Gate 2: dry run OK. Gate 3: `node --check` on all three payload files, `index.html` 982,664 bytes. Gate 5: `rehearse_publish.py --changed-since origin/main` - REHEARSAL PASSED (page tests, claims gate, published files restored byte for byte). Gate 4: tree clean after the commit. `rebuild_page.py --check`: PAGE up to date; payload byte-identical throughout.
+
+### Tried and rejected
+
+- **Hiding the dot chart and the KPI row on a phone.** Folding keeps the rule honest (nothing leaves
+  the page); the KPI row stays because its Track record tile carries the "cannot yet tell skill from
+  luck" line beside the return.
+- **Re-folding the sheet on every stock.** The reader's choice stands from stock to stock, as on a
+  wide screen; the fold is applied once, at load.
+- **Removing the research page's contents list on a phone** (it now sits directly above the folded
+  headings that repeat it). Left: two tests click it at 375px and it also lists the two sections that
+  never fold. Named in `OWNER_FOCUS.md` for the owner to judge.
+
+### Set aside
+
+- Today's 13:00 entry's Next (universe-expansion phase 1's next shard slice; the lab's Friday on
+  11-27; the IV inversion on or after 11-24): none touched - this session was the owner's phone item.
+- An opened lab experiment at 375px is still 8,000-11,000px; opened Analytics, Diagnostics, Reporting
+  and Track record are 1,800-2,600px each; ranking rows still print eight scores a row.
+
+### Next
+
+1. The 02:00 run on 2026-11-23 publishes the page from the new generator: read HEALTH and the claims
+   gate; `tests/test_phone_pass.py` is not in the publish gate (it registers no claim).
+2. If the owner wants more off the phone: the ranking row (eight numbers), the KPI row, an opened
+   lab experiment - in that order.

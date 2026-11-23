@@ -166,6 +166,17 @@ Add items below. Anything under this heading is unclaimed work.
 
 Completed items, newest first.
 
+- **2026-11-22 - The phone version: "too much info and it got way too long and hard to know where to
+  go" - DONE the same evening (owner-run).** One rule on all three pages, phone widths only: a long
+  part is a heading that says what is inside it and opens with one tap; nothing was removed and no
+  number or sentence changed. At 375px: the ranking's first row 5,000 -> 2,687px down the home page;
+  a stock's sheet 9,819 -> ~3,500px; Market backdrop 6,760 -> 3,460px; the Methodology 73,020 ->
+  4,956px (it had no contents list on a phone at all); `research.html` 15,518 -> 3,516px; the Factor
+  Lab's overview 14,249 -> 5,904px. Record: `plan/dashboard-inventory.md` top entry, `NIGHTLY_LOG.md`
+  2026-11-22 (owner-run, evening). **Left for you to judge on your phone:** the four KPI tiles and
+  the eight-score ranking rows are unchanged; an opened lab experiment is still 8,000-11,000px; the
+  research page lists its sections twice (contents, then the folded headings).
+
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built: CLOSED 2026-11-19.** All
   seven sub-items were done (twelve proposals decided, every new lab experiment second-read, the
   claims mutation audit through nine passes, the positive control as a ledger row, experiment 4b,

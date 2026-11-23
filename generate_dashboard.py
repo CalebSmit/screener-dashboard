@@ -2404,6 +2404,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 {_css_investor()}
 {_css_page()}
 {_css_drilldown()}
+{_css_phone()}
     </style>
 </head>
 <body>
@@ -2494,7 +2495,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
              then comparing and following (round 2 docs pass, 2026-10-27). Dismissed once, per
              browser; reopened from the search palette. Methodology opens on the same path. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
-            <ol class="guide-steps">
+            <button type="button" class="guide-open-m" id="guide-open-m" aria-expanded="false" aria-controls="guide-steps" onclick="toggleGuidePhone()"><span>New here? How to read this page</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+            <ol class="guide-steps" id="guide-steps">
                 <li><span class="guide-n">1</span><div><strong>Start with the ranking.</strong> S&amp;P 500 companies sorted by a composite score from 0 to 100, built from eight category scores. Each compares a company with its sector, where about 50 is the median, and higher always adds more, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
                 <li><span class="guide-n">2</span><div><strong>Open a stock.</strong> Select a row. Why it ranks here gives the reasons, and The workings shows each figure, its sector percentile, its weight and its points. A trap flag is a prompt to read on and changes neither the score nor the rank.</div></li>
                 <li><span class="guide-n">3</span><div><strong>Compare and follow.</strong> In a stock&rsquo;s sheet, Compare sets it beside another, and Holdings adds it to My holdings to follow run to run, saved in this browser. <a href="#" onclick="openMethodology();return false">Methodology</a> starts with a short summary and the screener&rsquo;s limits.</div></li>
@@ -2754,6 +2756,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <option value="investment_score">Investment</option>
                         </select>
                     </div>
+                    <button type="button" class="filters-more-m" id="filters-more-m" aria-expanded="false" onclick="toggleFiltersPhone()"><span>Filters</span><b class="fm-n" id="filters-more-n" hidden></b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
                     <button type="button" class="filter-clear" id="filter-clear" onclick="clearFilters()" hidden>Clear filters</button>
                     <span class="result-count" id="result-count" aria-live="polite"></span>
                 </div>
@@ -2841,6 +2844,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <h3 class="summary-title" id="summary-title">Why it ranks here</h3>
                         </div>
                         <div class="summary-body" id="modal-summary-body"></div>
+                        <button type="button" class="summary-more-m" id="summary-more-m" aria-expanded="false" aria-controls="modal-summary-body" onclick="toggleSummaryPhone()" hidden>Show what changed and context</button>
                         <div class="summary-source">Generated from this run&rsquo;s data by a fixed template; every figure appears in the detail below. It describes where the stock ranks and why, and never says whether to buy, sell or hold.</div>
                     </div>
 
@@ -2873,7 +2877,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible" id="section-contribution">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-contribution')">
-                                <span>How it adds up</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="Each category’s points, summing to the composite">How it adds up</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body">
@@ -2889,7 +2893,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible" id="section-categories">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-categories')">
-                                <span>The workings</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="The figures behind each score, with their weights">The workings</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body" id="modal-categories"></div>
@@ -2899,7 +2903,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible" id="section-context">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-context')">
-                                <span>Before you decide</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="Trend, options, insiders, rates: context, not scored">Before you decide</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body" id="modal-context"></div>
@@ -2909,7 +2913,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible" id="section-history" style="display:none">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-history')">
-                                <span>Rank history</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="Where it ranked in past runs, and what moved it">Rank history</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body" id="modal-history"></div>
@@ -2919,7 +2923,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible" id="section-price-targets">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-price-targets')">
-                                <span>Analyst price targets</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="Analysts’ targets against the last price">Analyst price targets</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body" id="modal-price-targets"></div>
@@ -2929,7 +2933,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible collapsed" id="section-snapshot">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-snapshot')">
-                                <span>Company snapshot</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="Size, valuation ratios and the financial statements">Company snapshot</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body" id="modal-snapshot"></div>
@@ -2939,7 +2943,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible collapsed" id="section-peers">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-peers')">
-                                <span>Sector peers</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="The closest companies in its sector, side by side">Sector peers</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body" id="modal-peers"></div>
@@ -2949,7 +2953,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="collapsible collapsed" id="section-provenance">
                         <h3 class="collapsible-h">
                             <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-provenance')">
-                                <span>Data provenance</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
+                                <span class="collapsible-t" data-hint="Where each input came from, and its date">Data provenance</span><span class="collapsible-chevron" aria-hidden="true">&#9660;</span>
                             </div>
                         </h3>
                         <div class="collapsible-body" id="modal-provenance"></div>
@@ -4615,6 +4619,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }});
         facts = lead.concat.apply(lead, order.map(function(g) {{ return byGroup[g]; }}));
         let lastGroup = '';
+        // On a phone the two middle groups open on request (the phone pass, 2026-11-22): the lead,
+        // what drives the score and Read with care stay in view. A class only; _css_phone folds it.
+        const FOLD_M = {{ 'What changed': 1, 'Context': 1 }};
+        let nFold = 0;
         // Presentation only (2026-10-27): each group label spans its sentences in a two-column
         // layout on wide screens, and the figures in a sentence are set in ink. figEmph() wraps
         // characters already in the escaped sentence; it never adds, drops or changes one.
@@ -4622,13 +4630,22 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const kind = String(f.k || '').replace(/[^a-z_]/g, '');
             const group = GROUPS[kind] || '';
             let label = '';
+            const fold = FOLD_M[group] ? ' summary-fold' : '';
+            if (fold) nFold++;
             if (group && group !== lastGroup) {{
-                label = '<div class="summary-group-label" style="grid-row: span ' + byGroup[group].length + '">' + group + '</div>';
+                label = '<div class="summary-group-label' + fold + '" style="grid-row: span ' + byGroup[group].length + '">' + group + '</div>';
                 lastGroup = group;
             }}
-            return label + '<p class="summary-fact summary-' + kind + (group ? '' : ' summary-lead') + '">' +
+            return label + '<p class="summary-fact summary-' + kind + (group ? '' : ' summary-lead') + fold + '">' +
                    figEmph(escapeHtml(f.t || '')) + '</p>';
         }}).join('');
+        const more = document.getElementById('summary-more-m');
+        if (more) {{
+            more.hidden = !nFold;
+            const open = body.classList.contains('sm-open');
+            more.setAttribute('aria-expanded', open ? 'true' : 'false');
+            more.textContent = open ? 'Show less' : 'Show what changed and context';
+        }}
     }}
 
     function toggleAbout() {{
@@ -5349,6 +5366,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 {_js_context()}
 {_js_page()}
 {_js_drilldown()}
+{_js_phone()}
 
     // ONE RULE FOR A PERCENTAGE NEAR ZERO (2026-11-03). Two defects of one family have reached the
     // live site, in opposite directions. Unsigned: BXP's close 0.03% below its 200-day average
@@ -15058,6 +15076,377 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     print(f"Detail file:         {det_js_path} ({det_js_path.stat().st_size / 1024:.0f} KB)")
 
     return output_path
+
+
+def _css_phone() -> str:
+    """CSS for the phone pass (owner, 2026-11-22), emitted last so it wins ties.
+
+    The owner on his phone: "there is too much info and it got way too long and hard to know
+    where to go". Measured at 375px that day: the ranking began 4,514px down the home page and
+    one stock's sheet was 9,819px long. Every rule is inside ``@media screen and (max-width:
+    760px)`` except the ones that hide the phone-only controls elsewhere, so the desktop page
+    and a printed page are untouched. Nothing leaves the page: what folds opens with one tap,
+    with any link that targets it, and in print. Shared tokens only; no new colour.
+    """
+    return """
+        /* =====================================================================
+           THE PHONE PASS (2026-11-22)
+           ===================================================================== */
+        .guide-open-m, .filters-more-m, .summary-more-m { display: none; }
+        @media screen and (max-width: 760px) {
+            /* ---- home: the guide is one line until it is asked for ---- */
+            .guide { padding: 0; margin-bottom: 20px; }
+            .guide-open-m {
+                display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+                min-height: 48px; padding: 12px 0; background: none; border: 0; cursor: pointer; text-align: left;
+                font: 600 15px/1.3 var(--font-display, inherit); letter-spacing: -.011em; color: var(--text-primary);
+            }
+            .guide-open-m svg { width: 18px; height: 18px; flex: none; color: var(--text-muted); transition: transform var(--t-fast) ease-out; }
+            .guide.guide-open .guide-open-m svg { transform: rotate(180deg); }
+            .guide-open-m:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+            .guide:not(.guide-open) .guide-steps, .guide:not(.guide-open) .guide-foot { display: none; }
+            .guide.guide-open { padding-bottom: 12px; }
+
+            /* ---- home: the dot chart is one line until it is asked for. Folded by height, not
+               display, so the chart keeps the width it was drawn at and needs no redraw ---- */
+            .dist { margin: 14px 0 0; border-top: 1px solid var(--border); }
+            .dist.dist-fold-m .dist-head { position: relative; display: block; min-height: 48px; margin: 0; padding: 14px 30px 12px 0; cursor: pointer; }
+            .dist.dist-fold-m .dist-title { font-size: 15px !important; line-height: 1.3; letter-spacing: -.011em; }
+            .dist.dist-fold-m .dist-head::after {
+                content: ''; position: absolute; right: 5px; top: 18px; width: 8px; height: 8px;
+                border-right: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted);
+                transform: rotate(45deg); transition: transform var(--t-fast) ease-out;
+            }
+            .dist.dist-fold-m.dist-open .dist-head::after { transform: translateY(4px) rotate(-135deg); }
+            .dist.dist-fold-m .dist-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+            .dist.dist-fold-m .dist-legend { margin-top: 8px; }
+            .dist.dist-fold-m:not(.dist-open) .dist-legend, .dist.dist-fold-m:not(.dist-open) .dist-foot { display: none; }
+            .dist.dist-fold-m:not(.dist-open) .dist-plot {
+                height: 0; min-height: 0; padding-top: 0; padding-bottom: 0; border-width: 0; box-shadow: none;
+                overflow: hidden; visibility: hidden;
+            }
+            .dist.dist-fold-m.dist-open { padding-bottom: 16px; }
+            .guide { margin-top: 0; }
+
+            /* ---- home: a leader's card is its name, its composite and its reasons; the eight
+               bars and the run strip are one tap away in its sheet ---- */
+            .top5-card .t5-fp, .top5-card .t5-runs { display: none; }
+            .t5-key .t5-key-a, .t5-key .t5-key-runs { display: none; }
+            .top5-card { flex-basis: 80%; padding: 14px 14px 12px; }
+            .t5-key { margin-top: 4px; font-size: 12px; }
+
+            /* ---- home: the seven section tiles are a title and their headline ---- */
+            .sec-grid { gap: 8px; margin-bottom: 28px; }
+            .sec-grid > .collapsible-section.collapsed .sec-blurb,
+            .sec-grid > .collapsible-section.collapsed .tile-viz { display: none; }
+            .sec-grid > .collapsible-section.collapsed .section-header { padding: 13px 0 14px; row-gap: 3px; }
+            .sec-grid > .collapsible-section.collapsed .section-header .section-title { font-size: 17px !important; }
+
+            /* ---- home: search and sort stay; the other filters open on request ---- */
+            .filters-bar .filter-search { order: 0; }
+            .filters-bar .filter-sort-m { order: 1; grid-column: auto; }
+            .filters-more-m {
+                order: 2; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px;
+                padding: 0 14px; border: 1px solid var(--border-bright); border-radius: 8px; background: transparent;
+                color: var(--text-primary); font: 500 14px/1 var(--font-body, inherit); cursor: pointer;
+            }
+            .filters-more-m svg { width: 14px; height: 14px; color: var(--text-muted); transition: transform var(--t-fast) ease-out; }
+            .filters-bar.filters-open .filters-more-m svg { transform: rotate(180deg); }
+            .filters-more-m .fm-n {
+                min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: #fff;
+                font: 600 12px/20px var(--font-body, inherit); font-variant-numeric: tabular-nums; text-align: center;
+            }
+            .filters-more-m .fm-n[hidden] { display: none; }
+            .filters-more-m:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+            .filters-bar .filter-group:not(.filter-sort-m) { order: 3; }
+            .filters-bar:not(.filters-open) .filter-group:not(.filter-sort-m) { display: none; }
+            .filters-bar .filter-clear { order: 4; }
+            .filters-bar .result-count { order: 5; }
+
+            /* ---- sheet: the eight scores as short tiles - name and score on one line ---- */
+            #stock-modal .modal-score-card {
+                display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 8px;
+                padding: 10px 12px 21px;
+            }
+            #stock-modal .modal-score-card .modal-score-label { grid-column: 1; grid-row: 1; margin: 0; }
+            #stock-modal .modal-score-card .modal-score-val { grid-column: 2; grid-row: 1; margin: 0; font-size: 21px; line-height: 1.1; }
+            #stock-modal .modal-score-card .modal-score-sub { grid-column: 1 / -1; grid-row: 2; margin-top: 3px; }
+            #stock-modal .modal-score-card::after { left: 12px; right: 12px; bottom: 10px; }
+            #stock-modal .modal-score-card:not(.composite)::before { left: calc(12px + (100% - 24px) * .5); bottom: 7px; }
+            #stock-modal .modal-score-row { margin-bottom: 22px; }
+
+            /* ---- sheet: Why it ranks here keeps its lead, its drivers and Read with care; the two
+               middle groups open on request ---- */
+            #stock-modal .summary-body:not(.sm-open) .summary-fold { display: none; }
+            #stock-modal .summary-more-m {
+                display: inline-flex; align-items: center; min-height: 44px; margin: 6px 0 2px; padding: 0;
+                background: none; border: 0; cursor: pointer; color: var(--accent-text, var(--accent));
+                font: 500 14px/1.3 var(--font-body, inherit);
+            }
+            #stock-modal .summary-more-m[hidden] { display: none; }
+            #stock-modal .summary-more-m:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+            /* ---- sheet: a folded section says what is inside it ---- */
+            #stock-modal .collapsible-header .collapsible-t { flex: 1 1 auto; min-width: 0; }
+            #stock-modal .collapsible.collapsed .collapsible-header .collapsible-t::after {
+                content: attr(data-hint); display: block; margin-top: 4px;
+                font: 400 13px/1.4 var(--font-body, inherit); letter-spacing: 0; color: var(--text-muted);
+            }
+            #stock-modal .collapsible.collapsed .collapsible-header { align-items: flex-start; padding-top: 14px; padding-bottom: 14px; }
+
+            /* ---- Market backdrop: each reading keeps its label, gauge and three lines; the ten
+               charts sit under their three group headings (the section opened to 6,760px) ---- */
+            .m-more {
+                display: inline-flex; align-items: center; min-height: 40px; padding: 0; background: none; border: 0;
+                cursor: pointer; color: var(--accent-text, var(--accent)); font: 500 13px/1.3 var(--font-body, inherit);
+            }
+            .m-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+            .mk-reading.m-clamped:not(.m-open) > p:not(.mk-gloss) {
+                display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
+            }
+            .mk-reading.m-clamped:not(.m-open) > p.mk-gloss { display: none; }
+            .mk-reading.m-clamped { padding-bottom: 6px; }
+            .mk-group.m-foldable { margin-top: 0; border-top: 1px solid var(--border); }
+            .mk-group.m-foldable:last-of-type { border-bottom: 1px solid var(--border); }
+            .mk-group.m-foldable > .mk-group-h {
+                position: relative; display: block; min-height: 48px; margin: 0; padding: 12px 30px 12px 0; cursor: pointer;
+            }
+            .mk-group.m-foldable > .mk-group-h h4 { font-size: 15px; margin-bottom: 3px; }
+            .mk-group.m-foldable > .mk-group-h::after, #methodology-modal h2.m-acc::after {
+                content: ''; position: absolute; right: 6px; top: 22px; width: 8px; height: 8px;
+                border-right: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted);
+                transform: rotate(45deg); transition: transform var(--t-fast) ease-out;
+            }
+            .mk-group.m-foldable.m-open > .mk-group-h::after, #methodology-modal h2.m-acc[aria-expanded="true"]::after { transform: translateY(4px) rotate(-135deg); }
+            .mk-group.m-foldable > .mk-group-h:focus-visible, #methodology-modal h2.m-acc:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+            .mk-group.m-foldable:not(.m-open) > .mk-grid { display: none; }
+            .mk-group.m-foldable.m-open > .mk-grid { margin-bottom: 14px; }
+
+            /* ---- Methodology: its sections fold under their headings, Overview open (it was one
+               73,000px column on a phone, whose contents rail is hidden below 900px) ---- */
+            #methodology-modal .methodology-body .m-folded { display: none !important; }
+            #methodology-modal .methodology-body h2.m-acc {
+                position: relative; cursor: pointer; margin: 0; padding: 15px 46px 15px 0; max-width: none;
+                border-top: 1px solid var(--border); font-size: 17px; line-height: 1.3; letter-spacing: -.015em;
+            }
+            #methodology-modal .methodology-body h2.m-acc[aria-expanded="true"] {
+                position: sticky; top: 0; z-index: 2; margin-bottom: 10px; background: var(--bg-primary);
+                border-bottom: 1px solid var(--border);
+                /* the dialog's own top padding sits above a stuck heading: cover it, or text shows through */
+                box-shadow: 0 -26px 0 var(--bg-primary);
+            }
+            #methodology-modal h2.m-acc::after { right: 20px; }
+            #methodology-modal .methodology-body h2.m-acc:last-of-type[aria-expanded="false"] { border-bottom: 1px solid var(--border); }
+        }
+"""
+
+
+def _js_phone() -> str:
+    """JS for the phone pass (owner, 2026-11-22). A plain string, so braces are not doubled.
+
+    Nothing here computes or rewrites a number or a sentence. On a phone the stock sheet opens
+    with its five long sections folded (they were all open: 9,819px for one stock at 375px), the
+    home page's dot chart and first-visit guide are one line each, the ranking's filters other than search and sort sit behind a
+    Filters button that counts the ones in use, Market backdrop's readings and charts open on
+    request (6,760px open, before), and the Methodology folds under its section headings with
+    Overview open (73,020px, with no contents list below 900px). ``goToModal``, ``openWorkings``, the
+    case-against rows and print all open a folded section already, so every route still works.
+    """
+    return r"""
+    // =====================================================================
+    // THE PHONE PASS (2026-11-22)
+    // =====================================================================
+    const PHONE_MQ = '(max-width: 760px)';
+    function isPhone() { try { return !!(window.matchMedia && window.matchMedia(PHONE_MQ).matches); } catch (e) { return false; } }
+
+    // The sheet's long sections start folded on a phone. Once, at load: after that the reader's
+    // own choice stands from stock to stock, as it does on a wide screen.
+    const SHEET_FOLD_M = ['section-contribution', 'section-categories', 'section-context', 'section-history', 'section-price-targets'];
+    function phoneFoldSheet() {
+        if (!isPhone()) return;
+        SHEET_FOLD_M.forEach(id => { const el = document.getElementById(id); if (el && el.classList) el.classList.add('collapsed'); });
+    }
+
+    function toggleSummaryPhone() {
+        const body = document.getElementById('modal-summary-body'), b = document.getElementById('summary-more-m');
+        if (!body || !b) return;
+        const open = body.classList.toggle('sm-open');
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
+        b.textContent = open ? 'Show less' : 'Show what changed and context';
+    }
+
+    // The dot chart on the home page: its title is the line that opens it.
+    function phoneFoldDist() {
+        if (!isPhone()) return;
+        const sec = document.getElementById('dist'), head = sec && sec.querySelector && sec.querySelector('.dist-head');
+        if (!head || !sec.classList || sec.classList.contains('dist-fold-m')) return;
+        sec.classList.add('dist-fold-m');
+        head.setAttribute('role', 'button'); head.setAttribute('tabindex', '0');
+        head.setAttribute('aria-expanded', 'false'); head.setAttribute('aria-controls', 'dist-plot');
+        const tog = () => { const open = sec.classList.toggle('dist-open'); head.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+        head.addEventListener('click', tog);
+        head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(); } });
+    }
+
+    function toggleGuidePhone(force) {
+        const g = document.getElementById('guide'), b = document.getElementById('guide-open-m');
+        if (!g) return;
+        const open = g.classList.toggle('guide-open', typeof force === 'boolean' ? force : undefined);
+        if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    // "How to read this" from the palette or the footer shows the guide open, not its one line.
+    if (typeof showGuide === 'function') {
+        const _baseShowGuide = showGuide;
+        showGuide = function() { _baseShowGuide(); toggleGuidePhone(true); };
+    }
+
+    // The ranking's filters other than search and sort. The button counts the ones in use, so a
+    // folded filter is never a silent one; Clear filters and the result count stay in view.
+    function filtersInUse() {
+        const v = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+        let n = 0;
+        if (v('filter-sector') && v('filter-sector') !== 'all') n++;
+        if (v('filter-vt') && v('filter-vt') !== 'all') n++;
+        if (v('filter-ctx') && v('filter-ctx') !== 'all') n++;
+        if (v('filter-profile') && v('filter-profile') !== 'balanced') n++;
+        if (parseFloat(v('filter-comp-min')) > 0) n++;
+        return n;
+    }
+    function syncFiltersPhone() {
+        const b = document.getElementById('filters-more-m'), nEl = document.getElementById('filters-more-n');
+        // (the node harnesses run this script against a stub document whose elements are bare)
+        if (!b || !nEl || !b.closest || !b.setAttribute) return;
+        const bar = b.closest('.filters-bar'), open = !!bar && bar.classList.contains('filters-open'), n = filtersInUse();
+        nEl.textContent = n ? String(n) : '';
+        nEl.hidden = !n;
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
+        b.setAttribute('aria-label', (open ? 'Hide filters' : 'Show filters') + (n ? ' (' + n + ' in use)' : ''));
+    }
+    function toggleFiltersPhone() {
+        const b = document.getElementById('filters-more-m'), bar = b && b.closest && b.closest('.filters-bar');
+        if (!bar) return;
+        bar.classList.toggle('filters-open');
+        syncFiltersPhone();
+    }
+    // Market backdrop on a phone: each reading's paragraph shows three lines until asked for, and
+    // the ten charts sit under their three group headings. The section rewrites itself when the
+    // context file lands, so this runs after every write; marked nodes are skipped.
+    function phoneFoldMarket() {
+        if (!isPhone()) return;
+        const host = document.getElementById('sec-market');
+        if (!host || !host.querySelectorAll) return;
+        host.querySelectorAll('.mk-reading:not(.m-clamped)').forEach(r => {
+            r.classList.add('m-clamped');
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'm-more'; b.setAttribute('aria-expanded', 'false'); b.textContent = 'Read more';
+            b.addEventListener('click', () => {
+                const open = r.classList.toggle('m-open');
+                b.setAttribute('aria-expanded', open ? 'true' : 'false');
+                b.textContent = open ? 'Show less' : 'Read more';
+            });
+            r.appendChild(b);
+        });
+        host.querySelectorAll('.mk-group:not(.m-foldable)').forEach(g => {
+            const h = g.querySelector(':scope > .mk-group-h');
+            if (!h) return;
+            g.classList.add('m-foldable');
+            h.setAttribute('role', 'button'); h.setAttribute('tabindex', '0'); h.setAttribute('aria-expanded', 'false');
+            const tog = () => { const open = g.classList.toggle('m-open'); h.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+            h.addEventListener('click', tog);
+            h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(); } });
+        });
+    }
+
+    // The methodology on a phone: every second-level section folds under its heading and the
+    // first (Overview) stays open. The text is one flat run of elements, so each element is
+    // tagged with its section's number instead of being wrapped - nothing is moved.
+    function methSetOpen(body, i, open) {
+        const h = body.querySelector('h2[data-msec-head="' + i + '"]');
+        if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
+        body.querySelectorAll('[data-msec="' + i + '"]').forEach(el => el.classList.toggle('m-folded', !open));
+    }
+    // Open the section that holds an element (a heading a link points at), if it is folded.
+    function methOpenFor(el) {
+        const body = document.querySelector('#methodology-modal .methodology-body');
+        if (!body || !el || !body.dataset.mFold) return;
+        let n = el;
+        while (n && n.parentNode !== body) n = n.parentNode;
+        if (!n || !n.dataset) return;
+        const i = n.dataset.msecHead !== undefined ? n.dataset.msecHead : n.dataset.msec;
+        if (i !== undefined) methSetOpen(body, i, true);
+    }
+    function phoneFoldMethodology() {
+        if (!isPhone()) return;
+        const body = document.querySelector('#methodology-modal .methodology-body');
+        if (!body || body.dataset.mFold) return;
+        const heads = [...body.children].filter(el => el.tagName === 'H2');
+        if (heads.length < 4) return;
+        body.dataset.mFold = '1';
+        let sec = -1;
+        [...body.children].forEach(el => {
+            if (el.tagName === 'H2') { sec++; el.dataset.msecHead = String(sec); return; }
+            if (sec >= 0) el.dataset.msec = String(sec);
+        });
+        heads.forEach((h, i) => {
+            h.classList.add('m-acc');
+            h.setAttribute('role', 'button'); h.setAttribute('tabindex', '0');
+            methSetOpen(body, i, i === 0);
+        });
+        const flip = h => {
+            const open = h.getAttribute('aria-expanded') !== 'true';
+            methSetOpen(body, h.dataset.msecHead, open);
+            // opened: start reading at its heading; closed from deep inside it: land on the heading
+            // rather than wherever the shorter page leaves the reader
+            h.scrollIntoView({ block: 'start' });
+        };
+        body.addEventListener('click', e => {
+            const h = e.target.closest && e.target.closest('h2.m-acc');
+            if (h && h.parentNode === body && !e.target.closest('a')) flip(h);
+        });
+        body.addEventListener('keydown', e => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const h = e.target.matches && e.target.matches('h2.m-acc') ? e.target : null;
+            if (h) { e.preventDefault(); flip(h); }
+        });
+        // A cross-reference inside the text opens the section it points into first; the page's
+        // own handler (methodAnchorClick) then scrolls there. Capture phase, so this runs before it.
+        body.addEventListener('click', e => {
+            const a = e.target.closest && e.target.closest('a[href^="#"]');
+            if (!a) return;
+            let frag = a.getAttribute('href').slice(1);
+            try { frag = decodeURIComponent(frag); } catch (err) {}
+            const want = methodSlug(frag);
+            if (!want) return;
+            methOpenFor([...body.querySelectorAll('h1, h2, h3, h4, h5, h6')].find(h => h.id === frag || methodSlug(h.textContent) === want));
+        }, true);
+    }
+    if (typeof openMethodology === 'function') {
+        const _baseOpenMethodology = openMethodology;
+        openMethodology = function() { _baseOpenMethodology.apply(this, arguments); phoneFoldMethodology(); };
+    }
+    if (typeof goToMethod === 'function') {
+        const _baseGoToMethod = goToMethod;
+        goToMethod = function(id) { methOpenFor(document.getElementById(id)); return _baseGoToMethod(id); };
+    }
+
+    (function initPhone() {
+        phoneFoldSheet();
+        phoneFoldDist();
+        const mk = document.getElementById('sec-market');
+        if (mk && mk.nodeType === 1 && typeof MutationObserver !== 'undefined') new MutationObserver(phoneFoldMarket).observe(mk, { childList: true, subtree: true });
+        phoneFoldMarket();
+        const bar = document.querySelector('.filters-bar');
+        if (bar && bar.addEventListener) {
+            bar.addEventListener('change', syncFiltersPhone);
+            bar.addEventListener('input', syncFiltersPhone);
+        }
+        // a filter set by a link, the keyboard or Clear filters reaches the count through the
+        // result line every filter change rewrites
+        const rc = document.getElementById('result-count');
+        if (rc && rc.nodeType === 1 && typeof MutationObserver !== 'undefined') new MutationObserver(syncFiltersPhone).observe(rc, { childList: true, characterData: true, subtree: true });
+        syncFiltersPhone();
+    })();
+"""
 
 
 def main():

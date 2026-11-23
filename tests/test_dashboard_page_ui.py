@@ -78,6 +78,9 @@ def test_an_open_section_is_not_cut_off(browser, width):
 def test_the_ranking_picture_is_one_dot_per_published_composite(browser, width):
     ctx, page, errors = _open(browser, width, 900)
     try:
+        # on a phone the chart is one line until its title is tapped (the phone pass, 2026-11-22)
+        page.evaluate("""() => { const d = document.getElementById('dist');
+            if (d.classList.contains('dist-fold-m') && !d.classList.contains('dist-open')) d.querySelector('.dist-head').click(); }""")
         info = page.evaluate("""() => {
             const scored = D.table_data.filter(r => typeof r.Composite === 'number');
             const placed = [].concat(...DIST.cols);

@@ -247,7 +247,11 @@ def test_the_guide_walks_a_first_visitor_from_the_ranking_to_one_stock_to_follow
     # the sheet's tools are called what the guide calls them
     assert 'id="mt-compare"' in html and ">Compare</button>" in html
     assert re.search(r'id="mt-hold"[^>]*>.*?Holdings</button>', html)
-    assert len(text.split()) < 140, len(text.split())
+    # The budget is on the guide's own three steps. The phone's one-line opener ("New here? How to
+    # read this page", the phone pass, 2026-11-22) is the control that shows them, not part of them.
+    steps_text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", guide[guide.index('<ol class="guide-steps"'):]))
+    assert len(steps_text.split()) < 140, len(steps_text.split())
+    assert 'id="guide-open-m"' in guide and guide.index('id="guide-open-m"') < guide.index('<ol class="guide-steps"')
 
 
 # ---------------------------------------------------------------------------

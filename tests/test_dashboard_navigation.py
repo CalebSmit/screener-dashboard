@@ -70,8 +70,9 @@ def test_the_drilldown_reads_in_the_order_its_jump_links_promise(html):
 
 
 def test_section_titles_match_the_jump_links(html):
-    assert "<span>How it adds up</span>" in html
-    assert "<span>The workings</span>" in html
+    # (each title's span carries a class and a phone hint since the phone pass, 2026-11-22)
+    assert re.search(r'<span class="collapsible-t"[^>]*>How it adds up</span>', html)
+    assert re.search(r'<span class="collapsible-t"[^>]*>The workings</span>', html)
 
 
 def test_the_navigation_layer_wraps_rather_than_forks_the_drilldown(html):
@@ -317,7 +318,8 @@ def test_the_calculation_button_is_a_chevron_on_a_phone(browser, w, label):
     "Calculation" pill and the metric names wrapped."""
     ctx, page, _ = _open(browser, w, 812)
     try:
-        page.evaluate(f"openStockDetail({EX!r}); toggleAllWorkings(true)")
+        # on a phone The workings arrives folded (the phone pass, 2026-11-22): open it as its tab does
+        page.evaluate(f"openStockDetail({EX!r}); goToModal('section-categories'); toggleAllWorkings(true)")
         page.wait_for_selector("#modal-categories .wk-more", state="visible")
         got = page.evaluate("""() => [...document.querySelectorAll('#modal-categories .wk-more')].map(b => ({
             label: getComputedStyle(b.querySelector('.wk-more-t')).display !== 'none',

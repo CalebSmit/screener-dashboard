@@ -42,6 +42,7 @@ import stock_summary  # noqa: E402
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
 from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+from tests import phone as phone_taps  # noqa: E402 - what a phone reader taps first (2026-11-22)
 EX = examples.stock("EXPE")  # a stock with every section of the sheet
 CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
 
@@ -462,6 +463,7 @@ def test_a_ticker_this_run_did_not_score_is_named(browser):
         assert "No stocks match these filters." in page.inner_text(".vt-empty")
         # a scored ticker hidden by another filter is not called missing
         page.fill("#filter-search", "AAPL")
+        phone_taps.open_filters(page)  # the sector filter sits behind Filters on a phone (2026-11-22)
         page.select_option("#filter-sector", "Energy")
         page.wait_for_timeout(200)
         assert "No stocks match these filters." in page.inner_text(".vt-empty")
@@ -486,6 +488,7 @@ def test_flag_chips_say_trap_where_the_header_is_hidden(browser):
     for phone in (True, False):
         ctx, page, _ = _open(browser, phone=phone)
         try:
+            phone_taps.open_filters(page)  # behind Filters on a phone; does nothing on a wide screen
             page.select_option("#filter-vt", "vt")
             page.wait_for_timeout(200)
             chip = page.evaluate(shown)
