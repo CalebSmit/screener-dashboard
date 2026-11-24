@@ -39,7 +39,13 @@ Two things still outrank this file, and neither is negotiable:
   horizon, fewer factors?), owner-agreed priority - its criteria pre-registered the same night in
   `research/2026-11-19-what-the-ranking-is-for.md`; the ACCEPTED implied-volatility inversion (2026-11-04) - build it or write down why not
   (queued for a 06:00 session on or after 2026-11-24, the brief's "Coming up": it needs a throwaway full
-  run); ~~a note on Jensen's alpha~~ **written 2026-11-20 (13:00)**,
+  run) - **BUILT 2026-11-24 (13:00), not yet published**: every option reading now carries our own
+  American-exercise inversion of its own mids beside the source's field (`implied_vol.py`), the fetch
+  keeps the ex-dividend date it needs, and the panel says whose volatilities it shows. Checked live on 51
+  stocks: ours exists for 45 of the 47 at-the-money figures the source gives and 40 of its 45 skews,
+  and puts the skew negative for 2 of 40 (the paper: about 1 in 16) where the source does for 10 of 45.
+  The switch itself waits for the 2026-11-26 session (the brief's "Coming up"), after one full evening
+  refresh measures coverage on all ~500 stocks as the decision asked; ~~a note on Jensen's alpha~~ **written 2026-11-20 (13:00)**,
   `research/2026-11-20-jensens-alpha-in-momentum.md` - as built it ranks stocks 0.97-0.98 like the plain
   12-month return and no source uses it; the literature's version is residual momentum (Blitz, Huij &
   Martens 2011), proposed as a like-for-like replacement - **ACCEPTED 2026-11-21** by the weekend

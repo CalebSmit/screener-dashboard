@@ -5875,3 +5875,55 @@ anything before 2027-02-11 - the change rests on the Evidence above.
 
 **Applied by:** morning session (manual), 2026-11-24 06:00, building a proposal ACCEPTED by the
 2026-11-21 06:00 session. **Rollback:** `good/2026-11-23-owner-phone-rows`.
+
+## 2026-11-24 (13:00) - Our own implied volatilities, recorded beside the source field (context only; not yet the published construction)
+
+**Area:** the options panel's implied volatilities (context layer, settled row "ctx" - never scored,
+no weight, no rank moves).
+
+**Changed:** the build ADOPTED on 2026-11-04 (`research/2026-11-03-open-source-quant-stack.md`
+section 1d), in its build order:
+- `implied_vol.py` inverts each option's own bid/ask mid (the existing `MAX_REL_SPREAD` bar) with
+  QuantLib's American finite-difference solver, a discrete dividend schedule and FRED's
+  constant-maturity Treasury curve (1/3/6/12 months, continuously compounded, linear in time to the
+  expiry). One inversion feeds the at-the-money call and put and both skew legs.
+- The dividend schedule needs no request per stock: the core fetch now keeps `exDividendDate` and
+  `lastDividendValue` from the `.info` it already pulls. The rule: the annual rate (`dividendRate`, else
+  `trailingAnnualDividendRate`) in equal instalments, payments a year from rate / last payment rounded
+  to 1, 2, 4 or 12 (quarterly without one), the first on the ex-date and the rest one interval apart.
+  This differs from the measurement's rule (it placed them from the dividend history, a request per
+  stock); a payer whose ex-date the fetch did not carry is "unknown" and keeps the source field.
+- Every reading carries both constructions where it can (`_ctx_opt_own_*`, `_ctx_opt_src_*`), so the
+  paired record the decision asked for accrues in `data/context_log/` from the first refresh. The main
+  `_ctx_opt_iv`/`_ctx_opt_skew` columns hold `PUBLISHED_IV_CONSTRUCTION`'s figures, falling back
+  (stamped) to the other where the published one has none.
+- The generator gains the matching guard: a figure whose stamp is not the published construction is
+  withheld and says so, by the predicate `context_eval.iv_is_the_published_construction` uses. The panel
+  now says whose volatilities it shows - today "the data source's own figures; it does not publish how
+  it computes them" (claim `context.iv_construction`).
+- QuantLib 1.44 pinned in `requirements.txt`; where it cannot be imported, every reading keeps the
+  source field.
+
+**Not changed yet: `PUBLISHED_IV_CONSTRUCTION` stays `source`.** The decision named one cost it could
+not size - coverage, since ours needs a mid that stands up - and asked for it to be measured "on the
+whole universe from one 20:00 refresh before the switch". Tonight's refresh reads a run fetched before
+the ex-dividend fields existed, so the first refresh that can price every payer is 2026-11-25's; the
+switch is queued for 2026-11-26 (`scripts/write_brief.py` COMING_UP).
+
+**Evidence:** the decision's own (section 1d: a disjoint replication above its 1-point bar, 19 of 19
+contracts reproduced by an independent CRR tree including 9 with a dividend, and Xing, Zhang & Zhao
+(2010) Table 1 putting a negative SKEW at about one stock in sixteen against the source field's ~half).
+Today, through the production path on 51 stocks (every 10th by ticker, mid-session 2026-11-24, about
+15:30 ET; `research/measurements/2026-11-24-own-iv-coverage.py`, dividend fields read from `.info` for
+the measurement only): ours priced the at-the-money IV for **45 of the 47** stocks the source did and
+the skew for **40 of its 45**; ours minus the source at the money, median **-1.48** volatility points
+(median |difference| 1.55); on the skew median **+1.86**. The skew is negative for **2 of 40** of ours
+(5%) against **10 of 45** of the source's (22%) - ours sits where the paper's distribution does.
+
+**Validated by:** `tests/test_implied_vol.py` (34 cases: the round trip with and without a dividend, agreement
+with the measurement's independent tree, the dividend rule and its "unknown", the curve and its
+staleness bound, both option paths, the fallback stamp, and the page showing only what the record
+counts); the options test modules unchanged; gate 5's rehearsal (the regenerated page passes its tests
+and the claims gate).
+
+**Applied by:** 13:00 session, 2026-11-24. **Rollback:** `good/2026-11-24`.

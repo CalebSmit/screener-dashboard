@@ -678,11 +678,12 @@ COMING_UP = (
                    "conditions were written before any further page was read. Its status line reads "
                    "WAITING, not OPEN, until then.",
      "research/2026-11-17-ytd-in-a-quarterly-column.md"),
-    ("2026-11-24", "Build the implied-volatility inversion ACCEPTED on 2026-11-04 and dropped from every "
-                   "Next list since 11-05 (found 2026-11-19). Section 1d's build order: exDividendDate "
-                   "into the core .info fetch, a throwaway full run, QuantLib pinned and installed by a "
-                   "scheduled session (never from the desktop app: its AppData is sandboxed). A 06:00 "
-                   "session with nothing else in it.",
+    ("2026-11-26", "Publish our own implied volatilities (built 2026-11-24, recorded beside the source "
+                   "field as _ctx_opt_own_*). First confirm the 11-25 02:00 run's raw fetch carries "
+                   "exDividendDate and the 11-25 20:00 refresh's cache has _ctx_opt_own_iv for most "
+                   "stocks; count own vs source coverage over the whole cache, then flip "
+                   "context_signals.PUBLISHED_IV_CONSTRUCTION to 'own_mid' with a changelog entry. Do "
+                   "not loosen MAX_REL_SPREAD or the IV bounds to raise coverage.",
      "research/2026-11-03-open-source-quant-stack.md"),
     ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
      "CLAUDE.md"),
