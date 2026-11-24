@@ -699,6 +699,9 @@ CTX_FIELDS = {
     # (context_signals.chain_spot, 2026-11-03), printed as the move's divisor.
     "osp": "_ctx_opt_spot",
     "oqt": "_ctx_opt_quote_time", "oqi": "_ctx_opt_quote_intraday",
+    # How the implied volatilities were arrived at (context_signals.IV_CONSTRUCTIONS, 2026-11-24),
+    # so the panel can say it; published only beside a figure it describes.
+    "ois": "_ctx_opt_iv_src",
     "rb": "_ctx_rate_beta", "rr2": "_ctx_rate_r2", "rn": "_ctx_rate_n",
 }
 
@@ -756,6 +759,23 @@ def _stock_context(row, ticker: str, run_date) -> dict | None:
         for key in anchored_keys:
             out.pop(key, None)
         out["onsp"] = True
+
+    # The implied volatilities are shown only in the construction the record counts - one
+    # predicate, context_signals.PUBLISHED_IV_CONSTRUCTION, read by context_eval as well, so the
+    # page never shows a figure the record refuses (the SPOT_SOURCES rule above). An unstamped
+    # reading is a ``source`` reading: nothing here inverted an option price before 2026-11-24.
+    from context_signals import PUBLISHED_IV_CONSTRUCTION
+    iv_src = row.get("_ctx_opt_iv_src")
+    iv_src = iv_src if isinstance(iv_src, str) and iv_src else "source"
+    iv_keys = ("oi", "osk", "oskp", "oskps", "oskc", "oskcs", "oskw")
+    if ({"oi", "osk"} & out.keys()) and iv_src != PUBLISHED_IV_CONSTRUCTION:
+        for key in iv_keys:
+            out.pop(key, None)
+        out["oniv"] = True
+    if {"oi", "osk"} & out.keys():
+        out["ois"] = iv_src
+    else:
+        out.pop("ois", None)
 
     wk = row.get("_ctx_weekly")
     if isinstance(wk, str) and wk:
@@ -11411,7 +11431,7 @@ def _js_context() -> str:
             // the figures below are the source's own, which it derives from each option's last trade.
             // Measured 2026-11-06 over one run: implied over realised volatility has a median of 1.43
             // in these readings against 1.19 where the quotes stood up, and 9% sit above 2x against 1%.
-            if (an && c.os === 'partial' && !mv && (c.oi !== undefined || c.osk !== undefined))
+            if (an && c.os === 'partial' && !mv && c.ois !== 'own_mid' && (c.oi !== undefined || c.osk !== undefined))
                 o += '<p class="ctx-line ctx-caveat">The figures below are the data source&rsquo;s own, worked out from each option&rsquo;s last trade rather than from a bid and ask that stood up, so read them loosely.</p>';
             o += '<table class="ctx-table"><tbody>';
             if (an && c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
@@ -11425,6 +11445,10 @@ def _js_context() -> str:
             // matching context_signals.options_context and research/2026-10-12-option-implied-signals.md.
             const og = [];
             if (an && c.oi !== undefined) og.push('<b>Implied volatility</b> is the size of the yearly price swings that option prices assume, as an annualised standard deviation; <b>realised</b> is the swing the stock actually had over the past year.');
+            // How the volatilities were arrived at (claim context.iv_construction, 2026-11-24): the
+            // payload's own stamp, published only beside a figure in the construction the record counts.
+            if (an && (c.oi !== undefined || c.osk !== undefined)) og.push(c.ois === 'own_mid' ? 'The implied volatilities are worked out here from each option&rsquo;s bid&ndash;ask midpoint: American exercise, the stock&rsquo;s expected dividends before expiry, and the Treasury yield for that term.' : 'The implied volatilities are the data source&rsquo;s own figures; it does not publish how it computes them.');
+            else if (an && c.oniv) og.push('Implied volatility and skew are left out: this reading&rsquo;s volatilities were worked out a different way from the one this panel reports, so they are not shown under its description.');
             if (an && c.osk !== undefined) og.push('<b>Put skew</b> is the implied volatility of a put that pays out only after a fall of roughly 5% or more, minus that of a call at today&rsquo;s price, in percentage points. A higher figure means protection against a drop costs more.');
             o += '</tbody></table>' + (og.length ? '<p class="ctx-line ctx-gloss">' + og.join(' ') + '</p>' : '') + '<p class="ctx-why">' + (mv ? 'Expected move = at-the-money call + put, divided by ' + cPrice(c.osp) + ', the stock&rsquo;s price when the quotes were taken: a straddle costs about the average absolute move to expiry. ' : '') + (an && c.osk !== undefined ? 'Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there: over 1996&ndash;2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? '. <b>This expiry is ' + c.od + ' days, outside that range</b>, so their figures are background here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. ' : '') + 'Shown, never scored. ' + (c.oqi && c.oqt && c.oqd ? 'Quotes were taken at <b>' + escapeHtml(c.oqt) + ' ET on ' + escapeHtml(cDate(c.oqd)) + '</b>, while the market was open: a reading from the middle of that session, not its close.' : c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>' + (c.oqt ? ', collected at ' + escapeHtml(c.oqt) + ' ET.' : '; options are not quoted at the hour this run fetches, so quotes collected after that session&rsquo;s close are used.') : 'This run did not record when its option quotes were taken.') + '</p>';
         } else if (c.os === 'quotes-closed') {

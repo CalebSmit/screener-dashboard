@@ -292,8 +292,16 @@ def _records_from_latest_run(root: Path) -> list[dict]:
     if not files:
         raise SystemExit("No runs/*/00_raw_fetch.parquet - run the screener before refreshing quotes.")
     cols = ["Ticker", "price_latest", "earningsTimestampStart"]
+    # The dividend fields our own implied volatilities need (implied_vol.dividend_schedule,
+    # 2026-11-24). A run fetched before they were kept has none, and its payers keep the source field.
+    import pyarrow.parquet as pq
+    have = set(pq.read_schema(files[0]).names)
+    cols += [c for c in DIVIDEND_FIELDS if c in have]
     d = pd.read_parquet(files[0], columns=cols)
     return [r for r in d.to_dict("records") if r.get("Ticker")]
+
+
+DIVIDEND_FIELDS = ("dividendRate", "trailingAnnualDividendRate", "exDividendDate", "lastDividendValue")
 
 
 def refresh(records: list[dict], root: str | os.PathLike | None = None,
@@ -317,7 +325,19 @@ def refresh(records: list[dict], root: str | os.PathLike | None = None,
     # (2026-10-14: a test written on 10-09 began failing on 10-15, when its reading turned six days
     # old against the five-day bound).
     today = market_session_date(now)
-    fetch = fetch or _fetch_one
+    if fetch is None:
+        # Our own implied volatilities beside the source field (implied_vol, 2026-11-24): the
+        # Treasury curve once per refresh, each stock's dividend fields from its run record.
+        curve = None
+        try:
+            import implied_vol
+            curve = implied_vol.treasury_curve(today)
+        except Exception as e:  # noqa: BLE001 - the source field still stands
+            log(f"  Option quote refresh: no Treasury curve ({type(e).__name__}); implied volatilities stay the source's")
+        by_ticker = {r["Ticker"]: r for r in records}
+
+        def fetch(tk, price, earnings_ts, day):
+            return _fetch_one(tk, price, earnings_ts, day, rec=by_ticker.get(tk), curve=curve)
     probe = probe or (lambda t: (fetch(t, None, None, today) or {}).get("_ctx_opt_status"))
 
     live, why = quotes_are_live(probe)
@@ -383,11 +403,17 @@ def refresh(records: list[dict], root: str | os.PathLike | None = None,
             "seconds": round(time.time() - started), "stopped": stopped, "why": why}
 
 
-def _fetch_one(ticker: str, price, earnings_ts, today: date) -> dict:
-    """One stock's chain, through exactly the pipeline's own expiry choice and quality bars."""
+def _fetch_one(ticker: str, price, earnings_ts, today: date, rec: dict | None = None,
+               curve=None) -> dict:
+    """One stock's chain, through exactly the pipeline's own expiry choice and quality bars.
+
+    ``rec`` (the stock's run record, for its dividend fields) and ``curve`` add our own implied
+    volatilities beside the source field (``implied_vol``, 2026-11-24).
+    """
     import yfinance as yf
 
     from context_signals import chain_spot, choose_expiry, options_context
+    from implied_vol import inverter
 
     t = yf.Ticker(ticker)
     ed = None
@@ -408,7 +434,8 @@ def _fetch_one(ticker: str, price, earnings_ts, today: date) -> dict:
             spot, src = float(t.fast_info["lastPrice"]), "last"
         except Exception:  # noqa: BLE001
             return {}
-    out = options_context(ch.calls, ch.puts, spot, exp, today, spans)
+    inv = inverter(rec, curve, today, datetime.strptime(exp, "%Y-%m-%d").date()) if rec is not None else None
+    out = options_context(ch.calls, ch.puts, spot, exp, today, spans, invert=inv)
     if "_ctx_opt_spot" in out:
         out["_ctx_opt_spot_src"] = src
     return out

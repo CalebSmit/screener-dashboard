@@ -1392,6 +1392,11 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # The fallback for it. The source stopped serving `dividendRate` on
         # 2026-10-14 while still serving this; see dividend_yield_from_fields.
         rec["trailingAnnualDividendRate"] = _safe(info, "trailingAnnualDividendRate")
+        # When the next (or last) dividend goes ex, and its size: the dividend schedule our own
+        # implied volatilities price an American option with (implied_vol.dividend_schedule,
+        # 2026-11-24). Same .info dict, so no request. Context only - no metric reads either.
+        rec["exDividendDate"]     = _safe(info, "exDividendDate")
+        rec["lastDividendValue"]  = _safe(info, "lastDividendValue")
         rec["payoutRatio"]        = _safe(info, "payoutRatio")
         # Bank-specific info fields (zero additional API cost — same .info dict)
         rec["returnOnEquity"]    = _safe(info, "returnOnEquity")
