@@ -10605,7 +10605,13 @@ Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Fac
 2026-10-12, **age 43 days**; a standing programme, last advanced **18 days** ago, bound 21 - its day is
 Friday, so not deferred by a Tuesday); also open 0.10 (48 d), 0.14 (41 d). Shipped to readers: 19
 commits, 8 methodology changes in the last 7 days. No branch held back; no stash.
-**Tests:** before 4519 passed / 1 skipped (13:05); after: see the gate lines at the end of this entry.
+**Tests:** before 4519 passed / 1 skipped (13:05); after **4553 passed / 1 skipped** (14:20, the
+committed tree; 34 new). Gate 2 dry run exit 0. Gate 5 (`rehearse_publish.py --changed-since main`)
+PASSED (page tests and claims gate, 2435 passed; it prints ENGINE CHANGED for `factor_engine.py`, which
+here is the fetch keeping two `.info` fields - no score reads them). Gate 3's `node --check` is refused by
+this session's tool guard; the payload files are byte-identical to `main` (`rebuild_page.py`), index.html
+953 KB; the runner runs it. Gate 5 failed once mid-session on `test_club_readiness`, which reads the
+glosses by position - the construction sentence was moved after both glosses and built as a variable.
 **Owner queue / rotation:** carried on from the 06:00 entry's Next, which is also `OWNER_FOCUS.md`'s
 2026-11-19 item: the implied-volatility inversion ACCEPTED 2026-11-04, unbuilt for twenty days.
 
@@ -10667,8 +10673,8 @@ commits, 8 methodology changes in the last 7 days. No branch held back; no stash
 - **Step 2's throwaway full run.** Replaced by the cheaper check of what it was for (the fields are
   served, on six live tickers; the fetch line pinned by a test). The 11-25 02:00 run is the first full
   fetch to carry them, and the next session confirms that before flipping.
-- **Passing the dividend record to `_context_for` as a keyword:** five test doubles across four modules
-  use its positional signature; the pass now sets a read-only module dict instead.
+- **Passing the dividend record to `_context_for` as a keyword:** the test doubles in four modules use
+  its positional signature (four tests failed); the pass now sets a read-only module dict instead.
 
 ### Set aside
 - The 06:00 entry's second Next (after tomorrow's 02:00 run, confirm its rank continuity >= 0.98 and
