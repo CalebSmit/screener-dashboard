@@ -112,7 +112,7 @@ PRICE_RESTATABLE = (
 
 #: Held constant, derived from a price *history* rather than a point price.
 PRICE_DERIVED_HELD = (
-    "jensens_alpha",
+    "residual_momentum",
     "max_drawdown_1y",
     "sharpe_ratio",
     "sortino_ratio",

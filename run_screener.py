@@ -1440,7 +1440,7 @@ _METRIC_LABELS = {
     "operating_leverage": "Operating Leverage",
     "beneish_m_score": "Beneish M-Score",
     "revenue_cagr_3yr": "Revenue CAGR (3Y)",
-    "jensens_alpha": "Jensen's Alpha",
+    "residual_momentum": "Residual Momentum",
 }
 
 _VAL_DESCRIPTIONS = {
@@ -1476,7 +1476,7 @@ _GROWTH_DESCRIPTIONS = {
 _MOM_DESCRIPTIONS = {
     "return_12_1": "Total price return from 12 months ago to 1 month ago. Skips the most recent month to avoid short-term reversal noise.",
     "return_6m": "Total price return from 6 months ago to 1 month ago. Also skips the most recent month.",
-    "jensens_alpha": "Risk-adjusted excess return above CAPM prediction. Measures outperformance unexplained by market beta. Uses full 12-month return (no skip-month).",
+    "residual_momentum": "How much the stock beat what its market exposure predicted, from 12 months ago to 1 month ago, per unit of its own month-to-month noise: 36 monthly returns regressed on the S&P 500 total-return index, the residuals of the 11 months from 12 to 1 month ago summed and divided by their standard deviation (Blitz, Huij & Martens 2011, CAPM version). Skips the most recent month. Replaced Jensen's alpha on 2026-11-24.",
 }
 
 _RISK_DESCRIPTIONS = {
@@ -1832,6 +1832,7 @@ def run_factor_engine(cfg, args, ctx=None):
         print("  [RUN] Risk-free rate unavailable — using default 4.50%")
     _clock.lap("fetch.risk_free")
 
+    _mkt_closes = None   # ^SP500TR daily closes: the momentum rule and residual momentum's market leg
     if USE_SAMPLE:
         df = _generate_sample_data(universe_df, risk_free_rate=risk_free_rate)
         stats["tickers_cache"] = len(df)
@@ -2082,7 +2083,8 @@ def run_factor_engine(cfg, args, ctx=None):
         print("Computing metrics...")
         from factor_engine import BANK_DEFAULTED as _bank_defaulted
         _bank_defaulted.clear()
-        df = compute_metrics(raw, market_returns, cfg, risk_free_rate=risk_free_rate)
+        df = compute_metrics(raw, market_returns, cfg, risk_free_rate=risk_free_rate,
+                                market_closes=_mkt_closes)
         if _bank_defaulted:
             stats["bank_set_by_default"] = sorted(_bank_defaulted)
             print(f"  WARNING: {len(_bank_defaulted)} financials reached the bank metric set only by default: "

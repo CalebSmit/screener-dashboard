@@ -1163,6 +1163,125 @@ def price_history_fields(hist: pd.DataFrame) -> dict:
     return rec
 
 
+# ---- Residual momentum (2026-11-24; research/2026-11-20-jensens-alpha-in-momentum.md, decision
+# section 9; METHODOLOGY_CHANGELOG.md 2026-11-24). Blitz, Huij & Martens (2011), "Residual momentum",
+# Journal of Empirical Finance 18(3), with CAPM on the S&P 500 total-return index in place of their
+# Fama-French three factors (the stated simplification). Replaces `jensens_alpha`, whose ranking was
+# 0.97-0.98 the plain 12-month return. Weight unchanged (25 of Momentum).
+#
+# The months are anchored on the run's own last close, so the formation window is exactly
+# return_12_1's - twelve months ago to one month ago - and month-ends in backtest v2 (which runs
+# at month-ends) are calendar months: 37 closes, 36 monthly returns, a market-model fit with an
+# intercept over all 36, and the residuals of the 11 months from 12 to 1 month ago, summed and
+# divided by their own standard deviation. The latest month is skipped; the fitted intercept is
+# left out of the signal on purpose (the paper, p. 12).
+RESIDUAL_MOMENTUM_MONTHS = 36          # the regression's monthly returns (37 closes)
+RESIDUAL_MOMENTUM_FORMATION = 11       # months 12..2 back: the 12-1 window
+RESIDUAL_MOMENTUM_MAX_GAP_DAYS = 10    # a close older than this before its anchor is no close
+RESIDUAL_MOMENTUM_HISTORY = "37mo"     # the fetch's one price-history request
+RISK_WINDOW_MONTHS = 13                # volatility, beta, drawdown, dollar volume keep 13 months
+
+
+def momentum_anchor_dates(last_date) -> list:
+    """The 37 dates the monthly returns run between, oldest first: ``last_date`` minus 36..0
+    calendar months."""
+    last = pd.Timestamp(last_date)
+    return [last - pd.DateOffset(months=k) for k in range(RESIDUAL_MOMENTUM_MONTHS, -1, -1)]
+
+
+def closes_at_anchors(closes: pd.Series, anchors: list) -> list | None:
+    """The close on or before each anchor, or None when any anchor has no close within
+    ``RESIDUAL_MOMENTUM_MAX_GAP_DAYS`` (a listing younger than three years, or a gap)."""
+    closes = closes.dropna()
+    if closes.empty:
+        return None
+    idx = closes.index
+    if getattr(idx, "tz", None) is not None:
+        idx = idx.tz_localize(None)
+    s = pd.Series(closes.values, index=idx).sort_index()
+    out = []
+    for a in anchors:
+        a = pd.Timestamp(a)
+        if a.tzinfo is not None:
+            a = a.tz_localize(None)
+        before = s.loc[:a]
+        if before.empty or (a - before.index[-1]).days > RESIDUAL_MOMENTUM_MAX_GAP_DAYS:
+            return None
+        out.append(float(before.iloc[-1]))
+    return out
+
+
+def residual_momentum_fields(hist: pd.DataFrame) -> dict:
+    """The raw record's residual-momentum input from the fetch's whole price history: the stock's
+    close at each of the 37 anchors (``_rm_closes``, date -> close). The split-integrity check
+    runs over the whole history the metric reads - a series that mixes two price scales anywhere
+    in three years gives no input (``_rm_rejected``), never a number wrong by the split ratio."""
+    closes = hist["Close"].dropna()
+    if closes.empty:
+        return {}
+    _integrity = check_price_series_integrity(closes, hist.get("Stock Splits"))
+    if _integrity is not None:
+        return {"_rm_rejected": _integrity}
+    last = closes.index[-1]
+    last = last.tz_localize(None) if getattr(last, "tzinfo", None) is not None else last
+    anchors = momentum_anchor_dates(pd.Timestamp(last).normalize())
+    vals = closes_at_anchors(closes, anchors)
+    if vals is None:
+        return {}
+    return {"_rm_closes": {a.strftime("%Y-%m-%d"): v for a, v in zip(anchors, vals)}}
+
+
+def risk_window(hist: pd.DataFrame, months: int = RISK_WINDOW_MONTHS) -> pd.DataFrame:
+    """The last ``months`` of a daily frame, by the rule backtest v2's ``history_window`` uses
+    (strictly after the last bar minus ``months``). The Risk inputs and the 12-1/6-1 prices are
+    computed on this, so lengthening the history request for residual momentum cannot change
+    their window."""
+    if hist is None or len(hist) == 0:
+        return hist
+    last = hist.index[-1]
+    return hist[hist.index > last - pd.DateOffset(months=months)]
+
+
+def residual_momentum(stock_closes: list, market_closes: list) -> dict | None:
+    """Residual momentum from 37 stock and 37 market closes at the same anchors, oldest first.
+
+    Returns ``{"value", "sum", "sd", "beta", "alpha"}`` or None when the inputs cannot carry it.
+    ``value = sum / sd`` of the formation months' residuals - the page prints that division
+    (``metric_lineage.EQUATIONS["residual_momentum"]``). A constant risk-free rate is left out:
+    subtracting the same number from both returns moves only the intercept, so the residuals are
+    identical; the paper uses each month's T-bill, which differs by a small, stated amount.
+    """
+    n = RESIDUAL_MOMENTUM_MONTHS + 1
+    if stock_closes is None or market_closes is None or len(stock_closes) != n or len(market_closes) != n:
+        return None
+    s = np.asarray(stock_closes, dtype=float)
+    m = np.asarray(market_closes, dtype=float)
+    if not (np.isfinite(s).all() and np.isfinite(m).all()) or (s <= 0).any() or (m <= 0).any():
+        return None
+    rs = s[1:] / s[:-1] - 1
+    rm = m[1:] / m[:-1] - 1
+    if np.var(rm) <= 0:
+        return None
+    X = np.column_stack([np.ones(len(rm)), rm])
+    coef, *_ = np.linalg.lstsq(X, rs, rcond=None)
+    e = rs - X @ coef
+    f = e[-(RESIDUAL_MOMENTUM_FORMATION + 1):-1]       # 12..2 months back; the latest is skipped
+    sd = float(np.std(f, ddof=1))
+    # A floor, not zero: a stock that moved exactly with the market leaves residuals of float
+    # noise (~1e-16), and their ratio is a meaningless number. Real monthly residuals are 1e-2.
+    if not np.isfinite(sd) or sd <= 1e-9:
+        return None
+    tot = float(f.sum())
+    return {"value": tot / sd, "sum": tot, "sd": sd, "beta": float(coef[1]), "alpha": float(coef[0])}
+
+
+def market_closes_at(market_closes: pd.Series | None, anchor_dates: list) -> list | None:
+    """The market's close at the stock's own anchors (the same rule as the stock's)."""
+    if market_closes is None or len(market_closes) == 0:
+        return None
+    return closes_at_anchors(market_closes, [pd.Timestamp(a) for a in anchor_dates])
+
+
 def published_price_date(d: dict) -> str | None:
     """The NYSE session (``YYYY-MM-DD``, Eastern) of the price ``_current_price`` publishes.
 
@@ -1678,9 +1797,16 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: data freshness check failed: {type(e).__name__}: {e}")
 
-        # ---- price history (13 months for 12-1 momentum) ----
+        # ---- price history: one request, 37 months (residual momentum's 36 monthly returns);
+        # every other price input keeps its 13-month window (risk_window, 2026-11-24) ----
         try:
-            hist = t.history(period="13mo", auto_adjust=True)
+            hist_full = t.history(period=RESIDUAL_MOMENTUM_HISTORY, auto_adjust=True)
+            hist = risk_window(hist_full) if hist_full is not None else None
+            if hist_full is not None and len(hist_full) >= 10:
+                try:
+                    rec.update(residual_momentum_fields(hist_full))
+                except (KeyError, IndexError, TypeError, ValueError) as e:
+                    warnings.warn(f"{ticker_str}: residual momentum input failed: {type(e).__name__}: {e}")
             if hist is not None and len(hist) >= 10:
                 # One function, shared with backtest v2 (pit_record.py's history needs the same
                 # momentum and risk inputs from a past window - one computation, never a second).
@@ -1902,10 +2028,11 @@ def fetch_market_returns(max_retries: int = 3) -> pd.Series:
     return pd.Series(dtype=float)
 
 
-def fetch_market_closes(period: str = "3y", max_retries: int = 3) -> pd.Series:
+def fetch_market_closes(period: str = "4y", max_retries: int = 3) -> pd.Series:
     """Daily closes of the S&P 500 total-return index, for the momentum rule's market state
-    (``market_panic_state``). One request. Three years covers the 24-month return and the
-    126-day volatility with room to spare.
+    (``market_panic_state``) and residual momentum's market leg. One request. Four years (three
+    until 2026-11-24) covers residual momentum's 36 months back from the run plus a margin; the
+    rule reads only its last 24 months and 126 days, so the longer series cannot move it.
 
     Only ^SP500TR: the rule's volatility threshold was measured on that series, and near a
     zero two-year return the price index (no dividends) can sit on the other side of it. An
@@ -2058,7 +2185,7 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_r
             "return_12_1": round(mom_12_1, 4),
             "return_6m": round(mom_6m, 4),
             "return_12m": round(mom_12_1 + tn(0.01, 0.02), 4),  # Full 12m ≈ 12-1 + recent month effect
-            "jensens_alpha": round(tn(0.03, 0.10), 4),
+            "residual_momentum": round(tn(0.0, 1.5), 4),
             "volatility": round(vol, 4),
             "beta": round(beta, 2),
             "sharpe_ratio": round((mom_12_1 - risk_free_rate) / vol, 2) if vol > 0 else np.nan,
@@ -2125,8 +2252,12 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_r
 # =========================================================================
 def compute_metrics(raw_data: list, market_returns: pd.Series,
                     cfg: dict | None = None,
-                    risk_free_rate: float = 0.045) -> pd.DataFrame:
-    """Compute all factor metrics (~33 metrics) from raw yfinance ticker data."""
+                    risk_free_rate: float = 0.045,
+                    market_closes: pd.Series | None = None) -> pd.DataFrame:
+    """Compute all factor metrics (~33 metrics) from raw yfinance ticker data.
+
+    ``market_closes`` is the S&P 500 total-return index's daily closes (``fetch_market_closes``),
+    residual momentum's market leg; without it that one metric is missing for every stock."""
     clamps = (cfg or {}).get("metric_clamps", {})
     feg_lo, feg_hi = clamps.get("forward_eps_growth", [-0.75, 1.50])
     ptu_lo, ptu_hi = clamps.get("price_target_upside", [-0.50, 1.0])
@@ -2134,13 +2265,6 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
     records = []
     # The day the metrics describe - for the months left in each fiscal year (forward EPS).
     _as_of = pd.Timestamp(datetime.now(timezone.utc).date())
-
-    # Market 12-month total return (computed once, reused for all tickers).
-    # Convert cumulative log returns to simple return.
-    if len(market_returns) >= 200:
-        market_12m_return = float(np.exp(market_returns.sum()) - 1)
-    else:
-        market_12m_return = float('nan')
 
     for d in raw_data:
         rec = {
@@ -2901,30 +3025,28 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: risk metrics failed: {type(e).__name__}: {e}")
 
-        # -- Jensen's Alpha (requires beta + return_12m from sections above) --
-        # Read values safely from rec dict (not local variables that may be
-        # out of scope if momentum or risk try blocks raised caught exceptions).
-        # Uses return_12m (full 12-month, no skip) for the CAPM realized return.
+        # -- Residual momentum (2026-11-24, in place of Jensen's alpha) --
+        # 36 monthly returns regressed on the S&P 500 total-return index's; the residuals of the
+        # 11 months from 12 to 1 month ago, summed, over their standard deviation (Blitz, Huij &
+        # Martens 2011, CAPM version). The stock's closes come from the fetch (`_rm_closes`), the
+        # market's are read at the same dates. The sum, the sd and the fitted beta are published
+        # from this one computation (metric_lineage.EQUATIONS["residual_momentum"], row 0.8).
+        rec["residual_momentum"] = np.nan
         try:
-            _beta_ja = rec.get("beta", float("nan"))
-            _ret_12m_ja = rec.get("return_12m", float("nan"))
-            if (pd.notna(_beta_ja) and pd.notna(_ret_12m_ja)
-                    and pd.notna(market_12m_return)):
-                expected_return = risk_free_rate + _beta_ja * (market_12m_return - risk_free_rate)
-                rec["jensens_alpha"] = _ret_12m_ja - expected_return
-                # Every term of the CAPM line, from this one computation, so the
-                # page prints the arithmetic instead of describing it
-                # (metric_lineage.EQUATIONS["jensens_alpha"], CLAUDE.md 0.10a).
-                rec["_ja_ret12"] = float(_ret_12m_ja)
-                rec["_ja_rf"] = float(risk_free_rate)
-                rec["_ja_beta"] = float(_beta_ja)
-                rec["_ja_mkt"] = float(market_12m_return)
-            else:
-                rec["jensens_alpha"] = np.nan
-                logging.debug(f"{ticker}: jensens_alpha skipped — beta or return NaN")
+            _rmc = d.get("_rm_closes")
+            if isinstance(_rmc, dict) and len(_rmc) == RESIDUAL_MOMENTUM_MONTHS + 1:
+                _dates = sorted(_rmc)
+                _mk = market_closes_at(market_closes, _dates)
+                _rmr = residual_momentum([_rmc[k] for k in _dates], _mk)
+                if _rmr is not None:
+                    rec["residual_momentum"] = _rmr["value"]
+                    rec["_rm_sum"] = _rmr["sum"]
+                    rec["_rm_sd"] = _rmr["sd"]
+                    rec["_rm_beta"] = _rmr["beta"]
+                    rec["_rm_from"] = _dates[0]
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
-            warnings.warn(f"{ticker}: Jensen's alpha failed: {type(e).__name__}: {e}")
-            rec["jensens_alpha"] = np.nan
+            warnings.warn(f"{ticker}: residual momentum failed: {type(e).__name__}: {e}")
+            rec["residual_momentum"] = np.nan
 
         # -- Revisions --
         try:
@@ -3239,7 +3361,7 @@ METRIC_COLS = [
     "beneish_m_score",                                               # earnings manipulation (non-bank)
     "roe", "roa", "equity_ratio",                                    # bank quality
     "forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth",
-    "return_12_1", "return_6m", "jensens_alpha",                      # momentum + risk-adjusted alpha
+    "return_12_1", "return_6m", "residual_momentum",                  # momentum + residual momentum (2026-11-24)
     "volatility", "beta", "sharpe_ratio", "sortino_ratio",              # risk + risk-adjusted return
     "max_drawdown_1y",                                                   # tail risk: max peak-to-trough
     "fy1_revision_3m",                                               # FY1 consensus EPS revision, 90d
@@ -3330,7 +3452,7 @@ METRIC_DIR = {
     "revenue_cagr_3yr": True,                                        # higher revenue CAGR = better
     "sustainable_growth": True,
     "return_12_1": True, "return_6m": True,
-    "jensens_alpha": True,                                   # higher alpha = more excess return above CAPM = better
+    "residual_momentum": True,                               # higher = beat its market exposure by more, per unit of noise
     "volatility": False, "beta": False,
     "sharpe_ratio": True,                                    # higher Sharpe = better risk-adjusted return
     "sortino_ratio": True,                                   # higher Sortino = better downside-adjusted return
@@ -3485,7 +3607,7 @@ CAT_METRICS = {
                   "operating_margin", "current_ratio", "insider_ownership", "interest_coverage",
                   "earnings_variability"],
     "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth"],
-    "momentum":  ["return_12_1", "return_6m", "jensens_alpha", "proximity_52w_high"],
+    "momentum":  ["return_12_1", "return_6m", "residual_momentum", "proximity_52w_high"],
     "risk":      ["volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y"],
     "revisions": ["fy1_revision_3m",
                   "analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",

@@ -68,7 +68,7 @@ def _write_config(tmp_path):
                 "revenue_cagr_3yr": 15, "sustainable_growth": 15,
             },
             "momentum": {
-                "return_12_1": 40, "return_6m": 35, "jensens_alpha": 25,
+                "return_12_1": 40, "return_6m": 35, "residual_momentum": 25,
                 "proximity_52w_high": 0,
             },
             "risk": {

@@ -189,7 +189,7 @@ class TestDailyLoopActuallyFetches:
             "return_12_1", "return_6m", "proximity_52w_high",
             # Risk
             "volatility", "beta", "sharpe_ratio", "sortino_ratio",
-            "max_drawdown_1y", "jensens_alpha",
+            "max_drawdown_1y", "residual_momentum",
             # Revisions
             "price_target_upside",
             "fy1_revision_3m",          # (d FY1 consensus EPS) / price

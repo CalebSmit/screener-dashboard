@@ -253,20 +253,39 @@ def test_the_skip_month_returns_ignore_the_latest_month():
     b = compute_metrics([_rec(price_latest=130.0, price_1m_ago=98.0)], pd.Series(dtype=float)).iloc[0]
     assert a["return_12_1"] == pytest.approx(b["return_12_1"])
     assert a["return_6m"] == pytest.approx(b["return_6m"])
-    # Jensen's alpha is built on the full twelve months, so the latest month moves its input
+    # the full twelve-month return (Sharpe, Sortino; context only) does move with it
     assert a["return_12m"] != pytest.approx(b["return_12m"])
+
+
+def test_residual_momentum_sums_the_months_to_one_month_ago():
+    """The third weighted Momentum measure: its residual sum runs over months 12..2 back, so the
+    latest month's residual is never in it (it enters only the 36-month fit, as in Blitz, Huij &
+    Martens 2011, p. 11: the fit runs t-36..t-1, the signal t-12..t-2)."""
+    import numpy as np
+    import factor_engine as fe
+    rng = np.random.default_rng(7)
+    m = 100 * np.cumprod(np.r_[1.0, 1 + rng.normal(0.008, 0.04, 36)])
+    s = 50 * np.cumprod(np.r_[1.0, 1 + rng.normal(0.01, 0.07, 36)])
+    out = fe.residual_momentum(list(s), list(m))
+    rs, rm = s[1:] / s[:-1] - 1, m[1:] / m[:-1] - 1
+    X = np.column_stack([np.ones(36), rm])
+    e = rs - X @ np.linalg.lstsq(X, rs, rcond=None)[0]
+    assert out["sum"] == pytest.approx(e[-12:-1].sum())
+    assert out["sum"] != pytest.approx(e[-11:].sum())
+    assert out["value"] == pytest.approx(e[-12:-1].sum() / e[-12:-1].std(ddof=1))
 
 
 def test_the_momentum_sentence_matches_the_configured_weights():
     w = CFG["metric_weights"]["momentum"]
     total = sum(float(x) for x in w.values())
-    skip = (float(w["return_12_1"]) + float(w["return_6m"])) / total
-    rest = {k for k, x in w.items() if float(x) > 0} - {"return_12_1", "return_6m"}
-    assert rest == {"jensens_alpha"}, rest
-    assert skip == pytest.approx(0.75), "the sentence says three quarters - change it with the weights"
+    weighted = {k for k, x in w.items() if float(x) > 0}
+    assert total > 0
+    assert weighted == {"return_12_1", "return_6m", "residual_momentum"}, (
+        "the sentence names exactly three weighted Momentum measures - change it with the weights")
     js = gd._js_context()
-    assert "12-1 and 6-1 month returns, three quarters of its Momentum category, skip the latest month" in js
-    assert "Jensen&rsquo;s alpha, the other quarter, uses the full twelve months" in js
+    assert "all three of the screener&rsquo;s weighted Momentum measures skip the latest month" in js
+    assert "the 12-1 and 6-1 month returns, and residual momentum, whose sum runs to one month ago" in js
+    assert "Jensen" not in js
     assert not claims.forbidden_hits(js)
 
 

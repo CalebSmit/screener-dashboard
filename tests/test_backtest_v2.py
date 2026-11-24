@@ -255,7 +255,7 @@ def test_a_reused_symbol_is_never_scored_as_todays_company(monkeypatch):
         n_members = 1
         staleness_days = 0
     monkeypatch.setattr(v2.uh, "members_on", lambda as_of, allow_network=False: Snap)
-    monkeypatch.setattr(v2, "metrics_month", lambda recs, cfg, mr, rf: pd.DataFrame(
+    monkeypatch.setattr(v2, "metrics_month", lambda recs, cfg, mr, rf, mc=None: pd.DataFrame(
         {"Ticker": [r["Ticker"] for r in recs]}))
     monkeypatch.setattr(v2, "rank_month", lambda m, cfg, st: m.assign(Composite=50.0, Rank=1))
     monkeypatch.setattr(v2, "save_metrics", lambda *a, **k: None)

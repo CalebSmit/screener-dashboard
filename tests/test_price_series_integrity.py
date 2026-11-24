@@ -5,7 +5,7 @@ Why this file exists
 Nine of the 44 metrics are derived from a single ``Ticker.history()`` call:
 the whole ``risk`` category (volatility, beta, sharpe_ratio, sortino_ratio,
 max_drawdown_1y) and three quarters of ``momentum`` (return_12_1, return_6m,
-jensens_alpha - only proximity_52w_high comes from elsewhere).  Nothing
+residual_momentum - only proximity_52w_high comes from elsewhere).  Nothing
 checked that the series was internally consistent.
 
 On 2026-08-26 it was not.  Yahoo's 13-month series for MNST alternated
@@ -228,7 +228,7 @@ def test_withholding_those_fields_blanks_momentum_and_risk():
     out = compute_metrics([raw], pd.Series(dtype=float), risk_free_rate=0.045)
     row = out.iloc[0]
 
-    for m in ("return_12_1", "return_6m", "jensens_alpha",
+    for m in ("return_12_1", "return_6m", "residual_momentum",
               "volatility", "beta", "sharpe_ratio", "sortino_ratio",
               "max_drawdown_1y"):
         assert pd.isna(row[m]), f"{m} should be withheld, got {row[m]}"
@@ -242,7 +242,7 @@ def test_withholding_those_fields_blanks_momentum_and_risk():
 
 # --------------------------------------- what it does to the composite
 
-WITHHELD_METRICS = ("return_12_1", "return_6m", "jensens_alpha",
+WITHHELD_METRICS = ("return_12_1", "return_6m", "residual_momentum",
                     "volatility", "beta", "sharpe_ratio", "sortino_ratio",
                     "max_drawdown_1y")
 
