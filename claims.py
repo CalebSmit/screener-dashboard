@@ -1403,6 +1403,37 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="context.iv_construction",
+        surface=DRILLDOWN,
+        asserts=(
+            "'What options imply' says how its implied volatilities were arrived at, from the "
+            "reading's own stamp: either the data source's own figures, whose method it does not "
+            "publish, or (once context_signals.PUBLISHED_IV_CONSTRUCTION is 'own_mid') worked out "
+            "here from each option's bid-ask midpoint - American exercise, the stock's expected "
+            "dividends before expiry, the Treasury yield for that term. A reading whose volatilities "
+            "were built the other way is withheld and says so, by the same predicate the context "
+            "record counts with, so the page never shows a figure the record refuses (2026-11-24)."
+        ),
+        made_true_by="generate_dashboard:_stock_context",
+        checked_by=(
+            "tests/test_implied_vol.py::test_the_page_shows_only_the_construction_the_record_counts",
+            "tests/test_implied_vol.py::test_the_page_and_the_record_read_one_predicate",
+            "tests/test_implied_vol.py::test_the_panel_says_how_its_volatilities_were_worked_out",
+            "tests/test_implied_vol.py::test_the_main_columns_hold_the_published_construction",
+            "tests/test_implied_vol.py::test_the_inversion_recovers_the_volatility_it_priced_with",
+            "tests/test_implied_vol.py::test_the_inversion_agrees_with_an_independently_written_tree",
+            "tests/test_implied_vol.py::test_a_quarterly_payer_is_projected_from_its_last_ex_date",
+            "tests/test_implied_vol.py::test_the_curve_is_continuously_compounded_and_interpolated_in_time",
+        ),
+        caveat=(
+            "Fixed 2026-11-24. Until then the panel printed the source's implied volatilities without saying "
+            "whose they were. Eight constructions across two sessions could not rebuild that field "
+            "(research/2026-11-03-open-source-quant-stack.md sections 1b-1d); our own inversion was "
+            "ADOPTED 2026-11-04 and is recorded beside it from 2026-11-24, published once its "
+            "whole-universe coverage is measured from a 20:00 refresh."
+        ),
+    ),
+    Claim(
         id="context.rate_sensitivity",
         surface=DRILLDOWN,
         asserts=(

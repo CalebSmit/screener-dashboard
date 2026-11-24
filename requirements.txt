@@ -16,3 +16,5 @@ markdown>=3.5               # generate_dashboard.py: renders SCREENER_OVERVIEW.m
 tqdm>=4.66.0               # Progress bars for long-running operations
 pandas-datareader>=0.10.0  # factor_exposure.py only
 statsmodels>=0.14.0        # factor_exposure.py only
+QuantLib==1.44             # implied_vol.py: our own American implied volatilities (context only,
+                           # never scored). Optional: without it every reading keeps the source field.
