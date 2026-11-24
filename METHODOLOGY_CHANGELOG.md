@@ -5865,7 +5865,13 @@ the row divides, backtest v2 builds the same input); `tests/test_metric_lineage.
 equation `{rm_sum} ÷ {rm_sd}` reproduces the scored value for every stock that has one);
 `tests/test_context_layer_claims.py` (the reversal note's sentence, claim `context.momentum_skip`);
 the full suite against the regenerated page; the published-claims gate. **Backtest observation, not
-decision-grade (rule 5):** RESEARCH_ENGINE_PLACEHOLDER
+decision-grade (rule 5):** backtest v2's 176 months rebuilt with the new metric (base run
+`d687fd4972dd`, commit `2d67ed7`) and all 32 research-engine rows rerun: the current weighting's
+IC is -0.0023 pooled (95% interval -0.018 to +0.014; was -0.0013 on the previous build), 0 of 27
+alternatives better or worse, and the positive control still sees its signal (t 5.74). The daily
+prices begin 2010-11, so the months before about 2013-12 carry no residual momentum (shared within
+Momentum, as live); the rebuild also took today's run for the static fields. Nothing here decides
+anything before 2027-02-11 - the change rests on the Evidence above.
 
 **Applied by:** morning session (manual), 2026-11-24 06:00, building a proposal ACCEPTED by the
 2026-11-21 06:00 session. **Rollback:** `good/2026-11-23-owner-phone-rows`.
