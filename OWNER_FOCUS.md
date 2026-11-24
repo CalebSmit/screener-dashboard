@@ -45,7 +45,11 @@ Two things still outrank this file, and neither is negotiable:
   Martens 2011), proposed as a like-for-like replacement - **ACCEPTED 2026-11-21** by the weekend
   session (the paper's tables re-read; the longer price history is the same request, +0.04 s a stock;
   495 of 503 have the three years it needs), to be built by the 06:00 session of 2026-11-23 (note
-  section 9; the brief's "Coming up"); **(3) answered 2026-11-21** - the pre-registered measurement ran
+  section 9; the brief's "Coming up") - **BUILT 2026-11-24** (06:00 session; that 11-23 session never ran): residual momentum
+  now holds Jensen's alpha's 25 points of Momentum, shown on every stock's workings row as the engine's
+  own division, published with the full run that carries it (top 25: three names in, three out; 491
+  of 499 have a value - seven listings under three years and FLEX, withheld by the split check), and
+  the research engine rerun on rebuilt months (`METHODOLOGY_CHANGELOG.md` 2026-11-24); **(3) answered 2026-11-21** - the pre-registered measurement ran
   (`research/2026-11-19-what-the-ranking-is-for.md` sections 4-5): the test can see a signal when there
   is one, yet the top 40 were as likely as any stock to have one of the worst next months, and at 6 and
   12 months 14 years of history is too short to tell - so by the rule fixed beforehand the ranking is
