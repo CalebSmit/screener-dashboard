@@ -1,4 +1,4 @@
-# Morning Brief - Monday 23 November 2026, 13:00
+# Morning Brief - Monday 23 November 2026, 18:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,10 +18,7 @@ history is in `NIGHTLY_LOG.md`.
 | Shipped to readers | 19 commit(s) changed what a reader sees, 8 methodology change(s), in the last 7 days |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (56 rows, but overlapping windows are not independent; 137 rows across all horizons), newest 1m run date 2026-10-21 (33 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 455/455 within 0.5%; operating cash flow 441/442 within 0.5%; net income 429/453 within 0.5%; market value 452/487 within 5%; 2 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 5 days ago |
-| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#7: net income 1.29x after-tax operating income); PSX (#8: net income 1.28x after-tax operating income); TPR (#9: equity 5.2% of assets); DXCM (#12: operating cash flow 36% off the filing); ES (#17: a period behind its filings); CF (#24: net income 15% off the filing); WDC (#25: net income 2.13x after-tax operating income) |
-| Data run timing | **19 min** total; slowest `fetch.tickers` 658 s, `fetch.retry` 125 s, `context.sec_insider` 124 s; **33 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (10 days) |
+| Code-session login | 2026-12-03 09:01 (9 days) |
 | Context coverage | options usable 494/499 (5 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
 
 ## Coming up
@@ -36,9 +33,16 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## Things that needed attention
 
-- Push to main failed. Local main is ahead.
-- Could not fast-forward local main to the published brief: hint: Diverging branches can't be fast-forwarded, you need to either:
+- hint: Diverging branches can't be fast-forwarded, you need to either:
+- hint:
+- hint: 	git merge --no-ff
+- hint: or:
+- hint: 	git rebase
+- hint: Disable this message with "git config set advice.diverging false"
+- fatal: Not possible to fast-forward, aborting.
+- git pull --ff-only failed - local main cannot be brought level with origin/main. Not running on it.
 - git pull --ff-only failed - main diverged locally. Resolve by hand.
+- Could not fast-forward local main to the published brief: hint: Diverging branches can't be fast-forwarded, you need to either:
 
 ## What changed in the repo
 
