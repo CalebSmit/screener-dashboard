@@ -3,11 +3,11 @@
  "alternatives": 27,
  "better": 0,
  "worse": 0,
- "data_hash": "4a7a38dc3471",
+ "data_hash": "599d9f0158b3",
  "baseline_ic": {
-  "presample": -0.00183,
-  "all": -0.00073,
-  "pooled": -0.00133
+  "presample": -0.00308,
+  "all": -0.00129,
+  "pooled": -0.00227
  },
  "months": {
   "presample": 96,
@@ -16,31 +16,31 @@
  },
  "baseline_ic_ci95": {
   "presample": [
-   -0.0218,
-   0.0181
+   -0.0223,
+   0.0161
   ],
   "all": [
-   -0.0282,
-   0.0267
+   -0.0283,
+   0.0257
   ],
   "pooled": [
-   -0.0177,
-   0.015
+   -0.0182,
+   0.0137
   ]
  },
- "pooled_t": -0.16,
- "pooled_detectable": 0.0319,
+ "pooled_t": -0.28,
+ "pooled_detectable": 0.0311,
  "method_version": 2,
  "control": {
   "id": "lookahead-filings",
   "sees": true,
   "period": "all",
   "months": 80,
-  "ic_vs_baseline": 0.05161,
-  "t": 5.64,
-  "detectable": 0.0373,
+  "ic_vs_baseline": 0.05228,
+  "t": 5.74,
+  "detectable": 0.0372,
   "in_band": true,
-  "arm_ic": 0.05089,
-  "baseline_ic_on_common": -0.00072
+  "arm_ic": 0.05098,
+  "baseline_ic_on_common": -0.0013
  }
 }

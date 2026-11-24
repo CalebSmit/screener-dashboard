@@ -5780,3 +5780,98 @@ except through sector percentiles of `sustainable_growth` (four fewer values in 
 the suite; the research ledger rerun (*Backtest observation, not decision-grade*: see the commit).
 
 **Applied by:** owner-run session, 2026-11-19 (night). **Rollback:** `good/2026-11-19-owner-review-2`.
+
+## 2026-11-24 - Residual momentum replaces Jensen's alpha in Momentum (weight 25 unchanged)
+
+**Area:** metric definition, Momentum category (`jensens_alpha` -> `residual_momentum`, 25 of the
+category's 100; 3.25 of the composite at Momentum's 13%).
+
+**Changed:** the third Momentum metric was `jensens_alpha` = 12-month return - [rf + beta x (S&P 500
+12-month total return - rf)], unskipped, on the same 12 months as its own beta. It is now **residual
+momentum** (Blitz, Huij & Martens 2011, CAPM version): 36 monthly returns, each month ending on the
+run's own date, regressed (with an intercept) on the S&P 500 total-return index's (`^SP500TR`); the
+residuals of the 11 months from 12 months ago to 1 month ago are summed and divided by their standard
+deviation. The latest month is skipped (it enters only the fit, as in the paper: fit t-36..t-1, signal
+t-12..t-2, manuscript p. 11); the fitted intercept is left out (p. 12). Higher is better; sector
+percentile like every metric. Supporting changes, none of them a second methodology change:
+- the fetch's one price-history request is `period="37mo"` (was `13mo`) - **the same request**, and
+  every other price input (volatility, beta's daily returns, max drawdown, dollar volume, the 12-1 and
+  6-1 prices, the trend context) is computed on the last 13 months of it (`factor_engine.risk_window`,
+  backtest v2's own window rule), so no Risk or other Momentum input changed window; the split-integrity
+  check runs over the whole 37 months the new metric reads;
+- `fetch_market_closes` asks for 4 years of `^SP500TR` (was 3); the momentum panic rule reads its last
+  24 months and 126 days only (`tests/test_residual_momentum.py` asserts the state is identical);
+- a stock without a close within 10 days of each of the 37 monthly anchors (a listing under three
+  years) has no value; its 25 points are shared by the other two Momentum metrics - the existing
+  within-category rule (row 0.8m: only a missing *category* counts at 50);
+- the risk-free rate is left out: held constant, it moves only the intercept and cannot change a
+  residual (tested). The paper subtracts each month's T-bill; the difference is small and stated on
+  the row.
+- backtest v2 builds the same input through the same function (`residual_momentum_fields`,
+  `pit_record.FIELD_CLASSES["price_history"]`), and its months were rebuilt.
+
+**Evidence:** `research/2026-11-20-jensens-alpha-in-momentum.md` (written by the 2026-11-20 13:00
+session; decided ACCEPTED by a different session on 2026-11-21, section 9, which re-read the tables).
+- *What it replaces has no source and duplicates another metric.* As built, Jensen's alpha ranked
+  stocks 0.97-0.98 like the plain 12-month return (177 month-ends 2012-2026; 0.981 on one day), so
+  about 65 of Momentum's 100 points ranked one 12-month price move; it carried the latest month every
+  other Momentum metric skips; and its `- beta x (m - rf)` term rewarded low beta inside Momentum in
+  rising markets on top of Risk's beta, flipping sign in falling ones. No source the note found ranks
+  stocks on a same-window, unskipped CAPM alpha (Jensen 1968 built it to judge managers).
+- *What replaces it is the construction the literature tests.* Blitz, D., Huij, J. & Martens, M.
+  (2011), "Residual momentum", *Journal of Empirical Finance* 18(3), 506-521,
+  doi:10.1016/j.jempfin.2011.01.003 (accepted manuscript read, tables re-checked by the deciding
+  session): CRSP 1926-2009, one-month holding, total-return momentum 10.26% a year at 22.70% volatility
+  (Sharpe 0.45) against residual momentum 11.20% at 12.49% (Sharpe 0.90), Table 2; **in the largest
+  10% of stocks by market value** 8.87% / 24.55% (0.36, t 2.75) against 9.18% / 15.27% (0.60, t 5.32),
+  Table 8. Gutierrez & Pirinsky (2007), *Journal of Financial Markets* 10(1), 48-75: a CAPM
+  (single-index) residual, one month skipped, earns about as much as relative-return momentum over a
+  year and does not reverse afterwards. **The case is a similar mean at about half the volatility, not
+  a higher return** - and that evidence is long-short decile spreads; this screener is long-only, and
+  momentum's crash risk sits mostly in the losers leg it does not hold (Han, Zhou & Zhu, as in
+  `research/2026-10-22-stop-loss-on-the-bots-rule.md`). **Do not read the Sharpe ratios above as what
+  a reader of this screener should expect.**
+- *Practice.* MSCI and S&P momentum indexes skip the latest month and divide by volatility; AQR uses
+  plain 12-1 and argues "simplest is best"; Robeco (Blitz et al.'s employer) applies a residualised
+  momentum in all its quantitative stock-selection models (note section 4). Every provider skips the
+  month; none ranks on a CAPM alpha.
+- *Why C, not dropping the metric (D) or only skipping the month (B):* note section 9.3. D moves 25
+  category points onto two metrics already 0.87-0.92 alike, and is a weight change; B keeps a 0.94-0.97
+  copy of 12-1 and the same-window intercept the paper excludes on purpose. C moves no weight.
+- *CAPM, not Fama-French three factors:* a stated simplification (Gutierrez & Pirinsky report
+  qualitatively similar results for alternative expected-return models), keeping a third-party factor
+  file out of the scoring path and leaving one regression a student can follow.
+
+**Expected effect** (measured on a full run under the new metric, 06:18, against the 02:00 page; both
+read the 2026-11-23 close, so the difference is the change plus a few hours of estimate and quote
+drift - `research/measurements/2026-11-24-residual-momentum-effect.py` and `.json`): rank Spearman
+**0.996** over 499 names; Momentum score Spearman 0.970; median rank move 6 places, 90th percentile 22,
+largest 44 (LULU 297 -> 253, PCG 417 -> 374, WMT 296 -> 338, COST 239 -> 280). Top 25: **3 in** (ADBE,
+IT, NWSA), **3 out** (ALL, DLTR, EVRG); 0 of the published top 25 below #40; top five the same names
+(MU and SNDK swap 4th and 5th). Residual momentum's raw value correlates 0.79 with `return_12_1`
+(Spearman, this run; the note measured 0.77 median over 155 month-ends) - a related but distinct
+signal, where Jensen's alpha was 0.87. **Coverage 491 of 499.** No value for **seven listings under
+three years** - FDXF, GEV, HONA, Q, RDDT, **SNDK** (#5) and SOLV, the note's list less VYLR (unscored
+today) - and **FLEX**, withheld by the split-integrity check: Yahoo records its January 2024 Nextracker
+spin-off as a 1.327 "split", which arms the check over the 37-month window, and a one-day move of the
+same size on 2026-05-06 trips it. Withholding is that guard's designed outcome (settled row 1.5); FLEX
+keeps its other Momentum metrics. `check_run_health`: HEALTH: PASS (rank continuity 0.996, 3 new in
+the top 25).
+
+**Validated by:** `tests/test_residual_momentum.py` (17: the arithmetic against an independent fit,
+the skip, the risk-free invariance, the 13-month Risk window, one history request, the panic rule
+unmoved, a short listing and a mixed price scale give no value, compute_metrics publishes the terms
+the row divides, backtest v2 builds the same input); `tests/test_metric_lineage.py` (the row's
+equation `{rm_sum} ÷ {rm_sd}` reproduces the scored value for every stock that has one);
+`tests/test_context_layer_claims.py` (the reversal note's sentence, claim `context.momentum_skip`);
+the full suite against the regenerated page; the published-claims gate. **Backtest observation, not
+decision-grade (rule 5):** backtest v2's 176 months rebuilt with the new metric (base run
+`d687fd4972dd`, commit `2d67ed7`) and all 32 research-engine rows rerun: the current weighting's
+IC is -0.0023 pooled (95% interval -0.018 to +0.014; was -0.0013 on the previous build), 0 of 27
+alternatives better or worse, and the positive control still sees its signal (t 5.74). The daily
+prices begin 2010-11, so the months before about 2013-12 carry no residual momentum (shared within
+Momentum, as live); the rebuild also took today's run for the static fields. Nothing here decides
+anything before 2027-02-11 - the change rests on the Evidence above.
+
+**Applied by:** morning session (manual), 2026-11-24 06:00, building a proposal ACCEPTED by the
+2026-11-21 06:00 session. **Rollback:** `good/2026-11-23-owner-phone-rows`.

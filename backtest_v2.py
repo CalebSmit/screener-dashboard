@@ -77,7 +77,8 @@ UNMEASURABLE_METRICS = ("forward_eps_growth", "fy1_revision_3m", "analyst_surpri
                         "short_interest_ratio", "earnings_acceleration", "peg_ratio",
                         "analyst_rating", "short_pct_float", "insider_ownership")
 INDEX = "^SP500TR"
-WINDOW_MONTHS = 13            # the fetch's history(period="13mo")
+WINDOW_MONTHS = 13            # the fetch's risk window (factor_engine.RISK_WINDOW_MONTHS)
+RM_WINDOW_MONTHS = 37         # the fetch's history(period="37mo"), residual momentum's
 
 
 def v2_config(cfg: dict) -> dict:
@@ -217,12 +218,13 @@ def _load_ciks(root: Path) -> dict:
     return out
 
 
-def history_window(g: pd.DataFrame, as_of: pd.Timestamp, splits: pd.DataFrame | None = None) -> pd.DataFrame:
+def history_window(g: pd.DataFrame, as_of: pd.Timestamp, splits: pd.DataFrame | None = None,
+                   months: int | None = None) -> pd.DataFrame:
     """The fetch's 13-month daily frame, ending at ``as_of``: Close adjusted for splits and
     dividends (as ``history(auto_adjust=True)``), Volume, and the declared splits as
     ``Stock Splits`` - without them ``check_price_series_integrity`` never arms, and a series that
     mixes two price scales would be scored (the MNST defect, 2026-08-26)."""
-    w = g[(g.index > as_of - pd.DateOffset(months=WINDOW_MONTHS)) & (g.index <= as_of)]
+    w = g[(g.index > as_of - pd.DateOffset(months=months or WINDOW_MONTHS)) & (g.index <= as_of)]
     out = pd.DataFrame({"Close": w["adj_close"], "Volume": w["volume"]}).dropna(subset=["Close"])
     out["Stock Splits"] = 0.0
     if splits is not None and not splits.empty:
@@ -276,16 +278,30 @@ def record_at(ticker: str, inputs: Inputs, as_of: pd.Timestamp, filings_as_of: p
     for k in pr.FIELD_CLASSES["no_free_history"]:
         rec[k] = np.nan
     rec.update(fe.price_history_fields(hist))
+    # Residual momentum's 37 monthly closes, from the same daily series over the live fetch's
+    # longer window and through the live fetch's own function (2026-11-24).
+    rec.update(fe.residual_momentum_fields(
+        history_window(g, as_of, inputs.splits[inputs.splits["ticker"] == ticker],
+                       months=RM_WINDOW_MONTHS)))
     yr = close[close.index > as_of - pd.DateOffset(years=1)]
     rec["fiftyTwoWeekHigh"] = float(yr.max()) if len(yr) else np.nan   # closes, not intraday highs
     return rec, None
 
 
-def metrics_month(records: list[dict], cfg: dict, market_returns: pd.Series, rf: float) -> pd.DataFrame:
+def market_closes_to(inputs: Inputs, as_of: pd.Timestamp) -> pd.Series:
+    """The total-return index's daily closes to ``as_of`` - residual momentum's market leg, as
+    the live run's ``fetch_market_closes`` hands it to ``compute_metrics``."""
+    idx = inputs.index[INDEX]
+    return idx[(idx.index > as_of - pd.DateOffset(years=4)) & (idx.index <= as_of)]
+
+
+def metrics_month(records: list[dict], cfg: dict, market_returns: pd.Series, rf: float,
+                  market_closes: pd.Series | None = None) -> pd.DataFrame:
     """The slow, weight-independent half of a month's scoring: every stock's metrics."""
     with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
         warnings.simplefilter("ignore")
-        df = fe.compute_metrics(records, market_returns, cfg, risk_free_rate=rf)
+        df = fe.compute_metrics(records, market_returns, cfg, risk_free_rate=rf,
+                                market_closes=market_closes)
         return df[~df.get("_skipped", pd.Series(False, index=df.index)).fillna(False)].copy()
 
 
@@ -434,7 +450,7 @@ def build_month(as_of: str, inputs: Inputs, cfg: dict, filings_as_of: pd.Timesta
         else:
             records.append(rec)
     mr, rf, state = market_inputs(inputs, t, cfg.get("momentum_regime"))
-    metrics = metrics_month(records, cfg, mr, rf)
+    metrics = metrics_month(records, cfg, mr, rf, market_closes_to(inputs, t))
     if filings_as_of is None:
         try:
             save_metrics(as_of, metrics, state)

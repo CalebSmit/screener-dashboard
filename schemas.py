@@ -125,7 +125,7 @@ class FactorScores(BaseModel):
     sustainable_growth: Optional[float] = None
     return_12_1: Optional[float] = None
     return_6m: Optional[float] = None
-    jensens_alpha: Optional[float] = None     # Risk-adjusted excess return (CAPM)
+    residual_momentum: Optional[float] = None  # Residual momentum (Blitz, Huij & Martens 2011)
     volatility: Optional[float] = None
     beta: Optional[float] = None
     sharpe_ratio: Optional[float] = None      # Risk-adjusted return per unit risk
@@ -254,7 +254,7 @@ class GrowthWeights(_MetricWeightBase):
 class MomentumWeights(_MetricWeightBase):
     return_12_1: float = 40
     return_6m: float = 35
-    jensens_alpha: float = 25
+    residual_momentum: float = 25
     proximity_52w_high: float = 0  # Candidate: activated by improvement engine
 
 

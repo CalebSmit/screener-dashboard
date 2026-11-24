@@ -128,6 +128,9 @@ FIELD_CLASSES = {
     "price_history": ("currentPrice", "price_latest", "price_1m_ago", "price_6m_ago", "price_12m_ago",
                       "volatility_1y", "_vol_daily_sd", "_daily_returns", "_price_series_rejected",
                       "fiftyTwoWeekHigh", "avg_daily_dollar_volume",
+                      # residual momentum's 37 monthly closes (2026-11-24): backtest_v2.record_at
+                      # restates them from the same daily history at each month-end
+                      "_rm_closes", "_rm_rejected",
                       # the session of the published price (2026-10-22): display and gating only
                       "regularMarketTime", "_price_bar_date"),
     # no free retrospective panel IN USE: analyst estimates and history, short interest, holdings.

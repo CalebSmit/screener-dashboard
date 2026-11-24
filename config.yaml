@@ -94,7 +94,7 @@ metric_weights:
   momentum:
     return_12_1: 40    # Classic Jegadeesh-Titman momentum signal
     return_6m: 35      # Medium-term momentum
-    jensens_alpha: 25  # Risk-adjusted excess return above CAPM prediction
+    residual_momentum: 25  # Blitz, Huij & Martens (2011), CAPM version; replaced jensens_alpha 2026-11-24
     proximity_52w_high: 0  # Candidate: George & Hwang (2004); price / 52W high
 
   risk:
@@ -393,7 +393,7 @@ enable_short_interest_ratio: true   # Days to cover (shortRatio); lower = less b
 enable_revenue_cagr_3yr: true       # 3-year revenue CAGR; smoothed growth signal
 enable_net_debt_ebitda: true        # Net Debt/EBITDA; replaces Debt/Equity in quality scoring
 enable_operating_leverage: true     # DOL; computed and published as a weight-0 candidate (2026-10-09)
-enable_jensens_alpha: true          # Jensen's Alpha; risk-adjusted excess return above CAPM
+enable_residual_momentum: true      # Residual momentum (2026-11-24, in place of Jensen's alpha)
 enable_sharpe_ratio: true           # Sharpe Ratio; risk-adjusted return per unit of total risk
 
 # Self-Improvement Engine

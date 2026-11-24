@@ -103,7 +103,7 @@ def test_auto_reduce_candidates_are_exactly_the_weighted_set(cfg):
         assert set(ms) <= set(fe.CAT_METRICS[cat])
 
 
-@pytest.mark.parametrize("metric", ["fy1_revision_3m", "jensens_alpha", "max_drawdown_1y",
+@pytest.mark.parametrize("metric", ["fy1_revision_3m", "residual_momentum", "max_drawdown_1y",
                                     "net_debt_to_ebitda", "beneish_m_score", "revenue_cagr_3yr",
                                     "short_interest_ratio"])
 def test_an_outage_in_a_previously_unwatched_metric_is_caught(cfg, metric):

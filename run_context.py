@@ -211,7 +211,10 @@ class RunContext:
             # 16 = each stock's published price carries the NYSE session it is from
             # (`_price_date`, 2026-10-22): a warm start would serve a table without the column and
             # the health check's price-freshness gate would find no price dated at all.
-            "scoring_schema": 16 if scoring_schema is None else scoring_schema,
+            # 17 = residual momentum in place of Jensen's alpha (2026-11-24): a new raw field
+            # (`_rm_closes`) and new columns (`residual_momentum`, `_rm_*`); a warm start would
+            # serve a table with neither and a quarter of Momentum missing for every stock.
+            "scoring_schema": 17 if scoring_schema is None else scoring_schema,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

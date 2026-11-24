@@ -1304,7 +1304,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "piotroski_f_score", "accruals", "operating_leverage", "beneish_m_score",
         "roe", "roa", "equity_ratio",
         "forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth",
-        "return_12_1", "return_6m", "jensens_alpha",
+        "return_12_1", "return_6m", "residual_momentum",
         "volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y",
         "fy1_revision_3m",
         "analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
@@ -1730,7 +1730,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "sustainable_growth": {"label": "Sustainable Growth", "fmt": "pct", "category": "growth"},
         "return_12_1": {"label": "12-1M Return", "fmt": "pct", "category": "momentum"},
         "return_6m": {"label": "6-1M Return", "fmt": "pct", "category": "momentum"},
-        "jensens_alpha": {"label": "Jensen's Alpha", "fmt": "pct", "category": "momentum"},
+        "residual_momentum": {"label": "Residual Momentum", "fmt": "ratio", "category": "momentum"},
         "volatility": {"label": "Volatility", "fmt": "pct", "category": "risk"},
         "beta": {"label": "Beta", "fmt": "ratio", "category": "risk"},
         "sharpe_ratio": {"label": "Sharpe Ratio", "fmt": "ratio", "category": "risk"},
@@ -2116,9 +2116,9 @@ METRIC_PLAIN = {
                    "price momentum.",
     "return_6m": "How the share price has done over roughly the past six months: a shorter reading "
                  "of price momentum.",
-    "jensens_alpha": "The part of the stock's return over the past year that its sensitivity to the "
-                     "whole market does not explain: what it earned beyond what the market's move "
-                     "alone would predict.",
+    "residual_momentum": "How far the stock beat what the market's moves predicted for it, from a "
+                         "year ago to a month ago, measured against its own month-to-month noise: "
+                         "momentum with the market's part taken out.",
     "volatility": "How much the share price swings from day to day, stated as a yearly figure: the "
                   "everyday meaning of a risky stock.",
     "beta": "How much the stock tends to move when the whole market moves. A stock with a beta of "
@@ -11392,7 +11392,7 @@ def _js_context() -> str:
             '<tr><td>3 months</td><td class="num">' + cPct(c.r3m) + '</td></tr>' +
             (c.vr ? '<tr><td>Volume, 20 days vs 3 months</td><td class="num">' + Number(c.vr).toFixed(2) + '&times;</td></tr>' : '') +
             '</tbody></table>';
-        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; over a week, Lehmann 1990), most strongly when markets are stressed (Nagel 2012). In large companies the plain effect has largely faded since 2000; what survives is the move relative to the stock&rsquo;s industry (Da, Liu &amp; Schaumburg 2014) - compare it with the sector median above. For this reason the screener&rsquo;s 12-1 and 6-1 month returns, three quarters of its Momentum category, skip the latest month; Jensen&rsquo;s alpha, the other quarter, uses the full twelve months.</p>';
+        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; over a week, Lehmann 1990), most strongly when markets are stressed (Nagel 2012). In large companies the plain effect has largely faded since 2000; what survives is the move relative to the stock&rsquo;s industry (Da, Liu &amp; Schaumburg 2014) - compare it with the sector median above. For this reason all three of the screener&rsquo;s weighted Momentum measures skip the latest month: the 12-1 and 6-1 month returns, and residual momentum, whose sum runs to one month ago (the latest month enters only its three-year market fit, as in Blitz, Huij &amp; Martens 2011).</p>';
         h += m + '</div>';
 
         // 2b. Against its own history

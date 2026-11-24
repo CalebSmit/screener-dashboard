@@ -10509,3 +10509,89 @@ pass. `logs/.owner-session` held from 21:14; removed at the end.
    is the loop's own gated data commit and origin moved only by briefs - a design question with the
    bot in it; argue it in a note before building.
 3. If the owner wants more off the phone: the KPI row, then an opened lab experiment.
+
+## 2026-11-24 - PRODUCT, THROUGH THE NUMBERS (owner queue first): residual momentum built in place of Jensen's alpha, with the full run that publishes it
+
+**Health (rule 8, all five):** last code session ran? **failed** - `logs/nightly-2026-11-23_130001-midday.log`
+("git pull --ff-only failed - main diverged locally"); both of 11-23's sessions stood down on the jam the
+owner-run session of 11-23 (evening) found and fixed (`main` level with `origin/main` at 06:05 today:
+`git rev-list --left-right --count main...origin/main` = `0 0`; nothing further to do). Data loop
+published? **yes** - `logs/datarun-2026-11-24_020001.log` (completed; HEALTH: PASS). Evidence base at
+`1m`: **58 rows, newest `run_date` 2026-10-23 (32 days ago, bound 40), 5 effective** of 8. Priority 0:
+`allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 43
+days**; a standing programme, last advanced **18 days** ago, bound 21 - its day is Friday, so not deferred
+by a Tuesday); also open 0.10 (48 d), 0.14 (41 d). Shipped to readers: 18 commits, 7 methodology changes
+in the last 7 days. (The health line's "held back" branch is this session's own, mid-session.)
+**Tests:** before 4501 passed / 1 skipped (baseline, 06:05); after 4519 passed / 1 skipped (08:2x, the exact tree pushed; 18 new tests). Gate 2 dry run exit 0. Gate 5 (`rehearse_publish.py --changed-since main`): failed once on `check_published_claims` and passed on the two runs after it; the first run's output was piped to `tail` and not kept, so its cause is unknown - **if the runner's gate 5 refuses this branch, read `logs/nightly-*.gate5.txt` first**. Gate 3's `node --check` is refused by this session's tool guard; the runner runs it
+**Owner queue / rotation:** `OWNER_FOCUS.md` 2026-11-19 item - two ACCEPTED builds were due: residual
+momentum (due 11-23 06:00, a session that never ran) and the implied-volatility inversion (due today). Took
+residual momentum: it is overdue, it is a scoring change a reader sees on every stock, and the brief asked
+for "a 06:00 session with nothing else in it" for each. The IV inversion is **set aside** (below). Tuesday's
+focus is served by the same work - the third Momentum metric could not answer "is this stock's trend its
+own or the market's?", and the drilldown check the focus asks for was done on the new row (AAPL, JPM, SNDK).
+
+### Did
+- **Residual momentum replaces `jensens_alpha`** (25 of Momentum, weight unchanged), exactly as decided in
+  `research/2026-11-20-jensens-alpha-in-momentum.md` section 9: 36 monthly returns anchored on the run's
+  date, CAPM fit on `^SP500TR` with an intercept, residuals of months 12..2 back summed over their sd. The
+  paper's own window was re-read (Blitz, Huij & Martens, manuscript p. 11: "over the period from t-36 until
+  t-1"), and the construction matches it - the skipped month enters only the fit.
+- **The trap the note named, closed with a test:** the fetch now asks for 37 months in **the same one
+  request**, and every other price input is computed on the last 13 months of it (`risk_window`, backtest
+  v2's own rule) - `tests/test_residual_momentum.py::test_the_risk_inputs_keep_their_thirteen_months`.
+  `^SP500TR` to 4y; the panic rule's state is asserted identical on 3y and 4y of closes.
+- **A defect the new tests caught before it shipped:** a stock moving exactly with the market left
+  residuals of float noise (~1e-16) and the ratio came out as 0.41. Floored at 1e-9.
+- **Frontend in the same change (row 0.8c):** `LINEAGE`/`RECOMPUTE`/`EQUATIONS` - the row prints the
+  engine's own division `{rm_sum} ÷ {rm_sd}` with the 36-month beta, via `ENGINE_KEYS`; the Recent move
+  card's reversal note rewritten (claim `context.momentum_skip`: all three weighted Momentum measures now
+  skip the month); `scoring_schema` 16 -> 17; `SCREENER_DEFENSIBILITY_SPEC.md`, `plan/dashboard-inventory.md`.
+- **Backtest v2 builds the same input through the same function** (`residual_momentum_fields`,
+  `pit_record.FIELD_CLASSES`), its months rebuilt (both eras, 6 shards) and the research engine rerun -
+  176 months rebuilt in ~70 min (6 shards), 32 rows rerun in ~16 min (`--jobs 4`): the current weighting's IC is -0.0023 pooled (was -0.0013), 0 of 27 alternatives better or worse, control t 5.74 - a Backtest observation only. Months before ~2013-12 have no residual momentum (daily prices begin 2010-11).
+- **The full run that publishes it** (the 2026-10-20 bank precedent: a scoring change ships with the live
+  run that carries it, so the committed page and the suite agree): `HEALTH: PASS`, published-claims gate
+  2400 passed with only the stale ledger red before the rerun. Same closing session as the 02:00 page
+  (2026-11-23), so the comparison isolates the change: rank Spearman 0.996, top 25 three in (ADBE, IT, NWSA)
+  three out (ALL, DLTR, EVRG), median move 6 places, coverage 491/499
+  (`research/measurements/2026-11-24-residual-momentum-effect.py`/`.json`). **`signals.json` is untouched
+  by design** (only the 02:00 loop writes it), so the bot defers a rebalance until tomorrow's 02:00 run.
+- **Looked at it:** AAPL at 1440 and 375px - "6.4% sum of the 11 monthly residuals ÷ 6.8% their standard
+  deviation = 0.94 · ✓ Rebuilt from the inputs", 45th percentile in IT, 11.13 points; JPM -2.16 (19th
+  percentile); SNDK (#5) "no data" with the three-year sentence. Page heights unchanged by this change (the
+  row replaces a row).
+
+### Evidence / research
+- Blitz, Huij & Martens (2011), *J. Empirical Finance* 18(3), 506-521, doi:10.1016/j.jempfin.2011.01.003 -
+  re-read today for the regression window (p. 11) and the alpha exclusion (p. 12); Tables 2 and 8 as
+  re-checked by the 11-21 session. Gutierrez & Pirinsky (2007); MSCI / S&P / AQR / Robeco practice - all
+  in the note, sections 3-4. The long-only caveat is in the changelog: the paper's Sharpe ratios are
+  long-short and are not what this screener's reader should expect.
+
+### Methodology changed
+- `METHODOLOGY_CHANGELOG.md` 2026-11-24, "Residual momentum replaces Jensen's alpha in Momentum (weight 25
+  unchanged)".
+
+### Tried and rejected
+- **A legacy shim** keeping `jensens_alpha`'s lineage entries until the 02:00 run republished: built, then
+  reverted. Seven payload-reading tests compare the committed run against the config, so the honest way
+  to keep both in agreement is the precedent - publish the run with the change - not a shim.
+- **Loosening the split guard for FLEX** (withheld: its 2024 Nextracker spin-off is recorded by Yahoo as a
+  1.327 "split", and a same-size one-day move on 2026-05-06 trips the check over the 3-year window). The
+  guard's 25% arming floor is settled (row 1.5) and withholding is its designed outcome; stated in the
+  changelog instead.
+
+### Set aside
+- **The implied-volatility inversion** (ACCEPTED 2026-11-04, brief "Coming up" today): not started - one
+  scoring build with its full run and the v2 rebuild is a 06:00 session's worth, and the brief asks for
+  each in "a 06:00 session with nothing else in it". It is context-only, so nothing on the page is wrong
+  meanwhile. The brief keeps listing it (left in `COMING_UP`); it is the next session's first job.
+- The 11-23 (owner-run) entry's "not done": the 18:00 retry cannot recover an already-diverged `main` by
+  itself - left as that entry argued (a merge inside an unattended runner the bot reads from).
+
+### Next
+- **Build the implied-volatility inversion** (`research/2026-11-03-open-source-quant-stack.md` section 1d),
+  in the next 06:00 session (the 13:00 slot today is fine for its non-install steps; QuantLib must be
+  installed by a scheduled session, never from the desktop app).
+- After tomorrow's 02:00 run: confirm its rank-continuity line against today's page (expect >= 0.98, the
+  change is now in both) and that `residual_momentum` coverage is ~491.

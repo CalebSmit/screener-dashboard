@@ -273,10 +273,11 @@ def _beta(i):
     return c / v if _ok(c, v) and v > 0 else None
 
 
-def _jensens_alpha(i):
-    """The CAPM line with the engine's own four terms."""
-    r, rf, b, m = i.get("ja_ret12"), i.get("ja_rf"), i.get("ja_beta"), i.get("ja_mkt")
-    return r - (rf + b * (m - rf)) if _ok(r, rf, b, m) else None
+def _residual_momentum(i):
+    """The formation months' residuals summed, over their standard deviation - the engine's own
+    two figures (factor_engine.residual_momentum)."""
+    t, sd = i.get("rm_sum"), i.get("rm_sd")
+    return t / sd if _ok(t, sd) and sd > 0 else None
 
 
 RECOMPUTE = {
@@ -288,7 +289,7 @@ RECOMPUTE = {
     "price_target_upside": _ptu, "short_interest_ratio": _short, "size_log_mcap": _size,
     "asset_growth": _asset_growth, "equity_ratio": _equity_ratio, "roe": _roe, "roa": _roa,
     "return_12_1": _ret_12_1, "return_6m": _ret_6m, "fy1_revision_3m": _fy1_rev,
-    "max_drawdown_1y": _max_drawdown, "beta": _beta, "jensens_alpha": _jensens_alpha,
+    "max_drawdown_1y": _max_drawdown, "beta": _beta, "residual_momentum": _residual_momentum,
     "volatility": _volatility,
 }
 
@@ -419,12 +420,13 @@ LINEAGE = {
     "return_6m": _L("(Price 1 month ago - price ~6 months ago) / price ~6 months ago",
                     [("Price ~6 months ago", "price_6m_ago", PRICE), ("Price ~1 month ago", "price_1m_ago", PRICE)],
                     caveat="The return from about six months ago to about one month ago - it skips the latest month, like 12-1 (labelled '6-1M' since 2026-10-09; it was '6M')."),
-    "jensens_alpha": _L("12-month return - [risk-free + beta x (market return - risk-free)]",
-                        [("12-month return", "ja_ret12", PCT), ("Risk-free rate", "ja_rf", PCT),
-                         ("Beta", "ja_beta", RATIO), ("S&P 500, 12 months", "ja_mkt", PCT)],
-                        how="The risk-free rate (13-week T-bill) and the S&P 500's 12-month total return (dividends reinvested, ^SP500TR) are the same for every stock in a run; beta is this stock's own, before any outlier trimming.",
-                        caveat="Both returns include dividends since 2026-10-09. Until then the market return was the price index, which tilted alpha up by beta x the index's dividend return (about 1.4pp x beta over that year). If the total-return index cannot be fetched the run falls back to the price index and its log says so.",
-                        kind="series"),
+    "residual_momentum": _L("Sum of the monthly residuals from 12 months ago to 1 month ago / their standard deviation",
+                            [("Sum of the 11 monthly residuals", "rm_sum", PCT),
+                             ("Their standard deviation", "rm_sd", PCT),
+                             ("Beta over the 36 months", "rm_beta", RATIO)],
+                            how="36 monthly returns, each month ending on the run's own date, are regressed on the S&P 500 total-return index's (^SP500TR, dividends reinvested) for the same months. A residual is what the stock returned beyond what that fit predicts from the market's move. The residuals of the 11 months from 12 months ago to 1 month ago are summed and divided by their own standard deviation; the latest month is skipped, as in 12-1 and 6-1, and the fit's intercept is left out of the signal. Needs three years of prices: a stock listed more recently has no value, and the other momentum metrics share its weight.",
+                            caveat="Blitz, Huij & Martens (2011) fit three Fama-French factors; this uses the market alone (a stated simplification) and leaves out the risk-free rate, which cannot change the residuals when it is held constant. Replaced Jensen's alpha on 2026-11-24 - that metric ranked stocks almost exactly like the plain 12-month return.",
+                            kind="series"),
     # ---- risk
     "volatility": _L("Annualised standard deviation of daily log returns",
                      [("Daily standard deviation", "vol_sd", PCT)],
@@ -533,7 +535,7 @@ EQUATIONS = {
     "max_drawdown_1y": (True, ["({mdd_trough|at the trough} − {mdd_peak|at the prior peak}) ÷ {mdd_peak|at the prior peak}"]),
     "beta": (True, ["{beta_cov|covariance with the S&P 500} ÷ {beta_var|variance of the S&P 500}"]),
     "volatility": (True, ["{vol_sd|daily standard deviation} × 252 ^ 0.5"]),
-    "jensens_alpha": (True, ["{ja_ret12|12-month return} − ({ja_rf|risk-free} + {ja_beta|beta} × ({ja_mkt|S&P 500} − {ja_rf|risk-free}))"]),
+    "residual_momentum": (True, ["{rm_sum|sum of the 11 monthly residuals} ÷ {rm_sd|their standard deviation}"]),
 }
 
 # Metrics with no per-stock equation: one plain line saying what the number is made of.
@@ -653,7 +655,7 @@ def published_not_used() -> dict:
 # computed them - the page must never re-derive them (CLAUDE.md priority 0.8).
 ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used",
                "mdd_peak", "mdd_trough", "mdd_peak_date", "mdd_trough_date",
-               "beta_cov", "beta_var", "ja_ret12", "ja_rf", "ja_beta", "ja_mkt", "vol_sd",
+               "beta_cov", "beta_var", "rm_sum", "rm_sd", "rm_beta", "rm_from", "vol_sd",
                "feg_f12", "feg_b12", "feg_m")
 
 # Fetch fields the page needs per stock, in a stable order. Derived from the table so a

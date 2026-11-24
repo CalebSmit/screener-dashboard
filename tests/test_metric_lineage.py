@@ -123,9 +123,10 @@ SERIES_METRICS_WITH_AN_EXACT_EQUATION = {
     # (`_mdd_peak` / `_mdd_trough`), so the row shows that division and nothing is
     # re-derived. Added 2026-10-08 with the price-path fix.
     "max_drawdown_1y",
-    # Beta: the covariance and variance the slope is (`_beta_cov` / `_beta_var`), and Jensen's
-    # alpha: its four CAPM terms (`_ja_*`), all published from the one computation. 2026-10-09.
-    "beta", "jensens_alpha",
+    # Beta: the covariance and variance the slope is (`_beta_cov` / `_beta_var`), 2026-10-09; and
+    # residual momentum: the residual sum and its standard deviation (`_rm_sum` / `_rm_sd`), from
+    # the one computation (2026-11-24, in place of Jensen's alpha and its four CAPM terms).
+    "beta", "residual_momentum",
     # Volatility: the daily standard deviation it is annualised from (`_vol_sd`). 2026-10-09.
     "volatility",
 }

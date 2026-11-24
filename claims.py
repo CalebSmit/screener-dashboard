@@ -1877,9 +1877,10 @@ CLAIMS: tuple[Claim, ...] = (
         id="context.momentum_skip",
         surface=DRILLDOWN,
         asserts=(
-            "The Recent move card's note says the screener's 12-1 and 6-1 month returns - three "
-            "quarters of the Momentum category's weight - skip the latest month, and that Jensen's "
-            "alpha, the remaining quarter, uses the full twelve months."
+            "The Recent move card's note says all three of the screener's weighted Momentum "
+            "measures skip the latest month - the 12-1 and 6-1 month returns, and residual "
+            "momentum, whose residual sum runs to one month ago while the latest month enters only "
+            "its 36-month market fit."
         ),
         made_true_by="factor_engine:compute_metrics",
         checked_by=(
@@ -1888,8 +1889,9 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         caveat=(
             "Fixed 2026-10-20: until then the note said 'The screener's own momentum signal skips the "
-            "latest month', while a quarter of the category (Jensen's alpha, weight 25 of 100) is "
-            "built on the full twelve-month return."
+            "latest month', while a quarter of the category (Jensen's alpha, weight 25 of 100) was "
+            "built on the full twelve-month return. Rewritten 2026-11-24, when residual momentum "
+            "replaced Jensen's alpha and the whole weighted category came to skip the month."
         ),
     ),
     Claim(
@@ -3016,7 +3018,8 @@ FORBIDDEN: tuple[Forbidden, ...] = (
     ),
     Forbidden(
         pattern=r"own momentum signal skips the latest month",
-        why="A quarter of Momentum (Jensen's alpha) uses the full twelve-month return.",
+        why=("Until 2026-11-24 a quarter of Momentum (Jensen's alpha) used the full twelve-month "
+             "return. Kept forbidden as wording: the current sentence names the three measures."),
         fixed="2026-10-20",
     ),
     Forbidden(

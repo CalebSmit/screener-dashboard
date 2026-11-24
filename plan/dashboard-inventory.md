@@ -1,5 +1,14 @@
 # Dashboard inventory (as of 2026-10-07, pass 2)
 
+**2026-11-24 (06:00, a scoring change with its frontend):** the Momentum row "Jensen's Alpha" is now
+**"Residual Momentum"** (`residual_momentum`, ratio format, weight 25 unchanged). Its workings line is
+the engine's own division, `{rm_sum} ÷ {rm_sd}` (sum of the 11 monthly residuals from 12 months ago to
+1 month ago, over their standard deviation), with the 36-month beta (`rm_beta`) and the first month
+(`rm_from`) published beside it through `ENGINE_KEYS`; the four `ja_*` terms are gone. The Recent move
+card's reversal note now says all three weighted Momentum measures skip the latest month (claim
+`context.momentum_skip`). A stock listed under three years shows the metric as missing.
+`tests/test_residual_momentum.py`.
+
 **2026-11-23 (owner-run, the phone rows):** owner - *"Yes, simplify rows"*. A phone row in the
 ranking carried nine numbers (the composite and eight labelled scores): 450 figures in the first
 fifty rows, 80px a row. It is now rank, move, ticker, **the whole company name**, any trap flag
