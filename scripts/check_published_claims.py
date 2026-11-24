@@ -266,7 +266,7 @@ PRESENTATION: dict[str, str] = {
         "refused 2026-11-12: compare columns on a phone",
     "tests/test_page_fourth_pass.py::test_phone_weighting_select_shows_its_whole_label": "phone fit",
     "tests/test_page_fourth_pass.py::test_every_column_fits_and_the_spacers_span_only_shown_columns": "column fit",
-    "tests/test_page_fourth_pass.py::test_phone_flag_sits_under_the_name_and_both_flags_fit": "phone fit",
+    "tests/test_page_fourth_pass.py::test_phone_flag_never_shares_the_name_s_line_and_both_flags_fit": "phone fit",
     "tests/test_page_fourth_pass.py::test_phone_menu_steps_aside_while_scrolling_down_and_returns_on_the_way_up": "menu motion",
     "tests/test_club_readiness.py::test_two_stocks_side_by_side_fit_a_phone": "phone fit",
     "tests/test_club_readiness.py::test_the_phone_menu_stays_out_of_the_sheet_and_the_tray": "phone layering",

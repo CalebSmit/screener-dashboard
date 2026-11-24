@@ -25,3 +25,17 @@ def open_filters(page) -> str:
 def open_section(page, section_id: str) -> None:
     """Open one of the sheet's sections the way its tab does (``goToModal`` unfolds its target)."""
     page.evaluate("id => goToModal(id)", section_id)
+
+
+# Put the eight category scores back on every ranking row (2026-11-23: a phone row is rank, ticker,
+# name and composite until asked). Does nothing on a wide screen, where the columns are always there.
+SHOW_ROW_SCORES_JS = """() => {
+    const b = document.getElementById('rows-scores-m');
+    if (!b || getComputedStyle(b).display === 'none') return 'wide';
+    if (b.getAttribute('aria-pressed') !== 'true') b.click();
+    return b.getAttribute('aria-pressed') === 'true' ? 'shown' : 'compact';
+}"""
+
+
+def show_row_scores(page) -> str:
+    return page.evaluate(SHOW_ROW_SCORES_JS)

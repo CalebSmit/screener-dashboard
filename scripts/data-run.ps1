@@ -673,9 +673,43 @@ try {
     if ($between.ExitCode -ne 0 -or $between.Text.Trim() -ne '1') {
         Stop-Run "Expected exactly the data commit ahead of origin/main, found $($between.Text.Trim()). Not pushing." 2
     }
-    $push = Invoke-Native 'git' @('push', 'origin', "${dataCommit}:refs/heads/main")
-    Write-NativeOutput $push
-    if ($push.ExitCode -ne 0) { Stop-Run "Push to main failed. Local main is ahead." 2 }
+    # A push that fails is tried again, and one that never lands takes its commit back off local
+    # main (2026-11-23). That morning the push died on an HTTP 408 with every gate passed; the
+    # brief went out 17 s later, so the network was back - and because the brief is a commit on
+    # origin/main, local main (one data commit ahead) had now diverged. The 06:00 and 13:00 code
+    # sessions and the 18:00 retry each stopped on "cannot fast-forward": one dropped connection
+    # cost the day's page and three sessions. So: several tries; then ask origin whether the
+    # commit arrived after all (a timeout can come back after the ref has moved); and if it did
+    # not, discard the run the way every gate above does, leaving main level with origin/main
+    # and no success marker, so the 18:00 retry runs again on the day's close.
+    $PushTries = 5
+    $PushWaitSeconds = 60
+    $push = $null
+    foreach ($try in 1..$PushTries) {
+        $push = Invoke-Native 'git' @('push', 'origin', "${dataCommit}:refs/heads/main")
+        Write-NativeOutput $push
+        if ($push.ExitCode -eq 0) { break }
+        if ($try -lt $PushTries) {
+            Write-Log "Push attempt $try of $PushTries failed; trying again in $PushWaitSeconds s." 'WARN'
+            Start-Sleep -Seconds $PushWaitSeconds
+        }
+    }
+    if ($push.ExitCode -ne 0) {
+        Invoke-Native 'git' @('fetch', 'origin', 'main') | Out-Null
+        $remoteHead = (Invoke-Native 'git' @('rev-parse', 'origin/main')).Text.Trim()
+        if ($remoteHead -eq $dataCommit) {
+            Write-Log "The push reported a failure but origin/main is the data commit - it arrived." 'WARN'
+        } else {
+            $localHead = (Invoke-Native 'git' @('rev-parse', 'HEAD')).Text.Trim()
+            if ($localHead -eq $dataCommit) {
+                # Only ever this run's own, unpushed commit: HEAD was checked to be it, and to be
+                # the single commit ahead of origin/main, a few lines up.
+                Invoke-Native 'git' @('reset', '-q', 'HEAD~1') | Out-Null
+                Undo-RunArtifacts
+            }
+            Stop-Run "Push to main failed $PushTries times. The run is discarded and local main left level with origin/main; the 18:00 retry runs again." 2
+        }
+    }
     Write-Log "Published to main - GitHub Pages deploys it from here."
 
     # --- Did the live site actually pick it up? (2026-11-17) ------------------

@@ -166,6 +166,17 @@ Add items below. Anything under this heading is unclaimed work.
 
 Completed items, newest first.
 
+- **2026-11-23 - "Yes, simplify rows" (the ranking's rows on a phone) - DONE the same evening
+  (owner-run).** A phone row was nine numbers; it is now rank, move, ticker, the whole company name,
+  any trap flag and the composite, 58px against 80 (first fifty rows 4,000 -> 2,900px). "Show the 8
+  scores" puts the earlier row back on every row and is remembered on the device; sorting by a
+  category shows that category's score on the row. Nothing removed, no number changed, desktop and
+  print untouched. **The same session found the loops jammed since 02:23** - that morning's data
+  run passed every gate and its push failed on a network timeout, after which the 06:00, 13:00 and
+  18:00 runs all stood down. The held run was published at 21:25 (live site confirmed) and the
+  runner now retries a failed push and never leaves `main` ahead. `NIGHTLY_LOG.md` 2026-11-23
+  (owner-run, evening).
+
 - **2026-11-22 - The phone version: "too much info and it got way too long and hard to know where to
   go" - DONE the same evening (owner-run).** One rule on all three pages, phone widths only: a long
   part is a heading that says what is inside it and opens with one tap; nothing was removed and no

@@ -10392,3 +10392,120 @@ Gate 1: **4,492 passed / 1 skipped**, 0 failed (the tree before this session: 4,
    gate; `tests/test_phone_pass.py` is not in the publish gate (it registers no claim).
 2. If the owner wants more off the phone: the ranking row (eight numbers), the KPI row, an opened
    lab experiment - in that order.
+
+
+## 2026-11-23 (owner-run, evening) - The loops were jammed by one failed push: unjammed, and a failed push now retries. Then the phone's ranking rows: nine numbers a row -> rank, name and composite
+
+**Health (rule 8, all five):** last code session ran? **no - both of today's stood down**
+(`logs/nightly-2026-11-23_060001.log` and `..._130001-midday.log`: "git pull --ff-only failed - main
+diverged locally"), for the reason below; fixed in this session. Data loop published? **the 02:00
+run passed every gate (HEALTH: PASS, 499 scored, claims PASS) and its push failed on an HTTP 408**
+(`logs/datarun-2026-11-23_020001.log`); the 18:00 retry stopped on the same divergence. **Published
+by this session at 21:25**; `scripts/check_live_site.py`: "serving this run, 64 s after the push".
+Evidence base at `1m`: **56 rows, newest `run_date` 2026-10-21 (33 days ago, bound 40), 5 effective**
+of 8. Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab**
+(opened 2026-10-12, **age 42 days**; a standing programme, last advanced **17 days** ago, bound 21).
+Shipped to readers: 18 commits changed what a reader sees, 8 methodology changes, in the last 7 days.
+
+**Owner request:** *"Yes, simplify rows"* - the follow-up offered at the end of the 2026-11-22 phone
+pass. `logs/.owner-session` held from 21:14; removed at the end.
+
+### Found first: nothing had published or run since 02:23
+
+- **What happened.** The 02:00 data run passed all eight gates and committed (`53dc4a7`). Its push
+  returned `HTTP 408 ... the remote end hung up unexpectedly` at 02:23:22 and the runner stopped with
+  "Push to main failed. Local main is ahead." Seventeen seconds later, from `finally`, it published
+  the morning brief - a single-file commit built on `origin/main`, exactly as designed - and that
+  made local `main` (one data commit ahead) **diverge**. The 06:00 session, the 13:00 session and the
+  18:00 data retry each stopped on "Not possible to fast-forward". One dropped connection cost the
+  day's page and three runs, and the health line's two "did it run" answers were both no.
+- **Unjammed.** `git merge --no-ff origin/main` on local `main` (no history rewritten; the four
+  origin commits touch only `MORNING_BRIEF.md`, and `git diff --stat 53dc4a7 HEAD` showed that one
+  file). The three payload files parse, `rebuild_page.py --check` says the page is up to date, the
+  newest run directory is still that run's. Pushed at 21:25. Then the steps the runner skips after a
+  failed push, by hand: `check_live_site.py` (serving the run, 64 s), `archive_run.py` (archived
+  `2026-11-23_bcdc1725766d`, 5 files), the success marker.
+- **Fixed** (`scripts/data-run.ps1`): the push is tried **five times, 60 s apart**; if it still
+  fails the runner fetches and asks whether `origin/main` is the data commit after all (a timeout
+  can come back after the ref moved); if not, and `HEAD` is still this run's own commit, it takes
+  the commit back (`git reset -q HEAD~1`) and calls `Undo-RunArtifacts` - the discard every gate
+  already uses - so `main` is level with `origin/main`, no success marker is written and the 18:00
+  retry reruns on the day's close. The refspec is unchanged (the data commit alone).
+  `tests/test_data_push_retry.py` (5); the script parses (`Parser::ParseFile`).
+- **Not done, and why:** the 18:00 retry cannot recover an already-diverged `main` by itself. With
+  the change above the runner no longer creates that state; a merge inside an unattended runner
+  that a trading bot reads from is a bigger thing than tonight's fault justified.
+
+### The rows (375 x 812, the live page as committed)
+
+| | Before | After |
+|---|---|---|
+| A ranking row | 80px: rank, move, ticker, name cut at ~140px ("Micron Technology, I..."), composite, eight labelled scores | 58px: rank, move, ticker, the whole name, any trap flag beside the ticker, composite |
+| Figures in the first fifty rows | 450 | 50 (100 when sorted by a category) |
+| The first fifty rows | 4,000px | 2,900px |
+| Home page | 7,273px | 6,173px |
+
+- `generate_dashboard._css_phone` / `_js_phone` only. **Nothing removed:** "Show the 8 scores"
+  (phone only, on the line of "What the columns mean"; `aria-pressed`; 44px) adds
+  `.rows-full`, under which none of the new rules apply, so the earlier row comes back exactly; the
+  choice is kept per device (`localStorage`, wrapped in try/catch). **A list sorted by a category
+  shows that category's score under the composite** - sorted by Momentum, rank 467 heads the list,
+  and a row that cannot say why is worse than a long row.
+- Payload byte-identical (`scripts/rebuild_page.py`); at 1024px the button is `display: none`, the
+  row 40px with eight score cells, the header a table header. Looked at 375px (default, sorted by
+  Valuation, the trap filter, scores shown, scores hidden again) and 320px (sorted by Momentum; no
+  sideways scroll; the button takes a line of its own above the key there).
+
+### Evidence / research
+
+- A documented failure, measured: the log lines and the heights above. No literature.
+
+### Methodology changed
+
+- None. A runner change and presentation.
+
+### Tests
+
+- New: `tests/test_data_push_retry.py` (5); `tests/test_phone_pass.py` +4 (the compact row and the
+  toggle; the choice remembered; the sorted score, checked against the payload for whichever stock
+  the day puts first; a trap flag stays on the row, spelled out). Two existing assertions changed on
+  purpose: the list of phone-only controls hidden everywhere else gained `.rows-scores-m`, and the
+  fourth pass's flag test (see the gates).
+
+### Ship gates
+
+- Gate 1: **4,501 passed, 1 skipped** (`python scripts/run_tests.py tests/ test_screener.py -q`, parallel,
+  4 min 9 s). The first full run had **one failure, mine**: `tests/test_page_fourth_pass.py`'s flag test
+  pinned the flag *under* the name, and the compact row puts it on the ticker's line. The rule it
+  protects (a flag never takes the name's width) now holds in both row forms and the test checks both;
+  it is renamed, and `check_published_claims.PRESENTATION` names it, so the list followed.
+- Gate 2: `run_screener.py --dry-run` OK. Gate 3: `node --check` on all three payload files OK;
+  `index.html` 989,002 bytes. Gate 5: `rehearse_publish.py --changed-since origin/main` -
+  **REHEARSAL PASSED** (page tests, claims gate, files restored byte for byte). Gate 4: clean.
+
+### Tried and rejected
+
+- **Rebasing the held data commit onto origin** - refused by the session's permissions, and a merge
+  rewrites nothing, which is the better property on `main` anyway.
+- **A small eight-bar glyph per row instead of the numbers.** A new picture needing its own key, on
+  the page the owner called too much.
+- **Re-running the screener at 21:15 instead of publishing the 02:00 run.** The held run had passed
+  every gate and its evidence rows were already committed; tomorrow's 02:00 run replaces it in five
+  hours.
+
+### Set aside
+
+- Yesterday's Next 2 (the KPI row, an opened lab experiment): not touched - the owner chose the rows.
+- 2026-11-22 13:00's Next (universe-expansion phase 1's next shard slice; the lab's Friday 11-27;
+  the IV inversion on or after 11-24): none touched - neither of today's scheduled sessions ran.
+  **Monday's research note was not written**; the next Monday inherits it.
+
+### Next
+
+1. **Read the 02:00 log on 2026-11-24 first**: it is the first run on the new push block and the
+   first 06:00 session after a day with none. A "Push attempt N of 5 failed" line is the new code
+   doing its job; "Local main is ahead" should be impossible.
+2. Whether the 18:00 retry should be able to recover a diverged `main` when the only local commit
+   is the loop's own gated data commit and origin moved only by briefs - a design question with the
+   bot in it; argue it in a note before building.
+3. If the owner wants more off the phone: the KPI row, then an opened lab experiment.
