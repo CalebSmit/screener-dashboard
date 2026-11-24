@@ -684,12 +684,6 @@ COMING_UP = (
                    "scheduled session (never from the desktop app: its AppData is sandboxed). A 06:00 "
                    "session with nothing else in it.",
      "research/2026-11-03-open-source-quant-stack.md"),
-    ("2026-11-23", "Build residual momentum in place of `jensens_alpha` (ACCEPTED 2026-11-21, weight 25 "
-                   "unchanged) in a 06:00 session (0.15's section 4 is committed - done 2026-11-21): section 9's "
-                   "build list - 37-month history on the same request with the Risk inputs trimmed to "
-                   "13, `^SP500TR` to 4y, lineage/equation/claims, backtest v2, the engine rerun, a "
-                   "throwaway full run before the changelog entry.",
-     "research/2026-11-20-jensens-alpha-in-momentum.md"),
     ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
      "CLAUDE.md"),
     ("2027-03-02", "The first combined 10-Ks since the SEC began holding a jointly filed report's facts "

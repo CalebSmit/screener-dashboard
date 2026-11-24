@@ -54,7 +54,7 @@ Rationale: Price momentum is one of the most robust anomalies in finance (Jegade
 |--------|--------|---------|---------------|
 | **12-1 Month Return** | 40% | `(Price_1m_ago - Price_12m_ago) / Price_12m_ago` | Classic momentum signal. Skips the most recent month to avoid short-term reversal contamination. |
 | **6-1 Month Return** | 35% | `(Price_1m_ago - Price_6m_ago) / Price_6m_ago` | Medium-term momentum. Uses 6-1M convention (excludes most recent month) for consistency with 12-1M. |
-| **Jensen's Alpha** | 25% | `R_i - (R_f + β × (R_m - R_f))`; R_f from ^IRX (13-week T-bill); R_i = full 12-month return (no skip-month) | Risk-adjusted excess return above CAPM prediction. Higher = outperformance unexplained by market beta. Uses full 12-month return for consistency with Sharpe Ratio. |
+| **Residual Momentum** | 25% | `Σ e_t / sd(e_t)` over months t-12..t-2, where `e_t` are the residuals of 36 monthly returns (t-36..t-1, anchored on the run date) regressed on the S&P 500 total-return index's | Blitz, Huij & Martens (2011), CAPM version: momentum with the market's part taken out, per unit of the stock's own noise. Skips the latest month; the fitted intercept is excluded. Needs 37 monthly closes (three years). Replaced Jensen's alpha on 2026-11-24, which ranked stocks 0.97-0.98 like the plain 12-month return (`research/2026-11-20-jensens-alpha-in-momentum.md`). |
 
 ### 1.5 Risk (Weight: 10%)
 
@@ -234,7 +234,7 @@ To achieve point-in-time safety, the system would need:
 | Sharpe Ratio | Volatility | NaN if volatility = 0 or NaN |
 | Sortino Ratio | Downside Deviation | NaN if DD = 0, NaN, or < 20 downside observations |
 | Max Drawdown (1Y) | Daily returns | NaN if < 50 daily return observations |
-| Jensen's Alpha | Beta or Return | NaN if beta or return is NaN |
+| Residual Momentum | Price history | NaN if any of the 37 monthly anchors has no close within 10 days (a listing under three years), the series fails the split check anywhere in the window, the market series is missing, or the residuals have no spread |
 | Beta | Date overlap | NaN if < 200 common dates or < 80% overlap with market |
 | Momentum | Prior Price | NaN if <= 0 |
 | Beta | Market Variance | NaN if <= 0 |
@@ -267,7 +267,7 @@ Quality:     ROIC 29, GP/Assets 22, Net Debt/EBITDA 20, Piotroski 16, Beneish M-
              (Operating Leverage 0 and Earnings Variability 0 are tracked candidates)
 Growth:      Forward EPS 45 (next 12 months vs last 4 quarters, MSCI construction), Revenue Growth 25 (latest quarter vs the same quarter a year earlier),
              Revenue CAGR 3Y 15, Sustainable Growth 15, PEG 0 (removed - double-counts valuation)
-Momentum:    12-1M Return 40, 6-1M Return 35, Jensen's Alpha 25
+Momentum:    12-1M Return 40, 6-1M Return 35, Residual Momentum 25 (Jensen's Alpha until 2026-11-24)
 Risk:        Volatility 42.86, Beta 28.57, Max Drawdown (13M) 28.57 (Sharpe and Sortino 0 since 2026-09-02)
 Revisions:   FY1 EPS Revision (90d) 35, Earnings Acceleration 20, Analyst Surprise 15,
              Price Target Upside 10, Beat Score 10, Short Interest Ratio 10

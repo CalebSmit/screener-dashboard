@@ -244,7 +244,7 @@ simplification is stated, not hidden.
 
 ## 7. Proposal
 
-**Proposal status: ACCEPTED 2026-11-21 (06:00 weekend session), not yet built** - option C, as
+**Proposal status: ACCEPTED 2026-11-21 (06:00 weekend session), BUILT 2026-11-24 (06:00 session; `METHODOLOGY_CHANGELOG.md` 2026-11-24, `tests/test_residual_momentum.py`)** - option C, as
 specified below; build in a 06:00 session after `research/2026-11-19-what-the-ranking-is-for.md`
 section 4 is committed. *Update, same session:* that measurement was done and committed the same
 morning (answer D), so the build is due from the 06:00 session of 2026-11-23 (Tuesday 11-24 is the IV

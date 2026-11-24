@@ -1,0 +1,146 @@
+{
+ "old": {
+  "ref": "HEAD",
+  "run_timestamp": "2026-11-24T02:00:04.399387"
+ },
+ "new": {
+  "run_timestamp": "2026-11-24T06:18:23.208874"
+ },
+ "n_common": 499,
+ "spearman_rank": 0.9964,
+ "spearman_momentum_score": 0.9698,
+ "median_abs_rank_move": 6.0,
+ "p90_abs_rank_move": 22.0,
+ "max_abs_rank_move": 44,
+ "largest_moves": {
+  "LULU": {
+   "from": 297,
+   "to": 253
+  },
+  "PCG": {
+   "from": 417,
+   "to": 374
+  },
+  "WMT": {
+   "from": 296,
+   "to": 338
+  },
+  "COST": {
+   "from": 239,
+   "to": 280
+  },
+  "STZ": {
+   "from": 211,
+   "to": 172
+  },
+  "SBAC": {
+   "from": 299,
+   "to": 261
+  },
+  "BF-B": {
+   "from": 165,
+   "to": 129
+  },
+  "PWR": {
+   "from": 383,
+   "to": 419
+  },
+  "VTR": {
+   "from": 324,
+   "to": 358
+  },
+  "BNY": {
+   "from": 241,
+   "to": 274
+  }
+ },
+ "top25_in": [
+  "ADBE",
+  "IT",
+  "NWSA"
+ ],
+ "top25_out": [
+  "ALL",
+  "DLTR",
+  "EVRG"
+ ],
+ "top40_in": [
+  "BMY",
+  "HPQ",
+  "HUM",
+  "JBHT"
+ ],
+ "top40_out": [
+  "CAH",
+  "FIX",
+  "MO",
+  "RL"
+ ],
+ "top5_old": [
+  "EXPE",
+  "APA",
+  "VLO",
+  "SNDK",
+  "MU"
+ ],
+ "top5_new": [
+  "EXPE",
+  "APA",
+  "VLO",
+  "MU",
+  "SNDK"
+ ],
+ "residual_momentum_coverage": "491/499",
+ "residual_momentum_missing": [
+  "FDXF",
+  "FLEX",
+  "GEV",
+  "HONA",
+  "Q",
+  "RDDT",
+  "SNDK",
+  "SOLV"
+ ],
+ "missing_ranks": {
+  "FDXF": {
+   "from": 285,
+   "to": 288
+  },
+  "FLEX": {
+   "from": 312,
+   "to": 316
+  },
+  "GEV": {
+   "from": 246,
+   "to": 255
+  },
+  "HONA": {
+   "from": 409,
+   "to": 409
+  },
+  "Q": {
+   "from": 366,
+   "to": 382
+  },
+  "RDDT": {
+   "from": 70,
+   "to": 61
+  },
+  "SNDK": {
+   "from": 4,
+   "to": 5
+  },
+  "SOLV": {
+   "from": 476,
+   "to": 475
+  }
+ },
+ "spearman_resid_vs_return_12_1_raw": 0.792,
+ "residual_momentum_quantiles": {
+  "0.05": -3.939,
+  "0.25": -1.673,
+  "0.5": 0.054,
+  "0.75": 1.513,
+  "0.95": 4.389
+ }
+}

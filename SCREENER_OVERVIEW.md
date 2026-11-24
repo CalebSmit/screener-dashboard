@@ -188,7 +188,7 @@ Every stock is scored in 8 categories, each measuring a different aspect of the 
 |--------|--------|-----------------|
 | **12-1 Month Return** | 40% | Total price return from 12 months ago to 1 month ago. Skips the most recent month to avoid short-term reversal noise. |
 | **6-1 Month Return** | 35% | Total price return from 6 months ago to 1 month ago. Also skips the most recent month. |
-| **Jensen's Alpha** | 25% | Risk-adjusted excess return above CAPM prediction. Measures outperformance unexplained by market beta. Uses full 12-month return (no skip-month). |
+| **Residual Momentum** | 25% | How much the stock beat what its market exposure predicted, from 12 months ago to 1 month ago, per unit of its own month-to-month noise: 36 monthly returns regressed on the S&P 500 total-return index, the residuals of the 11 months from 12 to 1 month ago summed and divided by their standard deviation (Blitz, Huij & Martens 2011, CAPM version). Skips the most recent month. Replaced Jensen's alpha on 2026-11-24. |
 
 **Rationale.** Decades of academic research (Jegadeesh & Titman, 1993) show that stocks that have gone up tend to keep going up over 3-12 month horizons. The skip-month convention (excluding the most recent month) is the standard academic momentum signal – the last month is excluded because very recent winners tend to experience a brief pullback. Both metrics use calendar-based date targeting instead of fixed index offsets, which ensures consistent lookback periods regardless of holidays or trading day variations.
 
