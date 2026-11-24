@@ -316,7 +316,10 @@ def test_the_filters_do_not_stack_in_a_column_at_768(browser):
 
 # --- 8. A trap flag on a phone card ---------------------------------------------------------------------
 
-def test_phone_flag_sits_under_the_name_and_both_flags_fit(browser):
+def test_phone_flag_never_shares_the_name_s_line_and_both_flags_fit(browser):
+    """Beside the name a flag left it half its width ("Delta Air ...", "Apollo Gl..."). Since
+    2026-11-23 a phone row has two forms and the rule holds in both: on the compact row the flags sit
+    on the ticker's line, above the name; with the eight scores shown they sit under it, as before."""
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
         from tests import phone as phone_taps
@@ -325,14 +328,20 @@ def test_phone_flag_sits_under_the_name_and_both_flags_fit(browser):
         page.wait_for_function("document.querySelector('#universe-tbody .vt-cell .flag') !== null", timeout=8000)
         page.evaluate("""() => { tableState.filtered.sort((a, b) => ((b.Value_Trap_Flag && b.Growth_Trap_Flag) ? 1 : 0) - ((a.Value_Trap_Flag && a.Growth_Trap_Flag) ? 1 : 0));
                                  renderWindow(true); }""")
-        bad = page.evaluate("""() => [...document.querySelectorAll('#universe-tbody tr[data-t]')].slice(0, 12).map(tr => {
+        read = """() => [...document.querySelectorAll('#universe-tbody tr[data-t]')].slice(0, 12).map(tr => {
             const co = tr.querySelector('td.company').getBoundingClientRect(), vt = tr.querySelector('td.vt-cell');
             const flags = [...vt.querySelectorAll('.flag')].map(f => f.getBoundingClientRect());
             const vb = vt.getBoundingClientRect();
             const clipped = flags.some(f => f.right > vb.right + 0.5);
             const under = flags.every(f => f.top >= co.top + 14);
-            return { t: tr.dataset.t, w: Math.round(co.width), clipped: clipped, under: under, n: flags.length }; })
-            .filter(x => x.n && (x.w < 120 || x.clipped || !x.under))""")
+            const above = flags.every(f => f.bottom <= co.top + 2);
+            return { t: tr.dataset.t, w: Math.round(co.width), clipped: clipped, under: under, above: above, n: flags.length }; })"""
+        compact = [x for x in page.evaluate(read) if x["n"]]
+        assert compact, "the premise: the trap filter lists flagged stocks (those carrying both flags are sorted first)"
+        bad = [x for x in compact if x["w"] < 200 or x["clipped"] or not x["above"]]
+        assert bad == [], bad
+        assert phone_taps.show_row_scores(page) == "shown"
+        bad = [x for x in page.evaluate(read) if x["n"] and (x["w"] < 120 or x["clipped"] or not x["under"])]
         assert bad == [], bad
         assert errors == []
     finally:
