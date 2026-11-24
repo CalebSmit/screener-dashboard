@@ -5914,7 +5914,7 @@ switch is queued for 2026-11-26 (`scripts/write_brief.py` COMING_UP).
 contracts reproduced by an independent CRR tree including 9 with a dividend, and Xing, Zhang & Zhao
 (2010) Table 1 putting a negative SKEW at about one stock in sixteen against the source field's ~half).
 Today, through the production path on 51 stocks (every 10th by ticker, mid-session 2026-11-24, about
-15:30 ET; `research/measurements/2026-11-24-own-iv-coverage.py`, dividend fields read from `.info` for
+14:30 ET; `research/measurements/2026-11-24-own-iv-coverage.py`, dividend fields read from `.info` for
 the measurement only): ours priced the at-the-money IV for **45 of the 47** stocks the source did and
 the skew for **40 of its 45**; ours minus the source at the money, median **-1.48** volatility points
 (median |difference| 1.55); on the skew median **+1.86**. The skew is negative for **2 of 40** of ours
