@@ -1,5 +1,19 @@
 # Dashboard inventory (as of 2026-10-07, pass 2)
 
+**2026-11-23 (owner-run, the phone rows):** owner - *"Yes, simplify rows"*. A phone row in the
+ranking carried nine numbers (the composite and eight labelled scores): 450 figures in the first
+fifty rows, 80px a row. It is now rank, move, ticker, **the whole company name**, any trap flag
+beside the ticker, and the composite - 58px, so the first fifty rows are 4,000 -> 2,900px and the
+home page 7,273 -> 6,173px at 375px. Nothing is removed: **"Show the 8 scores"** (`#rows-scores-m`,
+phone only, on the line of "What the columns mean") puts the earlier row back exactly
+(`.data-table.rows-full`, remembered per device in `localStorage`), and **a list sorted by a category
+shows that category's score under the composite** (`data-sortl` on the table, set by
+`syncSortLabelPhone` from `tableState.sortCol`; the eight selectors are built from `SCORE_KEY`).
+The table is windowed by `--row-h`, so the toggle calls `renderWindow(true)`. Desktop, print and the
+row's HTML are unchanged - it is all `_css_phone` / `_js_phone`. A browser test at 375px that reads
+a category score off a row calls `tests.phone.show_row_scores(page)` first.
+`tests/test_phone_pass.py` (4 new tests).
+
 **2026-11-22 (owner-run, the phone pass):** owner on his phone - *"too much info and it got way too
 long and hard to know where to go"*. One rule, phone widths only (`_css_phone`, `_js_phone`, emitted
 last; every rule inside `@media screen and (max-width: 760px)` or behind `isPhone()`): **a long part

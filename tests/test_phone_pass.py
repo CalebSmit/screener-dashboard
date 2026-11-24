@@ -20,6 +20,13 @@ What these tests hold:
 - a folded filter is never a silent filter - the Filters button counts the ones in use;
 - "Read with care" - the trap flags and the count of metrics behind the score - is never folded.
 
+**The ranking's rows, 2026-11-23** (owner: "Yes, simplify rows"). A phone row carried nine numbers -
+the composite and eight labelled scores, 450 figures in the first fifty rows, 80px a row. It is now
+rank, move, ticker, the whole company name, any trap flag and the composite, 58px; the eight scores
+are on the stock, or back on every row with one tap ("Show the 8 scores", which restores the earlier
+row exactly). A list sorted by a category shows that category's score on each row, because an order
+the row cannot explain is worse than a long row.
+
 Heights are asserted as budgets per folded part, not as page totals: a total moves with the day's
 data (how many chips a leader has, how long a headline runs) and a part's folded height does not.
 """
@@ -61,7 +68,7 @@ def test_every_phone_rule_is_phone_only_and_screen_only():
     outside = css.split("@media screen and (max-width: 760px)")[0]
     rules = re.findall(r"([^{}/]+)\{([^{}]*)\}", re.sub(r"/\*.*?\*/", "", outside, flags=re.S))
     assert [(s.strip(), b.strip()) for s, b in rules] == [
-        (".guide-open-m, .filters-more-m, .summary-more-m", "display: none;")]
+        (".guide-open-m, .filters-more-m, .summary-more-m, .rows-scores-m", "display: none;")]
 
 
 def test_the_phone_styles_and_script_are_emitted_last():
@@ -171,12 +178,15 @@ def test_on_a_wide_screen_nothing_is_folded_by_the_phone_pass(browser):
         _open_sheet(page)
         folded = page.evaluate("ids => ids.filter(id => document.getElementById(id).classList.contains('collapsed'))", FOLDED)
         assert folded == [], f"the phone pass folded {folded} at 1440px"
-        for sel in ("#guide-open-m", "#filters-more-m", "#summary-more-m"):
+        for sel in ("#guide-open-m", "#filters-more-m", "#summary-more-m", "#rows-scores-m"):
             assert not _shown(page, sel), f"{sel} is a phone control and shows at 1440px"
         assert page.evaluate("document.getElementById('dist').className") == "dist" and _shown(page, "#dist-plot svg")
         hidden = page.evaluate("[...document.querySelectorAll('#modal-summary-body .summary-fold')].filter(e => e.getClientRects().length === 0).length")
         assert hidden == 0, "a summary sentence is folded at 1440px"
         assert page.evaluate("getComputedStyle(document.querySelector('#stock-modal .collapsible-t'), '::after').content") in ("none", "normal")
+        row = page.evaluate("""() => { const r = document.querySelector('#universe-tbody tr[data-t]');
+            return { h: r.getBoundingClientRect().height, sc: [...r.querySelectorAll('td.sc')].filter(c => c.getClientRects().length > 0).length }; }""")
+        assert row == {"h": 40, "sc": 8}, f"the wide table's row changed: {row}"
         page.evaluate("closeModal(); openMethodology()")
         assert page.evaluate("document.querySelectorAll('#methodology-modal .m-folded, #methodology-modal h2.m-acc').length") == 0
         assert not errors, errors
@@ -360,6 +370,113 @@ def test_on_a_phone_the_methodology_is_its_section_headings_with_overview_open(b
         ctx.close()
 
 
+ROW_JS = """() => {
+    const t = document.getElementById('universe-table'), r = t.querySelector('tbody tr[data-t]');
+    const seen = s => [...r.querySelectorAll(s)].filter(c => c.getClientRects().length > 0);
+    const co = r.querySelector('td.company');
+    return { h: r.getBoundingClientRect().height, rowH: parseFloat(getComputedStyle(t).getPropertyValue('--row-h')),
+             scores: seen('td.sc').map(c => c.dataset.l), rank: seen('td.rank').length, ticker: seen('td.ticker').length,
+             comp: seen('td.comp').length, company: seen('td.company').length,
+             nameCut: co.scrollWidth > co.clientWidth + 1, nameW: co.getBoundingClientRect().width,
+             full: t.classList.contains('rows-full'), sortl: t.getAttribute('data-sortl') };
+}"""
+
+
+@needs_browser
+def test_on_a_phone_a_ranking_row_is_identity_and_composite_and_the_scores_are_one_tap_away(browser):
+    ctx, page, errors = _open(browser)
+    try:
+        row = page.evaluate(ROW_JS)
+        assert row["scores"] == [], f"a phone row arrives with category scores on it: {row['scores']}"
+        assert (row["rank"], row["ticker"], row["company"], row["comp"]) == (1, 1, 1, 1), row
+        assert row["h"] == row["rowH"] <= 60, f"the compact row is {row['h']}px (it was 80)"
+        assert row["nameW"] >= 200, f"the company name has {row['nameW']:.0f}px - it had ~140 beside the ticker"
+        # the windowed table places its spacers by --row-h: the rows drawn must be that tall, all of them
+        heights = page.evaluate("[...new Set([...document.querySelectorAll('#universe-tbody tr[data-t]')].map(r => r.getBoundingClientRect().height))]")
+        assert heights == [row["rowH"]], heights
+
+        btn = page.locator("#rows-scores-m")
+        assert btn.is_visible() and btn.get_attribute("aria-pressed") == "false"
+        assert btn.evaluate("e => e.getBoundingClientRect().height") >= 44
+        btn.tap()
+        full = page.evaluate(ROW_JS)
+        assert full["full"] and full["scores"] == ["Val", "Qual", "Grow", "Mom", "Risk", "Rev", "Size", "Inv"]
+        assert full["h"] == full["rowH"] == 80, "Show the 8 scores puts the earlier row back, at its own height"
+        assert btn.get_attribute("aria-pressed") == "true" and "Hide" in btn.inner_text()
+        assert _no_sideways_scroll(page)
+        btn.tap()
+        assert page.evaluate(ROW_JS)["scores"] == [] and btn.get_attribute("aria-pressed") == "false"
+        assert not errors, errors
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_on_a_phone_the_choice_to_see_scores_is_remembered(browser):
+    ctx, page, errors = _open(browser)
+    try:
+        page.locator("#rows-scores-m").tap()
+        page.reload(wait_until="load")
+        page.wait_for_function("document.querySelectorAll('#universe-tbody tr[data-t]').length > 0", timeout=30000)
+        row = page.evaluate(ROW_JS)
+        assert row["full"] and len(row["scores"]) == 8 and row["h"] == row["rowH"] == 80
+        assert page.locator("#rows-scores-m").get_attribute("aria-pressed") == "true"
+        assert not errors, errors
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_on_a_phone_a_list_sorted_by_a_category_shows_that_score_on_the_row(browser):
+    """Sorted by Momentum, rank 467 can head the list: the row has to show the number it is sorted by.
+    The score read off the row is the payload's own, for whichever stock the day's data puts first."""
+    ctx, page, errors = _open(browser)
+    try:
+        for col, label in (("momentum_score", "Mom"), ("valuation_score", "Val"), ("investment_score", "Inv")):
+            page.select_option("#sort-by", col)
+            page.wait_for_function("l => document.getElementById('universe-table').getAttribute('data-sortl') === l", arg=label)
+            row = page.evaluate(ROW_JS)
+            assert row["scores"] == [label], f"sorted by {col}, the row shows {row['scores']}"
+            assert row["h"] == row["rowH"] <= 60
+            shown, want = page.evaluate("""([col, label]) => {
+                const r = document.querySelector('#universe-tbody tr[data-t]');
+                const d = window.SCREENER_DATA.table_data.find(x => x.Ticker === r.dataset.t);
+                return [parseFloat(r.querySelector('td.sc[data-l="' + label + '"]').textContent), d[col]]; }""", [col, label])
+            assert abs(shown - want) < 0.051, f"{col}: the row says {shown}, the payload {want}"
+        page.select_option("#sort-by", "Rank")
+        page.wait_for_function("!document.getElementById('universe-table').hasAttribute('data-sortl')")
+        assert page.evaluate(ROW_JS)["scores"] == []
+        assert not errors, errors
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_on_a_phone_a_trap_flag_stays_on_the_compact_row(browser):
+    """A flag is the one thing on a row that says "read the detail first"; the compact row keeps it,
+    spelled out, beside the ticker - and the company name keeps its whole line."""
+    ctx, page, errors = _open(browser)
+    try:
+        from tests import phone as phone_taps
+        phone_taps.open_filters(page)
+        page.select_option("#filter-vt", "any")
+        page.wait_for_function("document.querySelectorAll('#universe-tbody tr[data-t]').length > 0")
+        n = page.evaluate("document.querySelectorAll('#universe-tbody tr[data-t]').length")
+        flagged = page.evaluate("""() => [...document.querySelectorAll('#universe-tbody tr[data-t]')].map(r => {
+            const f = [...r.querySelectorAll('.vt-cell .flag')], c = r.querySelector('td.company').getBoundingClientRect();
+            const k = r.querySelector('td.ticker').getBoundingClientRect();
+            return { n: f.length, seen: f.every(e => e.getClientRects().length > 0 && e.getBoundingClientRect().right <= innerWidth),
+                     word: f.every(e => getComputedStyle(e, '::after').content.includes('trap')),
+                     beside: f.every(e => e.getBoundingClientRect().left >= k.right - 1 && e.getBoundingClientRect().bottom <= c.top + 2),
+                     nameW: c.width, h: r.getBoundingClientRect().height }; })""")
+        assert n > 0 and all(r["n"] >= 1 for r in flagged), "the premise: the trap filter lists flagged stocks"
+        bad = [r for r in flagged if not (r["seen"] and r["word"] and r["beside"] and r["nameW"] >= 200 and r["h"] <= 60)]
+        assert bad == [], bad[:3]
+        assert not errors, errors
+    finally:
+        ctx.close()
+
+
 @needs_browser
 def test_the_phone_page_still_fits_a_small_phone(browser):
     """320px: the new controls - the guide line, the Filters row, the folded headings and their
@@ -367,7 +484,7 @@ def test_the_phone_page_still_fits_a_small_phone(browser):
     ctx, page, errors = _open(browser, 320, 640)
     try:
         assert _no_sideways_scroll(page)
-        over = page.evaluate("""() => ['#guide-open-m', '#filters-more-m', '.filter-sort-m', '#filter-search']
+        over = page.evaluate("""() => ['#guide-open-m', '#filters-more-m', '.filter-sort-m', '#filter-search', '#rows-scores-m', '#universe-tbody tr[data-t]']
             .filter(s => { const e = document.querySelector(s); return e && e.getBoundingClientRect().right > innerWidth + 0.5; })""")
         assert over == [], over
         _open_sheet(page)

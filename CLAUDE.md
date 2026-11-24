@@ -306,7 +306,11 @@ the opening assignment **on all three payload files** (`dashboard_detail.js` joi
 `scripts/check_published_claims.py`. **Since 2026-10-22 a trading bot acts on what it
 publishes**, so it also stops on a failed `git pull --ff-only` or a local `main` ahead of
 `origin/main`, and pushes only its one data commit (`<sha>:refs/heads/main`), never all of
-local `main`.
+local `main`. **A push that fails is tried five times a minute apart, and one that never lands
+takes its own commit back and discards the run** (2026-11-23: one HTTP 408 after every gate had
+passed left `main` a commit ahead, the brief then diverged it, and the 06:00, 13:00 and 18:00 runs
+all stood down) - so a network fault costs at most the 02:00 run and the 18:00 retry reruns it.
+`tests/test_data_push_retry.py`.
 
 **That last one is gate 1's counterpart** (2026-10-02, after the loop published a reverted
 methodology page having run no tests).
@@ -628,7 +632,9 @@ a phone arrives folded under a heading that says what is inside; nothing is remo
 targets a folded part opens it, print shows everything, and "Read with care" and the disclaimers are
 never folded.** Measure the page's height at 375px before and after a dashboard change and write both
 numbers in the log - a section that is fine at 1440px can be eight screens on a phone. A browser test
-at 375px taps first (`tests/phone.py`).
+at 375px taps first (`tests/phone.py`). **A ranking row on a phone is rank, ticker, name and
+composite** (2026-11-23; "Show the 8 scores" restores the rest, and a list sorted by a category shows
+that score) - do not add a figure to the compact row without taking one off.
 
 **Every number on the page must be checkable from the page** - owner direction,
 2026-10-06: *"we can see how things score, but we don't actually see the numbers

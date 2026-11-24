@@ -2760,6 +2760,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <button type="button" class="filter-clear" id="filter-clear" onclick="clearFilters()" hidden>Clear filters</button>
                     <span class="result-count" id="result-count" aria-live="polite"></span>
                 </div>
+                <button type="button" class="rows-scores-m" id="rows-scores-m" aria-pressed="false" onclick="toggleRowScoresPhone()">Show the 8 scores</button>
                 {score_key_html()}
                 <div class="table-section">
                     <p class="sr-only" id="universe-keys">Arrow keys, Page Up, Page Down, Home and End move between rows; Enter opens a stock.</p>
@@ -15088,12 +15089,59 @@ def _css_phone() -> str:
     and a printed page are untouched. Nothing leaves the page: what folds opens with one tap,
     with any link that targets it, and in print. Shared tokens only; no new colour.
     """
-    return """
+    sortl = ",\n            ".join(
+        f'.data-table:not(.rows-full)[data-sortl="{short}"] td.sc[data-l="{short}"]' for _, short, _, _ in SCORE_KEY)
+    return _CSS_PHONE.replace("@@SORTL@@", sortl)
+
+
+_CSS_PHONE = """
         /* =====================================================================
            THE PHONE PASS (2026-11-22)
            ===================================================================== */
-        .guide-open-m, .filters-more-m, .summary-more-m { display: none; }
+        .guide-open-m, .filters-more-m, .summary-more-m, .rows-scores-m { display: none; }
         @media screen and (max-width: 760px) {
+            /* ---- home: a ranking row is rank, ticker, the whole name and the composite ----
+               Each row carried nine numbers (the composite and eight labelled scores): 450 figures in
+               the first fifty rows. The eight scores are one tap away - on the stock, or on every row
+               with "Show the 8 scores", which puts the earlier row back exactly. Sorting by a category
+               shows that category's score on the row, so the order on screen is never unexplained. */
+            .rows-scores-m {
+                display: inline-flex; align-items: center; float: right; min-height: 44px; margin: 0 0 0 12px; padding: 0 2px;
+                background: none; border: 0; cursor: pointer; color: var(--accent-text, var(--accent));
+                font: 500 13.5px/1.2 var(--font-body, inherit); white-space: nowrap;
+            }
+            .rows-scores-m:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+            .table-section { clear: both; }
+            .data-table:not(.rows-full) { --row-h: 58px; }
+            .data-table:not(.rows-full) tbody tr[data-t] {
+                grid-template-columns: 38px auto minmax(0, 1fr) auto; grid-template-rows: 27px 21px; column-gap: 0;
+                padding: 5px 12px 5px 10px;
+            }
+            .data-table:not(.rows-full) td.rank { grid-column: 1; grid-row: 1; align-self: end; height: 24px; }
+            .data-table:not(.rows-full) td.delta-cell { grid-column: 1; grid-row: 2; align-self: start; height: 20px; }
+            .data-table:not(.rows-full) td.ticker { grid-column: 2; grid-row: 1; align-self: end; height: 24px; font-size: 16px; }
+            .data-table:not(.rows-full) td.company,
+            .data-table:not(.rows-full) tr:has(.vt-cell .flag) td.company {
+                grid-column: 2 / span 2; grid-row: 2; align-self: start; display: block; padding: 0 12px 0 0; font-size: 13px;
+                line-height: 20px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            }
+            .data-table:not(.rows-full) td.vt-cell,
+            .data-table:not(.rows-full) tr:has(.vt-cell .flag) td.vt-cell {
+                grid-column: 3; grid-row: 1; align-self: end; justify-content: flex-start; align-items: center; height: 24px;
+                padding: 0 8px 0 10px; overflow: hidden;
+            }
+            .data-table:not(.rows-full) td.comp { grid-column: 4; grid-row: 1 / span 2; align-self: center; min-width: 58px; height: 34px; font-size: 18px; }
+            .data-table:not(.rows-full) td.comp i { bottom: 0; }
+            .data-table:not(.rows-full) td.sc { display: none; }
+            /* sorted by a category: its score sits under the composite */
+            .data-table:not(.rows-full)[data-sortl] td.comp { grid-row: 1; align-self: end; height: 26px; font-size: 16px; }
+            .data-table:not(.rows-full)[data-sortl] td.comp i { display: none; }
+            @@SORTL@@ {
+                display: flex; flex-direction: row; align-items: baseline; justify-content: flex-end; gap: 5px;
+                grid-column: 4; grid-row: 2; align-self: start; height: 20px; background: none; border-radius: 0;
+                font-size: 13px; font-weight: 600; color: var(--text-primary);
+            }
+
             /* ---- home: the guide is one line until it is asked for ---- */
             .guide { padding: 0; margin-bottom: 20px; }
             .guide-open-m {
@@ -15328,6 +15376,39 @@ def _js_phone() -> str:
         bar.classList.toggle('filters-open');
         syncFiltersPhone();
     }
+    // The ranking's rows on a phone: rank, ticker, name and composite. The button puts the eight
+    // scores back on every row (the row as it was before 2026-11-23); the choice is remembered on
+    // this device only. The table is windowed by row height, so it is redrawn after the change.
+    function setRowScoresPhone(full) {
+        const t = document.getElementById('universe-table'), b = document.getElementById('rows-scores-m');
+        if (!t || !t.classList) return;
+        t.classList.toggle('rows-full', !!full);
+        if (b && b.setAttribute) {
+            b.setAttribute('aria-pressed', full ? 'true' : 'false');
+            b.textContent = full ? 'Hide the 8 scores' : 'Show the 8 scores';
+        }
+        if (typeof renderWindow === 'function') renderWindow(true);
+    }
+    function toggleRowScoresPhone() {
+        const t = document.getElementById('universe-table');
+        if (!t || !t.classList) return;
+        const full = !t.classList.contains('rows-full');
+        setRowScoresPhone(full);
+        try { localStorage.setItem('scr.rowScores', full ? '1' : '0'); } catch (e) {}
+    }
+    // Which category the table is sorted by, as the row's own short label - the stylesheet shows
+    // that one score on a compact row. Rank, composite, name and move need nothing extra.
+    function syncSortLabelPhone() {
+        const t = document.getElementById('universe-table');
+        if (!t || !t.setAttribute || typeof tableState === 'undefined' || typeof CAT_KEYS === 'undefined') return;
+        const j = CAT_KEYS.indexOf(tableState.sortCol);
+        if (j >= 0) t.setAttribute('data-sortl', CAT_SHORT[j]); else t.removeAttribute('data-sortl');
+    }
+    if (typeof renderUniverseTable === 'function') {
+        const _baseRenderUniverseTable = renderUniverseTable;
+        renderUniverseTable = function() { syncSortLabelPhone(); return _baseRenderUniverseTable.apply(this, arguments); };
+    }
+
     // Market backdrop on a phone: each reading's paragraph shows three lines until asked for, and
     // the ten charts sit under their three group headings. The section rewrites itself when the
     // context file lands, so this runs after every write; marked nodes are skipped.
@@ -15430,6 +15511,10 @@ def _js_phone() -> str:
     }
 
     (function initPhone() {
+        syncSortLabelPhone();
+        let rowScores = null;
+        try { rowScores = localStorage.getItem('scr.rowScores'); } catch (e) {}
+        if (rowScores === '1' && isPhone()) setRowScoresPhone(true);
         phoneFoldSheet();
         phoneFoldDist();
         const mk = document.getElementById('sec-market');
