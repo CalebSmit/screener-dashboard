@@ -361,6 +361,26 @@ not to a desktop-app one, whose AppData is sandboxed.*
    page.
 7. **Measure coverage before and after**, and report any loss rather than tuning it away.
 
+**Build status, 2026-11-24 (13:00 session): steps 1-3 and 5-6 BUILT; step 4's guard BUILT and the
+flip itself deliberately not made; step 7 measured on a sample.** `implied_vol.py`; both option paths
+record ours (`_ctx_opt_own_*`) beside the source (`_ctx_opt_src_*`) on every reading; the fetch keeps
+`exDividendDate` and `lastDividendValue` from the `.info` it already pulls (step 2's obstacle - no new
+request); a payer with no ex-date, no curve or no QuantLib keeps the source field, stamped (step 3); the
+generator withholds a figure whose stamp is not `PUBLISHED_IV_CONSTRUCTION` (step 4's guard); QuantLib
+1.44 pinned - it was already installed in the scheduled loops' Python, so nothing was installed (step
+5); the panel says whose volatilities it shows, claim `context.iv_construction` (step 6). Step 2's
+"throwaway full run" was replaced by a cheaper check of the same thing: the `.info` fields were read
+live for six tickers (AAPL, JPM, KO, O, NVDA, TSLA - present for every payer, absent for the non-payer)
+and the fetch line is pinned by a test; the 02:00 run of 2026-11-25 is the first full fetch to carry
+them, and the next session confirms it there.
+
+Step 7 on 51 stocks through the production path, mid-session (`research/measurements/2026-11-24-own-iv-coverage.py`):
+ours priced the ATM IV for 45 of the 47 stocks the source did, the skew for 40 of its 45; ours minus the
+source, median -1.48 points at the money, +1.86 on the skew; **the skew negative for 2 of 40 of ours
+(5%) against 10 of 45 of the source's (22%)** - the paper's 5th percentile is -0.99, so ours sits where
+its distribution does. **The flip waits for the whole-universe count this section asked for**, from the
+2026-11-25 20:00 refresh (the first whose run carries the dividend fields); queued for 2026-11-26.
+
 ## 2. skfolio and "how much"
 
 The north star's unanswered question is position size. skfolio can compute risk-parity,

@@ -53,10 +53,16 @@ def _usable_price(p) -> float | None:
         return None
 
 
-def _options_for(ticker: str, price: float | None, earnings_ts, today) -> dict:
-    """One stock's option context, or ``{}``. Shared with the after-close refresh."""
+def _options_for(ticker: str, price: float | None, earnings_ts, today, rec: dict | None = None,
+                 curve=None) -> dict:
+    """One stock's option context, or ``{}``. Shared with the after-close refresh.
+
+    ``rec`` is the stock's fetched record (its dividend fields) and ``curve`` the Treasury curve,
+    for our own implied volatilities beside the source field (``implied_vol``, 2026-11-24).
+    """
     import yfinance as yf
     from context_signals import chain_spot, choose_expiry, options_context
+    from implied_vol import inverter
     if price is None or not np.isfinite(price) or price <= 0:
         return {}
     t = yf.Ticker(ticker)
@@ -72,10 +78,17 @@ def _options_for(ticker: str, price: float | None, earnings_ts, today) -> dict:
     # The same rule as the after-close refresh: the stock's price in the chain's own response,
     # so the quotes and their divisor are one instant (context_signals.chain_spot, 2026-11-03).
     spot, src = chain_spot(getattr(ch, "underlying", None), price)
-    out = options_context(ch.calls, ch.puts, spot, exp, today, spans)
+    inv = inverter(rec, curve, today, datetime.strptime(exp, "%Y-%m-%d").date()) if rec is not None else None
+    out = options_context(ch.calls, ch.puts, spot, exp, today, spans, invert=inv)
     if "_ctx_opt_spot" in out:
         out["_ctx_opt_spot_src"] = src
     return out
+
+
+# What our own implied volatilities need during one ``enrich`` pass: the Treasury curve and each
+# stock's fetched record (its dividend fields). Set by ``enrich`` and read-only while its workers run,
+# so ``_context_for`` keeps the signature every caller and test double uses.
+_IV_INPUTS: dict = {"curve": None, "recs": {}}
 
 
 def _context_for(ticker: str, price: float | None, earnings_ts, today, with_options: bool = True) -> dict:
@@ -83,7 +96,8 @@ def _context_for(ticker: str, price: float | None, earnings_ts, today, with_opti
     from insider_activity import rows_from_yahoo
     out: dict = {}
     if with_options:
-        out.update(_options_for(ticker, price, earnings_ts, today))
+        out.update(_options_for(ticker, price, earnings_ts, today,
+                                rec=_IV_INPUTS["recs"].get(ticker), curve=_IV_INPUTS["curve"]))
     t = yf.Ticker(ticker)
     out["_ctx_insider"] = json.dumps(rows_from_yahoo(t.insider_transactions, today), separators=(",", ":"))
     return out
@@ -161,6 +175,19 @@ def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=
     if not live and insider_from_sec:
         todo = [r for r in todo if r["Ticker"] not in insider_from_sec]
         covered = n_all - len(todo)
+
+    # The Treasury curve for our own implied volatilities: fetched only when the probe found quotes
+    # live (a caller that supplied ``options_live`` - the tests - supplies no curve either), and None
+    # on any failure - each reading then keeps the source field, stamped as such.
+    curve = None
+    if live and options_live is None:
+        try:
+            import implied_vol
+            curve = implied_vol.treasury_curve(today)
+        except Exception as e:  # noqa: BLE001 - context is optional by design
+            log(f"  Options: no Treasury curve ({type(e).__name__}), so implied volatilities stay the source's")
+    _IV_INPUTS["curve"] = curve
+    _IV_INPUTS["recs"] = {r["Ticker"]: r for r in todo}
 
     i = 0
     while i < len(todo):

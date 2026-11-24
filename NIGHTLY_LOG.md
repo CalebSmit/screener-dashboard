@@ -10595,3 +10595,97 @@ own or the market's?", and the drilldown check the focus asks for was done on th
   installed by a scheduled session, never from the desktop app).
 - After tomorrow's 02:00 run: confirm its rank-continuity line against today's page (expect >= 0.98, the
   change is now in both) and that `residual_momentum` coverage is ~491.
+
+## 2026-11-24 (13:00) - QUEUE. The implied-volatility inversion built: our own volatilities recorded beside the source's on every reading, the panel says whose it shows; the switch waits two days for a whole-universe count
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-24_060001.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-24_020001.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: **58 rows, newest `run_date` 2026-10-23 (32 days ago, bound 40), 5 effective** of 8.
+Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 43 days**; a standing programme, last advanced **18 days** ago, bound 21 - its day is
+Friday, so not deferred by a Tuesday); also open 0.10 (48 d), 0.14 (41 d). Shipped to readers: 19
+commits, 8 methodology changes in the last 7 days. No branch held back; no stash.
+**Tests:** before 4519 passed / 1 skipped (13:05); after **4553 passed / 1 skipped** (14:20, the
+committed tree; 34 new). Gate 2 dry run exit 0. Gate 5 (`rehearse_publish.py --changed-since main`)
+PASSED (page tests and claims gate, 2435 passed; it prints ENGINE CHANGED for `factor_engine.py`, which
+here is the fetch keeping two `.info` fields - no score reads them). Gate 3's `node --check` is refused by
+this session's tool guard; the payload files are byte-identical to `main` (`rebuild_page.py`), index.html
+953 KB; the runner runs it. Gate 5 failed once mid-session on `test_club_readiness`, which reads the
+glosses by position - the construction sentence was moved after both glosses and built as a variable.
+**Owner queue / rotation:** carried on from the 06:00 entry's Next, which is also `OWNER_FOCUS.md`'s
+2026-11-19 item: the implied-volatility inversion ACCEPTED 2026-11-04, unbuilt for twenty days.
+
+### Did
+- **`implied_vol.py`: our own implied volatilities**, the construction section 1d of
+  `research/2026-11-03-open-source-quant-stack.md` ADOPTED - each option's own bid/ask mid (the existing
+  `MAX_REL_SPREAD` bar, not loosened), QuantLib's American finite-difference solver with a discrete
+  dividend schedule, FRED's 1/3/6/12-month Treasury curve interpolated to the expiry and cached in
+  `data/options/` (the only place the 20:00 task may write). One inversion feeds the ATM call, ATM put
+  and both skew legs (build order step 1).
+- **No new request per stock (step 2's obstacle):** the core fetch keeps `exDividendDate` and
+  `lastDividendValue` from the `.info` it already pulls. Checked live on six tickers before writing the
+  rule: present for every payer (AAPL, JPM, KO, O, NVDA), absent for TSLA. The schedule rule: annual
+  rate in equal instalments, frequency from rate / last payment (O comes out monthly, the rest
+  quarterly), first on the ex-date. A payer with no ex-date is "unknown" and keeps the source field -
+  never priced as if no dividend fell in the option's life (step 3).
+- **A paired record from the first refresh.** Every reading carries both constructions where it can
+  (`_ctx_opt_own_*`, `_ctx_opt_src_*`), and the context log keeps every `_ctx_` column, so the
+  comparison the decision wanted ("the only way this project will ever be able to say which
+  construction predicts better") accrues from tonight. The main columns hold
+  `PUBLISHED_IV_CONSTRUCTION`'s figures, falling back - stamped - to the other.
+- **The page (step 4's guard, step 6):** the generator withholds a figure whose stamp is not the
+  published construction (`oniv`), by the same predicate `context_eval` counts with; the panel now
+  says whose volatilities it shows - today *"the data source's own figures; it does not publish how it
+  computes them"*, which the page had never said. Claim `context.iv_construction`.
+- **QuantLib 1.44 pinned** (step 5). It was already installed in `Python312`, the interpreter the
+  scheduled tasks run, so nothing was installed.
+- **Coverage, measured through the production path (step 7)**, 51 stocks mid-session
+  (`research/measurements/2026-11-24-own-iv-coverage.py`): ours 45 of the source's 47 ATM IVs, 40 of its
+  45 skews; ours minus source median -1.48 points ATM, +1.86 on the skew; **skew negative for 2 of 40
+  of ours (5%) against 10 of 45 of the source's (22%)** - Xing, Zhang & Zhao's Table 1 puts it at about
+  one in sixteen. The first run of the script died on a network timeout at stock 38 because its own
+  `.info` call sat outside the try; fixed and rerun in full - the numbers above are the full run's.
+- **Looked at it:** AAPL and JPM at 1440px on the rehearsed page - the sentence sits after the two
+  glosses, the figures unchanged. At 375px the options card is folded by the phone pass (unchanged); my
+  height script's selector read the viewport container (762px both before and after), so **I have no
+  real 375px height number** - the change adds one sentence inside an already-folded card.
+- **Research engine rerun** (all 32 rows, `--jobs 4`, three foreground calls): `factor_engine.py` is a
+  `RESULT_PATHS` file, so the two fetch lines staled every row. No figure moved; summary and
+  `research.html` unchanged.
+
+### Evidence / research
+- The decision's own (section 1d): the disjoint replication above the 1-point bar, 19 of 19 contracts
+  reproduced by an independent CRR tree (9 with a dividend), Xing, Zhang & Zhao (2010), *JFQA* 45(3),
+  Table 1 p. 647. Today's sample adds the coverage the decision left unsized and a second, larger look
+  at the sign frequency. `tests/test_implied_vol.py` re-runs the CRR cross-check on every suite run.
+
+### Methodology changed
+- `METHODOLOGY_CHANGELOG.md` 2026-11-24 (13:00), "Our own implied volatilities, recorded beside the
+  source field" - context only, never scored; no rank or score moves.
+
+### Tried and rejected
+- **Flipping `PUBLISHED_IV_CONSTRUCTION` today.** The decision asked for coverage "on the whole
+  universe from one 20:00 refresh before the switch", and tonight's refresh reads a run fetched before
+  the dividend fields existed, so every payer would fall back to the source - and the guard would then
+  withhold their figures on tomorrow's page. The 2026-11-25 20:00 refresh is the first that can price
+  every payer; the flip is queued for 2026-11-26 (`COMING_UP`). Not a reversal of the 06:00 session or
+  of the 11-04 decision - its own step.
+- **Step 2's throwaway full run.** Replaced by the cheaper check of what it was for (the fields are
+  served, on six live tickers; the fetch line pinned by a test). The 11-25 02:00 run is the first full
+  fetch to carry them, and the next session confirms that before flipping.
+- **Passing the dividend record to `_context_for` as a keyword:** the test doubles in four modules use
+  its positional signature (four tests failed); the pass now sets a read-only module dict instead.
+
+### Set aside
+- The 06:00 entry's second Next (after tomorrow's 02:00 run, confirm its rank continuity >= 0.98 and
+  `residual_momentum` coverage ~491): not yet possible - that run has not happened. Still owed.
+- The 11-23 (owner-run) entry's "18:00 retry cannot recover an already-diverged `main`": left as that
+  entry argued.
+
+### Next
+- **2026-11-26: publish our own volatilities.** Confirm the 11-25 02:00 raw fetch has `exDividendDate`
+  for most payers and the 11-25 20:00 cache (`data/options/quotes.json`) has `_ctx_opt_own_iv` for most
+  stocks; count own against source over the whole cache; then flip `PUBLISHED_IV_CONSTRUCTION` to
+  `own_mid` with a changelog entry, look at the panel, and report any coverage lost - never by loosening
+  `MAX_REL_SPREAD` or the IV bounds.
+- After the 11-25 02:00 run: the 06:00 entry's rank-continuity and coverage check.

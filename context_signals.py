@@ -198,14 +198,47 @@ def _xzz_leg(frame: pd.DataFrame, spot: float, lo: float, hi: float, target: flo
     return float(row["strike"]), float(row["impliedVolatility"])
 
 
-def _xzz_skew(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, days) -> dict:
+def _xzz_leg_own(frame: pd.DataFrame, spot: float, lo: float, hi: float, target: float,
+                 inclusive: bool, kind: str, invert) -> tuple[float, float] | None:
+    """The same leg as :func:`_xzz_leg`, priced by our own inversion of each contract's mid.
+
+    The same band, target and open-interest rule; the candidates are the contracts with a bid and
+    ask that stand up (:func:`_mid`), tried nearest the target first until one inverts to a
+    volatility inside the panel's bounds. Only those few are inverted, not the whole band.
+    """
+    if frame is None or frame.empty or not spot or spot <= 0 or invert is None:
+        return None
+    f = frame.copy()
+    f["strike"] = pd.to_numeric(f["strike"], errors="coerce")
+    f["m"] = f["strike"] / spot
+    band = (f["m"] >= lo) & (f["m"] <= hi) if inclusive else (f["m"] > lo) & (f["m"] < hi)
+    if "openInterest" in f:
+        oi = pd.to_numeric(f["openInterest"], errors="coerce")
+        band &= ~(oi.notna() & (oi <= 0))
+    f = f[band]
+    for _, row in f.iloc[(f["m"] - target).abs().argsort()].iterrows():
+        mid, _ = _mid(row.to_dict())
+        if mid is None:
+            continue
+        iv = invert(kind, float(spot), float(row["strike"]), mid)
+        if iv is not None and IV_MIN <= iv <= IV_MAX:
+            return float(row["strike"]), float(iv)
+    return None
+
+
+def _xzz_skew(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, days, invert=None) -> dict:
     """Xing, Zhang & Zhao (2010) SKEW = IV(OTM put) - IV(ATM call), with both legs published.
 
     Returns an empty dict when either leg is unavailable: a skew with one leg guessed is not
     the paper's measure, and the panel prints nothing rather than a number it cannot source.
+    With ``invert`` both legs are our own inversions of their mids; without it, the source field.
     """
-    put = _xzz_leg(puts, spot, XZZ_PUT_LO, XZZ_PUT_HI, XZZ_PUT_TARGET, inclusive=False)
-    call = _xzz_leg(calls, spot, XZZ_CALL_LO, XZZ_CALL_HI, XZZ_CALL_TARGET, inclusive=True)
+    if invert is not None:
+        put = _xzz_leg_own(puts, spot, XZZ_PUT_LO, XZZ_PUT_HI, XZZ_PUT_TARGET, False, "put", invert)
+        call = _xzz_leg_own(calls, spot, XZZ_CALL_LO, XZZ_CALL_HI, XZZ_CALL_TARGET, True, "call", invert)
+    else:
+        put = _xzz_leg(puts, spot, XZZ_PUT_LO, XZZ_PUT_HI, XZZ_PUT_TARGET, inclusive=False)
+        call = _xzz_leg(calls, spot, XZZ_CALL_LO, XZZ_CALL_HI, XZZ_CALL_TARGET, inclusive=True)
     if put is None or call is None:
         return {}
     (pk, piv), (ck, civ) = put, call
@@ -276,9 +309,42 @@ def chain_spot(underlying, fallback) -> tuple[float | None, str]:
 IV_CONSTRUCTIONS = ("source", "own_mid")
 PUBLISHED_IV_CONSTRUCTION = "source"
 
+# Built 2026-11-24: every reading now carries **both** constructions where it can, so the paired
+# record the decision asked for accrues from the first refresh - ``_ctx_opt_own_*`` (ours) and
+# ``_ctx_opt_src_*`` (the source field) - while the main ``_ctx_opt_iv`` / ``_ctx_opt_skew`` columns
+# hold the published construction, falling back to the other one (stamped) where it is missing.
+# The constant is not flipped in the same commit, because the decision (section 1d, "the one cost
+# still unsized is coverage") asks for coverage to be measured on the whole universe from one 20:00
+# refresh first; the refresh after the 02:00 run that first fetches the ex-dividend fields is that one.
+OWN_KEYS = ("_ctx_opt_own_iv", "_ctx_opt_own_call_iv", "_ctx_opt_own_put_iv", "_ctx_opt_own_skew",
+            "_ctx_opt_own_skew_put_iv", "_ctx_opt_own_skew_strike", "_ctx_opt_own_skew_call_iv",
+            "_ctx_opt_own_skew_call_strike")
+SRC_KEYS = ("_ctx_opt_src_iv", "_ctx_opt_src_skew")
+_SKEW_KEYS = ("_ctx_opt_skew", "_ctx_opt_skew_strike", "_ctx_opt_skew_put_iv",
+              "_ctx_opt_skew_call_strike", "_ctx_opt_skew_call_iv")
+
+
+def _own_ivs(c_row: dict, p_row: dict, calls, puts, spot: float, atm: float, days, invert) -> dict:
+    """Our own construction's figures for one reading, under their ``_ctx_opt_own_*`` names."""
+    out: dict = {}
+    legs = {}
+    for kind, row in (("call", c_row), ("put", p_row)):
+        mid, _ = _mid(row)
+        iv = invert(kind, float(spot), float(atm), mid) if mid is not None else None
+        if iv is not None and IV_MIN <= iv <= IV_MAX:
+            legs[kind] = iv
+            out[f"_ctx_opt_own_{kind}_iv"] = float(iv)
+    if len(legs) == 2:
+        out["_ctx_opt_own_iv"] = float((legs["call"] + legs["put"]) / 2)
+    sk = _xzz_skew(calls, puts, spot, days, invert=invert)
+    for k in _SKEW_KEYS:
+        if k in sk:
+            out["_ctx_opt_own_" + k[len("_ctx_opt_"):]] = sk[k]
+    return out
+
 
 def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry: str,
-                    today: date, spans_earnings: bool) -> dict:
+                    today: date, spans_earnings: bool, invert=None) -> dict:
     """What one expiry's chain says: the move it prices, implied vol, put skew, positioning.
 
     - **Expected move** = (ATM call mid + ATM put mid) / spot. An at-the-money straddle costs
@@ -293,6 +359,10 @@ def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry
     - **Put/call open interest** = total put OI / total call OI on that expiry. Recorded for
       the context log only; it is not shown on the page (2026-10-14 - a bare *level*, where
       what little published evidence exists is about flow and is spent within a week).
+
+    ``invert`` (``implied_vol.inverter``) adds our own construction beside the source field; the
+    main IV and skew columns hold ``PUBLISHED_IV_CONSTRUCTION``'s figures, or the other
+    construction's where the published one has none, and ``_ctx_opt_iv_src`` says which.
     """
     out: dict = {"_ctx_opt_expiry": expiry, "_ctx_opt_spans_earnings": bool(spans_earnings)}
     try:
@@ -323,15 +393,37 @@ def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry
     if c_mid is not None and p_mid is not None:
         out["_ctx_opt_move"] = float((c_mid + p_mid) / spot)
         out["_ctx_opt_straddle"] = float(c_mid + p_mid)
+    # The source construction: the quote response's own field.
+    src: dict = {}
     ivs = [r.get("impliedVolatility") for r in (c_row, p_row)]
     ivs = [float(v) for v in ivs if v is not None and np.isfinite(v) and IV_MIN <= v <= IV_MAX]
     if len(ivs) == 2:
-        out["_ctx_opt_iv"] = float(sum(ivs) / 2)
-    out.update(_xzz_skew(calls, puts, spot, out.get("_ctx_opt_days")))
-    # Which construction every implied volatility in this reading came from. Stamped where there
-    # is one to describe, so a reading with no IV at all does not claim a construction.
-    if "_ctx_opt_iv" in out or "_ctx_opt_skew" in out:
-        out["_ctx_opt_iv_src"] = "source"
+        src["_ctx_opt_iv"] = float(sum(ivs) / 2)
+    src.update(_xzz_skew(calls, puts, spot, out.get("_ctx_opt_days")))
+    # Ours, where the inputs allow (implied_vol.inverter returns None otherwise).
+    own: dict = {}
+    if invert is not None:
+        own = _own_ivs(c_row, p_row, calls, puts, spot, atm, out.get("_ctx_opt_days"), invert)
+    for k in ("_ctx_opt_iv", "_ctx_opt_skew"):
+        if k in src:
+            out["_ctx_opt_src_" + k[len("_ctx_opt_"):]] = src[k]
+    out.update(own)
+    own_main = {k[:len("_ctx_opt_")] + k[len("_ctx_opt_own_"):]: v for k, v in own.items()
+                if k[len("_ctx_opt_own_"):] in ("iv",) + tuple(s[len("_ctx_opt_"):] for s in _SKEW_KEYS)}
+    sets = {"source": src, "own_mid": own_main}
+    order = [PUBLISHED_IV_CONSTRUCTION] + [c for c in IV_CONSTRUCTIONS if c != PUBLISHED_IV_CONSTRUCTION]
+    # Which construction every implied volatility in the main columns came from: one per reading,
+    # never a skew from one and an IV from the other. Stamped where there is one to describe, so a
+    # reading with no IV at all does not claim a construction.
+    for name in order:
+        chosen = sets[name]
+        if "_ctx_opt_iv" in chosen or "_ctx_opt_skew" in chosen:
+            out.update(chosen)
+            out["_ctx_opt_iv_src"] = name
+            break
+    if "_ctx_opt_skew" in out:
+        out["_ctx_opt_skew_in_window"] = bool(out.get("_ctx_opt_days") is not None
+                                              and XZZ_DAYS_LO <= out["_ctx_opt_days"] <= XZZ_DAYS_HI)
     coi, poi = calls.get("openInterest"), puts.get("openInterest")
     if coi is not None and poi is not None:
         c_sum, p_sum = float(np.nansum(coi.values)), float(np.nansum(poi.values))

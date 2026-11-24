@@ -425,7 +425,11 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
   ratio, a reversal note past +/-15%), **What options imply** (expected move = ATM straddle / the stock's
   price in the same quote response - published as `osp` and printed as the divisor since
   2026-11-03, and a move without one is withheld (`onsp`), with the ATM volatility and the skew,
-  which are measured from the same price - on the expiry after the next report, ATM IV vs realised, put skew, put/call OI; it names the session
+  which are measured from the same price - on the expiry after the next report, ATM IV vs realised, put skew, put/call OI; since
+  2026-11-24 it says whose implied volatilities they are (`ois`: the source's own field today, our
+  QuantLib inversion of the mids once `context_signals.PUBLISHED_IV_CONSTRUCTION` flips), and a
+  reading built the other way is withheld (`oniv`) - ours is recorded beside it as `_ctx_opt_own_*`
+  in the context log, not published; it names the session
   the quotes came from where that is not the run date, and counts days to expiry from today -
   `_ctx_opt_quote_date`, payload key `oqd`. Three ways it says "no number", each meaning something
   different: `quotes-closed` - the run fetched at an hour when the source serves no quotes and the
