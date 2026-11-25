@@ -167,7 +167,8 @@ Add items below. Anything under this heading is unclaimed work.
   This item is about the screener. The trading bot is a separate repo that nightly sessions do
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
   **Progress:** the dated bullets in `plan/factor-lab.md` are the live record (the health line
-  reads them). Nineteen experiments to 2026-11-06.
+  reads them). Twenty experiments to 2026-11-25 (the twentieth: the volatility paper's own
+  headline sort - the raw gap does not reproduce, about half of the risk-adjusted one does).
   History to 2026-11-19: `log-archive/OWNER_FOCUS-item-histories-2026-11-19.md`.
 
 ---

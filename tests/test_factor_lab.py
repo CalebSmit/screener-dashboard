@@ -167,12 +167,14 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
     totals = {x["id"]: x["result"]["total"] for x in published["experiments"]}
     assert [totals[x["id"]] for x in fl.EXPERIMENTS
-            if x["id"] not in ("size-given-profitability", "piotroski", "revisions", "mohanram")] == [
+            if x["id"] not in ("size-given-profitability", "piotroski", "revisions", "mohanram",
+                               "idiosyncratic-volatility")] == [
         14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24, 10]
     assert totals["size-given-profitability"] == 17
     assert totals["piotroski"] == 4
     assert totals["revisions"] == 3
     assert totals["mohanram"] == 7                       # six score groups and the gap between its ends
+    assert totals["idiosyncratic-volatility"] == 6       # five means and the gap; volatilities not scored (rule 8)
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -857,6 +859,29 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert 4.5 <= after["mean"] * 12 < 5.5 and after["t"] > 2         # "about 5% a year since"
     late = {w: fl.sort_run(ms, "200701", "209912", w)["spread"] for w in ("ew", "vw")}
     assert all(6.0 <= s["mean"] * 12 < 7.0 and s["t"] > 2 for s in late.values())
+
+    # 20. "the three calmer fifths earned what the paper found, but the most volatile fifth earned about
+    #     0.76% a month instead of nothing, so the paper's one-point gap shrinks to a third and cannot be
+    #     told from zero. Since the paper it has been about zero."
+    iv = published["sorts"]["idiosyncratic-volatility"]
+    built = next(x for x in published["experiments"] if x["id"] == "idiosyncratic-volatility")["result"]
+    rows = {r["key"]: r for r in built["rows"]}
+    assert (built["within"], built["total"]) == (3, 6)
+    assert all(rows[k]["within"] for k in ("mean1", "mean2", "mean3"))
+    inside = fl.sort_run(iv, "196307", "200012", "vw")
+    assert round(inside["groups"][4]["mean"], 2) == 0.76
+    assert 0.25 < inside["spread"]["mean"] / -1.06 < 0.4 and abs(inside["spread"]["t"]) < 2
+    # "...about half its gap remains, in its years and since" (open detail: about -0.54, t -3.7;
+    # about -0.58 since 2001, t -2.2; a size loading above 1) - on the published factor series
+    fa = published["factors"]
+    three = {m: [fa["mktrf"][i], fa["smb"][i], fa["hml"][i]] for i, m in enumerate(fa["months"])}
+    paper_years, since = fl.ff3_alpha(iv, three, "196307", "200012"), fl.ff3_alpha(iv, three, "200101", "209912")
+    assert round(paper_years["alpha"], 2) == -0.54 and round(paper_years["t"], 1) == -3.7
+    assert round(since["alpha"], 2) == -0.58 and round(since["t"], 1) == -2.2
+    assert all(0.35 < r["alpha"] / -1.31 < 0.6 and r["loadings"][1] > 1 for r in (paper_years, since))
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "idiosyncratic-volatility")
+    assert any("about -0.54% a month" in d and "t -3.7" in d and "-0.58% since 2001 (t -2.2)" in d
+               for d in exp["open_details"])
 
     # 15. "of the 119 ... 83% ... to 2020, and 76% inside the mega caps alone - close to the paper's 77%.
     #      Since 2014 only 9 of them clear that bar among mega caps, over a period too short to settle it."
@@ -1770,7 +1795,10 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
         # experiment 19: a null at the paper's own average across its six score groups matches the
         # 2, 3 and 4 groups and misses both ends, the 5 group and the spread - the count its record
         # worked out by hand before the comparison was run
-        "mohanram": 3}
+        "mohanram": 3,
+        # experiment 20: only the five means and the spread are scored (the volatilities a null
+        # keeps are not); a null at their average, 0.85, matches the fourth fifth (0.87) alone
+        "idiosyncratic-volatility": 1}
     # every sort whose paper claims an effect: the null misses the spread between the ends
     for exp in fl.EXPERIMENTS:
         if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"
@@ -2227,4 +2255,20 @@ def test_size_given_profitability_can_be_rerun_and_shows_its_rule(published):
                 assert errors == []
             finally:
                 browser.close()
+
+
+def test_ff3_alpha_recovers_a_planted_intercept():
+    """The regression behind experiment 20's open detail: a spread built as 0.3 + 1.2 SMB - 0.5 HML
+    plus noise returns that intercept and those loadings, and a pure-noise spread a small t."""
+    import random
+    rng = random.Random(7)
+    months = [f"{1963 + i // 12}{i % 12 + 1:02d}" for i in range(480)]
+    fac = {m: [rng.gauss(0.5, 4.5), rng.gauss(0.2, 3), rng.gauss(0.3, 3)] for m in months}
+    low = [rng.gauss(1, 4) for _ in months]
+    high = [lo + 0.3 + 1.2 * fac[m][1] - 0.5 * fac[m][2] + rng.gauss(0, 0.5) for lo, m in zip(low, months)]
+    r = fl.ff3_alpha({"months": months, "vw": [low, high]}, fac, "196301", "209912")
+    assert r["n"] == 480 and abs(r["alpha"] - 0.3) < 0.08 and r["t"] > 8
+    assert abs(r["loadings"][1] - 1.2) < 0.03 and abs(r["loadings"][2] + 0.5) < 0.03
+    noise = [lo + rng.gauss(0, 2) for lo in low]
+    assert abs(fl.ff3_alpha({"months": months, "vw": [low, noise]}, fac, "196301", "209912")["t"]) < 3
 

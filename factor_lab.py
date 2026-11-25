@@ -56,6 +56,7 @@ FRENCH_FILES = {
     "five_factors": ("F-F_Research_Data_5_Factors_2x3_CSV.zip", ",Mkt-RF,SMB,HML,RMW,CMA,RF"),
     "size_portfolios": ("Portfolios_Formed_on_ME_CSV.zip", "Average Value Weight Returns -- Monthly"),
     "variance_portfolios": ("Portfolios_Formed_on_VAR_CSV.zip", "Value Weighted Returns -- Monthly"),
+    "residual_variance_portfolios": ("Portfolios_Formed_on_RESVAR_CSV.zip", "Value Weighted Returns -- Monthly"),
     "earnings_yield_portfolios": ("Portfolios_Formed_on_E-P_CSV.zip", "Value Weight Returns -- Monthly"),
     "beta_portfolios": ("Portfolios_Formed_on_BETA_CSV.zip", "Value Weighted Returns -- Monthly"),
     "profitability_portfolios": ("Portfolios_Formed_on_OP_CSV.zip", "Average Value Weight Returns -- Monthly"),
@@ -92,6 +93,10 @@ SPLIT_CATEGORY = {"value": "Valuation", "profitability": "Quality", "investment"
 SORTS = {
     "low-volatility": {"file": "variance_portfolios", "ew": "Equal Weighted Returns -- Monthly",
                        "columns": [0, 1, 2, 3, 4]},
+    # the same layout, sorted on the variance of residuals from the Fama-French three factors
+    # (experiment 20, Ang, Hodrick, Xing & Zhang's headline sort): quintiles first, then deciles
+    "idiosyncratic-volatility": {"file": "residual_variance_portfolios", "ew": "Equal Weighted Returns -- Monthly",
+                                 "columns": [0, 1, 2, 3, 4]},
     # the file's last ten columns are the deciles; the first is companies with losses
     "earnings-yield": {"file": "earnings_yield_portfolios", "ew": "Equal Weight Returns -- Monthly",
                        "columns": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]},
@@ -501,8 +506,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 29 = experiment 18, analyst revisions on Open Source Asset Pricing's REV6 deciles (a new sort part,
 #      sorts_revisions) and the Revisions group in the menu;
 # 30 = experiment 19, Mohanram's growth score on the same library's six MS groups (a new sort part,
-#      sorts_mohanram), the Growth group in the menu, and the scorecard's Growth row.
-ASSET_VERSION = 30
+#      sorts_mohanram), the Growth group in the menu, and the scorecard's Growth row;
+# 31 = experiment 20, Ang, Hodrick, Xing & Zhang's idiosyncratic-volatility sort on the French library's
+#      residual-variance portfolios (a new sort part, sorts_idiosyncratic-volatility).
+ASSET_VERSION = 31
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1050,6 +1057,52 @@ def factor_data(raw_dir: Path = RAW_DIR) -> dict:
     for k, key in enumerate(FACTOR_KEYS):
         out[key] = [round(r[k], 2) for r in rows]
     return out
+
+
+def _solve(a: list[list[float]], b: list[float]) -> list[float]:
+    """Solve a small linear system by Gaussian elimination with partial pivoting."""
+    n = len(b)
+    m = [row[:] + [b[i]] for i, row in enumerate(a)]
+    for c in range(n):
+        p = max(range(c, n), key=lambda r: abs(m[r][c]))
+        m[c], m[p] = m[p], m[c]
+        for r in range(c + 1, n):
+            f = m[r][c] / m[c][c]
+            for k in range(c, n + 1):
+                m[r][k] -= f * m[c][k]
+    x = [0.0] * n
+    for r in range(n - 1, -1, -1):
+        x[r] = (m[r][n] - sum(m[r][k] * x[k] for k in range(r + 1, n))) / m[r][r]
+    return x
+
+
+def ff3_alpha(data: dict, factors: dict, start: str, end: str, weighting: str = "vw", lags: int = 6) -> dict:
+    """Experiment 20's risk-adjusted gap: the intercept of a sort's spread (last group minus first)
+    regressed on the market, size and value factors, with a Newey-West t-statistic (``lags``
+    months, Bartlett weights) - the adjustment Ang, Hodrick, Xing & Zhang (2006) report beside the
+    raw gap. ``factors`` maps a month to its [Mkt-RF, SMB, HML] in percent. A long-short spread
+    needs no risk-free rate. Used by the experiment's research note and its test, not by the page's
+    comparison, which scores raw returns."""
+    g = data[weighting]
+    rows = [(g[-1][i] - g[0][i], factors[m]) for i, m in enumerate(data["months"])
+            if start <= m <= end and m in factors]
+    y = [r[0] for r in rows]
+    x = [[1.0, *r[1]] for r in rows]
+    k = 4
+    xtx = [[sum(row[i] * row[j] for row in x) for j in range(k)] for i in range(k)]
+    beta = _solve(xtx, [sum(row[i] * yy for row, yy in zip(x, y)) for i in range(k)])
+    e = [yy - sum(b * v for b, v in zip(beta, row)) for row, yy in zip(x, y)]
+    s = [[sum(x[t][i] * x[t][j] * e[t] ** 2 for t in range(len(y))) for j in range(k)] for i in range(k)]
+    for lag in range(1, lags + 1):
+        w = 1 - lag / (lags + 1)
+        for i in range(k):
+            for j in range(k):
+                s[i][j] += w * sum(x[t][i] * e[t] * x[t - lag][j] * e[t - lag] + x[t - lag][i] * e[t - lag] * x[t][j] * e[t]
+                                   for t in range(lag, len(y)))
+    inv = [_solve(xtx, [1.0 if r == c else 0.0 for r in range(k)]) for c in range(k)]   # columns of the inverse
+    first = [inv[c][0] for c in range(k)]                                                # row 0 of the inverse
+    var0 = sum(first[i] * s[i][j] * first[j] for i in range(k) for j in range(k))
+    return {"n": len(y), "alpha": beta[0], "t": beta[0] / math.sqrt(var0), "loadings": beta[1:]}
 
 
 def correlation(x: list[float], y: list[float]) -> float:
@@ -3264,6 +3317,121 @@ MOHANRAM_OSAP = {
 EXPERIMENTS.append(MOHANRAM_OSAP)
 
 
+# Experiment 20 (2026-11-25, 13:00 session): Ang, Hodrick, Xing & Zhang (2006), the paper's own
+# headline sort - volatility left over after the Fama-French three factors - which experiment 5's
+# record listed as still open. The same table of the same working paper as experiment 5 (Table VI,
+# Panel B where experiment 5 read Panel A), so the same tolerances, for the same reasons.
+#
+# Written BEFORE the comparison was run. What had been seen first, disclosed: the paper's table
+# (NBER w10852, PDF page 50, printed page 48, read with pypdf); the library's file *headers* and its
+# description page (FF3 residual variance, 60 days with at least 20, NYSE breakpoints, financials
+# and utilities included) - no return in the file was read. Experiment 5's result on the library's
+# *total*-volatility sort was known (its most volatile fifth earned 0.81% a month in the paper's
+# years against the paper's 0.09%), so the expectation, written down now, is the same shape: the
+# three calmer fifths within, the most volatile fifth and the spread outside, the fourth fifth
+# either way - 3 or 4 of 6.
+#
+# Rule 8 (a null must miss its headline and most figures): experiment 5 also compared the five
+# volatilities, which a null keeps at the paper's values - that is why its null matches 6 of 11.
+# This record compares the five average returns and the spread only, the figures the claim is
+# about; the null (every fifth at the paper's average, 0.85) matches the fourth fifth only, 1 of 6.
+# The volatilities are still on the page, in the chart and the groups table, just not scored.
+IDIOSYNCRATIC_VOL = {
+    "id": "idiosyncratic-volatility",
+    "group": "Risk",
+    "kind": "sort",
+    "topic": "Risk",
+    "title": "Does a stock's own volatility cost it?",
+    "tab": "Stock-specific volatility",
+    "paper": {
+        "authors": "Andrew Ang, Robert J. Hodrick, Yuhang Xing and Xiaoyan Zhang",
+        "year": 2006,
+        "title": "The cross-section of volatility and expected returns",
+        "journal": "Journal of Finance 61(1), 259-299",
+        "doi": "10.1111/j.1540-6261.2006.00836.x",
+    },
+    "claim": ("The paper's headline. Sorting US stocks each month into five groups by how much they had "
+              "moved on their own - the volatility left over once the market, size and value are "
+              "accounted for - the fifth that moved most on its own earned about -0.02% a month from "
+              "1963 to 2000, against about 1.04% for the fifth that moved least: a gap of about one "
+              "percentage point a month."),
+    "reference": {
+        "source": ("The authors' NBER working paper 10852 (October 2004), Table VI, Panel B (page 48): "
+                   "value-weighted portfolios sorted on idiosyncratic volatility relative to the "
+                   "Fama-French three-factor model, July 1963 to December 2000. Monthly means of total "
+                   "returns."),
+        "start": "196307", "end": "200012", "weighting": "vw",
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "mean1", "label": "Least stock-specific volatility: average month (%)", "paper": 1.04, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean2", "label": "Second fifth: average month (%)", "paper": 1.16, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean3", "label": "Middle fifth: average month (%)", "paper": 1.20, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean4", "label": "Fourth fifth: average month (%)", "paper": 0.87, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean5", "label": "Most stock-specific volatility: average month (%)", "paper": -0.02, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "spread", "label": "Most minus least, a month (%)", "paper": -1.06, "tolerance": 0.20, "where": "Table VI B"},
+        ],
+    },
+    "verdict_note": ("As predicted before the run, and as on the total-volatility sort: the three calmer "
+                     "fifths match and the two most volatile do not. The library's most volatile fifth "
+                     "earned about 0.76% a month in the paper's years, not the paper's -0.02%, so the gap "
+                     "is about a third of the paper's and cannot be told from zero."),
+    "sort": {
+        "data": "idiosyncratic-volatility",
+        "groups": ["Least on its own", "Second fifth", "Middle fifth", "Fourth fifth", "Most on its own"],
+        "ends": ["least stock-specific volatility", "most stock-specific volatility"],
+        "low": "fifth that moved least on its own", "high": "fifth that moved most on its own",
+        "spread": "Most stock-specific volatility minus least",
+        "accent": [0],
+        "key_accent": "The fifth that moved least on its own - the end the screener's Risk category favours",
+        "key_rest": "The other four groups",
+        "chart": "by how much the stocks had moved on their own",
+        "presets": [["The paper · 1963–2000", "196307", "200012"],
+                    ["After the paper · 2001–now", "200101", "LAST"],
+                    ["Since 2010", "201001", "LAST"], ["Everything", "FIRST", "LAST"]],
+        "weightings": [["vw", "By market value · paper"], ["ew", "Equally"]],
+    },
+    "conditions": [
+        ["Portfolios", "Each month, every US-listed stock is put in one of five groups by the variance "
+                       "of what is left of its daily returns once the market, size and value factors are "
+                       "taken out (the Fama-French three-factor model), over the previous 60 trading "
+                       "days, at least 20 of them."],
+        ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Residual Variance\". The "
+                 "dividing lines between the groups are set on New York Stock Exchange stocks only."],
+        ["Weighting", "Value-weighted, as in the paper: bigger companies count for more within a "
+                      "group. The equal-weighted version is one click away."],
+        ["Returns", "Total returns, not returns above Treasury bills, as in the paper's table."],
+        ["Costs", "None. The most volatile group is also the costliest to trade."],
+    ],
+    "open_details": [
+        "The paper measures the leftover volatility over the previous month; the library uses 60 trading "
+        "days. The paper draws its dividing lines across all stocks; the library draws them on New York "
+        "Stock Exchange stocks only. The paper's most volatile fifth was 1.9% of the market's value. "
+        "These are the documented differences; which of them accounts for the miss has not been tested.",
+        "The comparison scores the five average returns and the gap, not the volatilities: a result of no "
+        "effect would keep the volatilities at the paper's values and match all five, as it does on the "
+        "total-volatility experiment. The volatilities are in the chart and the table of groups.",
+        "The reference figures are from the authors' 2004 working paper. The published article's table "
+        "has not been read here.",
+        "Only the raw averages are scored. The paper's stronger figure is the gap after the market, size "
+        "and value factors: -1.31% a month (t -7.00). On the library's portfolios the most volatile fifth "
+        "leans heavily towards small companies (a size loading above 1), and once the three factors are "
+        "allowed for, the gap is about -0.54% a month in the paper's years (Newey-West t -3.7) and about "
+        "-0.58% since 2001 (t -2.2): roughly half the paper's, and below zero in both periods. Not scored, "
+        "because no tolerance was written for it before the run.",
+        "The library's file was downloaded a month after the other sorts on this page (it runs to "
+        "September 2026, they to August).",
+    ],
+    "in_the_screener": (
+        "The screener's Risk category scores total volatility, not the stock-specific part, alongside "
+        "beta and the worst fall. The paper's argument is that the stock-specific part is where the "
+        "penalty lives. On the public sort the calmer fifths earned about what the paper found and the "
+        "most volatile fifth earned far more, as on the total-volatility experiment. Among the large "
+        "companies the screener ranks, the most volatile stocks are tamer still."),
+}
+
+EXPERIMENTS.append(IDIOSYNCRATIC_VOL)
+
+
 # One sentence per experiment for the lab's front page. Each is a statement about what the
 # published data shows, and tests/test_factor_lab.py checks every one against that data, so a
 # rebuild that makes one untrue fails the suite instead of leaving it on the page.
@@ -3282,6 +3450,12 @@ TAKEAWAYS = {
     "low-volatility": ("The calmest fifth of stocks earned about as much as the rest, with half the "
                        "volatility of the most volatile fifth. The paper's large penalty for volatile "
                        "stocks does not appear on the public version of the sort."),
+    "idiosyncratic-volatility": ("Sorted on the volatility left once the market, size and value are taken out, the "
+                                 "three calmer fifths earned what the paper found, but the most volatile fifth "
+                                 "earned about 0.76% a month instead of nothing, so the paper's one-point gap "
+                                 "shrinks to a third and cannot be told from zero. Allowing for the market, size "
+                                 "and value, as the paper also does, about half its gap remains, in its years "
+                                 "and since."),
     "earnings-yield": ("Returns rose step by step with earnings yield, in the paper's sample and for "
                        "decades after it. Since 2007 the gap has all but closed, and among large "
                        "companies it reversed."),
@@ -3370,9 +3544,11 @@ CATEGORY_MAP = [
      "has": "Momentum's risk, when it crashes, its size among big companies, and how it offsets value.",
      "gap": "Jegadeesh and Titman (1993), the study the methodology cites for momentum itself, builds its "
             "portfolios differently from the public file. A direct rerun is still to do."},
-    {"category": "Risk", "key": "risk", "experiments": ["low-volatility", "market-beta", "replication-crisis"],
-     "has": "Stocks sorted by how volatile they have been, and by how much they move with the market "
-            "(beta): two of the category's three measures.",
+    {"category": "Risk", "key": "risk",
+     "experiments": ["low-volatility", "idiosyncratic-volatility", "market-beta", "replication-crisis"],
+     "has": "Stocks sorted by how volatile they have been, by the part of that volatility that is their "
+            "own, and by how much they move with the market (beta): two of the category's three measures, "
+            "and the paper's own version of the first.",
      "gap": "The depth of a stock's worst fall, the third measure. No public sort exists for it."},
     {"category": "Analyst revisions", "key": "revisions", "experiments": ["revisions"],
      "has": "Stocks sorted by how far analysts have revised their forecasts of the current year's earnings, "
@@ -3562,7 +3738,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(a["small_big"]["mean"], len(a["months"]), a["small_big"]["t"]),
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
-    for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
+    for exp_id, sign in (("low-volatility", -1), ("idiosyncratic-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
                          ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1),
                          ("piotroski", 1), ("revisions", 1), ("mohanram", 1)):
         x = exps[exp_id]
