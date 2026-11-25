@@ -10700,7 +10700,12 @@ Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Fac
 Friday, so not deferred by a Wednesday); also open 0.10 (49 d), 0.14 (42 d). Shipped to readers: 19
 commits, 6 methodology changes in the last 7 days. The "held back" branch the line names is this
 session's own, pushed mid-session. No stash.
-**Tests:** before 4553 passed / 1 skipped (06:05, `logs/session-baseline-2026-11-25.txt`); after: below.
+**Tests:** before 4553 passed / 1 skipped (06:05, `logs/session-baseline-2026-11-25.txt`); after
+**4557 passed / 1 skipped** (the 4 new in `tests/test_exposure_shift.py`). Gate 2 dry run exit 0. Gate 5
+(`rehearse_publish.py --changed-since main`) PASSED (page tests, claims gate, files restored). Gate 3:
+`node --check` is refused by this session's tool guard; the three payload files and `index.html` are
+byte-identical to `main` (`git diff --stat main` empty), so the runner's check reads what it read
+yesterday. Gate 4 clean.
 **Owner queue / rotation:** no proposal open (`write_brief.open_proposals()` = `[]`). `OWNER_FOCUS.md`'s
 2026-11-19 item has one step left, the implied-volatility switch, which is dated for 2026-11-26 (it needs
 tonight's 20:00 refresh) - not today's. So the rotation's focus: the methodology changes since the last
