@@ -369,3 +369,104 @@ before building, prediction as section 7 item 5 wrote it; (b) build per section 
 bullets above, weight 25 unchanged; (c) changelog entry with the evidence above, the long-only caveat,
 and the expected effect measured on a throwaway full run (top-25 churn; SNDK and the other seven lose
 the metric); (d) open a drilldown at 1440 and 375 px and say what the new row shows.
+
+## 10. Synthesis (2026-11-25, Wednesday session) - how the built metric fits the other seven categories
+
+Written by a session that neither wrote nor decided this note, on the first 02:00 data-loop run that
+carries the metric. Rank correlations from the published payloads as committed; no forward return,
+IC or backtest figure (rules 4 and 5). `research/measurements/2026-11-25-momentum-fit.py` and `.json`.
+
+Three pages are compared. **Before:** the 02:00 page of 2026-11-24 (`0679feb`), the last scored with
+Jensen's alpha. **Isolated:** the 06:00 full run the same day (`87b7be9`) - the same closing session
+rescored with residual momentum, so the difference is the change and not a day of markets. **After:**
+the 02:00 page of 2026-11-25 (`c1dd9e1`), the first data-loop run with it.
+
+### 10.1 The two predictions this note made, checked
+
+| Prediction (section) | Before | Isolated | After | Verdict |
+|---|---|---|---|---|
+| The new metric is ~0.77 like `return_12_1` where Jensen's alpha was a near-copy (2, 9) | Jensen 0.910 | **0.792** | 0.810 | **Held.** Less of a copy, still related - the duplication is reduced, not removed |
+| It removes a second low-beta reward inside Momentum (5) | Jensen vs beta **+0.009** | residual -0.018 | -0.005 | **Not observable today.** Over this window the alpha carried no beta tilt to remove: `return_12_1` leans +0.17 on beta and the alpha's `- beta x (m12 - rf)` term roughly cancelled it. The argument was about a *conditional* exposure that flips with the market's sign; residual momentum is beta-neutral by construction, Jensen's alpha only when the market's year happens to make it so. One day cannot show the difference; a falling-market month could |
+
+**A figure corrected.** The changelog entry for 2026-11-24 gives Jensen's alpha's correlation with
+`return_12_1` as 0.87; nothing in the committed measurement (`2026-11-24-residual-momentum-effect.json`)
+produces that number. On the last page scored with it the figure is **0.910**. Section 2's 0.97 was a
+different construction (the unskipped month) over 155 month-ends. The correction strengthens the case
+rather than weakening it, and is recorded against the entry.
+
+### 10.2 What it did to the rest of the screener
+
+Category-score pairs, isolated comparison (same closing session), largest moves:
+
+| Pair | Before | Isolated | Change |
+|---|---|---|---|
+| growth~momentum | +0.138 | +0.082 | -0.056 |
+| valuation~momentum | -0.095 | -0.045 | +0.050 |
+| momentum~size | -0.154 | -0.108 | +0.046 |
+| momentum~investment | -0.017 | +0.029 | +0.046 |
+| momentum~risk | +0.251 | +0.219 | -0.032 |
+| quality~momentum | +0.098 | +0.069 | -0.029 |
+| momentum~revisions | +0.209 | +0.188 | -0.021 |
+
+Every other pair moved by under 0.01. **Momentum became more independent of six of the seven other
+categories** - its correlation shrank in absolute value with Growth, Valuation, Size, Risk, Quality and
+Revisions, and rose negligibly with Investment (to +0.03). That is the expected shape: a residual return
+strips out the market-wide and, in part, the sector-wide move that a raw 12-month return shares with
+whatever else was in favour this year (this year: large, expensive, growing companies - hence the
+Growth, Valuation and Size pairs moving most).
+
+What follows for each neighbour:
+
+- **Growth.** The ranking's lean on growth (`Composite` against `growth_score`, the brief's line) went
+  **+0.026 -> +0.006** from the metric change alone, and reads -0.001 on the next page. This is the
+  second time a methodology change has moved that lean in a step (`research/2026-11-02-growth-exposure-drift.md`
+  found the first: 2026-10-09). That note's rule holds - **do not re-fit Growth's weight to the day's
+  neutral point** - and its section 6.4 asked that a scoring change record the composite's correlation
+  with every category before and after. The 2026-11-24 build did not (it measured ranks and scores); this
+  section does, and the drift note carries a dated line saying the 11-24 step is a methodology step, so a
+  reader of the brief's series does not mistake it for drift.
+- **Revisions.** The budgeted pair (`tests/test_revisions_momentum_budget.py`, bar 0.35 pre-registered
+  2026-09-07) moved **+0.209 -> +0.188 / +0.182**. The budget gained headroom; nothing in Revisions
+  changed, so the headroom belongs to Momentum's construction, and it does **not** license adding a
+  momentum-adjacent metric to Revisions - the config rule still requires the SS8.4 spanning regression.
+- **Risk.** momentum~risk +0.251 -> +0.219. Risk is still the category most aligned with Momentum, and
+  the reason is not the third metric: `return_6m` reads -0.22 to -0.29 against beta (the last half-year
+  rewarded low-beta names) and Risk rewards low beta. That overlap moves with the market and is not
+  something a construction rule can fix; it is stated, not acted on. The 2026-09-02 lesson (Sharpe and
+  Sortino carried momentum inside Risk and drove the pair to +0.516) is not reopened - the pair is less
+  than half that.
+- **Valuation, Quality, Size, Investment.** Small moves toward zero; no implication beyond "Momentum
+  now overlaps them less".
+- **The momentum panic rule** (`factor_engine.market_panic_state`): untouched and still complementary,
+  as section 5 said. Its three numbers are fixed in advance and nothing here bears on them.
+
+### 10.3 Inside Momentum, after the change
+
+| Pair (raw values, isolated page) | Spearman |
+|---|---|
+| `return_12_1` ~ `residual_momentum` | 0.792 |
+| `return_12_1` ~ `return_6m` | 0.338 |
+| `residual_momentum` ~ `return_6m` | 0.419 |
+
+So the category is now two signals and a half: the 12-month move (`return_12_1`, 40 points), a
+related market-adjusted 12-month move (25), and a half-year move that this autumn has been quite
+different from the 12-month one (35). The 40/35/25 split predates the residual version; with Jensen's
+alpha the 12-month block was effectively 65 points of one signal, and now it is 40 of one and 25 of a
+cousin. **No change is proposed.** The split is a weight question, and the route for a weight is a
+research note and one change of at most 3 points - not a correlation on one autumn's data, which this
+quarter's unusually low 12-vs-6-month agreement would distort. Recorded so that a Monday reopening the
+Momentum weights starts from the measured structure.
+
+**Coverage interaction with the 2026-11-19 missing-category rule:** the eight stocks without a value
+(seven listings under three years and FLEX) keep a Momentum score from the other two metrics, shared
+within the category (a missing *metric*); none is short of the whole category, so the 50-at-full-weight
+rule does not reach them. SNDK, top five, is scored on `return_12_1` and `return_6m` alone - stated in
+the changelog entry and on its row.
+
+### 10.4 Verdict
+
+The screener is more coherent after the change, not merely differently arranged: Momentum overlaps six
+of its neighbours less, the budgeted Revisions pair gained headroom, and the ranking's growth lean moved
+toward neutral as a side effect that is now written down where the lean's series is read. One
+prediction held (0.79), one could not be tested on one day (the beta tilt), one published figure was
+wrong (0.87 -> 0.910). **No methodology change follows.**
