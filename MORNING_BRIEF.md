@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 25 November 2026, 02:25
+# Morning Brief - Wednesday 25 November 2026, 06:35
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -15,7 +15,7 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, APA, VLO, SNDK, MU |
 | Ranking's lean on growth | -0.001 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Shipped to readers | 19 commit(s) changed what a reader sees, 6 methodology change(s), in the last 7 days |
+| Shipped to readers | 18 commit(s) changed what a reader sees, 6 methodology change(s), in the last 7 days |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (58 rows, but overlapping windows are not independent; 144 rows across all horizons), newest 1m run date 2026-10-23 (33 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
 | Inputs vs SEC filings | total assets 453/453 within 0.5%; operating cash flow 439/440 within 0.5%; net income 427/451 within 0.5%; market value 452/487 within 5%; 2 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 7 days ago |
@@ -33,12 +33,15 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - 2026-12-04 (in 9 days) - The option signals' (expected move, ATM volatility, skew) first one-month reading: readings before 2026-11-04 recorded no price and are excluded, not spliced. `METHODOLOGY_CHANGELOG.md`
 - 2026-12-07 (in 12 days) - The last Monday before the year-to-date-column decision of 2026-12-15: research what vendors and index providers do with a hole in a company's quarterly series. 26 stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and it is the same question as DexCom's (may a filing do more than sit beside a scored input) at 26 times the size. Section 4; no design is proposed there. `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`
 
-## Things that needed attention
-
-- GATE 5 note: ENGINE CHANGED since run d687fd4972dd was scored (factor_engine.py): this rehearsal shows the new page code on that run's old scores, so the next 02:00 run is the first to put the new scores before the claims gate. A page branch keyed on a new payload field needs a test that sets the field in the browser (prompts/nightly.md, section 4).
-
 ## What changed in the repo
 
+- `f49d35d NIGHTLY_LOG 2026-11-25: gate results`
+- `90d2093 NIGHTLY_LOG 2026-11-25: synthesis entry`
+- `c87c8f5 exposure_shift: a scoring change records the ranking's factor exposures before and after`
+- `6d154fb wip: changelog check of residual momentum on the first data run; growth-lean break recorded`
+- `f0f69c8 wip: synthesis section on residual momentum's fit (note section 10)`
+- `1df46b4 wip: synthesis measurement - residual momentum's fit against the other seven categories`
+- `8c06fdc brief: data run 2026-11-25`
 - `c1dd9e1 data: screener run 2026-11-25 - 499 scored, top: EXPE APA VLO SNDK MU`
 - `7d39fb0 brief: code session 2026-11-24-midday`
 - `d906531 NIGHTLY_LOG 2026-11-24 (13:00): gate results`
@@ -47,61 +50,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `4c90763 research engine: 24 of 32 rows rerun`
 - `97b15af research engine: 12 of 32 rows rerun after factor_engine.py's fetch change (no scoring change)`
 - `781c424 page rebuilt from the generator (the options panel's construction sentence); changelog time corrected`
-- `17a7753 own implied volatilities: changelog, research note build status, owner focus, inventory, brief date`
-- `46626c4 wip: the options panel's construction sentence after both glosses`
-- `ed5d428 wip: register the panel's IV-construction sentence; pin QuantLib; coverage measurement script`
-- `ebf415a wip: our own implied volatilities (QuantLib, American, discrete dividends) recorded beside the source field`
-- `c88a2ce brief: code session 2026-11-24`
-- `c3b5f3b NIGHTLY_LOG 2026-11-24: residual momentum built and published, research engine rerun`
-- `bc02a8e overview and page: the research engine's rerun figures (generated)`
 
 ## The session's own account
 
-> 2026-11-24 (13:00) - QUEUE. The implied-volatility inversion built: our own volatilities recorded beside the source's on every reading, the panel says whose it shows; the switch waits two days for a whole-universe count
+> 2026-11-25 - SYNTHESIS. Residual momentum read against the other seven categories on its first data run: Momentum overlaps six of them less, the ranking's growth lean stepped +0.026 -> +0.006, and the habit that would have caught it is one command now
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-24_060001.log`
-> (completed). Data loop published? yes - `logs/datarun-2026-11-24_020001.log` (completed; HEALTH: PASS).
-> Evidence base at `1m`: **58 rows, newest `run_date` 2026-10-23 (32 days ago, bound 40), 5 effective** of 8.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-24_130001-midday.log`
+> (completed). Data loop published? yes - `logs/datarun-2026-11-25_020001.log` (completed; HEALTH: PASS).
+> Evidence base at `1m`: **58 rows, newest `run_date` 2026-10-23 (33 days ago, bound 40), 5 effective** of 8.
 > Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
-> 2026-10-12, **age 43 days**; a standing programme, last advanced **18 days** ago, bound 21 - its day is
-> Friday, so not deferred by a Tuesday); also open 0.10 (48 d), 0.14 (41 d). Shipped to readers: 19
-> commits, 8 methodology changes in the last 7 days. No branch held back; no stash.
-> **Tests:** before 4519 passed / 1 skipped (13:05); after **4553 passed / 1 skipped** (14:20, the
-> committed tree; 34 new). Gate 2 dry run exit 0. Gate 5 (`rehearse_publish.py --changed-since main`)
-> PASSED (page tests and claims gate, 2435 passed; it prints ENGINE CHANGED for `factor_engine.py`, which
-> here is the fetch keeping two `.info` fields - no score reads them). Gate 3's `node --check` is refused by
-> this session's tool guard; the payload files are byte-identical to `main` (`rebuild_page.py`), index.html
-> 953 KB; the runner runs it. Gate 5 failed once mid-session on `test_club_readiness`, which reads the
-> glosses by position - the construction sentence was moved after both glosses and built as a variable.
-> **Owner queue / rotation:** carried on from the 06:00 entry's Next, which is also `OWNER_FOCUS.md`'s
-> 2026-11-19 item: the implied-volatility inversion ACCEPTED 2026-11-04, unbuilt for twenty days.
+> 2026-10-12, **age 44 days**; a standing programme, last advanced **19 days** ago, bound 21 - its day is
+> Friday, so not deferred by a Wednesday); also open 0.10 (49 d), 0.14 (42 d). Shipped to readers: 19
+> commits, 6 methodology changes in the last 7 days. The "held back" branch the line names is this
+> session's own, pushed mid-session. No stash.
+> **Tests:** before 4553 passed / 1 skipped (06:05, `logs/session-baseline-2026-11-25.txt`); after
+> **4557 passed / 1 skipped** (the 4 new in `tests/test_exposure_shift.py`). Gate 2 dry run exit 0. Gate 5
+> (`rehearse_publish.py --changed-since main`) PASSED (page tests, claims gate, files restored). Gate 3:
+> `node --check` is refused by this session's tool guard; the three payload files and `index.html` are
+> byte-identical to `main` (`git diff --stat main` empty), so the runner's check reads what it read
+> yesterday. Gate 4 clean.
+> **Owner queue / rotation:** no proposal open (`write_brief.open_proposals()` = `[]`). `OWNER_FOCUS.md`'s
+> 2026-11-19 item has one step left, the implied-volatility switch, which is dated for 2026-11-26 (it needs
+> tonight's 20:00 refresh) - not today's. So the rotation's focus: the methodology changes since the last
+> synthesis (2026-11-18). Changelog read back to it: 11-18 (13:00) SEC co-registrant refresh; 11-19
+> universe floor 0; 11-19 missing category at 50; 11-19 EPS-mismatch like-for-like; 11-19 sustainable
+> growth's ROE needs positive equity both years; **11-24 residual momentum replaces Jensen's alpha**; 11-24
+> (13:00) own implied volatilities, context only. The one that changes how stocks are compared across
+> categories is residual momentum, so it is the subject; the others are placed in a line each below.
 > 
 > ### Did
-> - **`implied_vol.py`: our own implied volatilities**, the construction section 1d of
->   `research/2026-11-03-open-source-quant-stack.md` ADOPTED - each option's own bid/ask mid (the existing
->   `MAX_REL_SPREAD` bar, not loosened), QuantLib's American finite-difference solver with a discrete
->   dividend schedule, FRED's 1/3/6/12-month Treasury curve interpolated to the expiry and cached in
->   `data/options/` (the only place the 20:00 task may write). One inversion feeds the ATM call, ATM put
->   and both skew legs (build order step 1).
-> - **No new request per stock (step 2's obstacle):** the core fetch keeps `exDividendDate` and
->   `lastDividendValue` from the `.info` it already pulls. Checked live on six tickers before writing the
->   rule: present for every payer (AAPL, JPM, KO, O, NVDA), absent for TSLA. The schedule rule: annual
->   rate in equal instalments, frequency from rate / last payment (O comes out monthly, the rest
->   quarterly), first on the ex-date. A payer with no ex-date is "unknown" and keeps the source field -
->   never priced as if no dividend fell in the option's life (step 3).
-> - **A paired record from the first refresh.** Every reading carries both constructions where it can
->   (`_ctx_opt_own_*`, `_ctx_opt_src_*`), and the context log keeps every `_ctx_` column, so the
->   comparison the decision wanted ("the only way this project will ever be able to say which
->   construction predicts better") accrues from tonight. The main columns hold
->   `PUBLISHED_IV_CONSTRUCTION`'s figures, falling back - stamped - to the other.
-> - **The page (step 4's guard, step 6):** the generator withholds a figure whose stamp is not the
->   published construction (`oniv`), by the same predicate `context_eval` counts with; the panel now
->   says whose volatilities it shows - today *"the data source's own figures; it does not publish how it
->   computes them"*, which the page had never said. Claim `context.iv_construction`.
-> - **QuantLib 1.44 pinned** (step 5). It was already installed in `Python312`, the interpreter the
->   scheduled tasks run, so nothing was installed.
-> - **Coverage, measured through the production path (step 7)**, 51 stocks mid-session
->   (`research/measurements/2026-11-24-own-iv-coverage.py`): ours 45 of the source's 47 ATM IVs, 40 of its
+> - **The previous entry's owed check, done:** the 02:00 run published residual momentum with HEALTH:
+>   PASS, rank continuity **0.998** against the 11-24 06:00 page (1 new in the top 25), coverage **491 of
+>   499** as the build said.
+> - **Measured the fit** (`research/measurements/2026-11-25-momentum-fit.py` / `.json`) on three pages: the
+>   last scored with Jensen's alpha (`0679feb`), the same closing session rescored with residual momentum
+>   (`87b7be9`, so the difference is the change, not a day of markets), and the first data-loop page
+>   (`c1dd9e1`). Rank correlations only.
+>   - The note's prediction (a) **held**: residual momentum ~ `return_12_1` **0.792** (predicted 0.77),
+>     where Jensen's alpha was **0.910**.
+>   - Prediction (b), "removes a second low-beta reward", **could not be observed**: Jensen's alpha ~ beta
+>     was already **+0.009** over this window (the 12-month return's +0.17 beta lean cancelled its beta
+>     term). Residual momentum is beta-neutral by construction; the alpha was only when the year allowed.
+>   - **Momentum now overlaps six of the seven other categories less**: growth~momentum +0.138 -> +0.082,
+>     valuation~momentum -0.095 -> -0.045, momentum~size -0.154 -> -0.108, momentum~risk +0.251 -> +0.219,
+>     quality~momentum +0.098 -> +0.069, revisions~momentum +0.209 -> +0.188 (budget bar 0.35 - headroom
+>     gained, which does **not** license a momentum-adjacent Revisions metric); investment +0.03, negligible.
+>   - **The ranking's lean on growth stepped +0.026 -> +0.006 from this change alone** (about one point of
+>     Growth weight at the drift note's slope). The brief's daily growth-lean series has a break at
+>     2026-11-24 that is a methodology step, not drift.
 > ...
 
 ---
