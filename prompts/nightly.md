@@ -383,6 +383,14 @@ any change to how a metric, weight or category is computed:
 Then open the drilldown for a stock the change affects, at 1440 and 375px, and
 check the row reads correctly. Say in the log what you saw.
 
+**And record what the change did to the ranking's factor exposures**, in the changelog entry's
+expected effect: `python scripts/exposure_shift.py <the published page's revision> <dashboard_data.js
+after a full run under the change>` - both reading the same closing session - prints the composite's
+correlation with each category (its growth row is the brief's "lean on growth") and the category
+pairs that moved most. A scoring change moves these in a step the brief's daily series will later
+read as drift: 2026-10-09 did, unseen for three weeks, and so did 2026-11-24 (growth lean +0.026 ->
++0.006; `research/2026-11-02-growth-exposure-drift.md` sections 6.4 and 7).
+
 ## 4. Ship gates
 
 All four must pass before you push to `main`:

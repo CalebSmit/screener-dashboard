@@ -10689,3 +10689,92 @@ glosses by position - the construction sentence was moved after both glosses and
   `own_mid` with a changelog entry, look at the panel, and report any coverage lost - never by loosening
   `MAX_REL_SPREAD` or the IV bounds.
 - After the 11-25 02:00 run: the 06:00 entry's rank-continuity and coverage check.
+
+## 2026-11-25 - SYNTHESIS. Residual momentum read against the other seven categories on its first data run: Momentum overlaps six of them less, the ranking's growth lean stepped +0.026 -> +0.006, and the habit that would have caught it is one command now
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-24_130001-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-25_020001.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: **58 rows, newest `run_date` 2026-10-23 (33 days ago, bound 40), 5 effective** of 8.
+Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 44 days**; a standing programme, last advanced **19 days** ago, bound 21 - its day is
+Friday, so not deferred by a Wednesday); also open 0.10 (49 d), 0.14 (42 d). Shipped to readers: 19
+commits, 6 methodology changes in the last 7 days. The "held back" branch the line names is this
+session's own, pushed mid-session. No stash.
+**Tests:** before 4553 passed / 1 skipped (06:05, `logs/session-baseline-2026-11-25.txt`); after
+**4557 passed / 1 skipped** (the 4 new in `tests/test_exposure_shift.py`). Gate 2 dry run exit 0. Gate 5
+(`rehearse_publish.py --changed-since main`) PASSED (page tests, claims gate, files restored). Gate 3:
+`node --check` is refused by this session's tool guard; the three payload files and `index.html` are
+byte-identical to `main` (`git diff --stat main` empty), so the runner's check reads what it read
+yesterday. Gate 4 clean.
+**Owner queue / rotation:** no proposal open (`write_brief.open_proposals()` = `[]`). `OWNER_FOCUS.md`'s
+2026-11-19 item has one step left, the implied-volatility switch, which is dated for 2026-11-26 (it needs
+tonight's 20:00 refresh) - not today's. So the rotation's focus: the methodology changes since the last
+synthesis (2026-11-18). Changelog read back to it: 11-18 (13:00) SEC co-registrant refresh; 11-19
+universe floor 0; 11-19 missing category at 50; 11-19 EPS-mismatch like-for-like; 11-19 sustainable
+growth's ROE needs positive equity both years; **11-24 residual momentum replaces Jensen's alpha**; 11-24
+(13:00) own implied volatilities, context only. The one that changes how stocks are compared across
+categories is residual momentum, so it is the subject; the others are placed in a line each below.
+
+### Did
+- **The previous entry's owed check, done:** the 02:00 run published residual momentum with HEALTH:
+  PASS, rank continuity **0.998** against the 11-24 06:00 page (1 new in the top 25), coverage **491 of
+  499** as the build said.
+- **Measured the fit** (`research/measurements/2026-11-25-momentum-fit.py` / `.json`) on three pages: the
+  last scored with Jensen's alpha (`0679feb`), the same closing session rescored with residual momentum
+  (`87b7be9`, so the difference is the change, not a day of markets), and the first data-loop page
+  (`c1dd9e1`). Rank correlations only.
+  - The note's prediction (a) **held**: residual momentum ~ `return_12_1` **0.792** (predicted 0.77),
+    where Jensen's alpha was **0.910**.
+  - Prediction (b), "removes a second low-beta reward", **could not be observed**: Jensen's alpha ~ beta
+    was already **+0.009** over this window (the 12-month return's +0.17 beta lean cancelled its beta
+    term). Residual momentum is beta-neutral by construction; the alpha was only when the year allowed.
+  - **Momentum now overlaps six of the seven other categories less**: growth~momentum +0.138 -> +0.082,
+    valuation~momentum -0.095 -> -0.045, momentum~size -0.154 -> -0.108, momentum~risk +0.251 -> +0.219,
+    quality~momentum +0.098 -> +0.069, revisions~momentum +0.209 -> +0.188 (budget bar 0.35 - headroom
+    gained, which does **not** license a momentum-adjacent Revisions metric); investment +0.03, negligible.
+  - **The ranking's lean on growth stepped +0.026 -> +0.006 from this change alone** (about one point of
+    Growth weight at the drift note's slope). The brief's daily growth-lean series has a break at
+    2026-11-24 that is a methodology step, not drift.
+- **Wrote it down where each reader will look:** section 10 of `research/2026-11-20-jensens-alpha-in-momentum.md`
+  (the design section: each neighbour, inside Momentum now 40/35/25 = the 12-month move, a 0.79 cousin of
+  it, and a 6-month move only 0.34 like it this autumn - no change proposed); a dated check under the
+  11-24 changelog entry; section 7 of `research/2026-11-02-growth-exposure-drift.md` (the break).
+- **A figure corrected:** the 11-24 changelog said Jensen's alpha correlated 0.87 with `return_12_1`;
+  nothing committed produces that number, and the last page scored with it reads **0.910**. Recorded
+  against the entry.
+- **The habit that would have caught the step, made a command.** The drift note's 6.4 (2026-11-03) asked
+  every scoring change to record the composite's correlation with each category before and after; it was
+  prose and the 11-24 build did not do it. `scripts/exposure_shift.py <before> <after>` prints it (git
+  revision or payload path), pinned to the brief's own `growth_exposure` by `tests/test_exposure_shift.py`
+  (4, synthetic tables); `prompts/nightly.md` section 3's scoring-change checklist now names it.
+- **The other changes, placed:** the missing-category rule reaches **5 stocks** today (DPZ, BRK-B,
+  ERIE, FDXF, HONA; none in the top 100) and none of the eight without residual momentum - theirs is a
+  missing *metric*, shared within Momentum. Sustainable growth's ROE now uses the same average-equity,
+  positive-equity definition as the bank ROE (2026-10-20), so the screener has one ROE. The universe floor,
+  the EPS-mismatch flag, the SEC refresh and the own volatilities change no category score.
+
+### Evidence / research
+- Blitz, Huij & Martens (2011), *J. Empirical Finance* 18(3), 506-521, doi:10.1016/j.jempfin.2011.01.003,
+  as read by the 11-21 and 11-24 sessions (note sections 3 and 9); nothing new was read today. The
+  measurement is descriptive (rank correlations of published scores); no return, IC or backtest figure.
+
+### Methodology changed
+- None. A dated check (with one figure corrected) appended to the 2026-11-24 entry.
+
+### Tried and rejected
+- **Rebalancing Momentum's 40/35/25 now that the 12-month block is less of one signal.** A weight
+  change from one autumn's correlations is exactly what rule 4 and the drift note refuse; this
+  quarter's unusually low 12-vs-6-month agreement (0.34) would distort it. Recorded for a Monday.
+- **Calling the growth-lean move a reason to touch Growth's weight.** The drift note's rule stands.
+
+### Set aside
+- 11-24 (13:00)'s Next, "publish our own volatilities": dated for 2026-11-26 - it needs tonight's 20:00
+  refresh, the first that can price every payer. Not deferred; not yet due.
+- 11-24 (06:00)'s rank-continuity and coverage check: done (above).
+- The 11-23 (owner-run) "18:00 retry cannot recover a diverged `main`": left as that entry argued.
+
+### Next
+- **2026-11-26: the implied-volatility switch** (11-24 13:00 entry's Next, the brief's "Coming up").
+- **The Factor Lab passes its 21-day bound on 2026-11-28**: last advanced 2026-11-06, and Friday
+  2026-11-27 is ISO week 48 - a retrospective. The weekend session of 11-28 should run the lab's next
+  experiment (`plan/factor-lab.md`), or the streak rule applies from there.
