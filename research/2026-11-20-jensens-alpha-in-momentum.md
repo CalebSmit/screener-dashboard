@@ -410,10 +410,11 @@ Category-score pairs, isolated comparison (same closing session), largest moves:
 
 Every other pair moved by under 0.01. **Momentum became more independent of six of the seven other
 categories** - its correlation shrank in absolute value with Growth, Valuation, Size, Risk, Quality and
-Revisions, and rose negligibly with Investment (to +0.03). That is the expected shape: a residual return
-strips out the market-wide and, in part, the sector-wide move that a raw 12-month return shares with
-whatever else was in favour this year (this year: large, expensive, growing companies - hence the
-Growth, Valuation and Size pairs moving most).
+Revisions, and rose negligibly with Investment (to +0.03). That is the expected shape: a CAPM residual strips out
+the part of a stock's year that its market exposure explains, which a raw 12-month return shares with
+any other characteristic that happened to line up with the market's year. The pairs that moved most -
+Growth, Valuation, Size - are the ones whose scores lean on that. (A CAPM residual does not remove a
+sector's own move; FF3 or industry-adjusted versions would, and section 9 chose CAPM deliberately.)
 
 What follows for each neighbour:
 

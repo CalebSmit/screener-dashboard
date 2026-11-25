@@ -5876,6 +5876,19 @@ anything before 2027-02-11 - the change rests on the Evidence above.
 **Applied by:** morning session (manual), 2026-11-24 06:00, building a proposal ACCEPTED by the
 2026-11-21 06:00 session. **Rollback:** `good/2026-11-23-owner-phone-rows`.
 
+**Checked on the first data-loop run (2026-11-25, synthesis session; no change made).** The 02:00
+run of 2026-11-25 published it: HEALTH: PASS, rank continuity 0.998 against the 11-24 06:00 page,
+coverage **491 of 499** as expected. Fit with the other seven categories, measured on the same closing
+session before and after (`research/measurements/2026-11-25-momentum-fit.py` / `.json`; note section 10):
+Momentum's correlation fell in absolute value against six of the seven other category scores (largest:
+growth~momentum +0.138 -> +0.082, valuation~momentum -0.095 -> -0.045, momentum~size -0.154 -> -0.108);
+the budgeted revisions~momentum pair +0.209 -> +0.188 (bar 0.35); **the ranking's lean on growth
++0.026 -> +0.006 from this change alone** - a methodology step in the brief's growth-lean series, not
+drift (recorded in `research/2026-11-02-growth-exposure-drift.md`). **Correction:** "where Jensen's alpha
+was 0.87" above has no measurement behind it in the committed `.json`; on the last page scored with it
+(`0679feb`) Jensen's alpha correlates **0.910** with `return_12_1`. The note's predicted low-beta effect
+could not be observed: over this window Jensen's alpha's rank correlation with beta was already +0.009.
+
 ## 2026-11-24 (13:00) - Our own implied volatilities, recorded beside the source field (context only; not yet the published construction)
 
 **Area:** the options panel's implied volatilities (context layer, settled row "ctx" - never scored,
