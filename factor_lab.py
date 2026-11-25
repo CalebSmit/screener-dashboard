@@ -1059,6 +1059,52 @@ def factor_data(raw_dir: Path = RAW_DIR) -> dict:
     return out
 
 
+def _solve(a: list[list[float]], b: list[float]) -> list[float]:
+    """Solve a small linear system by Gaussian elimination with partial pivoting."""
+    n = len(b)
+    m = [row[:] + [b[i]] for i, row in enumerate(a)]
+    for c in range(n):
+        p = max(range(c, n), key=lambda r: abs(m[r][c]))
+        m[c], m[p] = m[p], m[c]
+        for r in range(c + 1, n):
+            f = m[r][c] / m[c][c]
+            for k in range(c, n + 1):
+                m[r][k] -= f * m[c][k]
+    x = [0.0] * n
+    for r in range(n - 1, -1, -1):
+        x[r] = (m[r][n] - sum(m[r][k] * x[k] for k in range(r + 1, n))) / m[r][r]
+    return x
+
+
+def ff3_alpha(data: dict, factors: dict, start: str, end: str, weighting: str = "vw", lags: int = 6) -> dict:
+    """Experiment 20's risk-adjusted gap: the intercept of a sort's spread (last group minus first)
+    regressed on the market, size and value factors, with a Newey-West t-statistic (``lags``
+    months, Bartlett weights) - the adjustment Ang, Hodrick, Xing & Zhang (2006) report beside the
+    raw gap. ``factors`` maps a month to its [Mkt-RF, SMB, HML] in percent. A long-short spread
+    needs no risk-free rate. Used by the experiment's research note and its test, not by the page's
+    comparison, which scores raw returns."""
+    g = data[weighting]
+    rows = [(g[-1][i] - g[0][i], factors[m]) for i, m in enumerate(data["months"])
+            if start <= m <= end and m in factors]
+    y = [r[0] for r in rows]
+    x = [[1.0, *r[1]] for r in rows]
+    k = 4
+    xtx = [[sum(row[i] * row[j] for row in x) for j in range(k)] for i in range(k)]
+    beta = _solve(xtx, [sum(row[i] * yy for row, yy in zip(x, y)) for i in range(k)])
+    e = [yy - sum(b * v for b, v in zip(beta, row)) for row, yy in zip(x, y)]
+    s = [[sum(x[t][i] * x[t][j] * e[t] ** 2 for t in range(len(y))) for j in range(k)] for i in range(k)]
+    for lag in range(1, lags + 1):
+        w = 1 - lag / (lags + 1)
+        for i in range(k):
+            for j in range(k):
+                s[i][j] += w * sum(x[t][i] * e[t] * x[t - lag][j] * e[t - lag] + x[t - lag][i] * e[t - lag] * x[t][j] * e[t]
+                                   for t in range(lag, len(y)))
+    inv = [_solve(xtx, [1.0 if r == c else 0.0 for r in range(k)]) for c in range(k)]   # columns of the inverse
+    first = [inv[c][0] for c in range(k)]                                                # row 0 of the inverse
+    var0 = sum(first[i] * s[i][j] * first[j] for i in range(k) for j in range(k))
+    return {"n": len(y), "alpha": beta[0], "t": beta[0] / math.sqrt(var0), "loadings": beta[1:]}
+
+
 def correlation(x: list[float], y: list[float]) -> float:
     n = len(x)
     mx, my = sum(x) / n, sum(y) / n
@@ -3366,8 +3412,12 @@ IDIOSYNCRATIC_VOL = {
         "total-volatility experiment. The volatilities are in the chart and the table of groups.",
         "The reference figures are from the authors' 2004 working paper. The published article's table "
         "has not been read here.",
-        "Only the raw averages are reproduced, not the paper's three-factor alphas (-1.31% a month for "
-        "the gap, t -7.00), which are its strongest figures.",
+        "Only the raw averages are scored. The paper's stronger figure is the gap after the market, size "
+        "and value factors: -1.31% a month (t -7.00). On the library's portfolios the most volatile fifth "
+        "leans heavily towards small companies (a size loading above 1), and once the three factors are "
+        "allowed for, the gap is about -0.54% a month in the paper's years (Newey-West t -3.7) and about "
+        "-0.58% since 2001 (t -2.2): roughly half the paper's, and below zero in both periods. Not scored, "
+        "because no tolerance was written for it before the run.",
         "The library's file was downloaded a month after the other sorts on this page (it runs to "
         "September 2026, they to August).",
     ],
@@ -3403,8 +3453,9 @@ TAKEAWAYS = {
     "idiosyncratic-volatility": ("Sorted on the volatility left once the market, size and value are taken out, the "
                                  "three calmer fifths earned what the paper found, but the most volatile fifth "
                                  "earned about 0.76% a month instead of nothing, so the paper's one-point gap "
-                                 "shrinks to a third and cannot be told from zero. Since the paper it has been "
-                                 "about zero."),
+                                 "shrinks to a third and cannot be told from zero. Allowing for the market, size "
+                                 "and value, as the paper also does, about half its gap remains, in its years "
+                                 "and since."),
     "earnings-yield": ("Returns rose step by step with earnings yield, in the paper's sample and for "
                        "decades after it. Since 2007 the gap has all but closed, and among large "
                        "companies it reversed."),

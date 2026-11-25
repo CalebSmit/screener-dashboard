@@ -871,8 +871,17 @@ def test_each_takeaway_is_what_the_data_shows(published):
     inside = fl.sort_run(iv, "196307", "200012", "vw")
     assert round(inside["groups"][4]["mean"], 2) == 0.76
     assert 0.25 < inside["spread"]["mean"] / -1.06 < 0.4 and abs(inside["spread"]["t"]) < 2
-    after = fl.sort_run(iv, "200101", "209912", "vw")["spread"]
-    assert abs(after["mean"]) < 0.15 and abs(after["t"]) < 2
+    # "...about half its gap remains, in its years and since" (open detail: about -0.54, t -3.7;
+    # about -0.58 since 2001, t -2.2; a size loading above 1) - on the published factor series
+    fa = published["factors"]
+    three = {m: [fa["mktrf"][i], fa["smb"][i], fa["hml"][i]] for i, m in enumerate(fa["months"])}
+    paper_years, since = fl.ff3_alpha(iv, three, "196307", "200012"), fl.ff3_alpha(iv, three, "200101", "209912")
+    assert round(paper_years["alpha"], 2) == -0.54 and round(paper_years["t"], 1) == -3.7
+    assert round(since["alpha"], 2) == -0.58 and round(since["t"], 1) == -2.2
+    assert all(0.35 < r["alpha"] / -1.31 < 0.6 and r["loadings"][1] > 1 for r in (paper_years, since))
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "idiosyncratic-volatility")
+    assert any("about -0.54% a month" in d and "t -3.7" in d and "-0.58% since 2001 (t -2.2)" in d
+               for d in exp["open_details"])
 
     # 15. "of the 119 ... 83% ... to 2020, and 76% inside the mega caps alone - close to the paper's 77%.
     #      Since 2014 only 9 of them clear that bar among mega caps, over a period too short to settle it."
@@ -2246,4 +2255,20 @@ def test_size_given_profitability_can_be_rerun_and_shows_its_rule(published):
                 assert errors == []
             finally:
                 browser.close()
+
+
+def test_ff3_alpha_recovers_a_planted_intercept():
+    """The regression behind experiment 20's open detail: a spread built as 0.3 + 1.2 SMB - 0.5 HML
+    plus noise returns that intercept and those loadings, and a pure-noise spread a small t."""
+    import random
+    rng = random.Random(7)
+    months = [f"{1963 + i // 12}{i % 12 + 1:02d}" for i in range(480)]
+    fac = {m: [rng.gauss(0.5, 4.5), rng.gauss(0.2, 3), rng.gauss(0.3, 3)] for m in months}
+    low = [rng.gauss(1, 4) for _ in months]
+    high = [lo + 0.3 + 1.2 * fac[m][1] - 0.5 * fac[m][2] + rng.gauss(0, 0.5) for lo, m in zip(low, months)]
+    r = fl.ff3_alpha({"months": months, "vw": [low, high]}, fac, "196301", "209912")
+    assert r["n"] == 480 and abs(r["alpha"] - 0.3) < 0.08 and r["t"] > 8
+    assert abs(r["loadings"][1] - 1.2) < 0.03 and abs(r["loadings"][2] + 0.5) < 0.03
+    noise = [lo + rng.gauss(0, 2) for lo in low]
+    assert abs(fl.ff3_alpha({"months": months, "vw": [low, noise]}, fac, "196301", "209912")["t"]) < 3
 
