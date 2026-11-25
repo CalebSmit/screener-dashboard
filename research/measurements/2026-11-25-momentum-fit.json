@@ -1,0 +1,326 @@
+{
+  "shas": {
+    "before": "0679feb",
+    "isolated": "87b7be9",
+    "after": "c1dd9e1"
+  },
+  "before": {
+    "n": 499,
+    "coverage": {
+      "return_12_1": 497,
+      "return_6m": 497,
+      "jensens_alpha": 497,
+      "residual_momentum": 0
+    },
+    "momentum_metric_vs_return_12_1": {
+      "return_6m": 0.338,
+      "jensens_alpha": 0.91,
+      "residual_momentum": null
+    },
+    "momentum_metric_vs_return_6m": {
+      "jensens_alpha": 0.353,
+      "residual_momentum": null
+    },
+    "vs_beta": {
+      "return_12_1": 0.172,
+      "return_6m": -0.217,
+      "jensens_alpha": 0.009,
+      "residual_momentum": null,
+      "momentum": -0.03,
+      "risk": -0.521
+    },
+    "vs_volatility": {
+      "return_12_1": 0.08,
+      "return_6m": -0.113,
+      "jensens_alpha": -0.077,
+      "residual_momentum": null,
+      "momentum": -0.139
+    },
+    "composite_vs_category": {
+      "valuation": 0.591,
+      "quality": 0.6,
+      "growth": 0.026,
+      "momentum": 0.432,
+      "risk": 0.274,
+      "revisions": 0.307,
+      "size": 0.11,
+      "investment": 0.197
+    },
+    "category_pairs": {
+      "valuation~quality": 0.1,
+      "valuation~growth": -0.358,
+      "valuation~momentum": -0.095,
+      "valuation~risk": 0.006,
+      "valuation~revisions": 0.034,
+      "valuation~size": 0.308,
+      "valuation~investment": 0.222,
+      "quality~growth": 0.187,
+      "quality~momentum": 0.098,
+      "quality~risk": 0.05,
+      "quality~revisions": 0.107,
+      "quality~size": -0.128,
+      "quality~investment": -0.057,
+      "growth~momentum": 0.138,
+      "growth~risk": -0.29,
+      "growth~revisions": 0.189,
+      "growth~size": -0.312,
+      "growth~investment": -0.439,
+      "momentum~risk": 0.251,
+      "momentum~revisions": 0.209,
+      "momentum~size": -0.154,
+      "momentum~investment": -0.017,
+      "risk~revisions": -0.202,
+      "risk~size": -0.172,
+      "risk~investment": 0.235,
+      "revisions~size": -0.1,
+      "revisions~investment": -0.127,
+      "size~investment": 0.244
+    }
+  },
+  "isolated": {
+    "n": 499,
+    "coverage": {
+      "return_12_1": 497,
+      "return_6m": 497,
+      "jensens_alpha": 0,
+      "residual_momentum": 491
+    },
+    "momentum_metric_vs_return_12_1": {
+      "return_6m": 0.338,
+      "jensens_alpha": null,
+      "residual_momentum": 0.792
+    },
+    "momentum_metric_vs_return_6m": {
+      "jensens_alpha": null,
+      "residual_momentum": 0.419
+    },
+    "vs_beta": {
+      "return_12_1": 0.172,
+      "return_6m": -0.217,
+      "jensens_alpha": null,
+      "residual_momentum": -0.018,
+      "momentum": -0.039,
+      "risk": -0.521
+    },
+    "vs_volatility": {
+      "return_12_1": 0.08,
+      "return_6m": -0.113,
+      "jensens_alpha": null,
+      "residual_momentum": 0.096,
+      "momentum": -0.107
+    },
+    "composite_vs_category": {
+      "valuation": 0.61,
+      "quality": 0.592,
+      "growth": 0.006,
+      "momentum": 0.433,
+      "risk": 0.259,
+      "revisions": 0.299,
+      "size": 0.129,
+      "investment": 0.213
+    },
+    "category_pairs": {
+      "valuation~quality": 0.1,
+      "valuation~growth": -0.358,
+      "valuation~momentum": -0.045,
+      "valuation~risk": 0.006,
+      "valuation~revisions": 0.034,
+      "valuation~size": 0.308,
+      "valuation~investment": 0.222,
+      "quality~growth": 0.187,
+      "quality~momentum": 0.069,
+      "quality~risk": 0.05,
+      "quality~revisions": 0.107,
+      "quality~size": -0.128,
+      "quality~investment": -0.057,
+      "growth~momentum": 0.082,
+      "growth~risk": -0.29,
+      "growth~revisions": 0.189,
+      "growth~size": -0.312,
+      "growth~investment": -0.439,
+      "momentum~risk": 0.219,
+      "momentum~revisions": 0.188,
+      "momentum~size": -0.108,
+      "momentum~investment": 0.029,
+      "risk~revisions": -0.202,
+      "risk~size": -0.172,
+      "risk~investment": 0.235,
+      "revisions~size": -0.1,
+      "revisions~investment": -0.127,
+      "size~investment": 0.244
+    }
+  },
+  "after": {
+    "n": 499,
+    "coverage": {
+      "return_12_1": 497,
+      "return_6m": 497,
+      "jensens_alpha": 0,
+      "residual_momentum": 491
+    },
+    "momentum_metric_vs_return_12_1": {
+      "return_6m": 0.322,
+      "jensens_alpha": null,
+      "residual_momentum": 0.81
+    },
+    "momentum_metric_vs_return_6m": {
+      "jensens_alpha": null,
+      "residual_momentum": 0.395
+    },
+    "vs_beta": {
+      "return_12_1": 0.145,
+      "return_6m": -0.286,
+      "jensens_alpha": null,
+      "residual_momentum": -0.005,
+      "momentum": -0.064,
+      "risk": -0.519
+    },
+    "vs_volatility": {
+      "return_12_1": 0.062,
+      "return_6m": -0.135,
+      "jensens_alpha": null,
+      "residual_momentum": 0.091,
+      "momentum": -0.117
+    },
+    "composite_vs_category": {
+      "valuation": 0.607,
+      "quality": 0.593,
+      "growth": -0.001,
+      "momentum": 0.439,
+      "risk": 0.256,
+      "revisions": 0.295,
+      "size": 0.126,
+      "investment": 0.212
+    },
+    "category_pairs": {
+      "valuation~quality": 0.098,
+      "valuation~growth": -0.356,
+      "valuation~momentum": -0.042,
+      "valuation~risk": -0.005,
+      "valuation~revisions": 0.035,
+      "valuation~size": 0.305,
+      "valuation~investment": 0.215,
+      "quality~growth": 0.183,
+      "quality~momentum": 0.072,
+      "quality~risk": 0.049,
+      "quality~revisions": 0.102,
+      "quality~size": -0.129,
+      "quality~investment": -0.056,
+      "growth~momentum": 0.057,
+      "growth~risk": -0.288,
+      "growth~revisions": 0.186,
+      "growth~size": -0.303,
+      "growth~investment": -0.439,
+      "momentum~risk": 0.24,
+      "momentum~revisions": 0.182,
+      "momentum~size": -0.109,
+      "momentum~investment": 0.041,
+      "risk~revisions": -0.206,
+      "risk~size": -0.174,
+      "risk~investment": 0.238,
+      "revisions~size": -0.101,
+      "revisions~investment": -0.128,
+      "size~investment": 0.24
+    }
+  },
+  "pairs_moved_most_isolated": [
+    {
+      "pair": "growth~momentum",
+      "before": 0.138,
+      "isolated": 0.082,
+      "change": -0.056
+    },
+    {
+      "pair": "valuation~momentum",
+      "before": -0.095,
+      "isolated": -0.045,
+      "change": 0.05
+    },
+    {
+      "pair": "momentum~size",
+      "before": -0.154,
+      "isolated": -0.108,
+      "change": 0.046
+    },
+    {
+      "pair": "momentum~investment",
+      "before": -0.017,
+      "isolated": 0.029,
+      "change": 0.046
+    },
+    {
+      "pair": "momentum~risk",
+      "before": 0.251,
+      "isolated": 0.219,
+      "change": -0.032
+    },
+    {
+      "pair": "quality~momentum",
+      "before": 0.098,
+      "isolated": 0.069,
+      "change": -0.029
+    },
+    {
+      "pair": "momentum~revisions",
+      "before": 0.209,
+      "isolated": 0.188,
+      "change": -0.021
+    },
+    {
+      "pair": "valuation~quality",
+      "before": 0.1,
+      "isolated": 0.1,
+      "change": 0.0
+    }
+  ],
+  "pairs_moved_most_after": [
+    {
+      "pair": "growth~momentum",
+      "before": 0.138,
+      "after": 0.057,
+      "change": -0.081
+    },
+    {
+      "pair": "momentum~investment",
+      "before": -0.017,
+      "after": 0.041,
+      "change": 0.058
+    },
+    {
+      "pair": "valuation~momentum",
+      "before": -0.095,
+      "after": -0.042,
+      "change": 0.053
+    },
+    {
+      "pair": "momentum~size",
+      "before": -0.154,
+      "after": -0.109,
+      "change": 0.045
+    },
+    {
+      "pair": "momentum~revisions",
+      "before": 0.209,
+      "after": 0.182,
+      "change": -0.027
+    },
+    {
+      "pair": "quality~momentum",
+      "before": 0.098,
+      "after": 0.072,
+      "change": -0.026
+    },
+    {
+      "pair": "valuation~risk",
+      "before": 0.006,
+      "after": -0.005,
+      "change": -0.011
+    },
+    {
+      "pair": "momentum~risk",
+      "before": 0.251,
+      "after": 0.24,
+      "change": -0.011
+    }
+  ]
+}
