@@ -3264,6 +3264,63 @@ MOHANRAM_OSAP = {
 EXPERIMENTS.append(MOHANRAM_OSAP)
 
 
+# Experiment 20 (2026-11-25, 13:00 session): Ang, Hodrick, Xing & Zhang (2006), the paper's own
+# headline sort - volatility left over after the Fama-French three factors - which experiment 5's
+# record listed as still open. The same table of the same working paper as experiment 5 (Table VI,
+# Panel B where experiment 5 read Panel A), so the same tolerances, for the same reasons.
+#
+# Written BEFORE the comparison was run. What had been seen first, disclosed: the paper's table
+# (NBER w10852, PDF page 50, printed page 48, read with pypdf); the library's file *headers* and its
+# description page (FF3 residual variance, 60 days with at least 20, NYSE breakpoints, financials
+# and utilities included) - no return in the file was read. Experiment 5's result on the library's
+# *total*-volatility sort was known (its most volatile fifth earned 0.81% a month in the paper's
+# years against the paper's 0.09%), so the expectation, written down now, is the same shape: the
+# three calmer fifths within, the most volatile fifth and the spread outside, the fourth fifth
+# either way - 3 or 4 of 6.
+#
+# Rule 8 (a null must miss its headline and most figures): experiment 5 also compared the five
+# volatilities, which a null keeps at the paper's values - that is why its null matches 6 of 11.
+# This record compares the five average returns and the spread only, the figures the claim is
+# about; the null (every fifth at the paper's average, 0.85) matches the fourth fifth only, 1 of 6.
+# The volatilities are still on the page, in the chart and the groups table, just not scored.
+IDIOSYNCRATIC_VOL = {
+    "id": "idiosyncratic-volatility",
+    "group": "Risk",
+    "kind": "sort",
+    "topic": "Risk",
+    "title": "Does a stock's own volatility cost it?",
+    "tab": "Stock-specific volatility",
+    "paper": {
+        "authors": "Andrew Ang, Robert J. Hodrick, Yuhang Xing and Xiaoyan Zhang",
+        "year": 2006,
+        "title": "The cross-section of volatility and expected returns",
+        "journal": "Journal of Finance 61(1), 259-299",
+        "doi": "10.1111/j.1540-6261.2006.00836.x",
+    },
+    "claim": ("The paper's headline. Sorting US stocks each month into five groups by how much they had "
+              "moved on their own - the volatility left over once the market, size and value are "
+              "accounted for - the fifth that moved most on its own earned about -0.02% a month from "
+              "1963 to 2000, against about 1.04% for the fifth that moved least: a gap of about one "
+              "percentage point a month."),
+    "reference": {
+        "source": ("The authors' NBER working paper 10852 (October 2004), Table VI, Panel B (page 48): "
+                   "value-weighted portfolios sorted on idiosyncratic volatility relative to the "
+                   "Fama-French three-factor model, July 1963 to December 2000. Monthly means of total "
+                   "returns."),
+        "start": "196307", "end": "200012", "weighting": "vw",
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "mean1", "label": "Least stock-specific volatility: average month (%)", "paper": 1.04, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean2", "label": "Second fifth: average month (%)", "paper": 1.16, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean3", "label": "Middle fifth: average month (%)", "paper": 1.20, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean4", "label": "Fourth fifth: average month (%)", "paper": 0.87, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "mean5", "label": "Most stock-specific volatility: average month (%)", "paper": -0.02, "tolerance": 0.10, "where": "Table VI B"},
+            {"key": "spread", "label": "Most minus least, a month (%)", "paper": -1.06, "tolerance": 0.20, "where": "Table VI B"},
+        ],
+    },
+}
+
+
 # One sentence per experiment for the lab's front page. Each is a statement about what the
 # published data shows, and tests/test_factor_lab.py checks every one against that data, so a
 # rebuild that makes one untrue fails the suite instead of leaving it on the page.
