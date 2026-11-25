@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 25 November 2026, 06:35
+# Morning Brief - Wednesday 25 November 2026, 13:48
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -15,7 +15,7 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, APA, VLO, SNDK, MU |
 | Ranking's lean on growth | -0.001 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Shipped to readers | 18 commit(s) changed what a reader sees, 6 methodology change(s), in the last 7 days |
+| Shipped to readers | 21 commit(s) changed what a reader sees, 6 methodology change(s), in the last 7 days |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (58 rows, but overlapping windows are not independent; 144 rows across all horizons), newest 1m run date 2026-10-23 (33 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
 | Inputs vs SEC filings | total assets 453/453 within 0.5%; operating cash flow 439/440 within 0.5%; net income 427/451 within 0.5%; market value 452/487 within 5%; 2 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 7 days ago |
@@ -33,8 +33,19 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - 2026-12-04 (in 9 days) - The option signals' (expected move, ATM volatility, skew) first one-month reading: readings before 2026-11-04 recorded no price and are excluded, not spliced. `METHODOLOGY_CHANGELOG.md`
 - 2026-12-07 (in 12 days) - The last Monday before the year-to-date-column decision of 2026-12-15: research what vendors and index providers do with a hole in a company's quarterly series. 26 stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and it is the same question as DexCom's (may a filing do more than sit beside a scored input) at 26 times the size. Section 4; no design is proposed there. `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`
 
+## Things that needed attention
+
+- GATE 5 note: ENGINE CHANGED since run fc6071fe6274 was scored (run_screener.py): this rehearsal shows the new page code on that run's old scores, so the next 02:00 run is the first to put the new scores before the claims gate. A page branch keyed on a new payload field needs a test that sets the field in the browser (prompts/nightly.md, section 4).
+
 ## What changed in the repo
 
+- `8b2b9d9 NIGHTLY_LOG 2026-11-25 (13:00): Factor Lab experiment 20, and gate results`
+- `a84527e lab: experiment 20 written up (research note, plan queue row and Progress, owner item count)`
+- `97db773 lab: experiment 20 states the paper's risk-adjusted gap too - about half of it survives, in its years and since`
+- `6069191 page: the methodology's Rerun-the-research paragraph links experiment 20 (rebuild_page.py; payload byte-identical)`
+- `8873be5 lab: experiment 20, Ang, Hodrick, Xing & Zhang's idiosyncratic-volatility sort - 3 of 6 within`
+- `1c9aa54 lab: experiment 20 tolerances, written before the comparison (Ang, Hodrick, Xing & Zhang 2006, idiosyncratic volatility, Table VI Panel B)`
+- `8c2fad0 brief: code session 2026-11-25`
 - `f49d35d NIGHTLY_LOG 2026-11-25: gate results`
 - `90d2093 NIGHTLY_LOG 2026-11-25: synthesis entry`
 - `c87c8f5 exposure_shift: a scoring change records the ranking's factor exposures before and after`
@@ -43,61 +54,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `1df46b4 wip: synthesis measurement - residual momentum's fit against the other seven categories`
 - `8c06fdc brief: data run 2026-11-25`
 - `c1dd9e1 data: screener run 2026-11-25 - 499 scored, top: EXPE APA VLO SNDK MU`
-- `7d39fb0 brief: code session 2026-11-24-midday`
-- `d906531 NIGHTLY_LOG 2026-11-24 (13:00): gate results`
-- `a73cc94 NIGHTLY_LOG 2026-11-24 (13:00): the implied-volatility inversion built, the switch queued`
-- `d39649d research engine: all 32 rows rerun and the report written; summary and research page unchanged`
-- `4c90763 research engine: 24 of 32 rows rerun`
-- `97b15af research engine: 12 of 32 rows rerun after factor_engine.py's fetch change (no scoring change)`
-- `781c424 page rebuilt from the generator (the options panel's construction sentence); changelog time corrected`
 
 ## The session's own account
 
-> 2026-11-25 - SYNTHESIS. Residual momentum read against the other seven categories on its first data run: Momentum overlaps six of them less, the ranking's growth lean stepped +0.026 -> +0.006, and the habit that would have caught it is one command now
+> 2026-11-25 (13:00) - QUEUE. Factor Lab experiment 20: the volatility paper's own headline sort - 3 of 6 within; the raw gap does not reproduce, about half of the risk-adjusted one does, and it survived the paper
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-24_130001-midday.log`
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-25_060001.log`
 > (completed). Data loop published? yes - `logs/datarun-2026-11-25_020001.log` (completed; HEALTH: PASS).
 > Evidence base at `1m`: **58 rows, newest `run_date` 2026-10-23 (33 days ago, bound 40), 5 effective** of 8.
 > Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
-> 2026-10-12, **age 44 days**; a standing programme, last advanced **19 days** ago, bound 21 - its day is
-> Friday, so not deferred by a Wednesday); also open 0.10 (49 d), 0.14 (42 d). Shipped to readers: 19
+> 2026-10-12, **age 44 days**; a standing programme, last advanced **19 days** ago at session start, **0**
+> after this session's Progress bullet); also open 0.10 (49 d), 0.14 (42 d). Shipped to readers: 21
 > commits, 6 methodology changes in the last 7 days. The "held back" branch the line names is this
 > session's own, pushed mid-session. No stash.
-> **Tests:** before 4553 passed / 1 skipped (06:05, `logs/session-baseline-2026-11-25.txt`); after
-> **4557 passed / 1 skipped** (the 4 new in `tests/test_exposure_shift.py`). Gate 2 dry run exit 0. Gate 5
-> (`rehearse_publish.py --changed-since main`) PASSED (page tests, claims gate, files restored). Gate 3:
-> `node --check` is refused by this session's tool guard; the three payload files and `index.html` are
-> byte-identical to `main` (`git diff --stat main` empty), so the runner's check reads what it read
-> yesterday. Gate 4 clean.
-> **Owner queue / rotation:** no proposal open (`write_brief.open_proposals()` = `[]`). `OWNER_FOCUS.md`'s
-> 2026-11-19 item has one step left, the implied-volatility switch, which is dated for 2026-11-26 (it needs
-> tonight's 20:00 refresh) - not today's. So the rotation's focus: the methodology changes since the last
-> synthesis (2026-11-18). Changelog read back to it: 11-18 (13:00) SEC co-registrant refresh; 11-19
-> universe floor 0; 11-19 missing category at 50; 11-19 EPS-mismatch like-for-like; 11-19 sustainable
-> growth's ROE needs positive equity both years; **11-24 residual momentum replaces Jensen's alpha**; 11-24
-> (13:00) own implied volatilities, context only. The one that changes how stocks are compared across
-> categories is residual momentum, so it is the subject; the others are placed in a line each below.
+> **Tests:** before 4557 passed / 1 skipped (runner's baseline, 13:04, GREEN); after **4558 passed / 1 skipped**
+> (the new `test_ff3_alpha_recovers_a_planted_intercept`). Gate 2 dry run exit 0. Gate 5 (`rehearse_publish.py
+> --changed-since main`) PASSED twice (after the build and on the final tree). Gate 3: `node --check` is refused by
+> this session's tool guard; the three payload files are byte-identical to `main`, `index.html` is 990 KB, and
+> `lab_data.js` and the new part load without a console error in the lab's browser tests. Gate 4 clean.
+> **Owner queue / rotation:** no proposal open (`write_brief.open_proposals()` = `[]`). The 06:00 entry's
+> Next: the implied-volatility switch is dated 2026-11-26 (needs tonight's 20:00 refresh) - not today's;
+> the lab's bound passing on 11-28 with Friday a retrospective - **taken now** rather than left to the
+> weekend slot. That is also `OWNER_FOCUS.md`'s 2026-10-12 item (the lab), whose count is updated.
 > 
 > ### Did
-> - **The previous entry's owed check, done:** the 02:00 run published residual momentum with HEALTH:
->   PASS, rank continuity **0.998** against the 11-24 06:00 page (1 new in the top 25), coverage **491 of
->   499** as the build said.
-> - **Measured the fit** (`research/measurements/2026-11-25-momentum-fit.py` / `.json`) on three pages: the
->   last scored with Jensen's alpha (`0679feb`), the same closing session rescored with residual momentum
->   (`87b7be9`, so the difference is the change, not a day of markets), and the first data-loop page
->   (`c1dd9e1`). Rank correlations only.
->   - The note's prediction (a) **held**: residual momentum ~ `return_12_1` **0.792** (predicted 0.77),
->     where Jensen's alpha was **0.910**.
->   - Prediction (b), "removes a second low-beta reward", **could not be observed**: Jensen's alpha ~ beta
->     was already **+0.009** over this window (the 12-month return's +0.17 beta lean cancelled its beta
->     term). Residual momentum is beta-neutral by construction; the alpha was only when the year allowed.
->   - **Momentum now overlaps six of the seven other categories less**: growth~momentum +0.138 -> +0.082,
->     valuation~momentum -0.095 -> -0.045, momentum~size -0.154 -> -0.108, momentum~risk +0.251 -> +0.219,
->     quality~momentum +0.098 -> +0.069, revisions~momentum +0.209 -> +0.188 (budget bar 0.35 - headroom
->     gained, which does **not** license a momentum-adjacent Revisions metric); investment +0.03, negligible.
->   - **The ranking's lean on growth stepped +0.026 -> +0.006 from this change alone** (about one point of
->     Growth weight at the drift note's slope). The brief's daily growth-lean series has a break at
->     2026-11-24 that is a methodology step, not drift.
+> - **The queue's Next, `EarningsSurprise`, could not be built honestly.** Foster, Olsen & Shevlin
+>   (1984), *Accounting Review* 59(4) 574-603, is on JSTOR; two searches found no working paper or open
+>   copy (Stanford GSB has an abstract only). The lab reads the table before writing a tolerance, and
+>   OSAP's `SignalDoc` summary is not the table. Recorded in the note's section 1; it stays first in the
+>   Revisions queue.
+> - **Built experiment 20 instead** - Risk's open row, Ang, Hodrick, Xing & Zhang (2006)'s headline sort
+>   on idiosyncratic (FF-3 residual) volatility, on the French library's `Portfolios_Formed_on_RESVAR`.
+>   - Read Table VI Panel B of NBER w10852 (pypdf, PDF p. 50); checked it against the text (p. 23).
+>   - **Pre-registered in its own commit (`1c9aa54`, pushed) before any return was read**: five means
+>     and the gap at experiment 5's tolerances; the volatilities left out of the count so a null matches
+>     **1 of 6** (rule 8; experiment 5's null matches 6 of 11 because it scored them); prediction 3 or 4.
+>   - **3 of 6 within**, as predicted: calmer three fifths match; fourth 1.25 vs 0.87; most volatile
+>     0.76 vs -0.02; raw gap -0.32 (t -1.18) vs -1.06. Since 2001 value-weighted +0.09 (t 0.24).
+>   - **Measured, stated, not scored** (no tolerance written first): the gap's three-factor alpha,
+>     -0.54 (NW t -3.7) 1963-2000 and -0.58 (t -2.2) since 2001, size loading above 1 - about half the
+>     paper's -1.31, and it persisted. The raw miss is composition. `factor_lab.ff3_alpha` (pure Python,
+>     equal to a numpy OLS/Newey-West to 3dp, planted-intercept test); the page's open detail and
+>     takeaway are checked against the published series in `tests/test_factor_lab.py`.
+>   - The five things moved together: `EXPERIMENTS`, `TAKEAWAYS`, `CATEGORY_MAP` (Risk), the
+>     methodology's "Rerun the research" paragraph (overview regenerated by `scripts/regenerate_overview.py`,
+>     page rebuilt by `scripts/rebuild_page.py` - payload byte-identical), `ASSET_VERSION` 31 and both
+>     `?v=` tags. Plus `after_the_paper`'s row.
+>   - **Looked at it:** `lab.html#idiosyncratic-volatility` at 1440 and 375 px - no console errors, no
+>     horizontal overflow, menu "20 experiments", verdict "3 of 6 ... would match 1 of these 6"; page
 > ...
 
 ---
