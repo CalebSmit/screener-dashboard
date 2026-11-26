@@ -10944,7 +10944,10 @@ Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Fac
 2026-10-12, **age 45 days**; a standing programme, last advanced **1 day** ago, bound 21 - not deferred);
 also open 0.10 (50 d), 0.14 (43 d). Shipped to readers: 25 commits, 3 methodology changes in the last
 7 days. No stash; no branch held back; no open proposal (`open_proposals()` = `[]`).
-**Tests:** before **4564 passed / 1 skipped**; after: see the gate line at the end of this entry. Gate 5
+**Tests:** before **4564 passed / 1 skipped**; after **4572 passed / 1 skipped** (8 new), on the final
+code tree. Gate 2 dry run passed. Gate 3: index.html 959 KB; `node --check` refused by this session's tool
+guard (as the morning's), `test_payload_valid_json` parses all three files; the runner runs node. Gate 4
+clean. Gate 5
 (`rehearse_publish.py --changed-since main`) **PASSED** (failed once mid-session on a race this slice
 created in `test_sheet_round_three` - fixed, below); no ENGINE CHANGED.
 **Owner queue / rotation:** the morning's Next waits on tomorrow's 02:00 run, so per the QUEUE focus the
