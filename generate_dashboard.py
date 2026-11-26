@@ -12119,8 +12119,13 @@ def _js_context() -> str:
         const w = DETAIL_WAITERS; DETAIL_WAITERS = [];
         w.forEach(res => res(ok));
     }
+    // Set while a failed load redraws the sheet: the redraw lays panels out again (renderAbout asks
+    // for the file), and asking from inside it retried at once, forever - measured 2026-11-26 with
+    // the file refused, a tight loop of failed requests for as long as the sheet stayed open. A
+    // failure is retried by the next sheet that opens, which is what the comment below promised.
+    let DETAIL_NO_RETRY = false;
     function loadDetail(src) {
-        if (DETAIL_LOADED || DETAIL_PENDING) return;
+        if (DETAIL_LOADED || DETAIL_PENDING || DETAIL_NO_RETRY) return;
         DETAIL_PENDING = true; DETAIL_FAILED = false;
         const el = document.createElement('script');
         el.src = src;
@@ -12163,7 +12168,8 @@ def _js_context() -> str:
             // first-paint payload; only the reported figures behind the equations are here.
             DETAIL_PENDING = false; DETAIL_FAILED = true;
             el.remove();
-            redraw();
+            DETAIL_NO_RETRY = true;
+            try { redraw(); } finally { DETAIL_NO_RETRY = false; }
             settleDetailWaiters(false);
         };
         document.body.appendChild(el);
