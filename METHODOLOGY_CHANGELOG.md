@@ -5940,3 +5940,62 @@ counts); the options test modules unchanged; gate 5's rehearsal (the regenerated
 and the claims gate).
 
 **Applied by:** 13:00 session, 2026-11-24. **Rollback:** `good/2026-11-24`.
+
+## 2026-11-26 - The options panel publishes our own implied volatilities (`PUBLISHED_IV_CONSTRUCTION` = `own_mid`; context only)
+
+**Area:** the options panel's at-the-money implied volatility and put skew (context layer, settled
+row "ctx" - never scored, no weight, no rank moves).
+
+**Changed:** `context_signals.PUBLISHED_IV_CONSTRUCTION` flipped from `source` to `own_mid` - step 4
+of the build order the 2026-11-04 decision ADOPTED (`research/2026-11-03-open-source-quant-stack.md`
+section 1d), after the whole-universe coverage count it asked for. Three things in the same commit:
+- **Cached readings are re-selected** (`context_signals.in_published_construction`, called by
+  `options_cache.reading_for`): a reading the 20:00 refresh cached under the old constant has its main
+  columns rebuilt from its own paired `_ctx_opt_own_*` columns and stamped `own_mid`, nothing
+  recomputed. Without it, the 2026-11-27 page would have withheld every stock's volatility - the
+  newest cache was taken under `source`, and Thanksgiving means no refresh can replace it before the
+  02:00 run. Simulated on the real cache for 2026-11-27: 486 readable, 429 re-stamped `own_mid`, the
+  ATM IV shown for **418** and the skew for **327**, withheld for **57**.
+- **A withheld reading says why**: under `own_mid` the panel says ours could not be worked out for it
+  (for example, a bid and ask missing or too far apart) and that the source's figures, whose method
+  is unpublished, are not shown in their place. The payload's `oniv` now carries the published
+  construction instead of `true`.
+- **A reading with our ATM figure and no skew says so** ("its two options could not both be worked out
+  from a usable bid-ask midpoint") rather than leaving the row silently missing. Claim
+  `context.iv_construction` extended; set in the browser by
+  `tests/test_context_layer_claims.py::test_the_panel_names_our_construction_and_says_why_a_figure_is_missing`.
+
+**Evidence:** the decision's own (section 1d; summarised in the 2026-11-24 (13:00) entry above) - ours is
+specified end to end and reproduced against independently written code, the source's field is
+documented nowhere and eight attempts could not rebuild it, and this project's standing rule is that
+every number on the page is checkable from the page (`CLAUDE.md` row 0.8).
+**The coverage count** (`research/measurements/2026-11-26-own-iv-coverage-universe.py`, the 2026-11-25
+20:00 refresh, 499 readings, the first refresh to read a run carrying the dividend fields - 402 of 402
+payers dated): ours **418 of the 486** ATM IVs the source gave (86%), **327 of its 483** skews (68%).
+**Every one of the 68 ATM IVs ours lacks is a `partial` reading with no expected move** - no usable
+at-the-money mid, so the source's figure there came from a contract whose quote did not stand up. Of the
+156 skews ours lacks, **128** have our ATM call, so the gap is the out-of-the-money put's mid; those
+stocks are calmer (source ATM IV median 0.361 against 0.418 kept), where a 5%-out put is cheapest and its
+relative spread widest. **Reported, not tuned away:** `MAX_REL_SPREAD` and the IV bounds unchanged
+(`CLAUDE.md` 0.11). Ours minus the source at the money: median **-2.78** points (p10 -5.86); on the skew
+**+2.03**, the sign disagreeing on 115 of 327. Skew negative for **13.8%** of ours against **35.0%** of
+the source's; Xing, Zhang & Zhao (2010) Table 1, about one in sixteen (6%) - ours is the nearer.
+
+**Expected effect:** on the page, 418 stocks show our ATM volatility (typically ~3 points lower than
+before) and 327 our skew; 57 show neither and say why; 91 show our volatility without a skew and say
+why. No score, rank, weight or `dashboard_data.js` byte moves (context payload only), so no exposure
+shift to record. **The evidence record:** `context_eval` now counts only `own_mid` readings for the
+ATM IV and the skew; the source series is excluded, never spliced. Measured through the function, that
+costs what the decision said it would - the IV/skew record restarts with the 2026-11-27 log; their
+first one-month reading moves from about 2026-12-04 to about **2026-12-28** (brief's "Coming up"). The
+expected move does not depend on an inversion and is unaffected.
+
+**Validated by:** `tests/test_implied_vol.py` (+4: re-selection, a dropped source skew, a reading with
+none of ours staying withheld, the cache serving the published construction); fixtures in
+`tests/test_context_layer.py`, `tests/test_context_layer_claims.py` and
+`tests/test_option_implied_claims.py` stamped as published (they test anchors and legs, and the
+`source` rule is still tested under a monkeypatched constant); the browser test above; gate 5's
+rehearsal.
+
+**Applied by:** 06:00 session, 2026-11-26. **Rollback:** set the constant back to `source` - cached
+readings re-select the source's ATM figure, and no skew (its legs are not kept in the pair).

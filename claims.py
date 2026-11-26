@@ -1412,7 +1412,12 @@ CLAIMS: tuple[Claim, ...] = (
             "here from each option's bid-ask midpoint - American exercise, the stock's expected "
             "dividends before expiry, the Treasury yield for that term. A reading whose volatilities "
             "were built the other way is withheld and says so, by the same predicate the context "
-            "record counts with, so the page never shows a figure the record refuses (2026-11-24)."
+            "record counts with, so the page never shows a figure the record refuses (2026-11-24). "
+            "Since 2026-11-26 'own_mid' is published: a withheld reading says ours could not be "
+            "worked out for it and that the source's figures are not shown in their place; a "
+            "reading with our ATM figure and no skew says its two skew options could not both be "
+            "worked out from a usable midpoint; and a reading cached before the constant changed "
+            "is re-selected from its own paired columns, never served under the old construction."
         ),
         made_true_by="generate_dashboard:_stock_context",
         checked_by=(
@@ -1424,6 +1429,11 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_implied_vol.py::test_the_inversion_agrees_with_an_independently_written_tree",
             "tests/test_implied_vol.py::test_a_quarterly_payer_is_projected_from_its_last_ex_date",
             "tests/test_implied_vol.py::test_the_curve_is_continuously_compounded_and_interpolated_in_time",
+            "tests/test_implied_vol.py::test_a_cached_reading_is_reselected_for_the_published_construction",
+            "tests/test_implied_vol.py::test_a_reading_with_our_iv_and_no_skew_drops_the_sources_skew",
+            "tests/test_implied_vol.py::test_a_reading_with_none_of_ours_stays_stamped_and_withheld",
+            "tests/test_implied_vol.py::test_the_cache_serves_readings_in_the_published_construction",
+            "tests/test_context_layer_claims.py::test_the_panel_names_our_construction_and_says_why_a_figure_is_missing",
         ),
         caveat=(
             "Fixed 2026-11-24. Until then the panel printed the source's implied volatilities without saying "

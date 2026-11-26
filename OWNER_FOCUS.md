@@ -24,48 +24,6 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
-- **2026-11-19 - Fresh-eyes review: five decisions, all delegated to the session the same evening**
-  (owner: *"do whatever you think is best!"*). Findings: `research/2026-11-19-fresh-eyes-review.md`.
-  **Done that night:** (1) a category a stock cannot be scored on counts at 50, the sector median,
-  instead of borrowing the stock's own average - SanDisk was #1 only because its price download
-  failed (`research/2026-11-19-missing-category-at-neutral.md`, changelog); (2) the home page says
-  beside the track record that the 15-year test found no measurable edge; (4) the 02:00 publish
-  check now publishes with an ATTENTION line when only named layout checks fail
-  (`check_published_claims.PRESENTATION`), while any number or sentence failure still blocks; (5)
-  `NIGHTLY_LOG.md` archived to `log-archive/` and the long items here trimmed. Also: a failed price
-  download is retried, the EPS-mismatch caveat compares like with like, a timed-out check refuses.
-  **Still open, for the sessions:** (3) **what the ranking is for, given no measured edge, comes
-  before universe expansion phase 2** - a Monday note (is it a screen to narrow 500 to 40, a longer
-  horizon, fewer factors?), owner-agreed priority - its criteria pre-registered the same night in
-  `research/2026-11-19-what-the-ranking-is-for.md`; the ACCEPTED implied-volatility inversion (2026-11-04) - build it or write down why not
-  (queued for a 06:00 session on or after 2026-11-24, the brief's "Coming up": it needs a throwaway full
-  run) - **BUILT 2026-11-24 (13:00), not yet published**: every option reading now carries our own
-  American-exercise inversion of its own mids beside the source's field (`implied_vol.py`), the fetch
-  keeps the ex-dividend date it needs, and the panel says whose volatilities it shows. Checked live on 51
-  stocks: ours exists for 45 of the 47 at-the-money figures the source gives and 40 of its 45 skews,
-  and puts the skew negative for 2 of 40 (the paper: about 1 in 16) where the source does for 10 of 45.
-  The switch itself waits for the 2026-11-26 session (the brief's "Coming up"), after one full evening
-  refresh measures coverage on all ~500 stocks as the decision asked; ~~a note on Jensen's alpha~~ **written 2026-11-20 (13:00)**,
-  `research/2026-11-20-jensens-alpha-in-momentum.md` - as built it ranks stocks 0.97-0.98 like the plain
-  12-month return and no source uses it; the literature's version is residual momentum (Blitz, Huij &
-  Martens 2011), proposed as a like-for-like replacement - **ACCEPTED 2026-11-21** by the weekend
-  session (the paper's tables re-read; the longer price history is the same request, +0.04 s a stock;
-  495 of 503 have the three years it needs), to be built by the 06:00 session of 2026-11-23 (note
-  section 9; the brief's "Coming up") - **BUILT 2026-11-24** (06:00 session; that 11-23 session never ran): residual momentum
-  now holds Jensen's alpha's 25 points of Momentum, shown on every stock's workings row as the engine's
-  own division, published with the full run that carries it (top 25: three names in, three out; 491
-  of 499 have a value - seven listings under three years and FLEX, withheld by the split check), and
-  the research engine rerun on rebuilt months (`METHODOLOGY_CHANGELOG.md` 2026-11-24); **(3) answered 2026-11-21** - the pre-registered measurement ran
-  (`research/2026-11-19-what-the-ranking-is-for.md` sections 4-5): the test can see a signal when there
-  is one, yet the top 40 were as likely as any stock to have one of the worst next months, and at 6 and
-  12 months 14 years of history is too short to tell - so by the rule fixed beforehand the ranking is
-  **a teaching tool with no return claim** (D). Most of that is already how the page reads; two page
-  changes follow (section 5) - **both shipped 2026-11-21**: the hero's tested sentence says the top 40
-  were as likely as any stock to have one of the worst months, and the Track record tile now leads
-  with "too short to judge" above its return. Universe expansion phase 2 is no longer blocked by it;
-  ~~collapse CLAUDE.md's four "->red" rows into one rule~~ (done 2026-11-19, row "premise->red").
-  Close this item when those are done or argued down in the log.
-
 - **2026-11-17 - Three decisions only you can make, from the SEO article.** You asked a session to
   take what it could from a search-and-discovery playbook. What fit shipped that night (the live-site
   check after every publish, canonical URLs, a sitemap, `llms.txt`, honest structured data); the full
@@ -176,6 +134,53 @@ Add items below. Anything under this heading is unclaimed work.
 ## Done
 
 Completed items, newest first.
+
+- **2026-11-19 - Fresh-eyes review: five decisions - CLOSED 2026-11-26 (06:00), every part done**
+  (owner: *"do whatever you think is best!"*). Findings: `research/2026-11-19-fresh-eyes-review.md`.
+  **Done that night:** (1) a category a stock cannot be scored on counts at 50, the sector median,
+  instead of borrowing the stock's own average - SanDisk was #1 only because its price download
+  failed (`research/2026-11-19-missing-category-at-neutral.md`, changelog); (2) the home page says
+  beside the track record that the 15-year test found no measurable edge; (4) the 02:00 publish
+  check now publishes with an ATTENTION line when only named layout checks fail
+  (`check_published_claims.PRESENTATION`), while any number or sentence failure still blocks; (5)
+  `NIGHTLY_LOG.md` archived to `log-archive/` and the long items here trimmed. Also: a failed price
+  download is retried, the EPS-mismatch caveat compares like with like, a timed-out check refuses.
+  **Still open, for the sessions:** (3) **what the ranking is for, given no measured edge, comes
+  before universe expansion phase 2** - a Monday note (is it a screen to narrow 500 to 40, a longer
+  horizon, fewer factors?), owner-agreed priority - its criteria pre-registered the same night in
+  `research/2026-11-19-what-the-ranking-is-for.md`; the ACCEPTED implied-volatility inversion (2026-11-04) - build it or write down why not
+  (queued for a 06:00 session on or after 2026-11-24, the brief's "Coming up": it needs a throwaway full
+  run) - **BUILT 2026-11-24 (13:00), not yet published**: every option reading now carries our own
+  American-exercise inversion of its own mids beside the source's field (`implied_vol.py`), the fetch
+  keeps the ex-dividend date it needs, and the panel says whose volatilities it shows. Checked live on 51
+  stocks: ours exists for 45 of the 47 at-the-money figures the source gives and 40 of its 45 skews,
+  and puts the skew negative for 2 of 40 (the paper: about 1 in 16) where the source does for 10 of 45.
+  **SWITCHED 2026-11-26 (06:00):** counted over all 499 readings of the 11-25 evening refresh, ours
+  covers 418 of the 486 at-the-money figures and 327 of the 483 skews the source gave - every missing
+  ATM figure is a stock whose options had no usable bid and ask (no expected move either), and the
+  missing skews are mostly calm stocks' cheap out-of-the-money puts. From 11-27 the panel shows ours,
+  and where it has none it says why instead of showing the source's undocumented number
+  (`METHODOLOGY_CHANGELOG.md` 2026-11-26); ~~a note on Jensen's alpha~~ **written 2026-11-20 (13:00)**,
+  `research/2026-11-20-jensens-alpha-in-momentum.md` - as built it ranks stocks 0.97-0.98 like the plain
+  12-month return and no source uses it; the literature's version is residual momentum (Blitz, Huij &
+  Martens 2011), proposed as a like-for-like replacement - **ACCEPTED 2026-11-21** by the weekend
+  session (the paper's tables re-read; the longer price history is the same request, +0.04 s a stock;
+  495 of 503 have the three years it needs), to be built by the 06:00 session of 2026-11-23 (note
+  section 9; the brief's "Coming up") - **BUILT 2026-11-24** (06:00 session; that 11-23 session never ran): residual momentum
+  now holds Jensen's alpha's 25 points of Momentum, shown on every stock's workings row as the engine's
+  own division, published with the full run that carries it (top 25: three names in, three out; 491
+  of 499 have a value - seven listings under three years and FLEX, withheld by the split check), and
+  the research engine rerun on rebuilt months (`METHODOLOGY_CHANGELOG.md` 2026-11-24); **(3) answered 2026-11-21** - the pre-registered measurement ran
+  (`research/2026-11-19-what-the-ranking-is-for.md` sections 4-5): the test can see a signal when there
+  is one, yet the top 40 were as likely as any stock to have one of the worst next months, and at 6 and
+  12 months 14 years of history is too short to tell - so by the rule fixed beforehand the ranking is
+  **a teaching tool with no return claim** (D). Most of that is already how the page reads; two page
+  changes follow (section 5) - **both shipped 2026-11-21**: the hero's tested sentence says the top 40
+  were as likely as any stock to have one of the worst months, and the Track record tile now leads
+  with "too short to judge" above its return. Universe expansion phase 2 is no longer blocked by it;
+  ~~collapse CLAUDE.md's four "->red" rows into one rule~~ (done 2026-11-19, row "premise->red").
+  Closed: the last open part, the implied-volatility switch, shipped 2026-11-26; every other part was
+  done by 2026-11-24.
 
 - **2026-11-23 - "Yes, simplify rows" (the ranking's rows on a phone) - DONE the same evening
   (owner-run).** A phone row was nine numbers; it is now rank, move, ticker, the whole company name,

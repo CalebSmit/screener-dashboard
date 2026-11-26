@@ -381,6 +381,14 @@ source, median -1.48 points at the money, +1.86 on the skew; **the skew negative
 its distribution does. **The flip waits for the whole-universe count this section asked for**, from the
 2026-11-25 20:00 refresh (the first whose run carries the dividend fields); queued for 2026-11-26.
 
+**Step 4 DONE, 2026-11-26 (06:00 session): `PUBLISHED_IV_CONSTRUCTION` is `own_mid`.** The whole-universe
+count (`research/measurements/2026-11-26-own-iv-coverage-universe.py`, 499 readings): ours for **418 of
+the source's 486** ATM IVs and **327 of its 483** skews. All 68 ATM losses are readings with no usable
+at-the-money mid (no expected move either); 128 of the 156 skew losses lack the out-of-the-money put's
+mid, on calmer stocks. Not tuned away. Our skew is negative for 13.8% of stocks (source 35.0%, the paper
+~6%). Cached readings are re-selected from their paired columns when the constant changes, so the flip
+did not blank the page for the Thanksgiving gap. `METHODOLOGY_CHANGELOG.md` 2026-11-26.
+
 ## 2. skfolio and "how much"
 
 The north star's unanswered question is position size. skfolio can compute risk-parity,
