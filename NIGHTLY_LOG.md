@@ -10855,3 +10855,82 @@ weekend slot. That is also `OWNER_FOCUS.md`'s 2026-10-12 item (the lab), whose c
 - **2026-11-26: the implied-volatility switch** (unchanged, the brief's "Coming up").
 - For the lab: a **second reader** for experiment 20 (the note's section 7 lists exactly what to
   check); `EarningsSurprise` stays queued until a copy of Foster, Olsen & Shevlin (1984) is found.
+
+## 2026-11-26 - BUILD (owner queue first). Our own implied volatilities published: counted over the whole universe, every ATM figure ours lacks had no usable quote, and the flip would have blanked the page for Thanksgiving without a fix
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-25_130001-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-26_020001.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: **59 rows, newest `run_date` 2026-10-26 (31 days ago, bound 40), 5 effective** of 8.
+Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 45 days**; a standing programme, last advanced **1 day** ago, bound 21 - not deferred);
+also open 0.10 (50 d), 0.14 (43 d). Shipped to readers: 21 commits, 3 methodology changes in the last
+7 days. The "held back" branch the line names is this session's own, pushed mid-session. No stash.
+**Tests:** before 4558 passed / 1 skipped; after **4564 passed / 1 skipped** (6 new). Gate 2 dry run exit
+0. Gate 5 (`rehearse_publish.py --changed-since main`) PASSED on the final tree (it failed once mid-session
+on `test_option_implied_claims.py`'s unstamped fixture - fixed, below); no ENGINE CHANGED. Gate 3's
+`node --check` is refused by this session's tool guard; the three payload files are byte-identical to
+`main` (`rebuild_page.py`), index.html 954 KB; the runner runs it. Gate 4 clean at the end.
+**Owner queue / rotation:** `OWNER_FOCUS.md`'s 2026-11-19 item had one part left - the implied-volatility
+switch, dated today in the brief's "Coming up". Taken first; that also satisfies Thursday's "build what
+the week justified". No open proposal (`open_proposals()` = `[]`). **The 2026-11-19 item is now CLOSED
+and moved to Done.**
+
+### Did
+- **The whole-universe count the 11-04 decision asked for**
+  (`research/measurements/2026-11-26-own-iv-coverage-universe.py`, the 2026-11-25 20:00 refresh, 499
+  readings; the run it read dated 402 of 402 payers' ex-dividend dates): ours **418 of the source's 486**
+  ATM IVs and **327 of its 483** skews.
+  - **All 68 ATM losses are `partial` readings with no expected move**: no usable at-the-money mid, so
+    the source's figure there came from a contract whose quote did not stand up. That loss is the point.
+  - Of 156 skew losses, **128** have our ATM call, so the gap is the out-of-the-money put; they are
+    calmer stocks (source ATM IV median 0.361 vs 0.418), where a 5%-out put is cheapest and its spread
+    widest. `MAX_REL_SPREAD` and the IV bounds untouched.
+  - Ours minus source: ATM median -2.78 pts, skew +2.03 (sign disagrees 115 of 327); skew negative for
+    13.8% of ours, 35.0% of the source's, ~6% in Xing, Zhang & Zhao's Table 1.
+- **Flipped `PUBLISHED_IV_CONSTRUCTION` to `own_mid`.**
+- **Found and fixed what the flip would have done to tomorrow's page:** the cache's main columns were
+  assembled under `source`, the page withholds a figure stamped the other way, and Thanksgiving means no
+  20:00 refresh replaces the cache before the 11-27 02:00 run - so **every stock's volatility would have
+  been withheld**. `context_signals.in_published_construction`, called by `options_cache.reading_for`,
+  re-selects a cached reading's main columns from its own paired `_ctx_opt_own_*` columns (nothing
+  recomputed). Simulated on the real cache for 11-27: ATM IV shown for 418, skew for 327, 57 withheld.
+- **The panel says why a figure is missing**: a withheld reading under `own_mid` now says ours could not
+  be worked out and the source's unpublished figures are not shown instead (was: "worked out a different
+  way", true but no help); a reading with our IV and no skew says its two skew options could not both be
+  worked out. `oniv` carries the published construction. Claim `context.iv_construction` extended; a
+  browser test sets each branch (`test_the_panel_names_our_construction_and_says_why_a_figure_is_missing`).
+- **Looked at it:** AAPL, ATO and AEE sheets opened on the rebuilt page with tomorrow's re-selected
+  context at 1440 and 375 px, text read back: AAPL shows 25% ATM, +4.5 pt skew ($335 put 30% - $355
+  call 25%) and the "worked out here" sentence; AEE shows 19% and the no-skew line; ATO the withheld
+  line. The element screenshots caught the sheet mid-transition and are not usable - **no 375px height
+  number this session**; the change adds at most one sentence inside the already-folded options card.
+- Brief: today's COMING_UP line removed; 12-04 now covers the expected move only; **2026-12-28** added
+  for the IV/skew's first one-month reading under `own_mid` and a coverage re-count.
+
+### Evidence / research
+- The 11-04 decision's (research/2026-11-03-open-source-quant-stack.md section 1d): ours specified end to
+  end and reproduced by an independent tree; the source field documented nowhere and not rebuildable by
+  eight constructions; `CLAUDE.md` row 0.8 (every number checkable from the page). Today's count is its
+  step 7, on the whole universe.
+
+### Methodology changed
+- `METHODOLOGY_CHANGELOG.md` 2026-11-26 - the panel publishes our own implied volatilities. Context only:
+  no score, rank or `dashboard_data.js` byte moves, so no exposure shift to record.
+
+### Tried and rejected
+- **Letting `context_eval` read the paired `_ctx_opt_own_*` columns from the 11-25/11-26 logs** to save
+  a day or two of the IV/skew record: possible (same construction), but it adds a second read path for
+  one or two days. The record restarts with the 11-27 log, which is what the decision priced in.
+- **Loosening the spread bar to win back the 156 skews**: forbidden (0.11), and the measurement says the
+  missing ones are the quotes that do not stand up.
+
+### Set aside
+- The 11-24 06:00 entry's rank-continuity / `residual_momentum` coverage check after the first run under
+  residual momentum: the 11-25 synthesis entry did it (its Did section); nothing owed.
+- The 11-25 (13:00) entry's Next (Factor Lab queue: EarningsSurprise needs a paper copy not yet found):
+  Friday's lab work; 11-27 is a retrospective Friday per the 11-25 entry, so the weekend slot may take it.
+
+### Next
+- **After the 11-27 02:00 run:** confirm the published context shows our IV for ~418 stocks (`ois`
+  `own_mid`), ~57 `oniv`, and that `data/context_log/2026-11-27.parquet` stamps `own_mid`. If the day-after-
+  Thanksgiving 20:00 refresh runs, re-run the coverage script on it.
