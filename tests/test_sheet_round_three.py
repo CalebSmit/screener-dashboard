@@ -332,6 +332,11 @@ def test_opening_a_stock_first_ends_the_warm_up(browser):
 def test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history(browser):
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
+        # The reason names metrics from their percentiles, which are in dashboard_detail.js since
+        # 2026-11-26: this is the loaded state, so wait for it (the waiting state, "Not scored: no
+        # data", is tests/test_percentiles_in_detail_shard.py's).
+        assert page.evaluate("() => typeof ensureDetail === 'function' ? ensureDetail() : true"), \
+            "dashboard_detail.js did not load"
         t, cats = page.evaluate("""() => { const C = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
             for (const t of Object.keys(D.stock_detail)) { const n = C.filter(c => D.stock_detail[t].cat_scores[c] == null);
                 if (n.length) return [t, n]; }

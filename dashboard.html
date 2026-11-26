@@ -9438,8 +9438,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (!wk) {
                 body = `<p class="wk-note">This run did not publish its weight tables, so the per-metric workings are not shown.</p>`;
             } else if (pending) {
-                // Not "no data": the percentiles are known, just not here yet.
-                body = `<p class="wk-note wk-wait">${escapeHtml(percentilesWaitText())}</p>`;
+                // Not "no data": the percentiles are known, just not here yet. What needs no
+                // percentile is shown already - which weight table, and what is not used and why.
+                if (wk.wp.pid !== 'generic') {
+                    body += `<p class="wk-note wk-profile"><strong>Scored with different weights.</strong> ${escapeHtml(labels[wk.wp.pid] || wk.wp.pid)}.</p>`;
+                }
+                body += `<p class="wk-note wk-wait">${escapeHtml(percentilesWaitText())}</p>`;
+                if (wk.notUsed.length) body += notUsedHtml(cat, wk);
             } else {
                 const generic = wk.wp.pid === 'generic';
                 if (!generic) {
