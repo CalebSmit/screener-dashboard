@@ -191,8 +191,10 @@ def test_a_reading_carries_both_constructions():
 
 def test_the_main_columns_hold_the_published_construction(monkeypatch):
     calls, puts = _priced_chain()
+    # Ours is published since 2026-11-26, after the whole-universe coverage count.
+    assert cs.PUBLISHED_IV_CONSTRUCTION == "own_mid"
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "source")
     out = cs.options_context(calls, puts, SPOT, EXPIRY.isoformat(), TODAY, False, invert=_invert)
-    assert cs.PUBLISHED_IV_CONSTRUCTION == "source"
     assert out["_ctx_opt_iv_src"] == "source" and out["_ctx_opt_iv"] == pytest.approx(0.20)
     monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "own_mid")
     out = cs.options_context(calls, puts, SPOT, EXPIRY.isoformat(), TODAY, False, invert=_invert)
@@ -292,8 +294,9 @@ def test_the_page_shows_only_the_construction_the_record_counts(monkeypatch, sta
     out = gd._stock_context(_row(_ctx_opt_iv_src=stamp), "ZZZ", None)
     assert ("oi" in out) is shown and ("osk" in out) is shown and ("oskp" in out) is shown
     assert out.get("ois") == (published if shown else None)
-    assert out.get("oniv", False) is (not shown)
-    assert "om" in out                                          # the expected move does not depend on it
+    assert bool(out.get("oniv")) is (not shown)
+    assert out.get("oniv") == (None if shown else published)   # names what the panel does report
+    assert "om" in out                                         # the expected move does not depend on it
 
 
 def test_the_page_and_the_record_read_one_predicate(monkeypatch):
@@ -312,3 +315,82 @@ def test_the_panel_says_how_its_volatilities_were_worked_out():
     assert "worked out here from each option&rsquo;s bid&ndash;ask midpoint" in js
     assert "the data source&rsquo;s own figures; it does not publish how it computes them" in js
     assert "c.oniv" in js
+    # 2026-11-26: under own_mid a withheld reading is one ours could not be worked out for, and the
+    # panel says that rather than "a different way"; a reading with our IV and no skew says why.
+    assert "c.oniv === 'own_mid'" in js
+    assert "they could not be worked out for this reading" in js
+    assert "No put skew this reading: its two options could not both be worked out" in js
+
+
+# --------------------------------------------------------------------------- the cache across a flip
+def _cached_source_reading(**over):
+    """A reading the 20:00 refresh cached while ``source`` was published: main columns are the
+    source's, our own figures sit beside them (the 2026-11-25 cache's shape)."""
+    r = {"_ctx_opt_status": "ok", "_ctx_opt_move": 0.07, "_ctx_opt_straddle": 7.3,
+         "_ctx_opt_atm_strike": 100.0, "_ctx_opt_spot": 100.0, "_ctx_opt_spot_src": "chain",
+         "_ctx_opt_expiry": "2026-12-18", "_ctx_opt_days": 23, "_ctx_opt_quote_date": "2026-11-25",
+         "_ctx_opt_iv_src": "source",
+         "_ctx_opt_iv": 0.366, "_ctx_opt_skew": 0.05, "_ctx_opt_skew_put_iv": 0.41,
+         "_ctx_opt_skew_strike": 95.0, "_ctx_opt_skew_call_iv": 0.36, "_ctx_opt_skew_call_strike": 100.0,
+         "_ctx_opt_skew_in_window": True,
+         "_ctx_opt_src_iv": 0.366, "_ctx_opt_src_skew": 0.05,
+         "_ctx_opt_own_iv": 0.340, "_ctx_opt_own_call_iv": 0.345, "_ctx_opt_own_put_iv": 0.335,
+         "_ctx_opt_own_skew": 0.013, "_ctx_opt_own_skew_put_iv": 0.358, "_ctx_opt_own_skew_strike": 95.0,
+         "_ctx_opt_own_skew_call_iv": 0.345, "_ctx_opt_own_skew_call_strike": 100.0}
+    r.update(over)
+    return {k: v for k, v in r.items() if v is not None}
+
+
+def test_a_cached_reading_is_reselected_for_the_published_construction(monkeypatch):
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "own_mid")
+    out = cs.in_published_construction(_cached_source_reading())
+    assert out["_ctx_opt_iv_src"] == "own_mid"
+    assert out["_ctx_opt_iv"] == 0.340 and out["_ctx_opt_skew"] == 0.013
+    assert out["_ctx_opt_skew_put_iv"] == 0.358 and out["_ctx_opt_skew_call_iv"] == 0.345
+    assert out["_ctx_opt_skew_strike"] == 95.0 and out["_ctx_opt_skew_in_window"] is True
+    assert out["_ctx_opt_status"] == "ok" and out["_ctx_opt_move"] == 0.07     # the move is untouched
+    assert out["_ctx_opt_src_iv"] == 0.366                                    # the pair is kept
+    # and the page shows it, under our construction's description
+    page = gd._stock_context(out, "ZZZ", None)
+    assert page["oi"] == pytest.approx(0.340) and page["ois"] == "own_mid" and "oniv" not in page
+
+
+def test_a_reading_with_our_iv_and_no_skew_drops_the_sources_skew(monkeypatch):
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "own_mid")
+    r = _cached_source_reading(**{k: None for k in ("_ctx_opt_own_skew", "_ctx_opt_own_skew_put_iv",
+                                                     "_ctx_opt_own_skew_strike", "_ctx_opt_own_skew_call_iv",
+                                                     "_ctx_opt_own_skew_call_strike")})
+    out = cs.in_published_construction(r)
+    assert out["_ctx_opt_iv"] == 0.340 and out["_ctx_opt_iv_src"] == "own_mid"
+    assert not any(k in out for k in ("_ctx_opt_skew", "_ctx_opt_skew_put_iv", "_ctx_opt_skew_call_iv",
+                                      "_ctx_opt_skew_in_window"))      # never a source skew under our stamp
+
+
+def test_a_reading_with_none_of_ours_stays_stamped_and_withheld(monkeypatch):
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "own_mid")
+    r = _cached_source_reading(_ctx_opt_status="partial", _ctx_opt_move=None, _ctx_opt_straddle=None,
+                               **{k: None for k in cs.OWN_KEYS})
+    out = cs.in_published_construction(r)
+    assert out == r and out["_ctx_opt_iv_src"] == "source"
+    page = gd._stock_context(out, "ZZZ", None)
+    assert "oi" not in page and page["oniv"] == "own_mid"
+
+
+def test_reselection_is_a_no_op_in_the_published_construction(monkeypatch):
+    for published in cs.IV_CONSTRUCTIONS:
+        monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", published)
+        r = _cached_source_reading(_ctx_opt_iv_src=published)
+        assert cs.in_published_construction(r) is r
+    # back to source: the ATM figure returns, and no skew - its legs were never kept in the pair
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "source")
+    out = cs.in_published_construction(_cached_source_reading(_ctx_opt_iv_src="own_mid"))
+    assert out["_ctx_opt_iv"] == 0.366 and out["_ctx_opt_iv_src"] == "source" and "_ctx_opt_skew" not in out
+
+
+def test_the_cache_serves_readings_in_the_published_construction(monkeypatch):
+    import options_cache
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "own_mid")
+    cache = {"quote_date": "2026-11-25", "readings": {"ZZZ": _cached_source_reading()}}
+    out = options_cache.reading_for(cache, "ZZZ", date(2026, 11, 27))
+    assert out["_ctx_opt_iv_src"] == "own_mid" and out["_ctx_opt_iv"] == 0.340
+    assert out["_ctx_opt_days"] == 21

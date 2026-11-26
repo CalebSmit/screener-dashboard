@@ -433,9 +433,13 @@ _PRICE_COLS = ("_ctx_sma200", "_ctx_sma50", "_ctx_ret_1m", "_ctx_ret_5d", "_ctx_
 
 
 def _log(**cols) -> pd.DataFrame:
-    """A context log with the price columns every real log carries."""
+    """A context log with the price columns every real log carries, its volatilities stamped with
+    the construction the panel publishes (these tests are about anchors and legs, not about which
+    construction - ``tests/test_implied_vol.py`` covers that, 2026-11-26)."""
+    from context_signals import PUBLISHED_IV_CONSTRUCTION
     n = len(next(iter(cols.values())))
-    return pd.DataFrame({**{c: [1.0] * n for c in _PRICE_COLS}, **cols})
+    return pd.DataFrame({**{c: [1.0] * n for c in _PRICE_COLS},
+                         "_ctx_opt_iv_src": [PUBLISHED_IV_CONSTRUCTION] * n, **cols})
 
 
 def test_the_harness_excludes_skews_without_legs():
@@ -556,9 +560,11 @@ def test_the_refresh_falls_back_and_says_so(monkeypatch):
 
 
 def _opt_row(**over):
+    from context_signals import PUBLISHED_IV_CONSTRUCTION      # see _log: stamped as published
     row = {"_ctx_opt_status": "ok", "_ctx_opt_move": 0.07, "_ctx_opt_straddle": 7.3,
            "_ctx_opt_atm_strike": 105.0, "_ctx_opt_spot": 104.0, "_ctx_opt_spot_src": "chain",
-           "_ctx_opt_iv": 0.3, "_ctx_opt_quote_date": "2026-10-20"}
+           "_ctx_opt_iv": 0.3, "_ctx_opt_quote_date": "2026-10-20",
+           "_ctx_opt_iv_src": PUBLISHED_IV_CONSTRUCTION}
     row.update(over)
     return {k: v for k, v in row.items() if v is not None}
 
