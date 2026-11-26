@@ -6081,7 +6081,8 @@ def _js_workings() -> str:
         const score = s.cat_scores[c];
         const na = score === null || score === undefined;
         const weight = ew[c];
-        const pts = fmt(s.contrib[c], 'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+        const contrib = s.contrib[c];
+        const pts = fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
         return na ? escapeHtml(unscoredWhy(c, s).short) + (fillsMissing() && weight > 0 ? '; counted at ' + fmt(D.weights.missing_category_score, 'score') + ', ' + pts : '') : pts;
     }
 

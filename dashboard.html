@@ -9348,7 +9348,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const score = s.cat_scores[c];
         const na = score === null || score === undefined;
         const weight = ew[c];
-        const pts = fmt(s.contrib[c], 'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+        const contrib = s.contrib[c];
+        const pts = fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
         return na ? escapeHtml(unscoredWhy(c, s).short) + (fillsMissing() && weight > 0 ? '; counted at ' + fmt(D.weights.missing_category_score, 'score') + ', ' + pts : '') : pts;
     }
 

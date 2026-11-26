@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -45,7 +46,11 @@ pytestmark = pytest.mark.skipif(not PAGE.exists() or not PAYLOAD.exists(),
 
 def _payload() -> dict:
     txt = PAYLOAD.read_text(encoding="utf-8")
-    return json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    data = json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    # every shard folded back (`pct` is in dashboard_detail.js since 2026-11-26), as the page has it
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as health
+    return health.fold_shards(data, health._dir_reader(ROOT))
 
 
 @pytest.fixture(scope="module")
