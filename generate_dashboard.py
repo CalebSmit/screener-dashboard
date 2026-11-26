@@ -899,10 +899,20 @@ DETAIL_FILE = "dashboard_detail.js"
 # the file when it is opened, and is redrawn by the loader. Outside the page the readers are test
 # modules that check the published workings, and each folds the shard back.
 #
-# What is *not* in the shard, and why: `raw`, `pct` and `summary` are read by the movers strip,
-# the compare drawer, My Holdings (`summary`'s holding notes) and the calculation traces -
-# surfaces that are not the sheet and are live at first paint.
-DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5")
+# `pct` (2026-11-26, 13:00; 127 KB, 15.1% of that morning's first paint) - each metric's sector
+# percentile. The read-site audit corrected the plan again: the movers strip and the compare drawer
+# read neither `pct` nor `raw` (the drawer reads `cat_scores`). In the page every reader of `pct`
+# is the open sheet: the score tiles' "why not scored" line (unscoredWhy), the category workings
+# (weightProfile / categoryWorkings / renderCategoryDetails), the metric row (metricDetailHtml) and
+# the workings CSV. The tiles say "Not scored" without a reason and each category's workings say
+# they are loading until the file lands; the loader redraws both; the CSV waits for the file.
+# Outside the page every reader of the published payload folds the shard back; the build's own
+# uses (calc_trace, stock_summary, ranking_audit) run before split_detail.
+#
+# What is *not* in the shard, and why: `raw` is read by My Holdings' concentration line
+# (`raw.volatility`, live at first paint for a reader with saved names) and the peer table;
+# `summary` by My Holdings' card (`HOLDINGS_FACTS`). Each needs its own slice.
+DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct")
 # The subset that is provider prose. The scoring-freedom rule applies to every key above; being
 # a string applies only to these (`tests/test_detail_payload_split.py`).
 PROSE_KEYS = ("about", "industry")
@@ -4771,10 +4781,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             // An unscored tile says why, from the payload (unscoredWhy, claim drilldown.unscored_category;
             // it said only "Not scored: no data" until round three, 2026-10-27), and since 2026-11-19
             // what it counts as instead.
-            const pts = fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
-            const ptsText = na ? escapeHtml(unscoredWhy(c, s).short) + (fillsMissing() && weight > 0 ? '; counted at ' + fmt(D.weights.missing_category_score, 'score') + ', ' + pts : '') : pts;
+            const ptsText = scoreTileSub(c, s, ew);
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
-            scoreHtml += `<div class="modal-score-card${{na ? ' is-na' : ''}}" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" role="button" tabindex="0" title="Show how this score is built">
+            scoreHtml += `<div class="modal-score-card${{na ? ' is-na' : ''}}" data-cat="${{c}}" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="modal-score-label">${{CAT_LABELS[c]}}</div>
                 <div class="modal-score-val">${{fmt(score,'score')}}</div>
                 <div class="modal-score-sub">${{ptsText}}</div>
@@ -6015,10 +6024,11 @@ def _js_workings() -> str:
         const pid = (s.wp && s.wp[cat]) || 'generic';
         const table = profs[pid] || profs.generic || {};
         let total = 0, withData = 0, weighted = 0;
+        const P = s.pct || {};
         Object.keys(table).forEach(m => {
             if (table[m] > 0) {
                 weighted++;
-                const p = s.pct[m];
+                const p = P[m];
                 if (p !== null && p !== undefined) { total += table[m]; withData++; }
             }
         });
@@ -6039,7 +6049,12 @@ def _js_workings() -> str:
         const fl = s.flags || {};
         const px = (fl.px_rejected && PRICE_HISTORY_CATS.indexOf(cat) >= 0) ? String(fl.px_rejected) : '';
         const weighted = wp ? Object.keys(wp.table).filter(m => wp.table[m] > 0).sort((a, b) => wp.table[b] - wp.table[a]) : [];
-        const empty = weighted.filter(m => s.pct[m] === null || s.pct[m] === undefined);
+        // The percentiles are in dashboard_detail.js since 2026-11-26: until it lands, which metrics
+        // were empty is not known here, so name none and say no more than "no data" - which is true
+        // of every unscored category. The loader redraws the tiles and the workings.
+        const P = s.pct || {};
+        const known = !detailPending(s, 'pct');
+        const empty = known ? weighted.filter(m => P[m] === null || P[m] === undefined) : [];
         // the rule holds only if every weighted metric is empty; otherwise say no more than "no data"
         const names = (weighted.length && empty.length === weighted.length) ? empty.map(metricLabel) : [];
         const n = names.length;
@@ -6058,20 +6073,55 @@ def _js_workings() -> str:
         return { short: short, long: long, metrics: names, px: px };
     }
 
+    // The line under a category's score tile in the sheet. Spelled out for a first-year reader (club
+    // readiness, 2026-10-19): the category's points out of the most it could add, which is its
+    // weight. An unscored tile says why (unscoredWhy) and what it counts as instead. One function,
+    // so the loader can redraw a tile drawn before the percentiles landed (2026-11-26).
+    function scoreTileSub(c, s, ew) {
+        const score = s.cat_scores[c];
+        const na = score === null || score === undefined;
+        const weight = ew[c];
+        const pts = fmt(s.contrib[c], 'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
+        return na ? escapeHtml(unscoredWhy(c, s).short) + (fillsMissing() && weight > 0 ? '; counted at ' + fmt(D.weights.missing_category_score, 'score') + ', ' + pts : '') : pts;
+    }
+
+    // Once the percentiles land: the unscored tiles' reasons, and the workings if they were drawn
+    // waiting - keeping every category the reader had open.
+    function redrawPercentileSurfaces() {
+        if (!WK_CURRENT || typeof UX === 'undefined' || UX.current !== WK_CURRENT.ticker) return;
+        const s = D.stock_detail[WK_CURRENT.ticker];
+        if (!s) return;
+        const ew = effWeights(s);
+        document.querySelectorAll('#modal-score-row .modal-score-card.is-na[data-cat]').forEach(card => {
+            const sub = card.querySelector('.modal-score-sub');
+            if (sub) sub.innerHTML = scoreTileSub(card.dataset.cat, s, ew);
+        });
+        if (!WK_PENDING) return;
+        const secs = [...document.querySelectorAll('#modal-categories .cat-detail-section')];
+        const cats = secs.map(x => x.dataset.cat);
+        const open = secs.filter(x => !x.classList.contains('collapsed')).map(x => x.dataset.cat);
+        if (!cats.length) return;
+        renderCategoryDetails(WK_CURRENT.ticker, s, cats);
+        open.forEach(c => { const x = document.getElementById('cat-detail-' + c); if (x) x.classList.remove('collapsed'); });
+        syncWorkingsAria();
+    }
+
     // One category's metric rows: value, percentile, weight used, points.
     function categoryWorkings(cat, s) {
         const wp = weightProfile(cat, s);
         if (!wp) return null;
         const rows = [];
         const notUsed = [];
+        const P = s.pct || {};
+        const R = s.raw || {};
         Object.keys(wp.table).forEach(m => {
             const w = wp.table[m];
             if (!(w > 0)) { notUsed.push(m); return; }
-            const p = s.pct[m];
+            const p = P[m];
             const has = p !== null && p !== undefined;
             const share = has && wp.total > 0 ? (w / wp.total) * 100 : null;
             rows.push({
-                metric: m, raw: s.raw[m], pct: has ? p : null, configured: w,
+                metric: m, raw: R[m], pct: has ? p : null, configured: w,
                 share: share, points: has && share !== null ? p * share / 100 : null
             });
         });
@@ -6085,8 +6135,19 @@ def _js_workings() -> str:
     // printed against a total of 42.0) on the one surface whose job is "check the arithmetic".
     let WK_CURRENT = null;
 
+    // True while the workings on screen were drawn before the percentiles landed, so the loader
+    // knows to draw them again (2026-11-26: `pct` is in dashboard_detail.js).
+    let WK_PENDING = false;
+    function percentilesWaitText() {
+        return (typeof DETAIL_FAILED !== 'undefined' && DETAIL_FAILED)
+            ? 'The sector percentiles could not be loaded; reopen the sheet to try again.'
+            : 'Loading the sector percentiles…';
+    }
+
     function renderCategoryDetails(ticker, s, cats) {
         WK_CURRENT = { ticker: ticker, s: s };
+        const pending = detailPending(s, 'pct');
+        WK_PENDING = pending;
         const container = document.getElementById('modal-categories');
         const ew = effWeights(s);
         const labels = D.weights.profile_labels || {};
@@ -6108,6 +6169,9 @@ def _js_workings() -> str:
             let body = '';
             if (!wk) {
                 body = `<p class="wk-note">This run did not publish its weight tables, so the per-metric workings are not shown.</p>`;
+            } else if (pending) {
+                // Not "no data": the percentiles are known, just not here yet.
+                body = `<p class="wk-note wk-wait">${escapeHtml(percentilesWaitText())}</p>`;
             } else {
                 const generic = wk.wp.pid === 'generic';
                 if (!generic) {
@@ -6259,7 +6323,7 @@ def _js_workings() -> str:
         const eq = equationHtml(m, s, meta);
         if (eq) h += `<div class="wk-line"><span class="wk-k">Calculation</span><div class="wk-v">${eq}</div></div>`;
         const pc0 = peerContext(m, s);
-        const pctv0 = s.pct[m];
+        const pctv0 = (s.pct || {})[m];
         if (pc0 && pctv0 !== null && pctv0 !== undefined) {
             const where = pc0.fallback ? 'the whole universe (fewer than ' + (D.sector_min_peers || 10) + ' stocks in ' + escapeHtml(s.sector) + ' have a value)' : escapeHtml(s.sector);
             let rk = `Ranked <span class="wk-n">${ordinal(pc0.rank)}</span> of ${pc0.n} in ${where}, ${pc0.lower ? 'lower' : 'higher'} being better`;
@@ -10138,6 +10202,13 @@ def _js_ux() -> str:
         // The INPUTS block is dashboard_detail.js's `inp` (2026-11-22). A file downloaded before
         // it lands would silently lack it, so wait for it - the sheet has already asked for it.
         const s0 = D.stock_detail[t];
+        // The percentiles are there too since 2026-11-26, and without them every metric row would
+        // read "no data" - so a file is never written before the shard has landed.
+        if (detailPending(s0, 'pct') && typeof ensureDetail === 'function') {
+            toast('Loading the sector percentiles…');
+            ensureDetail().then(ok => { if (ok) downloadWorkings(t); else toast(percentilesWaitText()); });
+            return;
+        }
         if (inputsPending(s0) && !DETAIL_FAILED && typeof ensureDetail === 'function') {
             toast('Loading the reported figures…');
             ensureDetail().then(() => downloadWorkings(t));
@@ -12068,6 +12139,10 @@ def _js_context() -> str:
                 // `inp` (2026-11-22): the provenance panel's recomputed-EV pair and any metric
                 // row the reader has open. A closed row is built on open, so it needs nothing.
                 if (typeof renderProvenance === 'function') renderProvenance(s);
+                // `pct` (2026-11-26, 13:00): the unscored tiles' reasons and the category workings,
+                // which were drawn saying they are loading. Before the open metric rows, which it
+                // may redraw.
+                if (typeof redrawPercentileSurfaces === 'function') redrawPercentileSurfaces();
                 if (typeof redrawOpenMetricDetails === 'function') redrawOpenMetricDetails();
             }
             // `eq4` (2026-11-22, 13:00): the reporting calendar's "Last quarter" column is the
