@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 26 November 2026, 06:56
+# Morning Brief - Thursday 26 November 2026, 14:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (latest) | **completed** - last ran today |
+| Code session (latest) | **held back by its gates (work kept on its branch, not on main)** - last ran today |
 | Dashboard data from | 2026-11-26 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
@@ -32,8 +32,19 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - 2026-12-04 (in 8 days) - The expected move's first one-month reading: readings before 2026-11-04 recorded no price and are excluded, not spliced. (The ATM volatility and the skew restart under our own construction from the 2026-11-27 log - see 2026-12-28.) `METHODOLOGY_CHANGELOG.md`
 - 2026-12-07 (in 11 days) - The last Monday before the year-to-date-column decision of 2026-12-15: research what vendors and index providers do with a hole in a company's quarterly series. 26 stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and it is the same question as DexCom's (may a filing do more than sit beside a scored input) at 26 times the size. Section 4; no design is proposed there. `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`
 
+## Things that needed attention
+
+- GATE 1 tests: FAIL (=========================== short test summary info =========================== FAILED tests/test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet 1 failed, 4571 passed, 1 skipped, 391 warnings in 250.21s (0:04:10))
+- full output: C:\Users\smitc\OneDrive\Documents\Screener\logs\nightly-2026-11-26_130001-midday.gate1.txt
+- GATE 1 attribution: 1 new, 0 inherited from a main that was already red.
+- new: tests/test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet
+- SHIP GATES FAILED: tests. Not merging.
+- Work pushed to nightly/2026-11-26 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
+- Run finished with failing gates - see above.
+
 ## What changed in the repo
 
+- `88354de brief: code session 2026-11-26`
 - `5c324fb NIGHTLY_LOG 2026-11-26: own implied volatilities published`
 - `c9d85b9 own IV published: changelog, claim extended, browser test, brief dates, note step 4 done, owner item closed`
 - `96f8817 wip: page rebuilt for the own-IV sentences (rebuild_page.py; payload byte-identical); skew fixture stamped as published`
@@ -48,7 +59,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `8873be5 lab: experiment 20, Ang, Hodrick, Xing & Zhang's idiosyncratic-volatility sort - 3 of 6 within`
 - `1c9aa54 lab: experiment 20 tolerances, written before the comparison (Ang, Hodrick, Xing & Zhang 2006, idiosyncratic volatility, Table VI Panel B)`
 - `8c2fad0 brief: code session 2026-11-25`
-- `f49d35d NIGHTLY_LOG 2026-11-25: gate results`
 
 ## The session's own account
 
