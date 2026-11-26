@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 25 November 2026, 13:48
+# Morning Brief - Thursday 26 November 2026, 02:33
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,29 +9,29 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-11-25 02:00 |
+| Dashboard data from | 2026-11-26 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
-| Top 5 | EXPE, APA, VLO, SNDK, MU |
-| Ranking's lean on growth | -0.001 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Shipped to readers | 21 commit(s) changed what a reader sees, 6 methodology change(s), in the last 7 days |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (58 rows, but overlapping windows are not independent; 144 rows across all horizons), newest 1m run date 2026-10-23 (33 days ago, bound 40) |
+| Top 5 | EXPE, VLO, APA, MPC, SNDK |
+| Ranking's lean on growth | +0.012 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
+| Shipped to readers | 21 commit(s) changed what a reader sees, 2 methodology change(s), in the last 7 days |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (59 rows, but overlapping windows are not independent; 147 rows across all horizons), newest 1m run date 2026-10-26 (31 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 453/453 within 0.5%; operating cash flow 439/440 within 0.5%; net income 427/451 within 0.5%; market value 452/487 within 5%; 2 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 7 days ago |
-| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#6: net income 1.29x after-tax operating income); PSX (#10: net income 1.28x after-tax operating income); DXCM (#14: operating cash flow 36% off the filing); CF (#18: net income 15% off the filing); ES (#19: a period behind its filings); TPR (#21: equity 5.2% of assets) |
-| Data run timing | **20 min** total; slowest `fetch.tickers` 646 s, `snapshot` 167 s, `fetch.retry` 134 s; **37 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (8 days) |
-| Context coverage | options usable 483/499 (16 quotes-closed) - insider from SEC 499/499 - earnings variability 440 |
+| Inputs vs SEC filings | total assets 459/459 within 0.5%; operating cash flow 445/446 within 0.5%; net income 433/457 within 0.5%; market value 452/487 within 5%; 3 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 0 days ago |
+| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#6: net income 1.29x after-tax operating income); PSX (#10: net income 1.28x after-tax operating income); DXCM (#14: operating cash flow 36% off the filing); CF (#15: net income 15% off the filing); ES (#18: a period behind its filings); TPR (#19: equity 5.2% of assets) |
+| Data run timing | **28 min** total; slowest `fetch.tickers` 591 s, `fetch.sec_roe_history` 303 s, `context.options_pass` 183 s; **52 tickers rate-limited** |
+| Code-session login | 2026-12-03 09:01 (7 days) |
+| Context coverage | options usable 481/499 - insider from SEC 499/499 - earnings variability 440 |
 
 ## Coming up
 
 Dates the project has committed to. A past-due line stays until the session that
 does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
-- 2026-11-26 (in 1 day) - Publish our own implied volatilities (built 2026-11-24, recorded beside the source field as _ctx_opt_own_*). First confirm the 11-25 02:00 run's raw fetch carries exDividendDate and the 11-25 20:00 refresh's cache has _ctx_opt_own_iv for most stocks; count own vs source coverage over the whole cache, then flip context_signals.PUBLISHED_IV_CONSTRUCTION to 'own_mid' with a changelog entry. Do not loosen MAX_REL_SPREAD or the IV bounds to raise coverage. `research/2026-11-03-open-source-quant-stack.md`
-- 2026-12-04 (in 9 days) - The option signals' (expected move, ATM volatility, skew) first one-month reading: readings before 2026-11-04 recorded no price and are excluded, not spliced. `METHODOLOGY_CHANGELOG.md`
-- 2026-12-07 (in 12 days) - The last Monday before the year-to-date-column decision of 2026-12-15: research what vendors and index providers do with a hole in a company's quarterly series. 26 stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and it is the same question as DexCom's (may a filing do more than sit beside a scored input) at 26 times the size. Section 4; no design is proposed there. `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`
+- 2026-11-26 (**today**) - Publish our own implied volatilities (built 2026-11-24, recorded beside the source field as _ctx_opt_own_*). First confirm the 11-25 02:00 run's raw fetch carries exDividendDate and the 11-25 20:00 refresh's cache has _ctx_opt_own_iv for most stocks; count own vs source coverage over the whole cache, then flip context_signals.PUBLISHED_IV_CONSTRUCTION to 'own_mid' with a changelog entry. Do not loosen MAX_REL_SPREAD or the IV bounds to raise coverage. `research/2026-11-03-open-source-quant-stack.md`
+- 2026-12-04 (in 8 days) - The option signals' (expected move, ATM volatility, skew) first one-month reading: readings before 2026-11-04 recorded no price and are excluded, not spliced. `METHODOLOGY_CHANGELOG.md`
+- 2026-12-07 (in 11 days) - The last Monday before the year-to-date-column decision of 2026-12-15: research what vendors and index providers do with a hole in a company's quarterly series. 26 stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and it is the same question as DexCom's (may a filing do more than sit beside a scored input) at 26 times the size. Section 4; no design is proposed there. `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`
 
 ## Things that needed attention
 
@@ -39,6 +39,8 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `8da9237 data: screener run 2026-11-26 - 499 scored, top: EXPE VLO APA MPC SNDK`
+- `14c3572 brief: code session 2026-11-25-midday`
 - `8b2b9d9 NIGHTLY_LOG 2026-11-25 (13:00): Factor Lab experiment 20, and gate results`
 - `a84527e lab: experiment 20 written up (research note, plan queue row and Progress, owner item count)`
 - `97db773 lab: experiment 20 states the paper's risk-adjusted gap too - about half of it survives, in its years and since`
@@ -52,8 +54,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `6d154fb wip: changelog check of residual momentum on the first data run; growth-lean break recorded`
 - `f0f69c8 wip: synthesis section on residual momentum's fit (note section 10)`
 - `1df46b4 wip: synthesis measurement - residual momentum's fit against the other seven categories`
-- `8c06fdc brief: data run 2026-11-25`
-- `c1dd9e1 data: screener run 2026-11-25 - 499 scored, top: EXPE APA VLO SNDK MU`
 
 ## The session's own account
 
