@@ -165,6 +165,24 @@ def _options_text(page, extra: dict) -> str:
     return re.sub(r"\s+", " ", page.evaluate("document.getElementById('modal-context').textContent"))
 
 
+def test_the_panel_names_our_construction_and_says_why_a_figure_is_missing(page):
+    """2026-11-26, set in the browser: the three branches the own-IV switch put on the panel."""
+    ours = _options_text(page, {"osp": 100.0, "ois": "own_mid", "osk": 0.045, "oskp": 0.297, "oskps": 335.0,
+                                "oskc": 0.252, "oskcs": 355.0, "oskw": True})
+    assert "worked out here from each option’s bid–ask midpoint" in ours
+    assert "data source’s own figures" not in ours and "No put skew" not in ours
+    no_skew = _options_text(page, {"osp": 100.0, "ois": "own_mid"})
+    assert "No put skew this reading: its two options could not both be worked out from a usable bid–ask midpoint." in no_skew
+    withheld = _options_text(page, {"osp": 100.0, "oi": None, "oniv": "own_mid"})
+    assert "Implied volatility and skew are left out: this panel shows only volatilities worked out here" in withheld
+    assert "could not be worked out for this reading" in withheld and "a different way" not in withheld
+    old = _options_text(page, {"osp": 100.0, "oi": None, "oniv": "source"})
+    assert "worked out a different way from the one this panel reports" in old
+    # the source's own figures never carry the missing-skew line
+    src = _options_text(page, {"osp": 100.0, "ois": "source"})
+    assert "No put skew" not in src and "data source’s own figures" in src
+
+
 def test_the_page_says_when_each_kind_of_quote_was_taken(page):
     mid = _options_text(page, {"oqd": "2026-10-20", "oqt": "14:21", "oqi": True})
     assert "Quotes were taken at 14:21 ET on Oct 20, while the market was open" in mid
@@ -433,9 +451,13 @@ _PRICE_COLS = ("_ctx_sma200", "_ctx_sma50", "_ctx_ret_1m", "_ctx_ret_5d", "_ctx_
 
 
 def _log(**cols) -> pd.DataFrame:
-    """A context log with the price columns every real log carries."""
+    """A context log with the price columns every real log carries, its volatilities stamped with
+    the construction the panel publishes (these tests are about anchors and legs, not about which
+    construction - ``tests/test_implied_vol.py`` covers that, 2026-11-26)."""
+    from context_signals import PUBLISHED_IV_CONSTRUCTION
     n = len(next(iter(cols.values())))
-    return pd.DataFrame({**{c: [1.0] * n for c in _PRICE_COLS}, **cols})
+    return pd.DataFrame({**{c: [1.0] * n for c in _PRICE_COLS},
+                         "_ctx_opt_iv_src": [PUBLISHED_IV_CONSTRUCTION] * n, **cols})
 
 
 def test_the_harness_excludes_skews_without_legs():
@@ -556,9 +578,11 @@ def test_the_refresh_falls_back_and_says_so(monkeypatch):
 
 
 def _opt_row(**over):
+    from context_signals import PUBLISHED_IV_CONSTRUCTION      # see _log: stamped as published
     row = {"_ctx_opt_status": "ok", "_ctx_opt_move": 0.07, "_ctx_opt_straddle": 7.3,
            "_ctx_opt_atm_strike": 105.0, "_ctx_opt_spot": 104.0, "_ctx_opt_spot_src": "chain",
-           "_ctx_opt_iv": 0.3, "_ctx_opt_quote_date": "2026-10-20"}
+           "_ctx_opt_iv": 0.3, "_ctx_opt_quote_date": "2026-10-20",
+           "_ctx_opt_iv_src": PUBLISHED_IV_CONSTRUCTION}
     row.update(over)
     return {k: v for k, v in row.items() if v is not None}
 

@@ -307,7 +307,12 @@ def chain_spot(underlying, fallback) -> tuple[float | None, str]:
 # gain the matching guard in the same commit (the ``SPOT_SOURCES`` rule, one page/record predicate).
 # Decided 2026-11-04 (13:00) on research/2026-11-03-open-source-quant-stack.md section 1d.
 IV_CONSTRUCTIONS = ("source", "own_mid")
-PUBLISHED_IV_CONSTRUCTION = "source"
+# Flipped to ``own_mid`` 2026-11-26 (06:00), after the whole-universe count the decision asked for
+# (research/measurements/2026-11-26-own-iv-coverage-universe.py, the 2026-11-25 20:00 refresh):
+# ours for 418 of the 486 ATM IVs the source gave and 327 of its 483 skews; every ATM IV ours lacks
+# is a reading with no usable at-the-money mid (no expected move either), and 128 of the 156 skews
+# it lacks are missing the out-of-the-money put's mid. Reported, not tuned away (CLAUDE.md 0.11).
+PUBLISHED_IV_CONSTRUCTION = "own_mid"
 
 # Built 2026-11-24: every reading now carries **both** constructions where it can, so the paired
 # record the decision asked for accrues from the first refresh - ``_ctx_opt_own_*`` (ours) and
@@ -322,6 +327,55 @@ OWN_KEYS = ("_ctx_opt_own_iv", "_ctx_opt_own_call_iv", "_ctx_opt_own_put_iv", "_
 SRC_KEYS = ("_ctx_opt_src_iv", "_ctx_opt_src_skew")
 _SKEW_KEYS = ("_ctx_opt_skew", "_ctx_opt_skew_strike", "_ctx_opt_skew_put_iv",
               "_ctx_opt_skew_call_strike", "_ctx_opt_skew_call_iv")
+
+
+def _status(reading: dict) -> str:
+    """``options_context``'s status rule: a move and an IV is ``ok``, either one ``partial``."""
+    if "_ctx_opt_move" in reading and "_ctx_opt_iv" in reading:
+        return "ok"
+    return "partial" if ("_ctx_opt_move" in reading or "_ctx_opt_iv" in reading) else "stale-quotes"
+
+
+def in_published_construction(reading: dict) -> dict:
+    """A stored reading with its main IV columns re-selected for ``PUBLISHED_IV_CONSTRUCTION``.
+
+    A reading in the 20:00 cache was assembled under whichever construction was published the
+    evening it was taken, and is served for up to ``options_cache.MAX_AGE_DAYS`` sessions. When the
+    constant changes in between, its main columns name the other construction and the page would
+    withhold them for every stock until the next refresh - the 2026-11-26 flip landed on
+    Thanksgiving, when no refresh can run. The paired columns already hold ours
+    (``_ctx_opt_own_*``) and the source's ATM figure (``_ctx_opt_src_iv``), so the selection
+    ``options_context`` makes is made again here, from them, and stamped. Nothing is recomputed.
+
+    The source's skew is kept only as its difference (``_ctx_opt_src_skew``), without the two legs
+    the page needs beside it, so re-selecting ``source`` restores the ATM figure and no skew. A
+    reading with none of the published construction's figures is returned as it was: stamped the
+    other way, which the page withholds and the record does not count.
+    """
+    if not isinstance(reading, dict):
+        return reading
+    stamp = reading.get("_ctx_opt_iv_src")
+    stamp = stamp if isinstance(stamp, str) and stamp else "source"
+    if stamp == PUBLISHED_IV_CONSTRUCTION:
+        return reading
+    if PUBLISHED_IV_CONSTRUCTION == "own_mid":
+        chosen = {"_ctx_opt_" + k[len("_ctx_opt_own_"):]: v for k, v in reading.items()
+                  if k in ("_ctx_opt_own_iv",) + tuple("_ctx_opt_own_" + s[len("_ctx_opt_"):] for s in _SKEW_KEYS)
+                  and v is not None}
+    else:
+        chosen = {"_ctx_opt_iv": reading["_ctx_opt_src_iv"]} if reading.get("_ctx_opt_src_iv") is not None else {}
+    if "_ctx_opt_iv" not in chosen and "_ctx_opt_skew" not in chosen:
+        return reading
+    out = {k: v for k, v in reading.items()
+           if k not in ("_ctx_opt_iv", "_ctx_opt_skew_in_window") + _SKEW_KEYS}
+    out.update(chosen)
+    out["_ctx_opt_iv_src"] = PUBLISHED_IV_CONSTRUCTION
+    if "_ctx_opt_skew" in out:
+        days = out.get("_ctx_opt_days")
+        out["_ctx_opt_skew_in_window"] = bool(days is not None and XZZ_DAYS_LO <= days <= XZZ_DAYS_HI)
+    if out.get("_ctx_opt_status") in ("ok", "partial"):
+        out["_ctx_opt_status"] = _status(out)
+    return out
 
 
 def _own_ivs(c_row: dict, p_row: dict, calls, puts, spot: float, atm: float, days, invert) -> dict:
@@ -429,8 +483,7 @@ def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry
         c_sum, p_sum = float(np.nansum(coi.values)), float(np.nansum(poi.values))
         if c_sum >= 100:
             out["_ctx_opt_pc_oi"] = p_sum / c_sum
-    usable = "_ctx_opt_move" in out and "_ctx_opt_iv" in out
-    out["_ctx_opt_status"] = "ok" if usable else ("partial" if ("_ctx_opt_move" in out or "_ctx_opt_iv" in out) else "stale-quotes")
+    out["_ctx_opt_status"] = _status(out)
     return out
 
 

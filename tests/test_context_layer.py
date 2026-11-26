@@ -963,11 +963,13 @@ def test_a_reading_with_no_implied_volatility_at_all_claims_no_construction():
     assert "_ctx_opt_iv_src" not in out
 
 
-def test_an_unstamped_reading_counts_as_the_source_field():
+def test_an_unstamped_reading_counts_as_the_source_field(monkeypatch):
     """Every logged day carries no stamp and is the source's own field, because nothing in this
     project has ever inverted an option price. Those readings must keep counting while the panel
-    publishes that construction, rather than being spliced into a series of a different quantity."""
+    publishes that construction, rather than being spliced into a series of a different quantity.
+    (``own_mid`` is published since 2026-11-26; the rule under ``source`` is what is tested here.)"""
     import context_eval as ce
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "source")
     log = _iv_log(Ticker=["A", "B"])                        # no _ctx_opt_iv_src column at all
     assert ce.iv_is_the_published_construction(log).tolist() == [True, True]
     sf = ce.signals_frame(log)
@@ -976,6 +978,7 @@ def test_an_unstamped_reading_counts_as_the_source_field():
 
 def test_the_record_does_not_pool_two_constructions(monkeypatch):
     import context_eval as ce
+    monkeypatch.setattr(cs, "PUBLISHED_IV_CONSTRUCTION", "source")   # the rule before 2026-11-26
     log = _iv_log(_ctx_opt_iv_src=["source", "own_mid", None])
     assert ce.iv_is_the_published_construction(log).tolist() == [True, False, True]
     sf = ce.signals_frame(log)

@@ -252,7 +252,10 @@ def reading_for(cache: dict, ticker: str, today: date,
     out = {k: v for k, v in entry.items() if k.startswith("_ctx_")}
     out["_ctx_opt_quote_date"] = qd.strftime("%Y-%m-%d")
     out["_ctx_opt_days"] = (exp - today).days
-    return out
+    # A reading taken before PUBLISHED_IV_CONSTRUCTION last changed is re-selected from its own
+    # paired columns, not served under the construction it was cached in (2026-11-26).
+    from context_signals import in_published_construction
+    return in_published_construction(out)
 
 
 # --------------------------------------------------------------------------- the probe

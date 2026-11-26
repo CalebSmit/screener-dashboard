@@ -656,8 +656,15 @@ def login_alert(data_lines: list[str], code_lines: list[str], data_is_newer: boo
 # tests/test_morning_brief.py fails if that file stops carrying it - so an entry cannot outlive or
 # contradict its source. When one is done, delete it here in the same commit.
 COMING_UP = (
-    ("2026-12-04", "The option signals' (expected move, ATM volatility, skew) first one-month reading: "
-                   "readings before 2026-11-04 recorded no price and are excluded, not spliced.",
+    ("2026-12-04", "The expected move's first one-month reading: readings before 2026-11-04 recorded "
+                   "no price and are excluded, not spliced. (The ATM volatility and the skew restart "
+                   "under our own construction from the 2026-11-27 log - see 2026-12-28.)",
+     "METHODOLOGY_CHANGELOG.md"),
+    ("2026-12-28", "The ATM implied volatility's and the put skew's first one-month reading under our own "
+                   "construction (published 2026-11-26): the record counts own_mid readings only, from "
+                   "the 2026-11-27 log; the source's readings are excluded, not spliced. Also re-run "
+                   "`research/measurements/2026-11-26-own-iv-coverage-universe.py` and say whether ours "
+                   "still covers about 418 ATM IVs and 327 skews.",
      "METHODOLOGY_CHANGELOG.md"),
     ("2026-12-15", "Re-run the filing cross-check's range table over the runs from 2026-11-18 "
                    "(`research/measurements/2026-11-17-filing-crosscheck-range.py`); promote total "
@@ -678,13 +685,6 @@ COMING_UP = (
                    "conditions were written before any further page was read. Its status line reads "
                    "WAITING, not OPEN, until then.",
      "research/2026-11-17-ytd-in-a-quarterly-column.md"),
-    ("2026-11-26", "Publish our own implied volatilities (built 2026-11-24, recorded beside the source "
-                   "field as _ctx_opt_own_*). First confirm the 11-25 02:00 run's raw fetch carries "
-                   "exDividendDate and the 11-25 20:00 refresh's cache has _ctx_opt_own_iv for most "
-                   "stocks; count own vs source coverage over the whole cache, then flip "
-                   "context_signals.PUBLISHED_IV_CONSTRUCTION to 'own_mid' with a changelog entry. Do "
-                   "not loosen MAX_REL_SPREAD or the IV bounds to raise coverage.",
-     "research/2026-11-03-open-source-quant-stack.md"),
     ("2027-02-11", "The backtest may be cited as evidence from this date (rule 5); not before.",
      "CLAUDE.md"),
     ("2027-03-02", "The first combined 10-Ks since the SEC began holding a jointly filed report's facts "
