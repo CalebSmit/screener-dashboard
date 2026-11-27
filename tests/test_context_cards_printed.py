@@ -391,19 +391,27 @@ _OPT_JS = """(args) => { const [t, patch] = args; const s = JSON.parse(JSON.stri
     return { caveat: !!card.querySelector('.ctx-caveat'), iv: /Implied volatility/.test(card.textContent) }; }"""
 
 
-def _opt(status, move):
+def _opt(status, move, ois):
+    # ``ois`` is stated, never inherited from the stock the patch lands on: the caveat reads it, and
+    # from 2026-11-27 (the first run scored under ``PUBLISHED_IV_CONSTRUCTION = "own_mid"``) every
+    # published reading carries "own_mid" - the case this test meant to check then lost its caveat
+    # and the 02:00 run was refused for a correct page (row "premise->red").
     base = {"os": status, "ox": "2026-12-18", "od": 41, "oe": False, "oi": 0.9, "osk": -0.33,
             "oskp": 0.59, "oskps": 23.0, "oskc": 0.92, "oskcs": 25.0, "osp": 24.62,
-            "oqd": "2026-11-06", "oqt": "19:51", "oqi": False}
+            "oqd": "2026-11-06", "oqt": "19:51", "oqi": False, "ois": ois}
     if move:
         base["om"] = 0.08
     return base
 
 
-@pytest.mark.parametrize("status, move, caveat", [("partial", False, True), ("ok", True, False),
-                                                  ("partial", True, False)])
-def test_a_partial_reading_marks_its_figures(page, ctx, status, move, caveat):
+# The caveat says the figures are the *source's*, worked from last trades; a reading whose volatilities
+# were worked out here from bid-ask midpoints ("own_mid") is not that, so it carries no caveat.
+@pytest.mark.parametrize("status, move, ois, caveat", [("partial", False, "source", True),
+                                                       ("partial", False, "own_mid", False),
+                                                       ("ok", True, "source", False),
+                                                       ("partial", True, "source", False)])
+def test_a_partial_reading_marks_its_figures(page, ctx, status, move, ois, caveat):
     t = next(iter(ctx))
-    got = page.evaluate(_OPT_JS, [t, _opt(status, move)])
+    got = page.evaluate(_OPT_JS, [t, _opt(status, move, ois)])
     assert got["iv"] is True, got
     assert got["caveat"] is caveat, (status, move, got)
