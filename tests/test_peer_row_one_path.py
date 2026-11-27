@@ -57,7 +57,15 @@ FIGURES = slice(2, 10)
 
 def _payload() -> dict:
     txt = PAYLOAD.read_text(encoding="utf-8")
-    return json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    data = json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    # Every shard folded back, as the page has it once the detail file lands. Until 2026-11-27
+    # this read dashboard_data.js alone, so from 2026-11-08 (`financials` moved) the empty-state
+    # check below counted three of its nine columns as absent for every stock and passed on the
+    # six from `raw`; when `raw` moved too it saw none, and failed - loudly, which is the point.
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as health
+    return health.fold_shards(data, health._dir_reader(ROOT))
 
 
 # --------------------------------------------------------------- 1. the generator, not the file

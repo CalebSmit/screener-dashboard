@@ -441,9 +441,9 @@ outcome.
   `CTX_LOADED` flag is closure-scoped and not visible from `page.evaluate`.
 - `dashboard_detail.js` - `window.SCREENER_DETAIL`, **the third payload file** (2026-11-08),
   written by `generate_dashboard.split_detail()`: the fields only an open sheet reads, today
-  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct")` (slice by slice,
+  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct", "raw")` (slice by slice,
   with first-paint sizes: `plan/universe-expansion.md` phase 1 - 1.547 MB gzipped before the first,
-  693 KB after `pct`). Loaded by the first sheet laid out (on an untouched page, the idle pre-warm),
+  693 KB after `pct`, 494 KB after `raw`, whose volatility stays in first paint as `vol` for My Holdings). Loaded by the first sheet laid out (on an untouched page, the idle pre-warm),
   after `dashboard_data.js` and `dashboard_context.js`, and merged into `D.stock_detail`. Because
   `pct` is in it, **no metric row exists until the file lands**: a browser test that reads one calls
   `tests/sheet_warm.detail_loaded(page)` first, and one that clicks through a sheet's sections waits

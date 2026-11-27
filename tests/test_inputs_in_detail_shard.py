@@ -66,8 +66,9 @@ SHEET_READERS = {"metricDetailHtml", "equationHtml", "renderProvenance", "workin
 def test_inp_is_in_the_sheet_only_shard():
     assert "inp" in gd.DETAIL_KEYS
     # the small fields the category table itself reads stay in first paint
-    # (`pct` joined the shard 2026-11-26 with its own audit: tests/test_percentiles_in_detail_shard.py)
-    for k in ("inp_bad", "xcap", "pio", "raw", "summary"):
+    # (`pct` joined the shard 2026-11-26 and `raw` 2026-11-27, each with its own audit:
+    # tests/test_percentiles_in_detail_shard.py, tests/test_raw_in_detail_shard.py)
+    for k in ("inp_bad", "xcap", "pio", "summary"):
         assert k not in gd.DETAIL_KEYS, k
 
 

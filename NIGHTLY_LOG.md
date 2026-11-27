@@ -11221,3 +11221,101 @@ today's run, claims gate 2,443 passed. 4 clean.
   that the Monday session inherited from the weekend. No process change proposed; worth knowing.
 - **Nothing to decide** on the watchdog: its 11-23 verdict was right. Its canned hint blames a CLI
   login for any session that did not run.
+
+
+## 2026-11-27 (13:00) - QUEUE. Universe expansion phase 1: each metric's scored value leaves first paint (693 -> 494 KB gzipped, -28.8%); volatility stays behind for My Holdings, and a peer test found half-blind since 11-08
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-27_060001.log`
+(completed; the retrospective, merged as `c47a4c7`). Data loop published? **no** -
+`logs/datarun-2026-11-27_020001.log`, HEALTH: PASS, refused by the published-claims gate; the morning
+session fixed the stale test and its branch is on `main`, so the **18:00 retry** should publish. Evidence
+base at `1m`: **59 rows, newest `run_date` 2026-10-26 (32 days ago, bound 40), 5 effective** of 8.
+Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 46 days**; a standing programme, last advanced **2 days** ago, bound 21); also open 0.14
+(44 d). Shipped to readers: 20 commits, 3 methodology changes in the last 7 days.
+**Tests:** before **4574 passed / 1 skipped**; after: under "Gates".
+**Owner queue / rotation:** QUEUE. No stash, no owner-session marker, no open proposal
+(`write_brief.open_proposals()` is empty). The morning's Next 1 is the 18:00 retry (not yet due); its Next
+2 was this slot's work - phase 1's `raw` slice (`plan/universe-expansion.md`), under the owner item
+"Beyond the S&P 500". The top owner item (Search Console, a byline, analytics) is the owner's to decide;
+nothing there for a session.
+
+### Did
+- **`raw` - each metric's value as scored - moved to `dashboard_detail.js`. First paint 693,214 ->
+  493,871 bytes gzipped (-199 KB, -28.8%).** Regenerated from the published run (`runs/c31edb9b89dc`,
+  11-26 02:00) with this generator: folded whole, **0 differences** from the committed payload (the
+  context file deliberately not rewritten, as on 11-26). `logs/regen_raw.py`.
+- **Read-site audit, page.** Readers of a stock's `raw`: the peer table (`buildPeerRow`, six of nine
+  columns), `categoryWorkings`, `peerContext`, `metricDetailHtml`, `equationHtml`, and the CSV through
+  the workings rows - all the open sheet - plus **two outside it, both of one figure, volatility**: My
+  Holdings' concentration line (live at first paint for a reader with saved names) and the context
+  panel's "Realised, past year" row (drawn when the context file lands, which can be first). The plan
+  offered "wait" or "keep volatility as its own small field"; I took the second, because a first-paint
+  surface should not wait on a 951 KB file for one number. `vol` (6.3 KB gzipped, 497 stocks) is copied
+  by `split_detail` (`FIRST_PAINT_RAW`), never computed twice; verified equal to `raw.volatility` for
+  every stock that has one; both readers go through `volOf`, which falls back to `raw` so hand-built
+  payloads render as before.
+- **The peer table, which had six figures at first paint, now has none until the file lands.** It is
+  drawn anyway - ticker and rank are first paint - with every figure and the peer median "…"; the "No
+  peer figures were published" sentence is kept for a file that landed with nothing. The workings
+  needed nothing: they already say "Loading the sector percentiles…" for `pct`, in the same file.
+  `metricDetailHtml` gives a stock without `raw` an empty one rather than throwing, keeping its
+  `claims.py`-registered sentence templates verbatim.
+- **Outside the page (the 11-09 rule: grep beyond the page).** `write_brief.context_coverage` counted
+  earnings variability off unfolded `raw` - it would have printed 0 every morning - and folds now.
+  Five readers failed loudly in the suite, not silently: `test_bank_pb_roe_identity` (0 banks),
+  `test_peer_row_one_path`, `test_holdings_concentration`'s source check, the growth-structure
+  measurement script (run by `test_growth_category`), and three membership tests that pinned "raw not
+  yet moved". All fold now. **Found on the way:** `test_peer_row_one_path`'s empty-state premise read
+  the payload unfolded, so since `financials` moved on 11-08 it had counted three of its nine columns as
+  absent for every stock and passed on `raw` alone.
+- **`tests/test_raw_in_detail_shard.py` (8):** membership, `split_detail` keeps `vol` equal and drops a
+  null, a read-site tripwire over the generated page, the two outside readers read `volOf`, the
+  null-safety of every reader, the published first paint carries `vol` and not `raw`, and two browser
+  tests on a re-split payload with the file held: My Holdings prints the risk gap with the right
+  figures, and the peer table waits then fills without a reopen. **Mutation-checked:** making `volOf`
+  ignore `vol` fails the holdings test (`logs/mutant_volof.py`, file restored byte for byte).
+- **Looked at the page** (`logs/design/raw-shard/`): at 1440 and 375px the top stock's (EXPE) peer
+  table held shows "EXPE YOU #1" and eight "…", peers with ticker and rank, median waiting; landed, it
+  reads `$28.6B 13.6x +11.9% 13.0% 50.2% 3.44x 0.8% 12.5%`. **Home page height at 375px: 6,085px before
+  and after** once settled (a first reading of +21px was the before-page still laying out at 2.5 s; with
+  a 4 s wait no element's height or text differs); 1440px 23,275px both.
+- Docs: `plan/universe-expansion.md` Progress, `plan/dashboard-inventory.md`, the owner item's line in
+  `OWNER_FOCUS.md` (left open - phase 1 continues), CLAUDE.md's `DETAIL_KEYS` line.
+
+### Evidence / research
+- None new; engineering under phase 1, whose decision is `research/2026-11-03-*` (phase 0). The
+  evidence that it is an improvement is the measurement: first paint -28.8% gzipped with a folded
+  payload byte-identical to the published one, and every reader audited and tested.
+
+### Methodology changed
+- none. No score, rank, weight or sentence moved (folded payload 0 differences).
+
+### Tried and rejected
+- **Making My Holdings' concentration line wait for the file**, the plan's other option. It is live at
+  first paint for a returning reader and folded by default, so a wait would rarely be seen - but it
+  needs a redraw path through `renderHoldings` and makes a first-paint panel depend on a 951 KB file
+  for a single number per stock that costs 6.3 KB. Rejected on that arithmetic.
+- **Replacing the peer table with "Loading the comparison figures…" while it waits** (what the
+  generator would have done unchanged, since the subject's row is now empty in flight). The tickers and
+  ranks are already known and are what a reader scans first; a sentence hid them.
+
+### Set aside
+- Morning Next 1 (the 18:00 retry publishes): not yet due at this session's end; the next session
+  checks `logs/datarun-2026-11-27_180*.log`.
+- Morning Next 3 (12-04 06:00 checks the retro rule): not due.
+- 11-25 13:00 Next (the lab's EarningsSurprise): not done - Friday's lab day was the retrospective;
+  the lab is not late (last advanced 2 days ago, bound 21).
+- 11-20 retro Next 3 (the share-count rebuild, a 06:00 session to itself): still queued; needs ~2.5 h.
+- The offline re-score for gate 5 (flagged 11-20 and this morning): a dedicated session's work.
+
+### Next
+1. **Check the 18:00 retry published** (`logs/datarun-2026-11-27_180*.log` ends "Data loop complete"),
+   and on that payload that `raw` and `pct` are only in `dashboard_detail.js` and `vol` is in first paint.
+2. Phase 1's next slice: **`summary` split** into the holdings' six kinds (`HOLDINGS_FACTS`, first
+   paint) and the rest (`renderSummary`, `caseItems`) - 18.8% of first paint now; then bucketing.
+
+### Gates (final tree, `a530971`)
+
+1 **4582 passed / 1 skipped** (baseline 4574; +8, `test_raw_in_detail_shard`). 2 dry run passed. 3 `index.html` 960 KB;
+`test_payload_parse_gate` 20 passed. 5 `rehearse_publish.py --changed-since main` **PASSED** against today's run. 4 clean.

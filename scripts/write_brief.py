@@ -269,6 +269,11 @@ def context_coverage() -> str:
         sec = sum(1 for v in ctx.values() if (v.get("ins") or {}).get("src") == "sec")
         d = (ROOT / "dashboard_data.js").read_text(encoding="utf-8")
         dd = json.loads(d[d.index("{"):].rstrip().rstrip(";"))
+        # `raw` is in dashboard_detail.js since 2026-11-27: fold every shard back, or this count
+        # reads 0 every morning (the 2026-11-09 shape: a check of a moved field sees none of it).
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import check_run_health as _health
+        dd = _health.fold_shards(dd, _health._dir_reader(ROOT))
         ev = sum(1 for v in (dd.get("stock_detail") or {}).values()
                  if (v.get("raw") or {}).get("earnings_variability") is not None)
         return (f"options usable {ok}/{n}" + (f" ({closed} quotes-closed)" if closed else "")
