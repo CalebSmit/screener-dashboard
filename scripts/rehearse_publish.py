@@ -71,8 +71,43 @@ def needs_rehearsal(changed: list[str]) -> bool:
 # 11-19 run, scored under the old rule) and the first full run under it was refused by the claims
 # gate: four tests still asserted the old rule's wording, and only a payload scored by the new
 # engine took the page down the branch they could not read.
-ENGINE_FILES = ("factor_engine.py", "run_screener.py", "config.yaml", "presets.py", "universe.py",
-                "portfolio_constructor.py")
+#
+# **Derived, not listed** (2026-11-27 retrospective). The hand-kept list of six missed
+# ``context_signals.py``: on 2026-11-26 it switched the options panel's published construction to
+# our own implied volatilities, gate 5 printed no note, and the first run computed under it was
+# refused at 02:00 by a test that inherited the old construction's field. So the list is every
+# local module ``run_screener.py`` reaches through its imports *without passing through the
+# generator* - what the run executes and the rehearsal does not - plus the config it reads.
+# Over-inclusion costs a warning; omission costs a refused night.
+_GENERATOR_SIDE = {"generate_dashboard"}
+
+
+def _local_imports(path: Path) -> set[str]:
+    import ast
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    out: set[str] = set()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            out |= {a.name.split(".")[0] for a in n.names}
+        elif isinstance(n, ast.ImportFrom) and n.module and n.level == 0:
+            out.add(n.module.split(".")[0])
+    return {m for m in out if (ROOT / f"{m}.py").exists()}
+
+
+def engine_modules(entry: str = "run_screener") -> tuple[str, ...]:
+    """Every local module the scoring run executes before the generator, as repo-relative paths."""
+    seen: set[str] = set()
+    todo = [entry]
+    while todo:
+        m = todo.pop()
+        if m in seen or m in _GENERATOR_SIDE:
+            continue
+        seen.add(m)
+        todo.extend(_local_imports(ROOT / f"{m}.py"))
+    return tuple(sorted(f"{m}.py" for m in seen))
+
+
+ENGINE_FILES = engine_modules() + ("config.yaml",)
 
 
 def engine_changes(changed: list[str]) -> list[str]:

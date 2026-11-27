@@ -172,6 +172,18 @@ def test_a_scoring_change_is_named_and_a_page_change_is_not():
     assert rp.engine_changes(["generate_dashboard.py", "stock_summary.py", "claims.py"]) == []
 
 
+def test_the_engine_list_is_derived_from_what_the_run_imports():
+    """2026-11-27: the hand-kept list of six missed context_signals.py, whose 11-26 change (our own
+    implied volatilities published) was first computed by the 02:00 run and refused there with no
+    note from this gate. The list is now every module run_screener.py reaches without passing
+    through the generator - so the six it held, and the context modules it did not."""
+    for f in ("factor_engine.py", "run_screener.py", "config.yaml", "presets.py", "universe.py",
+              "portfolio_constructor.py", "context_signals.py", "options_cache.py", "implied_vol.py"):
+        assert f in rp.ENGINE_FILES, f
+    assert "generate_dashboard.py" not in rp.ENGINE_FILES
+    assert rp.engine_changes(["context_signals.py"]) == ["context_signals.py"]
+
+
 def test_a_run_scored_before_an_engine_commit_is_reported(tmp_path):
     """2026-11-19's missing-category rule (be7455e) changed factor_engine.py. A run whose meta.json
     records the commit before it was scored by the old engine, and the note must say so. A run that
