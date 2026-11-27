@@ -11314,3 +11314,8 @@ nothing there for a session.
    and on that payload that `raw` and `pct` are only in `dashboard_detail.js` and `vol` is in first paint.
 2. Phase 1's next slice: **`summary` split** into the holdings' six kinds (`HOLDINGS_FACTS`, first
    paint) and the rest (`renderSummary`, `caseItems`) - 18.8% of first paint now; then bucketing.
+
+### Gates (final tree, `a530971`)
+
+1 **4582 passed / 1 skipped** (baseline 4574; +8, `test_raw_in_detail_shard`). 2 dry run passed. 3 `index.html` 960 KB;
+`test_payload_parse_gate` 20 passed. 5 `rehearse_publish.py --changed-since main` **PASSED** against today's run. 4 clean.
