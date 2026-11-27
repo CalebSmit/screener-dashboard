@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
 from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+from tests import sheet_warm  # noqa: E402
 WAIT = 8000
 CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
 
@@ -210,8 +211,11 @@ def _detail_in(page, probe="JPM"):
 
 def _settled(page):
     """The context payload is in (its arrival re-renders Before you decide, which moves every section
-    below it) and the sheet's body has stopped scrolling for ten frames."""
+    below it), the detail shard is in (since 2026-11-26 it carries `pct`, and its arrival redraws the
+    category workings - the 11-26 13:00 gate 1 timed out here under parallel load without this wait),
+    and the sheet's body has stopped scrolling for ten frames."""
     page.wait_for_function("typeof CTX_LOADED !== 'undefined' && CTX_LOADED", timeout=WAIT)
+    sheet_warm.detail_loaded(page)
     page.wait_for_function("""() => new Promise(r => { const b = document.querySelector('#stock-modal .modal-body');
         let last = -1, same = 0; const f = () => { if (b.scrollTop === last) same++; else { same = 0; last = b.scrollTop; }
         if (same >= 10) r(true); else requestAnimationFrame(f); }; f(); })""", timeout=WAIT)
