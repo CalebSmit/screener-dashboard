@@ -317,7 +317,12 @@ def test_block_does_not_read_the_volatility_percentile(script):
                   script.index("function holdingCard(")]
     code = "\n".join(l for l in code.splitlines() if not l.lstrip().startswith("//"))
     assert ".pct" not in code and "pct[" not in code
-    assert "raw || {}" in code.replace("{{", "{")
+    # `raw` is in dashboard_detail.js since 2026-11-27; the volatility it reads is first paint's
+    # copy, through volOf - which itself reads the scored value and never the percentile
+    assert "volOf(r.s)" in code
+    vo = script[script.index("function volOf("):script.index("function volOf(") + 400]
+    vo = vo[:vo.index("\n    }") + 6]
+    assert "s.vol" in vo and "raw ||" in vo.replace("{{", "{") and "pct" not in vo
 
 
 # ---------------------------------------------------------------------------

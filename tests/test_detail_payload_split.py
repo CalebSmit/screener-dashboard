@@ -446,20 +446,27 @@ def test_while_it_is_in_flight_the_snapshot_says_so(page_and_ticker):
 
 
 def test_while_it_is_in_flight_the_peer_cells_say_so_and_the_others_are_already_there(page_and_ticker):
-    """The mixed case, which is the whole argument for letting the shard carry numbers: six of
-    the eight figure columns come from ``raw`` and are on the screen at once; the three fed by
-    ``financials`` (two of the eight columns plus the market cap) wait, and say so with an
-    ellipsis rather than the em-dash that means "not published in this run"."""
+    """Every figure column waits, and the table is still there. Until 2026-11-27 this was the
+    mixed case - six columns from ``raw`` on screen at once, the three ``financials`` ones waiting
+    - but ``raw`` joined the shard that day, so all eight figure columns now arrive with the file.
+    What is already there is what first paint carries: the ticker and the rank. Each figure says
+    it is waiting with an ellipsis, never the em-dash that means "not published in this run", and
+    the table is drawn rather than replaced by a sentence (the empty state is for a file that has
+    landed with nothing for the stock)."""
     make, ticker, _a, _f = page_and_ticker
     page = make(hold=True)
     page.evaluate(f"openStockDetail('{ticker}')")
     page.wait_for_selector("#modal-peers .peer-table", state="attached")
     cells = _peer_cells(page)
     assert cells, "no subject row in the peer table"
+    assert cells[0].startswith(ticker), cells       # the ticker, from first paint
+    assert cells[1].startswith("#"), cells          # the rank, from first paint
     figures = cells[2:10]
-    assert figures.count("…") == 3, figures          # mcap, net margin, dividend yield
-    assert "—" not in figures[:1], figures           # never an em-dash while waiting
-    assert sum(1 for c in figures if c not in ("…", "—")) >= 4, figures
+    assert figures == ["…"] * 8, figures            # every figure waits, none is an em-dash
+    median = page.evaluate("""() => { const r = document.querySelector('#modal-peers tr.peer-row-median');
+        return r ? [...r.querySelectorAll('td')].map(e => e.textContent.trim()) : null; }""")
+    if median:                                      # the median row waits too
+        assert "—" not in median[2:10], median
     page.close()
 
 

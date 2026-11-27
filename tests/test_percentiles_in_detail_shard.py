@@ -62,8 +62,9 @@ READERS = {"unscoredWhy", "weightProfile", "categoryWorkings", "renderCategoryDe
 # ------------------------------------------------------------------------------ 1. the audit
 def test_pct_is_in_the_shard_and_raw_and_summary_are_not():
     assert "pct" in gd.DETAIL_KEYS
-    # each has a first-paint reader outside the sheet (My Holdings); each needs its own slice
-    for k in ("raw", "summary", "cat_scores", "contrib", "flags", "wp"):
+    # each has a first-paint reader outside the sheet (My Holdings). `raw` followed on 2026-11-27
+    # with its one such figure kept behind as `vol` (tests/test_raw_in_detail_shard.py).
+    for k in ("summary", "cat_scores", "contrib", "flags", "wp"):
         assert k not in gd.DETAIL_KEYS, k
 
 

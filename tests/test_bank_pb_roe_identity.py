@@ -67,7 +67,12 @@ def cfg() -> dict:
 @pytest.fixture(scope="module")
 def payload() -> dict:
     text = (ROOT / "dashboard_data.js").read_text(encoding="utf-8")
-    return json.loads(text[text.index("{"): text.rindex("}") + 1])
+    data = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    # every shard folded back (`raw` is in dashboard_detail.js since 2026-11-27), as the page has it
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as health
+    return health.fold_shards(data, health._dir_reader(ROOT))
 
 
 @pytest.fixture(scope="module")

@@ -61,7 +61,7 @@ SURPRISE = ("analyst_surprise", "earnings_acceleration", "consecutive_beat_strea
 def test_eq4_and_roe5_are_in_the_shard():
     for k in READERS:
         assert k in gd.DETAIL_KEYS, k
-    for k in ("raw", "summary", "pio", "bn"):   # `pct` joined the shard 2026-11-26 (test_percentiles_in_detail_shard)
+    for k in ("summary", "pio", "bn"):   # `pct` joined 2026-11-26, `raw` 2026-11-27 (their own modules)
         assert k not in gd.DETAIL_KEYS, k
 
 

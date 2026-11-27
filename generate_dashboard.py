@@ -5093,14 +5093,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // sentence actually makes: a `self_metrics` block of nine nulls used to render a row
         // of em-dashes while claiming to be published data.
         const self = buildPeerRow(ticker);
-        if (!self || !PEER_COLS.some(k => self[k] !== null && self[k] !== undefined)) {{
-            // All nine columns arrive with dashboard_detail.js (`financials` since 2026-11-08,
-            // `raw` since 2026-11-27), so an empty row usually means "not here yet" - and it must
-            // not claim a run published nothing while a fetch it started is still outstanding.
-            const pend = !DETAIL_LOADED && !DETAIL_FAILED;
-            container.innerHTML = '<p class="modal-note sheet-empty">' + (pend
-                ? 'Loading the comparison figures…'
-                : 'No peer figures were published for this stock in this run.') + '</p>';
+        // All nine columns arrive with dashboard_detail.js (`financials` since 2026-11-08, `raw`
+        // since 2026-11-27). While it is in flight the table is still drawn - the tickers and
+        // ranks are first paint - with every figure cell waiting (`waiting` below); the empty
+        // state is only for a file that has landed, or failed, with nothing for this stock.
+        const detailInFlight = !DETAIL_LOADED && !DETAIL_FAILED;
+        if (!self || (!detailInFlight && !PEER_COLS.some(k => self[k] !== null && self[k] !== undefined))) {{
+            container.innerHTML = '<p class="modal-note sheet-empty">No peer figures were published for this stock in this run.</p>';
             return; }}
 
         // Initialize peer state on first render for this ticker
@@ -5123,8 +5122,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // 2026-11-27. Until it lands every cell says it is waiting rather than printing an
         // em-dash, which in a column of figures means "this run published none". One
         // character, so the columns do not change width when the file arrives.
-        const detailPending = !DETAIL_LOADED && !DETAIL_FAILED;
-        const waiting = (v, f) => ((v === null || v === undefined) && detailPending)
+        const waiting = (v, f) => ((v === null || v === undefined) && detailInFlight)
             ? '\u2026' : f(v);
 
         // No green/red verdicts on peers' figures. They used to colour a peer green when it
@@ -5208,13 +5206,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <td class="peer-td-ticker"><span class="peer-ticker">Peer median</span></td>
                 <td class="peer-td-num"></td>
                 <td class="peer-td-num">${{waiting(med('mcap'), fmtBig)}}</td>
-                <td class="peer-td-num">${{fmtPE(med('pe_ratio'))}}</td>
-                <td class="peer-td-num">${{fmtRG(med('rev_growth'))}}</td>
+                <td class="peer-td-num">${{waiting(med('pe_ratio'), fmtPE)}}</td>
+                <td class="peer-td-num">${{waiting(med('rev_growth'), fmtRG)}}</td>
                 <td class="peer-td-num">${{waiting(med('net_margin'), fmtPct1)}}</td>
-                <td class="peer-td-num">${{fmtPct1(med('profit'))}}</td>
-                <td class="peer-td-num">${{fmtDE(med('debt_equity'))}}</td>
+                <td class="peer-td-num">${{waiting(med('profit'), fmtPct1)}}</td>
+                <td class="peer-td-num">${{waiting(med('debt_equity'), fmtDE)}}</td>
                 <td class="peer-td-num">${{waiting(med('div_yield'), fmtPct1)}}</td>
-                <td class="peer-td-num">${{fmtPct1(med('fcf_yield'))}}</td>
+                <td class="peer-td-num">${{waiting(med('fcf_yield'), fmtPct1)}}</td>
                 <td class="peer-td-action"></td>
             </tr>`;
         }}
