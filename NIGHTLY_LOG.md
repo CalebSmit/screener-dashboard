@@ -11175,6 +11175,13 @@ The new hole was on the code loop's side again: gate 5's list.
 
 - none. Two tests were brought level with changes already shipped; no weight, threshold or formula moved.
 
+### Gates (final tree, `ec96ecd`)
+
+1 **4574 passed / 1 skipped** (baseline 4564; +10 from the merged branch and today's tests). 2 dry run
+passed. 3 `index.html` 996 KB; `test_payload_parse_gate` 20 passed (`node --check` is refused by this
+session's tool guard; the runner runs node). 5 `rehearse_publish.py --changed-since main` **PASSED** against
+today's run, claims gate 2,443 passed. 4 clean.
+
 ### Tried and rejected
 
 - **Making `ENGINE CHANGED` fail gate 5.** Same reasoning as 11-20: it would refuse every change to the
