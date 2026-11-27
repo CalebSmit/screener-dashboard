@@ -1,13 +1,22 @@
-# Morning Brief - Thursday 26 November 2026, 14:00
+# Morning Brief - Friday 27 November 2026, 02:22
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## Coming up, only you can do it: the Claude CLI login runs out 2026-12-03 09:01 (in 6 days)
+
+The code sessions run through the Claude Code CLI on this PC, and its login
+lasts about 30 days. When it runs out, every scheduled session fails within
+seconds until you sign in again. Doing it early loses nothing - open a
+terminal on the PC and run:
+
+    claude.cmd auth login
 
 ## At a glance
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran today |
+| Data run (2 AM) | **refused by its publish gates (published-claims check failed)** - last ran today |
 | Code session (latest) | **held back by its gates (work kept on its branch, not on main)** - last ran today |
 | Dashboard data from | 2026-11-26 02:00 |
 | Stocks scored | 499 |
@@ -15,13 +24,13 @@ history is in `NIGHTLY_LOG.md`.
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, VLO, APA, MPC, SNDK |
 | Ranking's lean on growth | +0.012 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Shipped to readers | 21 commit(s) changed what a reader sees, 3 methodology change(s), in the last 7 days |
-| Evidence for weight changes | 5 of 8 needed at the 1m horizon (59 rows, but overlapping windows are not independent; 147 rows across all horizons), newest 1m run date 2026-10-26 (31 days ago, bound 40) |
+| Shipped to readers | 14 commit(s) changed what a reader sees, 3 methodology change(s), in the last 7 days |
+| Evidence for weight changes | 5 of 8 needed at the 1m horizon (59 rows, but overlapping windows are not independent; 147 rows across all horizons), newest 1m run date 2026-10-26 (32 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 459/459 within 0.5%; operating cash flow 445/446 within 0.5%; net income 433/457 within 0.5%; market value 452/487 within 5%; 3 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 0 days ago |
+| Inputs vs SEC filings | total assets 459/459 within 0.5%; operating cash flow 445/446 within 0.5%; net income 433/457 within 0.5%; market value 452/487 within 5%; 5 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 1 days ago - **see the ATTENTION note below** |
 | Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#6: net income 1.29x after-tax operating income); PSX (#10: net income 1.28x after-tax operating income); DXCM (#14: operating cash flow 36% off the filing); CF (#15: net income 15% off the filing); ES (#18: a period behind its filings); TPR (#19: equity 5.2% of assets) |
-| Data run timing | **28 min** total; slowest `fetch.tickers` 591 s, `fetch.sec_roe_history` 303 s, `context.options_pass` 183 s; **52 tickers rate-limited** |
-| Code-session login | 2026-12-03 09:01 (7 days) |
+| Data run timing | **19 min** total; slowest `fetch.tickers` 624 s, `snapshot` 152 s, `fetch.retry` 111 s; **30 tickers rate-limited** |
+| Code-session login | **runs out 2026-12-03 09:01 (in 6 days)** |
 | Context coverage | options usable 481/499 - insider from SEC 499/499 - earnings variability 440 |
 
 ## Coming up
@@ -29,11 +38,15 @@ history is in `NIGHTLY_LOG.md`.
 Dates the project has committed to. A past-due line stays until the session that
 does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
-- 2026-12-04 (in 8 days) - The expected move's first one-month reading: readings before 2026-11-04 recorded no price and are excluded, not spliced. (The ATM volatility and the skew restart under our own construction from the 2026-11-27 log - see 2026-12-28.) `METHODOLOGY_CHANGELOG.md`
-- 2026-12-07 (in 11 days) - The last Monday before the year-to-date-column decision of 2026-12-15: research what vendors and index providers do with a hole in a company's quarterly series. 26 stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and it is the same question as DexCom's (may a filing do more than sit beside a scored input) at 26 times the size. Section 4; no design is proposed there. `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`
+- 2026-12-04 (in 7 days) - The expected move's first one-month reading: readings before 2026-11-04 recorded no price and are excluded, not spliced. (The ATM volatility and the skew restart under our own construction from the 2026-11-27 log - see 2026-12-28.) `METHODOLOGY_CHANGELOG.md`
+- 2026-12-07 (in 10 days) - The last Monday before the year-to-date-column decision of 2026-12-15: research what vendors and index providers do with a hole in a company's quarterly series. 26 stocks were scored on last fiscal year's flows for that reason on 2026-11-18, and it is the same question as DexCom's (may a filing do more than sit beside a scored input) at 26 times the size. Section 4; no design is proposed there. `research/2026-11-18-synthesis-what-the-screener-knows-about-its-inputs.md`
 
 ## Things that needed attention
 
+- ATTENTION - CLI LOGIN EXPIRES 2026-12-03 09:01 (in 6 days) - after that every scheduled code session fails until the owner runs `claude.cmd auth login` in a terminal and signs in; doing it before then loses nothing.
+- The regenerated artifacts contradict claims this project asserts about them.
+- Refusing to publish. The live site keeps the last good version.
+- Run discarded: published-claims check failed - fix the generator, not the file.
 - GATE 1 tests: FAIL (=========================== short test summary info =========================== FAILED tests/test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet 1 failed, 4571 passed, 1 skipped, 391 warnings in 250.21s (0:04:10))
 - full output: C:\Users\smitc\OneDrive\Documents\Screener\logs\nightly-2026-11-26_130001-midday.gate1.txt
 - GATE 1 attribution: 1 new, 0 inherited from a main that was already red.
@@ -44,6 +57,7 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `5e8fb20 brief: code session 2026-11-26-midday`
 - `88354de brief: code session 2026-11-26`
 - `5c324fb NIGHTLY_LOG 2026-11-26: own implied volatilities published`
 - `c9d85b9 own IV published: changelog, claim extended, browser test, brief dates, note step 4 done, owner item closed`
@@ -51,14 +65,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `dee457f wip: publish our own implied volatilities (PUBLISHED_IV_CONSTRUCTION own_mid); cached readings re-selected; whole-universe coverage measured`
 - `f0eac97 brief: data run 2026-11-26`
 - `8da9237 data: screener run 2026-11-26 - 499 scored, top: EXPE VLO APA MPC SNDK`
-- `14c3572 brief: code session 2026-11-25-midday`
-- `8b2b9d9 NIGHTLY_LOG 2026-11-25 (13:00): Factor Lab experiment 20, and gate results`
-- `a84527e lab: experiment 20 written up (research note, plan queue row and Progress, owner item count)`
-- `97db773 lab: experiment 20 states the paper's risk-adjusted gap too - about half of it survives, in its years and since`
-- `6069191 page: the methodology's Rerun-the-research paragraph links experiment 20 (rebuild_page.py; payload byte-identical)`
-- `8873be5 lab: experiment 20, Ang, Hodrick, Xing & Zhang's idiosyncratic-volatility sort - 3 of 6 within`
-- `1c9aa54 lab: experiment 20 tolerances, written before the comparison (Ang, Hodrick, Xing & Zhang 2006, idiosyncratic volatility, Table VI Panel B)`
-- `8c2fad0 brief: code session 2026-11-25`
 
 ## The session's own account
 
