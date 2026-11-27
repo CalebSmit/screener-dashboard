@@ -124,6 +124,29 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-26 (13:00 session): `pct` leaves first paint - 814,575 -> 693,214 bytes
+gzipped, -121 KB, -14.9%.** Re-measured first (`research/measurements/2026-11-08-stock-detail-
+field-weights.py` on the 11-26 payload; first paint had grown 801 -> 815 KB since 11-22): `raw`
+25.5%, `pct` 15.1%, `summary` 12.8%. **The read-site audit corrected the plan's premise a second
+time:** the movers strip and the compare drawer read neither `raw` nor `pct` (the drawer reads
+`cat_scores`). Every page reader of `pct` is the open sheet - `unscoredWhy` (score tile and
+workings note), `weightProfile`/`categoryWorkings`/`renderCategoryDetails`, `metricDetailHtml`,
+`workingsCsv`. Waiting states: each category's workings say "Loading the sector percentiles…"
+(weight-table note and not-used list already shown), an unscored tile says "Not scored: no data"
+without naming metrics, the CSV waits; the loader redraws tiles and workings keeping open
+categories. Outside the page: four test modules gained the fold; `write_brief` reads only `raw`.
+Published files regenerated from the published run (`logs/regen_pct.py`): folded **0 differences**
+outside the context file, which was deliberately not rewritten (the morning's own-IV switch would
+have changed it a day early). **Found on the way:** a refused `dashboard_detail.js` was re-requested
+in a tight loop for as long as a sheet stayed open (the failure's redraw called `renderAbout`, which
+asked again) - pre-existing since 11-08, fixed (`DETAIL_NO_RETRY`).
+`tests/test_percentiles_in_detail_shard.py` (8), with a read-site tripwire.
+**Next in phase 1:** `raw` - its one reader outside the sheet is My Holdings' concentration line
+(`holdingsConcentration`, `raw.volatility`, live at first paint for a reader with saved names) plus
+the peer table and the context panel's volatility (both the sheet). Either the concentration line
+learns to wait like the reporting calendar, or `volatility` alone stays in first paint as its own
+small field. Then `summary` split into the holdings' six kinds and the rest; then bucketing.
+
 **Progress, 2026-11-22 (13:00 session): `eq4` and `roe5` leave first paint - 908 -> 801 KB
 gzipped, -107 KB, -11.8%.** Re-measured first: after `inp`, the heaviest fields left were `raw`
 (23.5%), `pct` (14.0%), `summary` (12.1%), then `roe5` (6.9%) and `eq4` (5.2%) - the last two

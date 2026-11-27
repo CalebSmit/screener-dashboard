@@ -232,7 +232,9 @@ def test_the_loader_cannot_request_the_file_twice(html):
     """``renderAbout`` runs on every sheet, including the idle-time pre-warm."""
     loader = html[html.index("function loadDetail"):]
     loader = loader[:loader.index("function loadContext")]
-    assert "if (DETAIL_LOADED || DETAIL_PENDING) return;" in loader
+    # 2026-11-26: and not from inside a failed load's own redraw (DETAIL_NO_RETRY), which retried
+    # in a tight loop (tests/test_percentiles_in_detail_shard.py) - a stricter guard, same first two
+    assert "if (DETAIL_LOADED || DETAIL_PENDING || DETAIL_NO_RETRY) return;" in loader
 
 
 def test_the_block_says_which_state_it_is_in_while_it_waits(html):

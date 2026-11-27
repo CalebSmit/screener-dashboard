@@ -440,9 +440,12 @@ outcome.
   `CTX_LOADED` flag is closure-scoped and not visible from `page.evaluate`.
 - `dashboard_detail.js` - `window.SCREENER_DETAIL`, **the third payload file** (2026-11-08),
   written by `generate_dashboard.split_detail()`: the fields only an open sheet reads, today
-  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5")` (`inp` 2026-11-22: first paint
+  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct")` (`inp` 2026-11-22: first paint
   1,125 -> 908 KB gzipped; `eq4`/`roe5` the same afternoon, -> 801 KB - `eq4` is also read by the
-  Reporting calendar, which says "…" and asks for the file, `tests/test_quarters_in_detail_shard.py`; a Python reader of the published payload folds it back with
+  Reporting calendar, which says "…" and asks for the file, `tests/test_quarters_in_detail_shard.py`;
+  `pct` 2026-11-26, 815 -> 693 KB - so **no metric row exists until the file lands**, and a browser
+  test that reads one calls `tests/sheet_warm.detail_loaded(page)` first,
+  `tests/test_percentiles_in_detail_shard.py`; a Python reader of the published payload folds it back with
   `check_run_health.fold_shards`, `tests/test_inputs_in_detail_shard.py`). It is **not** loaded from the start-up block - the
   first sheet laid out pulls it, which on an untouched page is the idle pre-warm, so the
   measured request order is `dashboard_data.js`, `dashboard_context.js`, `dashboard_detail.js`.
@@ -450,7 +453,8 @@ outcome.
   It took **307 KB, 19.8%, off the gzipped first paint** (1.547 -> 1.240 MB). This is the first
   slice of `plan/universe-expansion.md` phase 1's `stock_detail` shard; the **membership rule
   is every reader in the open sheet, and every panel that prints it can say it is waiting** -
-  `raw`, `pct` and `summary` are read by the movers strip, the compare drawer and My Holdings,
+  `raw` and `summary` are read by My Holdings at first paint (not, as this line said until
+  2026-11-26, by the movers strip or the compare drawer - the audit found neither reads them),
   so each needs its own read-site audit before it moves. `tests/test_detail_payload_split.py`.
 - **The Factor Lab** (2026-10-12; `plan/factor-lab.md`): `lab.html` reruns a paper the
   screener cites on public data and lets the reader change the conditions. `factor_lab.py` is

@@ -718,6 +718,11 @@ def payload():
     if not PAYLOAD.exists() or not CONTEXT.exists():
         pytest.skip("dashboard_data.js / dashboard_context.js not present")
     d = _load(PAYLOAD)
+    # the sheet-only shard too (`pct` is there since 2026-11-26), as the page has it once loaded
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as health
+    d = health.fold_shards(d, health._dir_reader(ROOT))
     c = _load(CONTEXT)
     for tk, ctx in (c.get("ctx") or {}).items():
         if tk in d["stock_detail"]:

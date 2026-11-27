@@ -123,6 +123,9 @@ def _open_sheet(page, ticker=EX):
     page.evaluate("t => openStockDetail(t)", ticker)
     page.wait_for_function("document.getElementById('stock-modal').style.display !== 'none' "
                            "&& document.querySelectorAll('#modal-summary-body p').length > 0", timeout=15000)
+    # the workings' metric rows are drawn from the percentiles in dashboard_detail.js (2026-11-26)
+    from tests import sheet_warm
+    sheet_warm.detail_loaded(page)
 
 
 def _shown(page, selector):

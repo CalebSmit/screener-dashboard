@@ -83,6 +83,10 @@ def _frame() -> pd.DataFrame:
         # 2026-11-22 (13:00); the published-workings checks read them through this fold
         "_eps_q": ['[["2025-12-31",1.1,1.0,0.1],["2026-03-31",1.2,1.1,0.0909]]'] * 3,
         "_roe5": ['[[2021,1.0e8,1.0e9,0.1],[2022,1.1e8,1.0e9,0.11]]'] * 3,
+        # a metric and its sector percentile - `pct` is in the shard since 2026-11-26, and the
+        # calculation trace reads it through this fold
+        "earnings_yield": [0.05, 0.07, 0.09],
+        "earnings_yield_pct": [40.0, 60.0, 80.0],
     })
     for cat in CATEGORIES:
         df[cat + "_score"] = 50.0

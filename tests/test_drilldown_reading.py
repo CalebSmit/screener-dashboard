@@ -127,6 +127,9 @@ def _sheet(page, ticker):
     page.evaluate(f"openStockDetail({ticker!r})")
     page.wait_for_function(f"UX.current === {ticker!r} && document.getElementById('modal-ticker').textContent === {ticker!r}"
                            " && getComputedStyle(document.getElementById('stock-modal')).display !== 'none'", timeout=WAIT)
+    # the workings' metric rows are drawn from the percentiles in dashboard_detail.js (2026-11-26)
+    from tests import sheet_warm
+    sheet_warm.detail_loaded(page)
 
 
 def test_headings_name_and_open_state(browser):

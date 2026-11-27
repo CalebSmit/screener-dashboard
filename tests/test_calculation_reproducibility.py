@@ -306,7 +306,12 @@ def live() -> dict:
     if not PAYLOAD.exists():
         pytest.skip("dashboard_data.js not present")
     text = PAYLOAD.read_text(encoding="utf-8", errors="replace")
-    return json.loads(text[text.find("{"):text.rfind("}") + 1])
+    data = json.loads(text[text.find("{"):text.rfind("}") + 1])
+    # The percentiles are in dashboard_detail.js since 2026-11-26: fold every shard back, as the
+    # page does once it has loaded, or the reproduction would see no percentile at all.
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as health
+    return health.fold_shards(data, health._dir_reader(ROOT))
 
 
 def test_live_payload_reproduces_every_category_score_and_composite(live):

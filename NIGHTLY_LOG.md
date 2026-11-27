@@ -10934,3 +10934,88 @@ and moved to Done.**
 - **After the 11-27 02:00 run:** confirm the published context shows our IV for ~418 stocks (`ois`
   `own_mid`), ~57 `oniv`, and that `data/context_log/2026-11-27.parquet` stamps `own_mid`. If the day-after-
   Thanksgiving 20:00 refresh runs, re-run the coverage script on it.
+
+## 2026-11-26 (13:00) - QUEUE. Universe expansion phase 1: the sector percentiles leave first paint (815 -> 693 KB gzipped, -14.9%), and a refused detail file no longer loops
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-26_060001.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-26_020001.log` (completed; HEALTH: PASS).
+Evidence base at `1m`: **59 rows, newest `run_date` 2026-10-26 (31 days ago, bound 40), 5 effective** of 8.
+Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 45 days**; a standing programme, last advanced **1 day** ago, bound 21 - not deferred);
+also open 0.10 (50 d), 0.14 (43 d). Shipped to readers: 25 commits, 3 methodology changes in the last
+7 days. No stash; no branch held back; no open proposal (`open_proposals()` = `[]`).
+**Tests:** before **4564 passed / 1 skipped**; after **4572 passed / 1 skipped** (8 new), on the final
+code tree. Gate 2 dry run passed. Gate 3: index.html 959 KB; `node --check` refused by this session's tool
+guard (as the morning's), `test_payload_valid_json` parses all three files; the runner runs node. Gate 4
+clean. Gate 5
+(`rehearse_publish.py --changed-since main`) **PASSED** (failed once mid-session on a race this slice
+created in `test_sheet_round_three` - fixed, below); no ENGINE CHANGED.
+**Owner queue / rotation:** the morning's Next waits on tomorrow's 02:00 run, so per the QUEUE focus the
+next open owner item: the 2026-11-17 item is three decisions only the owner can make (left alone); the
+2026-10-28 universe item's phase 1 next step, per `plan/universe-expansion.md`, was "the audit for
+`raw`/`pct`". Taken.
+
+### Did
+- **Re-measured first** (`research/measurements/2026-11-08-stock-detail-field-weights.py` on the 11-26
+  payload): first paint had grown 801 -> 815 KB since 11-22; `raw` 25.5%, `pct` 15.1% (127 KB),
+  `summary` 12.8%.
+- **The read-site audit corrected the plan, as `inp`'s did on 11-22:** the plan and CLAUDE.md said `raw`
+  and `pct` were read by "the movers strip and the compare drawer". Neither reads either (the drawer reads
+  `cat_scores`). Every page reader of `pct` is the open sheet: `unscoredWhy`, `weightProfile`,
+  `categoryWorkings`, `renderCategoryDetails`, `metricDetailHtml`, `workingsCsv`. `raw`'s one first-paint
+  reader outside the sheet is My Holdings' concentration line (`raw.volatility`) - so `pct` first.
+- **Moved `pct` to `dashboard_detail.js`** (`DETAIL_KEYS`). While the file is in flight: each category's
+  workings say "Loading the sector percentiles…" (never "no data"), still showing the weight-table note
+  and the "Not used in this score" list, which need no percentile; an unscored score tile says "Not
+  scored: no data" and names no metric (the full reason needs the percentiles); the CSV waits. The loader
+  redraws the tiles (`scoreTileSub`, now one function for both draws) and the workings, keeping every
+  category the reader had open (`redrawPercentileSurfaces`). Every read goes through `(s.pct || {})`, since
+  a stock with no percentile at all carries no key after the split.
+- **Published files regenerated from the published run** (`logs/regen_pct.py`): folded payload **0
+  differences** outside the context layer; `dashboard_context.js` deliberately **not** rewritten (4,317
+  context differences = the morning's own-IV switch, which must reach the page through tomorrow's run, not
+  a day early). First paint **814,575 -> 693,214 bytes gzipped**; detail file 619 -> 745 KB. Page rebuilt
+  naming the new hashes (`logs/rebuild_after_regen.py`, then `rebuild_page.py --check`: up to date).
+- **Found and fixed a pre-existing defect** (since 2026-11-08): with `dashboard_detail.js` refused, the
+  failure's own redraw called `renderAbout`, which asked for the file again - a tight loop of failed
+  requests (hundreds in 3 s in `logs/dbg_pct_fail.py`) for as long as a sheet stayed open, against a
+  comment promising "retried on the next sheet that opens". `DETAIL_NO_RETRY` now makes the code do what
+  the comment said; the test asserts <= 2 requests with one sheet open and exactly one more on the next.
+- **Outside the page** (the 11-09 rule): `test_calculation_reproducibility`, `test_context_layer` and
+  `test_sheet_round_three` now fold the shard; `test_health_reads_every_shard`'s fixture carries a
+  percentile; `write_brief` reads only `raw`. Three browser helpers (`test_drilldown_reading`,
+  `test_drilldown_presentation`, `test_phone_pass`) wait for the file through a new shared
+  `tests/sheet_warm.detail_loaded(page)` before reading rows, and `test_sheet_round_three`'s unscored-tile
+  test waits before it mutates `s.pct` - that one is the race gate 5 caught. Two older tests that clicked a
+  metric row with the file held (`inp`, `eq4`) now assert no row exists yet and check the row after release.
+- New `tests/test_percentiles_in_detail_shard.py` (8): the read-site tripwire, no bare `s.pct[`, the loader
+  and CSV wiring, loading -> drawn with open sections kept and points adding up, an unscored stand-in, the
+  CSV wait, the failure wording and the no-loop count.
+- **Looked at it** (`logs/shot_pct.py`, EXPE, file held then released, 1440 and 375 px): held, Valuation
+  reads "Loading the sector percentiles…" above the not-used list; released, the four-row table, 92.32
+  total, Valuation still open; screenshots read at both widths. Home page height 23,275 px (1440) / 6,085 px
+  (375) - this change does not touch the home page; the sheet is shorter only for the moment it waits.
+
+### Evidence / research
+- None needed for a payload move: the measurement above (127 KB, 15.1%) and the plan's phase-1 rationale
+  (first paint must stop growing with the universe). No number, rank or sentence moved (folded diff 0).
+
+### Methodology changed
+- None.
+
+### Tried and rejected
+- **Moving `raw` first** (the heavier field): its concentration-line reader is live at first paint for
+  anyone with saved holdings, so it needs that line to learn to wait, or `volatility` kept apart - a
+  decision about My Holdings worth its own session.
+- **Rewriting the context file with the regenerated payload**: it would have published the morning's
+  own-IV construction a day before the run that is meant to carry it.
+
+### Set aside
+- The 06:00 entry's Next (check the 11-27 02:00 run's own-IV context): cannot be done before that run.
+- The 11-25 (13:00) entry's Next (Factor Lab, EarningsSurprise needs a paper copy): Friday's work; 11-27 is
+  a retrospective Friday, so the weekend slot.
+
+### Next
+- **After the 11-27 02:00 run** (as the 06:00 entry said), and in the same look: confirm the published
+  `dashboard_data.js` carries no `pct` and `dashboard_detail.js` carries it for every scored stock.
+- Phase 1's next slice: `raw` - decide how My Holdings' concentration line waits (`plan/universe-expansion.md`).
