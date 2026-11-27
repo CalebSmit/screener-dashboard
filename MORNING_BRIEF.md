@@ -1,4 +1,4 @@
-# Morning Brief - Friday 27 November 2026, 06:42
+# Morning Brief - Friday 27 November 2026, 14:05
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -24,7 +24,7 @@ terminal on the PC and run:
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, VLO, APA, MPC, SNDK |
 | Ranking's lean on growth | +0.012 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Shipped to readers | 18 commit(s) changed what a reader sees, 3 methodology change(s), in the last 7 days |
+| Shipped to readers | 20 commit(s) changed what a reader sees, 3 methodology change(s), in the last 7 days |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (59 rows, but overlapping windows are not independent; 147 rows across all horizons), newest 1m run date 2026-10-26 (32 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
 | Inputs vs SEC filings | total assets 459/459 within 0.5%; operating cash flow 445/446 within 0.5%; net income 433/457 within 0.5%; market value 452/487 within 5%; 5 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 1 days ago - **see the ATTENTION note below** |
@@ -50,6 +50,13 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## What changed in the repo
 
+- `150020b NIGHTLY_LOG 2026-11-27 (13:00): gate results`
+- `a530971 NIGHTLY_LOG 2026-11-27 (13:00): raw shard`
+- `91134ab docs: raw shard - plan progress, inventory, owner item, CLAUDE.md DETAIL_KEYS`
+- `05e000d wip: raw shard tests - audit tripwire, vol kept equal, holdings risk gap with the file held (mutation-checked), peer table waits then fills`
+- `30d76ac wip: raw shard - the peer table draws waiting; five readers of the published payload fold the shard (one had been half-blind since 11-08)`
+- `3b37869 wip: shard (raw) - each metric's scored value leaves first paint (693 -> 494 KB gzipped); volatility stays as vol for the two readers outside the sheet; payload regenerated from the published run (folded 0 differences)`
+- `40f23fd brief: code session 2026-11-27`
 - `a5a54b8 NIGHTLY_LOG 2026-11-27: gate results`
 - `ec96ecd NIGHTLY_LOG 2026-11-27: retrospective - the refused run and held-back branch fixed, gate 5's list derived, one retro rule`
 - `66a59ba CLAUDE.md: closed items move below the open ones; 0.10 closed; a stale v1 claim corrected`
@@ -58,61 +65,54 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `c0273a9 Sheet tests settle on the detail shard too: its pct redraw moves the sections the tab test clicks`
 - `bf0bdb4 Test states the reading's IV construction instead of inheriting it: the 02:00 run was refused for a correct page`
 - `d1ea09c brief: data run 2026-11-27`
-- `5e8fb20 brief: code session 2026-11-26-midday`
-- `b0bffa5 NIGHTLY_LOG 2026-11-26 (13:00): gate results`
-- `ac876f1 NIGHTLY_LOG 2026-11-26 (13:00): pct leaves first paint`
-- `5ebe06a docs: pct shard - plan progress, inventory, CLAUDE.md DETAIL_KEYS (and the corrected premise: the movers strip and compare drawer read neither raw nor pct), owner item`
-- `b0e9cc7 wip: pct shard - waiting workings keep the weight-table note and the not-used list; browser helpers wait for the shard before reading rows`
-- `a31a14d wip: pct shard tests (audit tripwire, waiting, redraw keeps open sections, CSV waits); fix the detail loader's retry loop on a failed load`
-- `22225f2 wip: pct shard - the remaining readers fold the shard; score-tile line keeps its tested wording`
 
 ## The session's own account
 
-> 2026-11-27 - RETROSPECTIVE. Today's refused run and yesterday's held-back branch fixed first; gate 5's warning was a hand-kept list; two retrospectives seven days apart
+> 2026-11-27 (13:00) - QUEUE. Universe expansion phase 1: each metric's scored value leaves first paint (693 -> 494 KB gzipped, -28.8%); volatility stays behind for My Holdings, and a peer test found half-blind since 11-08
 > 
-> **Health (rule 8, all five):** last code session ran? **held back by its gates** -
-> `logs/nightly-2026-11-26_130001-midday.log` (gate 1: one browser test timed out; work kept on
-> `origin/nightly/2026-11-26`). Data loop published? **no** - `logs/datarun-2026-11-27_020001.log`, HEALTH:
-> PASS, then **refused by the published-claims gate (1 failed)**; fixed this session, so the 18:00 retry
-> publishes once this branch is merged. Evidence base at `1m`: **59 rows, newest `run_date` 2026-10-26 (32
-> days ago, bound 40), 5 effective** of 8. Priority 0: `allow_auto_apply` **false**. Top open roadmap item:
-> **0.13, the Factor Lab** (opened 2026-10-12, **age 46 days**; a standing programme, last advanced **2 days**
-> ago, bound 21); also open 0.14 (44 d) - 0.10 closed today, below. Shipped to readers: 18 commits, 3
-> methodology changes in the last 7 days.
-> **Tests:** runner baseline **4564 passed / 1 skipped** (green). After merging the held-back branch and both
-> test fixes: **4573 passed / 1 skipped**; final-tree figures under "Gates". No owner-session marker; no stash.
+> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-27_060001.log`
+> (completed; the retrospective, merged as `c47a4c7`). Data loop published? **no** -
+> `logs/datarun-2026-11-27_020001.log`, HEALTH: PASS, refused by the published-claims gate; the morning
+> session fixed the stale test and its branch is on `main`, so the **18:00 retry** should publish. Evidence
+> base at `1m`: **59 rows, newest `run_date` 2026-10-26 (32 days ago, bound 40), 5 effective** of 8.
+> Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
+> 2026-10-12, **age 46 days**; a standing programme, last advanced **2 days** ago, bound 21); also open 0.14
+> (44 d). Shipped to readers: 20 commits, 3 methodology changes in the last 7 days.
+> **Tests:** before **4574 passed / 1 skipped**; after: under "Gates".
+> **Owner queue / rotation:** QUEUE. No stash, no owner-session marker, no open proposal
+> (`write_brief.open_proposals()` is empty). The morning's Next 1 is the 18:00 retry (not yet due); its Next
+> 2 was this slot's work - phase 1's `raw` slice (`plan/universe-expansion.md`), under the owner item
+> "Beyond the S&P 500". The top owner item (Search Console, a byline, analytics) is the owner's to decide;
+> nothing there for a session.
 > 
-> ### Did (before the retrospective): the refused data run and the held-back branch
-> 
-> **1. The 02:00 run was refused for a correct page.** One failure:
-> `test_context_cards_printed.py::test_a_partial_reading_marks_its_figures[partial-False-True]`. The test
-> patches option fields onto the first stock and kept that stock's own `ois` (which construction its implied
-> volatilities use). The 11-26 06:00 session switched `PUBLISHED_IV_CONSTRUCTION` to `own_mid`, and **today's
-> run was the first one computed under it**, so the inherited `ois` became `own_mid`. The page then
-> correctly left off the caveat "the figures below are the data source's own, worked from last trades".
-> The test now states `ois` and covers both cases: a partial reading from the source gets the caveat, and
-> one with `own_mid` does not. Commit `bf0bdb4`.
-> 
-> **2. The 11-26 13:00 branch (the `pct` shard, -14.9% first paint) was held back by gate 1:**
-> `test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet` timed out under
-> `-n auto`. **It was real, not a flake.** Since `pct` moved into `dashboard_detail.js`, the file's arrival
-> redraws each category's workings and moves the sections. The test's `_settled` helper waited for the
-> context payload's redraw but not this one. That session had fixed the same race in the unscored-tile
-> test and missed the tab test. Merged `origin/nightly/2026-11-26` into this branch and made `_settled`
-> call `sheet_warm.detail_loaded(page)` too (merge `7d5033d`, fix `c0273a9`). The module passes serially (18/18) and the full parallel
-> suite is green (4,573). **Rehearsed against today's refused run (`4f43d5f75e77`): PASS**, with the claims
-> gate at 2,443 passed.
-> 
-> ### Retrospective findings
-> 
-> - **Sessions reviewed: 13 log entries, 2026-11-20 13:00 to 2026-11-26 13:00 - 11 scheduled, 2 owner-run**
->   (11-22 evening phone pass, 11-23 evening unjam + phone rows). **2 of 14 code slots never started**
->   (11-23 06:00 and 13:00: `git pull --ff-only` failed on a local `main` diverged by a data-run push that
->   failed). **1 session held back** (11-26 13:00, above).
-> - **Genuinely valuable: 11 of 11 scheduled, 2 of 2 owner-run | Churn: 0 | Failed gates: 1** (11-26 13:00
->   gate 1, a real race). **Data loop: 2 of 6 weekday 02:00 runs refused** (11-20, 11-27), both by the
->   claims gate and **both with a correct page and a stale test**. In both, the change the run exposed
->   had shipped by day and changed what the run *computes*, and gate 5 could not see it. 11-23 was jammed
+> ### Did
+> - **`raw` - each metric's value as scored - moved to `dashboard_detail.js`. First paint 693,214 ->
+>   493,871 bytes gzipped (-199 KB, -28.8%).** Regenerated from the published run (`runs/c31edb9b89dc`,
+>   11-26 02:00) with this generator: folded whole, **0 differences** from the committed payload (the
+>   context file deliberately not rewritten, as on 11-26). `logs/regen_raw.py`.
+> - **Read-site audit, page.** Readers of a stock's `raw`: the peer table (`buildPeerRow`, six of nine
+>   columns), `categoryWorkings`, `peerContext`, `metricDetailHtml`, `equationHtml`, and the CSV through
+>   the workings rows - all the open sheet - plus **two outside it, both of one figure, volatility**: My
+>   Holdings' concentration line (live at first paint for a reader with saved names) and the context
+>   panel's "Realised, past year" row (drawn when the context file lands, which can be first). The plan
+>   offered "wait" or "keep volatility as its own small field"; I took the second, because a first-paint
+>   surface should not wait on a 951 KB file for one number. `vol` (6.3 KB gzipped, 497 stocks) is copied
+>   by `split_detail` (`FIRST_PAINT_RAW`), never computed twice; verified equal to `raw.volatility` for
+>   every stock that has one; both readers go through `volOf`, which falls back to `raw` so hand-built
+>   payloads render as before.
+> - **The peer table, which had six figures at first paint, now has none until the file lands.** It is
+>   drawn anyway - ticker and rank are first paint - with every figure and the peer median "…"; the "No
+>   peer figures were published" sentence is kept for a file that landed with nothing. The workings
+>   needed nothing: they already say "Loading the sector percentiles…" for `pct`, in the same file.
+>   `metricDetailHtml` gives a stock without `raw` an empty one rather than throwing, keeping its
+>   `claims.py`-registered sentence templates verbatim.
+> - **Outside the page (the 11-09 rule: grep beyond the page).** `write_brief.context_coverage` counted
+>   earnings variability off unfolded `raw` - it would have printed 0 every morning - and folds now.
+>   Five readers failed loudly in the suite, not silently: `test_bank_pb_roe_identity` (0 banks),
+>   `test_peer_row_one_path`, `test_holdings_concentration`'s source check, the growth-structure
+>   measurement script (run by `test_growth_category`), and three membership tests that pinned "raw not
+>   yet moved". All fold now. **Found on the way:** `test_peer_row_one_path`'s empty-state premise read
+>   the payload unfolded, so since `financials` moved on 11-08 it had counted three of its nine columns as
 > ...
 
 ---
