@@ -23,11 +23,11 @@ Do not rely on impressions. Go and look:
 - **`git log --oneline --since="4 weeks ago"`** - what actually shipped? How
   many merges, and how substantial?
 - **`logs/*.log`** - how many runs failed their ship gates, and which gate? (Not session
-  duration - it has never mattered.) **Count the sessions that never got to start** (15 of ~43
-  scheduled slots, 2026-10-30..11-20: three on a lapsed login, one on a too-old CLI, eleven with no
-  CLI at all)
-  and **the 02:00 data runs its gates refused** (8 of 15 in the same window, all by the claims gate)
-  - for each refusal, was the page wrong or the test? Those logs are short enough to skim past.
+  duration - it has never mattered.) **Count the sessions that never got to start** and **the
+  02:00 data runs its gates refused** - for each refusal, was the page wrong or the test, and **when
+  did the change it exposed ship?** Those logs are short enough to skim past. (Running record:
+  10-30..11-20, 15 of ~43 slots never started, 8 of 15 runs refused; 11-20..11-27, 2 of 14 and 2 of 6 -
+  both refusals a correct page and a test that could not see a change to what the run computes.)
 - **The watchdog's verdicts against the logs for the same days** (added 2026-11-20). `gh run list
   --workflow loop-watchdog.yml`, then `gh run view <id> --log` for a day you know a loop failed. On
   2026-11-13 it reported the code loop OK while its third straight day of sessions had aborted
@@ -81,6 +81,7 @@ Do not rely on impressions. Go and look:
   | 2026-10-16 | `dashboard_context.js` - a second published payload file since 2026-10-08 - had no floor, no parse and no header check on **either** path; and 15 modules holding 64 of `claims.py`'s own checks were outside the claims gate | both runners' spec lists; the gate's membership derived from `claims.py` |
   | 2026-10-30 | the three **evidence** files the loop appends to (`dispersion_history.csv`, `improvement/snapshots/`, `factor_vol_history.csv` - the last read by `adjust_momentum_weight`, so it sets the *next* run's weight) had no gate on either path, and the test that excluded them asserted they were "guarded by `check_run_health.py`", which does not look at them | `tests/test_one_observation_per_run_date.py` in the publish gate |
   | 2026-11-20 | gate 5 rehearses the next publish by regenerating the page from a run **scored before the branch** - so it sees a generator change and cannot see a scoring change. The 11-19 missing-category rule passed it; the first full run under the rule was refused at 02:00 by four tests still asserting the old wording | `rehearse_publish.py` prints `ENGINE CHANGED`; `prompts/nightly.md` section 4 (a mitigation - the real closure, re-scoring the run's own `01_raw_metrics.parquet` with the branch's engine, is not built) |
+  | 2026-11-27 | the `ENGINE CHANGED` warning above read a **hand-kept list of six files**; the 11-26 switch to our own implied volatilities was in `context_signals.py`, gate 5 said nothing, and the 02:00 run was refused by a test that inherited the old construction's field | `rehearse_publish.ENGINE_FILES` derived from `run_screener.py`'s imports outside the generator (22 modules) |
 
   The first four were one shape - *the strongest check guards the path that
   publishes least often*. **The fifth was a different one and is the more useful
@@ -89,7 +90,10 @@ Do not rely on impressions. Go and look:
   a missing *evidence file* permanent. When a list is replaced by a derivation,
   ask what the derivation cannot reach. **The sixth is the code loop's version of
   the same lesson: a rehearsal is only as wide as what it re-executes.** Gate 5
-  re-runs the generator, so it was blind to the engine.
+  re-runs the generator, so it was blind to the engine. **The seventh is the sixth's mitigation
+  failing the fifth's lesson:** the warning it added named six "engine" files by hand, and the
+  next change the run computes lived in a seventh. **A mitigation written as a list is a new hole;
+  when you add one, derive it.**
 
   Gates 1, 3 and the brief have counterparts on both paths. **Gate 2
   (`--dry-run`) and gate 4 (clean tree) deliberately do not**, and that was
@@ -99,11 +103,11 @@ Do not rely on impressions. Go and look:
   direction that matters. Do not "close" either.
 
 - **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 970 -> 1036 -> 959 -> 1089
-  -> 940 lines across seven retrospectives. It grows back every fortnight by the same mechanism:
+  -> 940 -> 964 lines across eight retrospectives. It grows back by the same mechanism:
   an item closes and its record stays in "Open", in the one file every session
-  must read before it starts. **Expect to move 100+ lines every time, and do it
-  whatever the number says** - the test is not "is it longer than last time" but
-  "is anything under Open actually closed". A closed item's reasoning belongs in
+  must read before it starts. The test is not a line count but **"is anything under Open actually
+  closed"** - since 2026-11-27 closed items live under `### Closed - the constraints that still
+  bind`, after the open ones, so check that nothing above that heading says CLOSED or DONE. A closed item's reasoning belongs in
   `DECISIONS.md`, its constraint in `CLAUDE.md`, its discovery in
   `NIGHTLY_LOG.md`. The two biggest sources, both times: a per-item chronology
   that should be a table in `DECISIONS.md`, and a *refused* proposal whose
@@ -112,7 +116,8 @@ Do not rely on impressions. Go and look:
 
 - **Who is doing the work.** Count `NIGHTLY_LOG.md` entries since the last
   retrospective, split by scheduled versus owner-run. It was **11 scheduled / 44
-  owner-run** on 2026-10-16, **24 / 14** on 2026-10-30 and **24 / 25** on 2026-11-20 -
+  owner-run** on 2026-10-16, **24 / 14** on 2026-10-30, **24 / 25** on 2026-11-20 and **11 / 2**
+  on 2026-11-27 (a one-week window) -
   so the ratio is not a stable fact and the rotation's job changes with it. Say what
   the current split implies, and **whose changes the refused data runs came from**:
   on 2026-11-20 the one scoring change in the window was owner-run, shipped at night,

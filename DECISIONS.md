@@ -1439,3 +1439,30 @@ serially and fail under xdist. `tests/test_lab_reading_and_access.py`.
 **8. Test isolation - DONE 2026-10-09.** `conftest.py` is a tripwire: it restores published
 artifacts and **fails the session** if any test wrote one. See `DECISIONS.md` "0.10, 4, 8".
 
+## Moved out of CLAUDE.md, 2026-11-27 (retrospective)
+
+Verbatim. `CLAUDE.md` keeps the constraint under "### Closed - the constraints that still bind".
+
+### 0.15, What the ranking is for
+
+**0.15. What the ranking is for, given no measured edge (opened 2026-11-19, owner-delegated) - CLOSED 2026-11-21.**
+The research engine finds the ranking does not measurably order next month's returns (pooled IC
+-0.001 over 176 months; none of 27 alternatives better), and the home page now says so beside the
+track record. Before universe expansion phase 2 scales the ranking to 1,500 stocks, a Monday note
+answers what it is for and how the page should present it: a *screen* that narrows 500 to 40 worth
+reading (judged on what a club does with the 40, not on rank IC); a longer horizon (value and
+quality are slow, the engine tests one month); fewer, better-evidenced factors; or plainly a teaching
+tool. **The criteria are pre-registered** in `research/2026-11-19-what-the-ranking-is-for.md` section 3
+(fixed before any measurement; do not relax them).
+`research/2026-11-19-fresh-eyes-review.md` finding 2.
+**ANSWERED 2026-11-21: D - a teaching tool, with no return claim** (sections 4-5; method committed
+before the run). The positive control was seen (t 5.64); the top 40 fell in next month's bottom decile
+9.8% of the time in both eras (A fails - no better than chance, with a tight interval); 6- and
+12-month IC are undecidable (detectable 0.057 / 0.065, eras of opposite sign). **Do not reopen A on
+survivorship** (section 4c says why it is a limit, not a reason) **and do not read the 2020-2026
+twelve-month +0.038 as a finding.** Universe expansion phase 2 is unblocked. **CLOSED 2026-11-21:
+both page changes in section 5 shipped** - the hero's tested sentence states A and B (claim
+`page.hero_screen`), and the Track record tile leads with the lesson: heading "Track record: too short
+to judge", the skill-or-luck line above the return (claim `context.track_luck`,
+`tests/test_page_fourth_pass.py`). Constraint that survives: **no surface may present the ranking's
+return as a result** - phase 3's universe inherits the same framing.

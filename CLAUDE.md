@@ -366,8 +366,9 @@ change turns out to be wrong, revert it and say so. But do not wait for proof
 before making a well-sourced change, and do not manufacture a backtest number
 from a backtest you know is biased.
 
-**Every other Friday is a RETROSPECTIVE instead** (even ISO week numbers, **and any Friday whose
-last logged retrospective is over 14 days old** - a missed one is owed at the next Friday, 2026-11-19). The
+**Every other Friday is a RETROSPECTIVE instead** - **any Friday whose last logged retrospective is 13
+or more days old**, so a missed one is owed at the next Friday (one rule since 2026-11-27: an ISO-week
+rule beside it put two retrospectives seven days apart and cost the lab a Friday). The
 runner swaps in `prompts/retrospective.md` automatically. That session
 does not work on the screener - it evaluates whether this routine is actually
 producing value and rewrites its own process: these rules, the daily prompt,
@@ -440,22 +441,18 @@ outcome.
   `CTX_LOADED` flag is closure-scoped and not visible from `page.evaluate`.
 - `dashboard_detail.js` - `window.SCREENER_DETAIL`, **the third payload file** (2026-11-08),
   written by `generate_dashboard.split_detail()`: the fields only an open sheet reads, today
-  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct")` (`inp` 2026-11-22: first paint
-  1,125 -> 908 KB gzipped; `eq4`/`roe5` the same afternoon, -> 801 KB - `eq4` is also read by the
-  Reporting calendar, which says "…" and asks for the file, `tests/test_quarters_in_detail_shard.py`;
-  `pct` 2026-11-26, 815 -> 693 KB - so **no metric row exists until the file lands**, and a browser
-  test that reads one calls `tests/sheet_warm.detail_loaded(page)` first,
-  `tests/test_percentiles_in_detail_shard.py`; a Python reader of the published payload folds it back with
-  `check_run_health.fold_shards`, `tests/test_inputs_in_detail_shard.py`). It is **not** loaded from the start-up block - the
-  first sheet laid out pulls it, which on an untouched page is the idle pre-warm, so the
-  measured request order is `dashboard_data.js`, `dashboard_context.js`, `dashboard_detail.js`.
-  The loader merges into `D.stock_detail`, so every reader of `s.about` keeps working.
-  It took **307 KB, 19.8%, off the gzipped first paint** (1.547 -> 1.240 MB). This is the first
-  slice of `plan/universe-expansion.md` phase 1's `stock_detail` shard; the **membership rule
-  is every reader in the open sheet, and every panel that prints it can say it is waiting** -
-  `raw` and `summary` are read by My Holdings at first paint (not, as this line said until
-  2026-11-26, by the movers strip or the compare drawer - the audit found neither reads them),
-  so each needs its own read-site audit before it moves. `tests/test_detail_payload_split.py`.
+  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct")` (slice by slice,
+  with first-paint sizes: `plan/universe-expansion.md` phase 1 - 1.547 MB gzipped before the first,
+  693 KB after `pct`). Loaded by the first sheet laid out (on an untouched page, the idle pre-warm),
+  after `dashboard_data.js` and `dashboard_context.js`, and merged into `D.stock_detail`. Because
+  `pct` is in it, **no metric row exists until the file lands**: a browser test that reads one calls
+  `tests/sheet_warm.detail_loaded(page)` first, and one that clicks through a sheet's sections waits
+  for it too (its arrival redraws the workings - 2026-11-26's held-back gate 1). A Python reader of the
+  published payload folds it back with `check_run_health.fold_shards`. **Membership rule: every reader
+  in the open sheet, and every panel that prints it can say it is waiting** - `raw` and `summary`
+  are read by My Holdings at first paint, so each field needs its own read-site audit before it moves.
+  `tests/test_detail_payload_split.py`, `tests/test_percentiles_in_detail_shard.py`,
+  `tests/test_quarters_in_detail_shard.py`, `tests/test_inputs_in_detail_shard.py`.
 - **The Factor Lab** (2026-10-12; `plan/factor-lab.md`): `lab.html` reruns a paper the
   screener cites on public data and lets the reader change the conditions. `factor_lab.py` is
   the reference implementation and builds `lab_data.js` (**generated**: `python factor_lab.py
@@ -708,77 +705,6 @@ is more sessions each doing one thing properly.**
 
 ### Open
 
-**0.8 and 0.9 are CLOSED** (2026-10-07 and 2026-10-09). Calculation transparency, the premium
-redesign, and the four methodology questions the transparency build surfaced. The record and the
-numbers moved to `DECISIONS.md` ("0.8/0.9, closed") on 2026-10-16. What still binds:
-
-- **Nightly sessions do not take on design or fine-tuning work** (owner, 2026-10-07). Rows 0.8
-  and 0.8c above are correctness rules and still apply; `plan/dashboard-redesign-master.md` is
-  history, not a queue.
-- The navigation layer **wraps** `openStockDetail`/`closeModal` (`_js_ux()`) - keep it that way,
-  or some routes to a stock lose links and stepping.
-- Before touching `operating_leverage`, `revenue_growth`, Piotroski 3/8/9, EBITDA or
-  `forward_eps_growth`, read the changelog's **"Measured: the day's changes"** entry
-  (2026-10-09 evening) and the five `research/2026-10-09-*` notes behind them.
-
-**T0a's standing constraint:** `claims.py` registers every sentence that says how a
-number is computed, with the code that makes it true and the test that checks it.
-**A new `_sentence_*` in `stock_summary.py` fails the suite until it is registered**,
-and `FORBIDDEN` keeps the four false statements fixed that day from being republished.
-Defect 3 survived for months because **a test asserted it** - when you correct a
-published claim, grep the tests as well as the prose. `tests/test_claims_register.py`,
-24 tests, in the data loop's publish gate.
-
-**0.11. The context layer - CLOSED 2026-10-20** (record: `DECISIONS.md` "0.11, closed";
-`plan/context-layer.md` "CLOSED 2026-10-20"). **The one remaining item is time, not work** - do
-not count it as deferred: the engine's gate of 8 effective observations is about mid-2027; read the
-brief's `context_eval` line. Three constraints survive it, beyond settled row "ctx":
-
-- **A claim whose check tests the plumbing instead of the assertion is an unchecked claim.** Every
-  computational sentence on a context panel has a `context.*` claim checked by behaviour
-  (`tests/test_context_layer_claims.py` renders the generator's own page).
-- **Every quote says when it was taken** (`options_cache.market_session_date` / `is_session_date` /
-  `live_quote_stamp`, one rule for the cache, the live pass and the generator); **a mid-session run
-  never writes `data/context_log/`** (`context_signals.mid_session_reason`); the skew before
-  2026-10-16's log is excluded from `context_eval`, never spliced. Do not loosen `MAX_REL_SPREAD`
-  or the IV bounds to raise coverage.
-- The option-implied signals and the macro backdrop are **not** score candidates (findings, not
-  pending); the track record is never methodology evidence.
-
-**0.12. Metric audit residuals - CLOSED 2026-10-12** (`DECISIONS.md` "0.12, closed";
-`research/2026-10-09-metric-audit.md`). Two constraints survive it:
-
-- **The momentum panic rule's three numbers are set in advance and are never re-fitted** -
-  S&P 500 total-return 24-month return negative **and** 126-day volatility above a fixed
-  20.6%, momentum x0.70, freed weight split to Quality and Valuation, never raised
-  (`factor_engine.market_panic_state`, `tests/test_momentum_panic_rule.py`). Do not tune them
-  to recent data or to results; change `research/2026-10-09-momentum-regime.md` and the
-  changelog first. The run's reading is in `effective_weights.json`.
-- **Accruals are counted three times inside Quality** (0.49 with Beneish, 0.00 with Piotroski,
-  13 points in all) - measured, deliberately unchanged. Do not "discover" it again.
-
-**0.15. What the ranking is for, given no measured edge (opened 2026-11-19, owner-delegated) - CLOSED 2026-11-21.**
-The research engine finds the ranking does not measurably order next month's returns (pooled IC
--0.001 over 176 months; none of 27 alternatives better), and the home page now says so beside the
-track record. Before universe expansion phase 2 scales the ranking to 1,500 stocks, a Monday note
-answers what it is for and how the page should present it: a *screen* that narrows 500 to 40 worth
-reading (judged on what a club does with the 40, not on rank IC); a longer horizon (value and
-quality are slow, the engine tests one month); fewer, better-evidenced factors; or plainly a teaching
-tool. **The criteria are pre-registered** in `research/2026-11-19-what-the-ranking-is-for.md` section 3
-(fixed before any measurement; do not relax them).
-`research/2026-11-19-fresh-eyes-review.md` finding 2.
-**ANSWERED 2026-11-21: D - a teaching tool, with no return claim** (sections 4-5; method committed
-before the run). The positive control was seen (t 5.64); the top 40 fell in next month's bottom decile
-9.8% of the time in both eras (A fails - no better than chance, with a tight interval); 6- and
-12-month IC are undecidable (detectable 0.057 / 0.065, eras of opposite sign). **Do not reopen A on
-survivorship** (section 4c says why it is a limit, not a reason) **and do not read the 2020-2026
-twelve-month +0.038 as a finding.** Universe expansion phase 2 is unblocked. **CLOSED 2026-11-21:
-both page changes in section 5 shipped** - the hero's tested sentence states A and B (claim
-`page.hero_screen`), and the Track record tile leads with the lesson: heading "Track record: too short
-to judge", the skill-or-luck line above the return (claim `context.track_luck`,
-`tests/test_page_fourth_pass.py`). Constraint that survives: **no surface may present the ranking's
-return as a result** - phase 3's universe inherits the same framing.
-
 **0.13. The Factor Lab (opened 2026-10-12; a standing programme, progress in `plan/factor-lab.md`).**
 Owner item; `OWNER_FOCUS.md` has it and
 `plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day** - the next one
@@ -833,22 +759,6 @@ and the reasoning is there rather than here.
   `research/2026-11-02-investment-inside-quality.md`; the practitioner convention is on the page).
   **Question 5 is an open Monday.**
 
-**0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07).**
-A data change, not design - the residual of the transparency work. **(a)-(d) are BUILT**
-(2026-10-09, smoke-tested live: AAPL, JPM, NVDA reproduce to 4dp): Jensen's alpha prints its four
-CAPM terms, beta its covariance / variance, volatility its daily standard deviation x 252^0.5,
-and the three surprise metrics show their four quarters. **What remains is Sharpe and Sortino**
-(weight 0, shown for reference) - low value; do them only if a session has nothing better.
-
-**The pattern to copy is `max_drawdown_1y`:** the two closes the fall was measured between are
-computed **where the metric is computed**, stored as `_mdd_peak` / `_mdd_trough`, published
-through `ENGINE_KEYS`, and divided on the row - one computation, published, never a second one in
-the generator or in JS (row 0.8). The argument for finishing it at all: writing that equation down
-is what exposed the log-return compounding error - *you cannot write a metric's arithmetic down
-without checking it.* Coverage measured 2026-10-08 at 15 exact equations of 29 weighted metrics,
-58.0% of composite weight (`research/measurements/2026-10-08-equation-coverage.py`) -
-**re-measure rather than trusting that number.**
-
 **0.14. The inputs against the companies' own filings (opened 2026-10-14, owner-run).**
 The narrative to 2026-11-19 is in `DECISIONS.md` "0.14, the filings cross-check - the record"
 (moved 2026-11-19 to keep this file to what binds). **The rules that bind:**
@@ -874,13 +784,6 @@ The narrative to 2026-11-19 is in `DECISIONS.md` "0.14, the filings cross-check 
   gapped" line in February 2027, when the first combined 10-Ks arrive.
 - **Do not patch a hole in the quarterly series with a filings fallback** (refused 2026-10-15,
   section 3c); the question is a Monday queued for 2026-12-07.
-
-**0.6. One observation per run date - CLOSED 2026-10-08.** The record moved to `DECISIONS.md`
-("0.6, closed") on 2026-10-16. The constraint: **every append-once-per-run file holds one row
-per run date** - `dispersion_history.csv`, `improvement/snapshots/` and
-`factor_vol_history.csv`, the last of which feeds *scoring* through
-`adjust_momentum_weight`. A fourth such file gets its tripwire in the same module.
-`tests/test_one_observation_per_run_date.py`, 11 tests.
 
 **3. Backtest v2 - step 1 DONE on both halves, step 3's record layer BUILT, step 4's harness
 BUILT (2026-10-15).** `plan/backtest-v2.md` governs; **the measurement record is `DECISIONS.md`
@@ -918,8 +821,8 @@ before quoting any number here, and remember nothing either produces decides any
   (`INFO`'s series begins October 2024, two years after IHS Markit was absorbed).
   `tests/test_lookahead.py` (43), `tests/test_universe_history.py` (59).
 - **Two defects in `backtest.py`, recorded and deliberately not patched:** `dynamic_cols`
-  recomputes **four** metrics where momentum and risk carry **six**, so `jensens_alpha` and
-  `max_drawdown_1y` are frozen; and v1 omits `adjust_momentum_weight()`, so it backtests a
+  recomputes **four** metrics where momentum and risk carry **six**, so `residual_momentum` (which
+  replaced `jensens_alpha` 2026-11-24) and `max_drawdown_1y` are frozen; and v1 omits `adjust_momentum_weight()`, so it backtests a
   weighting the site does not publish. v2 must apply it **per rebalance month from that month's
   regime** - reading the current run's regime is a third look-ahead vector, inside the weights
   rather than the metrics.
@@ -975,3 +878,87 @@ the page is the owner's call. `plan/investor-profiles.md`.
 
 **7. Investment-club readiness** - can a student open this on a phone and
 understand what they're looking at?
+
+### Closed - the constraints that still bind
+
+Each item's record is in `DECISIONS.md`; what is here is what a session must not undo.
+
+**0.8 and 0.9 are CLOSED** (2026-10-07 and 2026-10-09). Calculation transparency, the premium
+redesign, and the four methodology questions the transparency build surfaced. The record and the
+numbers moved to `DECISIONS.md` ("0.8/0.9, closed") on 2026-10-16. What still binds:
+
+- **Nightly sessions do not take on design or fine-tuning work** (owner, 2026-10-07). Rows 0.8
+  and 0.8c above are correctness rules and still apply; `plan/dashboard-redesign-master.md` is
+  history, not a queue.
+- The navigation layer **wraps** `openStockDetail`/`closeModal` (`_js_ux()`) - keep it that way,
+  or some routes to a stock lose links and stepping.
+- Before touching `operating_leverage`, `revenue_growth`, Piotroski 3/8/9, EBITDA or
+  `forward_eps_growth`, read the changelog's **"Measured: the day's changes"** entry
+  (2026-10-09 evening) and the five `research/2026-10-09-*` notes behind them.
+
+**T0a's standing constraint:** `claims.py` registers every sentence that says how a
+number is computed, with the code that makes it true and the test that checks it.
+**A new `_sentence_*` in `stock_summary.py` fails the suite until it is registered**,
+and `FORBIDDEN` keeps the four false statements fixed that day from being republished.
+Defect 3 survived for months because **a test asserted it** - when you correct a
+published claim, grep the tests as well as the prose. `tests/test_claims_register.py`,
+24 tests, in the data loop's publish gate.
+
+**0.11. The context layer - CLOSED 2026-10-20** (record: `DECISIONS.md` "0.11, closed";
+`plan/context-layer.md` "CLOSED 2026-10-20"). **The one remaining item is time, not work** - do
+not count it as deferred: the engine's gate of 8 effective observations is about mid-2027; read the
+brief's `context_eval` line. Three constraints survive it, beyond settled row "ctx":
+
+- **A claim whose check tests the plumbing instead of the assertion is an unchecked claim.** Every
+  computational sentence on a context panel has a `context.*` claim checked by behaviour
+  (`tests/test_context_layer_claims.py` renders the generator's own page).
+- **Every quote says when it was taken** (`options_cache.market_session_date` / `is_session_date` /
+  `live_quote_stamp`, one rule for the cache, the live pass and the generator); **a mid-session run
+  never writes `data/context_log/`** (`context_signals.mid_session_reason`); the skew before
+  2026-10-16's log is excluded from `context_eval`, never spliced. Do not loosen `MAX_REL_SPREAD`
+  or the IV bounds to raise coverage.
+- The option-implied signals and the macro backdrop are **not** score candidates (findings, not
+  pending); the track record is never methodology evidence.
+
+**0.12. Metric audit residuals - CLOSED 2026-10-12** (`DECISIONS.md` "0.12, closed";
+`research/2026-10-09-metric-audit.md`). Two constraints survive it:
+
+- **The momentum panic rule's three numbers are set in advance and are never re-fitted** -
+  S&P 500 total-return 24-month return negative **and** 126-day volatility above a fixed
+  20.6%, momentum x0.70, freed weight split to Quality and Valuation, never raised
+  (`factor_engine.market_panic_state`, `tests/test_momentum_panic_rule.py`). Do not tune them
+  to recent data or to results; change `research/2026-10-09-momentum-regime.md` and the
+  changelog first. The run's reading is in `effective_weights.json`.
+- **Accruals are counted three times inside Quality** (0.49 with Beneish, 0.00 with Piotroski,
+  13 points in all) - measured, deliberately unchanged. Do not "discover" it again.
+
+**0.15. What the ranking is for - CLOSED 2026-11-21: D, a teaching tool with no return claim**
+(`research/2026-11-19-what-the-ranking-is-for.md`, criteria pre-registered in section 3; the
+record is in `DECISIONS.md` "Moved out of CLAUDE.md, 2026-11-27"). **No surface may present the
+ranking's return as a result** (claims `page.hero_screen`, `context.track_luck`); phase 3's universe
+inherits the framing. **Do not reopen A on survivorship** (section 4c) **and do not read the
+2020-2026 twelve-month +0.038 as a finding.**
+
+**0.6. One observation per run date - CLOSED 2026-10-08.** The record moved to `DECISIONS.md`
+("0.6, closed") on 2026-10-16. The constraint: **every append-once-per-run file holds one row
+per run date** - `dispersion_history.csv`, `improvement/snapshots/` and
+`factor_vol_history.csv`, the last of which feeds *scoring* through
+`adjust_momentum_weight`. A fourth such file gets its tripwire in the same module.
+`tests/test_one_observation_per_run_date.py`, 11 tests.
+
+**0.10. Keep the inputs the history-based metrics need, at fetch - CLOSED 2026-11-27** (retrospective:
+open 51 days with only two weight-0 metrics left, which the item itself called low value, and listed
+"also open" on every health line). **(a)-(d) were BUILT** 2026-10-09: beta prints its covariance /
+variance, volatility its daily standard deviation x 252^0.5, the three surprise metrics their four
+quarters (and Jensen's alpha its CAPM terms, until residual momentum replaced it 2026-11-24). Sharpe
+and Sortino (weight 0, shown for reference) were not done; a session with nothing better may do them.
+What binds is the pattern, for any new history-based metric:
+
+**The pattern to copy is `max_drawdown_1y`:** the two closes the fall was measured between are
+computed **where the metric is computed**, stored as `_mdd_peak` / `_mdd_trough`, published
+through `ENGINE_KEYS`, and divided on the row - one computation, published, never a second one in
+the generator or in JS (row 0.8). The argument for finishing it at all: writing that equation down
+is what exposed the log-return compounding error - *you cannot write a metric's arithmetic down
+without checking it.* Coverage measured 2026-10-08 at 15 exact equations of 29 weighted metrics,
+58.0% of composite weight (`research/measurements/2026-10-08-equation-coverage.py`) -
+**re-measure rather than trusting that number.**
