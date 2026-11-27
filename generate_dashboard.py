@@ -909,10 +909,25 @@ DETAIL_FILE = "dashboard_detail.js"
 # Outside the page every reader of the published payload folds the shard back; the build's own
 # uses (calc_trace, stock_summary, ranking_audit) run before split_detail.
 #
-# What is *not* in the shard, and why: `raw` is read by My Holdings' concentration line
-# (`raw.volatility`, live at first paint for a reader with saved names) and the peer table;
-# `summary` by My Holdings' card (`HOLDINGS_FACTS`). Each needs its own slice.
-DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct")
+# `raw` (2026-11-27, 13:00) - each metric's value as scored, the heaviest field left in first
+# paint. Read-site audit, page: the peer table (buildPeerRow - six of its nine columns), the
+# category workings and metric rows (categoryWorkings / peerContext / metricDetailHtml /
+# equationHtml), the workings CSV - all the open sheet, all drawn waiting already or now ("…" in
+# the peer table, "Loading the sector percentiles…" in the workings, which `pct` beside it in the
+# same file already says) - plus **two readers that are not the sheet, both of one figure,
+# volatility**: My Holdings' concentration line (live at first paint for a reader with saved names)
+# and the context panel's "Realised, past year" row (drawn when the context file lands, which can
+# be before this one). That one figure stays in first paint as its own field, `vol`, copied from
+# `raw` here rather than computed a second time, and both read it through `volOf` (which falls
+# back to `raw.volatility`, so a payload built by hand with `raw` inline renders as before).
+# Outside the page: `write_brief`'s earnings-variability count now folds the shard; the build's own
+# uses (calc_trace, stock_summary, ranking_audit, the input-mismatch checks) run before split_detail.
+#
+# What is *not* in the shard, and why: `summary` is read by My Holdings' card (`HOLDINGS_FACTS`);
+# it needs splitting into the holdings' six kinds and the rest first.
+DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct", "raw")
+# The one figure of `raw` read outside the sheet, kept in first paint under its own key.
+FIRST_PAINT_RAW = {"volatility": "vol"}
 # The subset that is provider prose. The scoring-freedom rule applies to every key above; being
 # a string applies only to these (`tests/test_detail_payload_split.py`).
 PROSE_KEYS = ("about", "industry")
@@ -973,6 +988,12 @@ def split_detail(data: dict) -> dict:
     out = {"detail": {}}
     for t, s in (data.get("stock_detail") or {}).items():
         part = {k: s.pop(k) for k in DETAIL_KEYS if k in s}
+        # The `raw` figures a first-paint surface prints stay behind under their own key, the
+        # same value (2026-11-27; see FIRST_PAINT_RAW). A null is not carried.
+        for metric, key in FIRST_PAINT_RAW.items():
+            v = (part.get("raw") or {}).get(metric)
+            if v is not None:
+                s[key] = v
         # Per key, not per stock: a stock with a description and no figures should carry the
         # description and not an empty block beside it. Every reader treats a missing key and
         # an empty one the same (``renderAbout`` hides the block, ``renderCompanySnapshot``
@@ -4214,6 +4235,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         return '<div class="holdings-fit-line">' + parts.join(' &bull; ') + '</div>';
     }}
 
+    // A stock's past-year volatility as scored. `raw` is in dashboard_detail.js since 2026-11-27,
+    // so the two surfaces outside the sheet that print it (this panel's concentration line and the
+    // context panel's "Realised, past year") read the copy first paint keeps, `vol`
+    // (generate_dashboard.FIRST_PAINT_RAW); `raw` inline - a payload built by hand - still works.
+    function volOf(s) {{
+        if (!s) return null;
+        if (s.vol !== undefined && s.vol !== null) return s.vol;
+        const v = (s.raw || {{}}).volatility;
+        return v === undefined ? null : v;
+    }}
+
     // Published counts for a diversified portfolio. Every one is measured on
     // RANDOMLY selected portfolios - see section 3.4 of
     // research/2026-09-21-position-sizing-and-how-much.md. They are literature
@@ -4282,7 +4314,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // while carrying 2.00x the volatility. The raw number is directly
         // comparable and is what the "equal dollars" arithmetic needs.
         const withVol = rows
-            .map(function(r) {{ return {{t: r.t, v: (r.s.raw || {{}}).volatility}}; }})
+            .map(function(r) {{ return {{t: r.t, v: volOf(r.s)}}; }})
             .filter(function(x) {{ return typeof x.v === 'number' && isFinite(x.v) && x.v > 0; }})
             .sort(function(a, b) {{ return b.v - a.v; }});
         if (withVol.length >= 2) {{
@@ -5062,10 +5094,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // of em-dashes while claiming to be published data.
         const self = buildPeerRow(ticker);
         if (!self || !PEER_COLS.some(k => self[k] !== null && self[k] !== undefined)) {{
-            // Three of the nine columns arrive with dashboard_detail.js, so an empty row can
-            // mean "not here yet". Six come from `raw` at first paint, so on a good run this
-            // branch is unreachable either way - but it must not claim a run published nothing
-            // while a fetch it started is still outstanding.
+            // All nine columns arrive with dashboard_detail.js (`financials` since 2026-11-08,
+            // `raw` since 2026-11-27), so an empty row usually means "not here yet" - and it must
+            // not claim a run published nothing while a fetch it started is still outstanding.
             const pend = !DETAIL_LOADED && !DETAIL_FAILED;
             container.innerHTML = '<p class="modal-note sheet-empty">' + (pend
                 ? 'Loading the comparison figures…'
@@ -5088,10 +5119,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const fmtPct1 = (v) => v !== null && v !== undefined ? pctPlain(v, 1) : '\u2014';
         const fmtDE = (v) => v !== null && v !== undefined ? v.toFixed(2) + 'x' : '\u2014';
         // Market cap, net margin and dividend yield come from `financials`, which ships in
-        // dashboard_detail.js since 2026-11-08. Until it lands those three cells say they are
-        // waiting rather than printing an em-dash, which in a column of figures means "this
-        // run published none". One character, so the three columns do not change width when
-        // the file arrives. The other six come from `raw` and are there at first paint.
+        // dashboard_detail.js since 2026-11-08, and the other six from `raw`, which followed on
+        // 2026-11-27. Until it lands every cell says it is waiting rather than printing an
+        // em-dash, which in a column of figures means "this run published none". One
+        // character, so the columns do not change width when the file arrives.
         const detailPending = !DETAIL_LOADED && !DETAIL_FAILED;
         const waiting = (v, f) => ((v === null || v === undefined) && detailPending)
             ? '\u2026' : f(v);
@@ -5158,13 +5189,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 </td>
                 <td class="peer-td-num peer-td-rank">${{r.rank ? '#' + r.rank : '—'}}</td>
                 <td class="peer-td-num">${{waiting(r.mcap, fmtBig)}}</td>
-                <td class="peer-td-num">${{fmtPE(r.pe_ratio)}}</td>
-                <td class="peer-td-num">${{fmtRG(r.rev_growth)}}</td>
+                <td class="peer-td-num">${{waiting(r.pe_ratio, fmtPE)}}</td>
+                <td class="peer-td-num">${{waiting(r.rev_growth, fmtRG)}}</td>
                 <td class="peer-td-num">${{waiting(r.net_margin, fmtPct1)}}</td>
-                <td class="peer-td-num">${{fmtPct1(profitMetric)}}</td>
-                <td class="peer-td-num">${{fmtDE(r.debt_equity)}}</td>
+                <td class="peer-td-num">${{waiting(profitMetric, fmtPct1)}}</td>
+                <td class="peer-td-num">${{waiting(r.debt_equity, fmtDE)}}</td>
                 <td class="peer-td-num">${{waiting(r.div_yield, fmtPct1)}}</td>
-                <td class="peer-td-num">${{fmtPct1(r.fcf_yield)}}</td>
+                <td class="peer-td-num">${{waiting(r.fcf_yield, fmtPct1)}}</td>
                 <td class="peer-td-action">${{r.isSelf ? '' : `<button type="button" class="peer-remove-btn" onclick="removePeer('${{escapeHtml(r.ticker)}}')" title="Remove from the comparison" aria-label="Remove ${{escapeHtml(r.ticker)}} from the comparison">&times;</button>`}}</td>
             </tr>`;
         }});
@@ -6291,7 +6322,7 @@ def _js_workings() -> str:
     // Who a stock was ranked against for one metric: its sector, or the whole universe
     // when the sector has too few values - the rule the scorer applied.
     function peerContext(m, s) {
-        const mine = s.raw[m];
+        const mine = (s.raw || {})[m];
         if (mine === null || mine === undefined) return null;
         const meta = (D.metric_meta || {})[m] || {};
         const lower = meta.dir === 'lower';
@@ -6301,7 +6332,7 @@ def _js_workings() -> str:
         Object.keys(D.stock_detail).forEach(t => {
             const o = D.stock_detail[t];
             if (!fallback && o.sector !== s.sector) return;
-            const v = o.raw[m];
+            const v = (o.raw || {})[m];
             if (v === null || v === undefined) return;
             n++;
             if (lower ? v < mine : v > mine) better++;
@@ -6318,6 +6349,10 @@ def _js_workings() -> str:
     function metricDetailHtml(m, s, r) {
         const info = (D.lineage || {})[m];
         if (!info) return '';
+        // `raw` is in dashboard_detail.js since 2026-11-27. A metric row exists only once it has
+        // landed (the workings wait for `pct`, in the same file), but a stock the file carries no
+        // figures for must still draw rather than throw on the sums below.
+        if (!s.raw) s = Object.assign({}, s, { raw: {} });
         const meta = (D.metric_meta || {})[m] || { fmt: 'ratio', label: m };
         const bad = (s.inp_bad || []).indexOf(m) >= 0;
         // What the metric measures, in words a first-year student can use (METRIC_PLAIN, written
@@ -6501,7 +6536,7 @@ def _js_workings() -> str:
 
     function equationHtml(m, s, meta) {
         const info = (D.lineage || {})[m];
-        const val = s.raw[m];
+        const val = (s.raw || {})[m];
         if (!info || val === null || val === undefined) return '';
         const inp = s.inp || {};
         const res = '<span class="wk-n wk-res">' + fmtMetric(val, meta.fmt) + '</span>';
@@ -11515,7 +11550,7 @@ def _js_context() -> str:
                 o += '<p class="ctx-line ctx-caveat">The figures below are the data source&rsquo;s own, worked out from each option&rsquo;s last trade rather than from a bid and ask that stood up, so read them loosely.</p>';
             o += '<table class="ctx-table"><tbody>';
             if (an && c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
-            const rv = (s.raw || {}).volatility;
+            const rv = volOf(s);
             if (an && rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
             if (an && c.osk !== undefined) {
                 o += '<tr><td>Put skew (out-of-the-money put vs at-the-money call)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
