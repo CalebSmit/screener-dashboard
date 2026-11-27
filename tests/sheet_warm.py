@@ -52,3 +52,22 @@ def settle(page) -> str:
         f"renders into the sheet can be overwritten by renderSheet() on an idle callback"
     )
     return state
+
+
+# The sheet-only shard. Since 2026-11-26 it carries each metric's sector percentile, so a sheet
+# opened before it lands draws its category workings as "Loading the sector percentiles…" and the
+# loader redraws them - a test that reads a metric row, a percentile or an unscored category's
+# reason right after opening a sheet is reading a race unless it waits for this first.
+DETAIL_JS = """() => {
+    if (typeof ensureDetail !== 'function') return 'absent';
+    return ensureDetail().then(ok => ok ? 'loaded' : 'failed');
+}"""
+
+
+def detail_loaded(page) -> str:
+    """Wait for dashboard_detail.js to land on `page` (asking for it if nothing has yet). Returns
+    'loaded', or 'absent' on a page that has no shard. A failed load fails the test: the tests
+    that call this read what the file carries."""
+    state = page.evaluate(DETAIL_JS)
+    assert state in ("loaded", "absent"), f"dashboard_detail.js did not load (state {state!r})"
+    return state

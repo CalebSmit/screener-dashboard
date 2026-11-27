@@ -61,7 +61,7 @@ SURPRISE = ("analyst_surprise", "earnings_acceleration", "consecutive_beat_strea
 def test_eq4_and_roe5_are_in_the_shard():
     for k in READERS:
         assert k in gd.DETAIL_KEYS, k
-    for k in ("raw", "pct", "summary", "pio", "bn"):
+    for k in ("raw", "summary", "pio", "bn"):   # `pct` joined the shard 2026-11-26 (test_percentiles_in_detail_shard)
         assert k not in gd.DETAIL_KEYS, k
 
 
@@ -193,17 +193,17 @@ def test_the_workings_say_they_are_waiting_then_show_the_quarters_and_years(site
     assert "Loading the five years of filings" in h, h[:300]
     assert "Needs all five years" not in h
 
-    # the open sheet's row is redrawn by the loader
+    # Since 2026-11-26 the percentiles share the file, so no metric row is drawn before it lands
+    # (the category says it is loading); once it has, the row a reader opens has its quarters.
     page.evaluate(f"openStockDetail('{ticker}')")
     page.wait_for_selector("#stock-modal .modal-body", state="visible")
     page.evaluate("openWorkings('revisions')")
-    page.click("#cat-detail-revisions tr[data-metric='analyst_surprise'] .wk-info")
+    assert page.locator("#cat-detail-revisions tr[data-metric='analyst_surprise']").count() == 0
     row = lambda: re.sub(r"\s+", " ", page.inner_text("#cat-detail-revisions tr.wk-detail"))  # noqa: E731
-    assert "Loading the quarterly figures" in row()
 
     _release(page, gate, path)
-    page.wait_for_function("""() => { const r = document.querySelector('#cat-detail-revisions tr.wk-detail');
-        return r && !/Loading the quarterly figures/.test(r.textContent); }""", timeout=30000)
+    page.click("#cat-detail-revisions tr[data-metric='analyst_surprise'] .wk-info")
+    assert "Loading the quarterly figures" not in row()
     filled = row().lower()                          # inner_text applies the headers' text-transform
     assert "actual eps" in filled and "median of the" in filled, filled[:300]
     h = _txt(page.evaluate(js, "earnings_variability"))

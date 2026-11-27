@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "index.html"
 PAYLOAD = ROOT / "dashboard_data.js"
 from tests import examples  # noqa: E402 - the stock a browser test opens (2026-11-04)
+from tests import sheet_warm  # noqa: E402
 WAIT = 8000
 CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
 
@@ -45,7 +47,11 @@ pytestmark = pytest.mark.skipif(not PAGE.exists() or not PAYLOAD.exists(),
 
 def _payload() -> dict:
     txt = PAYLOAD.read_text(encoding="utf-8")
-    return json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    data = json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    # every shard folded back (`pct` is in dashboard_detail.js since 2026-11-26), as the page has it
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as health
+    return health.fold_shards(data, health._dir_reader(ROOT))
 
 
 @pytest.fixture(scope="module")
@@ -205,8 +211,11 @@ def _detail_in(page, probe="JPM"):
 
 def _settled(page):
     """The context payload is in (its arrival re-renders Before you decide, which moves every section
-    below it) and the sheet's body has stopped scrolling for ten frames."""
+    below it), the detail shard is in (since 2026-11-26 it carries `pct`, and its arrival redraws the
+    category workings - the 11-26 13:00 gate 1 timed out here under parallel load without this wait),
+    and the sheet's body has stopped scrolling for ten frames."""
     page.wait_for_function("typeof CTX_LOADED !== 'undefined' && CTX_LOADED", timeout=WAIT)
+    sheet_warm.detail_loaded(page)
     page.wait_for_function("""() => new Promise(r => { const b = document.querySelector('#stock-modal .modal-body');
         let last = -1, same = 0; const f = () => { if (b.scrollTop === last) same++; else { same = 0; last = b.scrollTop; }
         if (same >= 10) r(true); else requestAnimationFrame(f); }; f(); })""", timeout=WAIT)
@@ -327,6 +336,11 @@ def test_opening_a_stock_first_ends_the_warm_up(browser):
 def test_an_unscored_tile_names_its_metrics_and_a_rejected_price_history(browser):
     ctx, page, errors = _open(browser, 375, 812, touch=True)
     try:
+        # The reason names metrics from their percentiles, which are in dashboard_detail.js since
+        # 2026-11-26: this is the loaded state, so wait for it (the waiting state, "Not scored: no
+        # data", is tests/test_percentiles_in_detail_shard.py's).
+        assert page.evaluate("() => typeof ensureDetail === 'function' ? ensureDetail() : true"), \
+            "dashboard_detail.js did not load"
         t, cats = page.evaluate("""() => { const C = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
             for (const t of Object.keys(D.stock_detail)) { const n = C.filter(c => D.stock_detail[t].cat_scores[c] == null);
                 if (n.length) return [t, n]; }

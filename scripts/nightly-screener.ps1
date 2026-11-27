@@ -342,39 +342,43 @@ try {
     # --- Retrospective every other Friday -----------------------------------
     # The routine periodically evaluates whether it is actually producing value
     # and rewrites its own process. Uses a different prompt template.
-    $cal = [System.Globalization.CultureInfo]::InvariantCulture.Calendar
-    $weekNo = $cal.GetWeekOfYear(
-        (Get-Date),
-        [System.Globalization.CalendarWeekRule]::FirstFourDayWeek,
-        [System.DayOfWeek]::Monday)
-    $IsRetro = ((Get-Date).DayOfWeek -eq [System.DayOfWeek]::Friday) -and ($weekNo % 2 -eq 0)
-
     # A retrospective that did not run is owed at the next Friday, not two weeks later (2026-11-19:
     # the 2026-11-13 one aborted on a missing CLI and nobody noticed; the last to run was 10-30).
-    # Any Friday whose newest logged RETROSPECTIVE is more than 14 days old is one.
-    if (((Get-Date).DayOfWeek -eq [System.DayOfWeek]::Friday) -and -not $IsRetro) {
-        $logForRetro = Join-Path $RepoPath 'NIGHTLY_LOG.md'
-        if (Test-Path $logForRetro) {
-            $retroDates = @(Select-String -Path $logForRetro -Pattern '^## (\d{4}-\d{2}-\d{2}) - RETROSPECTIVE' |
-                ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object)
-            if ($retroDates.Count -gt 0) {
-                $lastRetro = [datetime]::ParseExact($retroDates[-1], 'yyyy-MM-dd', $null)
-                if (((Get-Date).Date - $lastRetro).TotalDays -gt 14) {
-                    Write-Log "The last retrospective ran $($retroDates[-1]), over 14 days ago - this Friday is one."
-                    $IsRetro = $true
-                }
+    # One rule since 2026-11-27, keyed to the last retrospective that actually ran instead of to the
+    # ISO week number: a Friday is one when the newest logged RETROSPECTIVE is 13 or more days old,
+    # or none is logged. The week-number rule and the owed rule collided - the owed 11-20 one (odd
+    # week) was followed by an even-week one on 11-27, seven days later, and the Factor Lab lost its
+    # Friday. Every other Friday still, and a missed one is still owed the next Friday.
+    $IsRetro = $false
+    $lastRetroLine = 0
+    $logForRetro = Join-Path $RepoPath 'NIGHTLY_LOG.md'
+    if (((Get-Date).DayOfWeek -eq [System.DayOfWeek]::Friday) -and (Test-Path $logForRetro)) {
+        $retroHits = @(Select-String -Path $logForRetro -Pattern '^## (\d{4}-\d{2}-\d{2}) - RETROSPECTIVE')
+        if ($retroHits.Count -eq 0) {
+            $IsRetro = $true
+        } else {
+            $newest = $retroHits | Sort-Object { $_.Matches[0].Groups[1].Value } | Select-Object -Last 1
+            $lastRetroLine = $newest.LineNumber
+            $lastRetroDate = $newest.Matches[0].Groups[1].Value
+            $lastRetro = [datetime]::ParseExact($lastRetroDate, 'yyyy-MM-dd', $null)
+            $retroAge = ((Get-Date).Date - $lastRetro).TotalDays
+            if ($retroAge -ge 13) {
+                Write-Log "The last retrospective ran $lastRetroDate, $retroAge days ago - this Friday is one."
+                $IsRetro = $true
+            } else {
+                Write-Log "The last retrospective ran $lastRetroDate, $retroAge days ago - not due this Friday."
             }
         }
     }
 
-    # A retrospective with nothing to review is just churn. Require a real
-    # history of sessions first - entries in NIGHTLY_LOG.md are the counter.
+    # A retrospective with nothing to review is just churn: require entries logged since the last one
+    # (until 2026-11-27 this counted every entry in the file, so it could never fire).
     $MinSessionsForRetro = 6
     if ($IsRetro) {
-        $logPath = Join-Path $RepoPath 'NIGHTLY_LOG.md'
         $entries = 0
-        if (Test-Path $logPath) {
-            $entries = @(Select-String -Path $logPath -Pattern '^## \d{4}-\d{2}-\d{2}').Count
+        if (Test-Path $logForRetro) {
+            $entries = @(Select-String -Path $logForRetro -Pattern '^## \d{4}-\d{2}-\d{2}' |
+                Where-Object { $_.LineNumber -gt $lastRetroLine }).Count
         }
         if ($entries -lt $MinSessionsForRetro) {
             Write-Log "Retrospective due, but only $entries session(s) logged (need $MinSessionsForRetro). Doing normal Friday work instead."
@@ -395,7 +399,7 @@ try {
         }
     }
 
-    Write-Log "=== Code loop $Date (ISO week $weekNo)$(if ($Slot) { " - $Slot session" }) ==="
+    Write-Log "=== Code loop $Date$(if ($Slot) { " - $Slot session" }) ==="
     if ($IsRetro) { Write-Log "RETROSPECTIVE SESSION - self-evaluation, not normal work" }
     Write-Log "Focus: $Focus"
 

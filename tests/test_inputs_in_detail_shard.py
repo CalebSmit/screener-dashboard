@@ -66,7 +66,8 @@ SHEET_READERS = {"metricDetailHtml", "equationHtml", "renderProvenance", "workin
 def test_inp_is_in_the_sheet_only_shard():
     assert "inp" in gd.DETAIL_KEYS
     # the small fields the category table itself reads stay in first paint
-    for k in ("inp_bad", "xcap", "pio", "raw", "pct", "summary"):
+    # (`pct` joined the shard 2026-11-26 with its own audit: tests/test_percentiles_in_detail_shard.py)
+    for k in ("inp_bad", "xcap", "pio", "raw", "summary"):
         assert k not in gd.DETAIL_KEYS, k
 
 
@@ -179,25 +180,30 @@ def _release(page, gate, path):
 
 
 def test_an_open_metric_row_says_it_is_waiting_then_fills_in(site):
-    """The row a reader opened before the file landed must not read as "no inputs were
-    published", and must not stay that way once they have."""
+    """No metric row may read as "no inputs were published" before the file lands.
+
+    Since 2026-11-26 the percentiles travel in the same file, so the workings draw no metric row
+    at all until it lands - the category says it is loading (tests/test_percentiles_in_detail_
+    shard.py). The row's own waiting state is still what `metricDetailHtml` prints for a stock
+    whose inputs have not arrived; once the file lands the row a reader opens has its inputs."""
     make, ticker, path = site
     gate: list = []
     page = make(gate=gate)
     page.evaluate(f"openStockDetail('{ticker}')")
     page.wait_for_selector("#stock-modal .modal-body", state="visible")
     page.evaluate("openWorkings('valuation')")
-    page.click("#cat-detail-valuation tr[data-metric='earnings_yield'] .wk-info")
-    waiting = _row_text(page)
+    assert page.locator("#cat-detail-valuation tr[data-metric='earnings_yield']").count() == 0
+    waiting = re.sub(r"\s+", " ", page.evaluate(
+        f"() => metricDetailHtml('earnings_yield', D.stock_detail['{ticker}'], null)"))
     assert "Loading the reported figures" in waiting, waiting[:300]
     assert "Net income (TTM)" not in waiting           # no input row while there are no inputs
-    assert "Ranked" in waiting and "percentile" in waiting   # what first paint has is already there
 
     _release(page, gate, path)
-    page.wait_for_function("""() => { const r = document.querySelector('#cat-detail-valuation tr.wk-detail');
-        return r && !/Loading the reported figures/.test(r.textContent); }""", timeout=30000)
+    page.click("#cat-detail-valuation tr[data-metric='earnings_yield'] .wk-info")
     filled = _row_text(page)
+    assert "Loading the reported figures" not in filled
     assert "Net income (TTM)" in filled and "Market cap" in filled, filled[:300]
+    assert "Ranked" in filled and "percentile" in filled
     assert "=" in filled
     page.close()
 

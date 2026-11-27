@@ -417,14 +417,15 @@ gates eleven times in an evening while the regenerated page sat 8 elements over 
 budget; the next session's baseline would have been red. (`--full` runs the whole suite against
 the regenerated page.)
 
-**The rehearsal cannot see a scoring change.** It regenerates the page from a run *scored before*
-your change, so a new rule in `factor_engine.py`, `run_screener.py` or `config.yaml` reaches the
-claims gate first at 02:00 (it prints `ENGINE CHANGED` when that is the case). So, for a scoring
-change: **grep the tests for the old rule's wording and numbers**, and wherever the page branches
-on a new payload field, **write a test that sets that field in the browser** and checks the new
-branch (`tests/test_dashboard_printed_figures.py`, "made by hand"). 2026-11-20: the missing-category
-rule passed gate 5 and the first full run under it was refused - four tests still asserted the old
-wording, and nothing could see them until a payload carried the new field.
+**The rehearsal cannot see a change to anything the run computes.** It regenerates the page from a
+run made *before* your change, so a change in any module `run_screener.py` imports outside the
+generator (`rehearse_publish.ENGINE_FILES`, derived - context modules included) reaches the claims
+gate first at 02:00; it prints `ENGINE CHANGED` when that is the case. When it does: **grep the tests
+for the old behaviour's wording, numbers and field values**; wherever the page branches on a payload
+field you changed, **write a test that sets that field in the browser**; and **any test that patches a
+stock's fields must state every field the branch reads** rather than inherit the rest from whichever
+stock it landed on. Two refused nights in a week had this shape: 11-20 (four tests asserted the old
+missing-category wording) and 11-27 (a test inherited `ois` and the own-IV switch flipped it).
 
 **Do not commit** `validation/data_quality_log.csv`, `factor_output.xlsx`, or
 `sp500_tickers.json` unless changing them *is* the work. Stage files explicitly;

@@ -149,7 +149,12 @@ def test_a_missed_retrospective_is_owed_at_the_next_friday():
     src = (ROOT / "scripts" / "nightly-screener.ps1").read_text(encoding="utf-8-sig")
     i = src.index("A retrospective that did not run is owed at the next Friday")
     block = src[i:src.index("if ($IsExtra) { $IsRetro = $false }")]
-    assert "TotalDays -gt 14" in block and "$IsRetro = $true" in block
+    assert "$retroAge -ge 13" in block and "$IsRetro = $true" in block
+    # 2026-11-27: one rule, not two - the ISO-week rule collided with this one (retrospectives on
+    # 11-20 and 11-27, seven days apart, and the lab lost its Friday)
+    assert "GetWeekOfYear" not in src
+    # the minimum-sessions guard counts entries since the last retrospective, not the whole file
+    assert "$_.LineNumber -gt $lastRetroLine" in src
     pat = _re.search(r"-Pattern '([^']+)'", block).group(1)
     # the pattern must match how retrospective entries are actually headed in the log
     log = (ROOT / "NIGHTLY_LOG.md").read_text(encoding="utf-8")

@@ -56,7 +56,9 @@ Two things still outrank this file, and neither is negotiable:
   publishes carries the same no-return-claim framing. **2026-11-22:** each stock's reported figures now load with the stock's sheet
 instead of with the page - the page's first download is 19% smaller (1,125 -> 908 KB), nothing on
 it changed. That afternoon the quarterly and five-year figures behind four metrics' workings
-followed (908 -> 801 KB). **Next in phase 1:** `plan/universe-expansion.md`.
+followed (908 -> 801 KB). **2026-11-26:** each metric's sector percentile followed too (815 -> 693
+KB, -15%); a stock's workings say "Loading…" for the moment before they arrive. **Next in phase 1:**
+`plan/universe-expansion.md`.
   History to 2026-11-19: `log-archive/OWNER_FOCUS-item-histories-2026-11-19.md`.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it
