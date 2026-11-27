@@ -1,4 +1,4 @@
-# Morning Brief - Friday 27 November 2026, 02:22
+# Morning Brief - Friday 27 November 2026, 06:42
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -17,14 +17,14 @@ terminal on the PC and run:
 | | |
 |---|---|
 | Data run (2 AM) | **refused by its publish gates (published-claims check failed)** - last ran today |
-| Code session (latest) | **held back by its gates (work kept on its branch, not on main)** - last ran today |
+| Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-11-26 02:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
 | Top 5 | EXPE, VLO, APA, MPC, SNDK |
 | Ranking's lean on growth | +0.012 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
-| Shipped to readers | 14 commit(s) changed what a reader sees, 3 methodology change(s), in the last 7 days |
+| Shipped to readers | 18 commit(s) changed what a reader sees, 3 methodology change(s), in the last 7 days |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (59 rows, but overlapping windows are not independent; 147 rows across all horizons), newest 1m run date 2026-10-26 (32 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
 | Inputs vs SEC filings | total assets 459/459 within 0.5%; operating cash flow 445/446 within 0.5%; net income 433/457 within 0.5%; market value 452/487 within 5%; 5 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 1 days ago - **see the ATTENTION note below** |
@@ -47,72 +47,72 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - The regenerated artifacts contradict claims this project asserts about them.
 - Refusing to publish. The live site keeps the last good version.
 - Run discarded: published-claims check failed - fix the generator, not the file.
-- GATE 1 tests: FAIL (=========================== short test summary info =========================== FAILED tests/test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet 1 failed, 4571 passed, 1 skipped, 391 warnings in 250.21s (0:04:10))
-- full output: C:\Users\smitc\OneDrive\Documents\Screener\logs\nightly-2026-11-26_130001-midday.gate1.txt
-- GATE 1 attribution: 1 new, 0 inherited from a main that was already red.
-- new: tests/test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet
-- SHIP GATES FAILED: tests. Not merging.
-- Work pushed to nightly/2026-11-26 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
-- Run finished with failing gates - see above.
 
 ## What changed in the repo
 
+- `a5a54b8 NIGHTLY_LOG 2026-11-27: gate results`
+- `ec96ecd NIGHTLY_LOG 2026-11-27: retrospective - the refused run and held-back branch fixed, gate 5's list derived, one retro rule`
+- `66a59ba CLAUDE.md: closed items move below the open ones; 0.10 closed; a stale v1 claim corrected`
+- `16a71f4 Retrospective schedule: one rule, keyed to the last retrospective that ran`
+- `42e9ef6 Gate 5's ENGINE CHANGED list is derived from what the run imports, not hand-kept`
+- `c0273a9 Sheet tests settle on the detail shard too: its pct redraw moves the sections the tab test clicks`
+- `bf0bdb4 Test states the reading's IV construction instead of inheriting it: the 02:00 run was refused for a correct page`
+- `d1ea09c brief: data run 2026-11-27`
 - `5e8fb20 brief: code session 2026-11-26-midday`
-- `88354de brief: code session 2026-11-26`
-- `5c324fb NIGHTLY_LOG 2026-11-26: own implied volatilities published`
-- `c9d85b9 own IV published: changelog, claim extended, browser test, brief dates, note step 4 done, owner item closed`
-- `96f8817 wip: page rebuilt for the own-IV sentences (rebuild_page.py; payload byte-identical); skew fixture stamped as published`
-- `dee457f wip: publish our own implied volatilities (PUBLISHED_IV_CONSTRUCTION own_mid); cached readings re-selected; whole-universe coverage measured`
-- `f0eac97 brief: data run 2026-11-26`
-- `8da9237 data: screener run 2026-11-26 - 499 scored, top: EXPE VLO APA MPC SNDK`
+- `b0bffa5 NIGHTLY_LOG 2026-11-26 (13:00): gate results`
+- `ac876f1 NIGHTLY_LOG 2026-11-26 (13:00): pct leaves first paint`
+- `5ebe06a docs: pct shard - plan progress, inventory, CLAUDE.md DETAIL_KEYS (and the corrected premise: the movers strip and compare drawer read neither raw nor pct), owner item`
+- `b0e9cc7 wip: pct shard - waiting workings keep the weight-table note and the not-used list; browser helpers wait for the shard before reading rows`
+- `a31a14d wip: pct shard tests (audit tripwire, waiting, redraw keeps open sections, CSV waits); fix the detail loader's retry loop on a failed load`
+- `22225f2 wip: pct shard - the remaining readers fold the shard; score-tile line keeps its tested wording`
 
 ## The session's own account
 
-> 2026-11-26 - BUILD (owner queue first). Our own implied volatilities published: counted over the whole universe, every ATM figure ours lacks had no usable quote, and the flip would have blanked the page for Thanksgiving without a fix
+> 2026-11-27 - RETROSPECTIVE. Today's refused run and yesterday's held-back branch fixed first; gate 5's warning was a hand-kept list; two retrospectives seven days apart
 > 
-> **Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-25_130001-midday.log`
-> (completed). Data loop published? yes - `logs/datarun-2026-11-26_020001.log` (completed; HEALTH: PASS).
-> Evidence base at `1m`: **59 rows, newest `run_date` 2026-10-26 (31 days ago, bound 40), 5 effective** of 8.
-> Priority 0: `allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened
-> 2026-10-12, **age 45 days**; a standing programme, last advanced **1 day** ago, bound 21 - not deferred);
-> also open 0.10 (50 d), 0.14 (43 d). Shipped to readers: 21 commits, 3 methodology changes in the last
-> 7 days. The "held back" branch the line names is this session's own, pushed mid-session. No stash.
-> **Tests:** before 4558 passed / 1 skipped; after **4564 passed / 1 skipped** (6 new). Gate 2 dry run exit
-> 0. Gate 5 (`rehearse_publish.py --changed-since main`) PASSED on the final tree (it failed once mid-session
-> on `test_option_implied_claims.py`'s unstamped fixture - fixed, below); no ENGINE CHANGED. Gate 3's
-> `node --check` is refused by this session's tool guard; the three payload files are byte-identical to
-> `main` (`rebuild_page.py`), index.html 954 KB; the runner runs it. Gate 4 clean at the end.
-> **Owner queue / rotation:** `OWNER_FOCUS.md`'s 2026-11-19 item had one part left - the implied-volatility
-> switch, dated today in the brief's "Coming up". Taken first; that also satisfies Thursday's "build what
-> the week justified". No open proposal (`open_proposals()` = `[]`). **The 2026-11-19 item is now CLOSED
-> and moved to Done.**
+> **Health (rule 8, all five):** last code session ran? **held back by its gates** -
+> `logs/nightly-2026-11-26_130001-midday.log` (gate 1: one browser test timed out; work kept on
+> `origin/nightly/2026-11-26`). Data loop published? **no** - `logs/datarun-2026-11-27_020001.log`, HEALTH:
+> PASS, then **refused by the published-claims gate (1 failed)**; fixed this session, so the 18:00 retry
+> publishes once this branch is merged. Evidence base at `1m`: **59 rows, newest `run_date` 2026-10-26 (32
+> days ago, bound 40), 5 effective** of 8. Priority 0: `allow_auto_apply` **false**. Top open roadmap item:
+> **0.13, the Factor Lab** (opened 2026-10-12, **age 46 days**; a standing programme, last advanced **2 days**
+> ago, bound 21); also open 0.14 (44 d) - 0.10 closed today, below. Shipped to readers: 18 commits, 3
+> methodology changes in the last 7 days.
+> **Tests:** runner baseline **4564 passed / 1 skipped** (green). After merging the held-back branch and both
+> test fixes: **4573 passed / 1 skipped**; final-tree figures under "Gates". No owner-session marker; no stash.
 > 
-> ### Did
-> - **The whole-universe count the 11-04 decision asked for**
->   (`research/measurements/2026-11-26-own-iv-coverage-universe.py`, the 2026-11-25 20:00 refresh, 499
->   readings; the run it read dated 402 of 402 payers' ex-dividend dates): ours **418 of the source's 486**
->   ATM IVs and **327 of its 483** skews.
->   - **All 68 ATM losses are `partial` readings with no expected move**: no usable at-the-money mid, so
->     the source's figure there came from a contract whose quote did not stand up. That loss is the point.
->   - Of 156 skew losses, **128** have our ATM call, so the gap is the out-of-the-money put; they are
->     calmer stocks (source ATM IV median 0.361 vs 0.418), where a 5%-out put is cheapest and its spread
->     widest. `MAX_REL_SPREAD` and the IV bounds untouched.
->   - Ours minus source: ATM median -2.78 pts, skew +2.03 (sign disagrees 115 of 327); skew negative for
->     13.8% of ours, 35.0% of the source's, ~6% in Xing, Zhang & Zhao's Table 1.
-> - **Flipped `PUBLISHED_IV_CONSTRUCTION` to `own_mid`.**
-> - **Found and fixed what the flip would have done to tomorrow's page:** the cache's main columns were
->   assembled under `source`, the page withholds a figure stamped the other way, and Thanksgiving means no
->   20:00 refresh replaces the cache before the 11-27 02:00 run - so **every stock's volatility would have
->   been withheld**. `context_signals.in_published_construction`, called by `options_cache.reading_for`,
->   re-selects a cached reading's main columns from its own paired `_ctx_opt_own_*` columns (nothing
->   recomputed). Simulated on the real cache for 11-27: ATM IV shown for 418, skew for 327, 57 withheld.
-> - **The panel says why a figure is missing**: a withheld reading under `own_mid` now says ours could not
->   be worked out and the source's unpublished figures are not shown instead (was: "worked out a different
->   way", true but no help); a reading with our IV and no skew says its two skew options could not both be
->   worked out. `oniv` carries the published construction. Claim `context.iv_construction` extended; a
->   browser test sets each branch (`test_the_panel_names_our_construction_and_says_why_a_figure_is_missing`).
-> - **Looked at it:** AAPL, ATO and AEE sheets opened on the rebuilt page with tomorrow's re-selected
->   context at 1440 and 375 px, text read back: AAPL shows 25% ATM, +4.5 pt skew ($335 put 30% - $355
+> ### Did (before the retrospective): the refused data run and the held-back branch
+> 
+> **1. The 02:00 run was refused for a correct page.** One failure:
+> `test_context_cards_printed.py::test_a_partial_reading_marks_its_figures[partial-False-True]`. The test
+> patches option fields onto the first stock and kept that stock's own `ois` (which construction its implied
+> volatilities use). The 11-26 06:00 session switched `PUBLISHED_IV_CONSTRUCTION` to `own_mid`, and **today's
+> run was the first one computed under it**, so the inherited `ois` became `own_mid`. The page then
+> correctly left off the caveat "the figures below are the data source's own, worked from last trades".
+> The test now states `ois` and covers both cases: a partial reading from the source gets the caveat, and
+> one with `own_mid` does not. Commit `bf0bdb4`.
+> 
+> **2. The 11-26 13:00 branch (the `pct` shard, -14.9% first paint) was held back by gate 1:**
+> `test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet` timed out under
+> `-n auto`. **It was real, not a flake.** Since `pct` moved into `dashboard_detail.js`, the file's arrival
+> redraws each category's workings and moves the sections. The test's `_settled` helper waited for the
+> context payload's redraw but not this one. That session had fixed the same race in the unscored-tile
+> test and missed the tab test. Merged `origin/nightly/2026-11-26` into this branch and made `_settled`
+> call `sheet_warm.detail_loaded(page)` too (merge `7d5033d`, fix `c0273a9`). The module passes serially (18/18) and the full parallel
+> suite is green (4,573). **Rehearsed against today's refused run (`4f43d5f75e77`): PASS**, with the claims
+> gate at 2,443 passed.
+> 
+> ### Retrospective findings
+> 
+> - **Sessions reviewed: 13 log entries, 2026-11-20 13:00 to 2026-11-26 13:00 - 11 scheduled, 2 owner-run**
+>   (11-22 evening phone pass, 11-23 evening unjam + phone rows). **2 of 14 code slots never started**
+>   (11-23 06:00 and 13:00: `git pull --ff-only` failed on a local `main` diverged by a data-run push that
+>   failed). **1 session held back** (11-26 13:00, above).
+> - **Genuinely valuable: 11 of 11 scheduled, 2 of 2 owner-run | Churn: 0 | Failed gates: 1** (11-26 13:00
+>   gate 1, a real race). **Data loop: 2 of 6 weekday 02:00 runs refused** (11-20, 11-27), both by the
+>   claims gate and **both with a correct page and a stale test**. In both, the change the run exposed
+>   had shipped by day and changed what the run *computes*, and gate 5 could not see it. 11-23 was jammed
 > ...
 
 ---
