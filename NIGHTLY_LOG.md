@@ -11019,3 +11019,198 @@ next open owner item: the 2026-11-17 item is three decisions only the owner can 
 - **After the 11-27 02:00 run** (as the 06:00 entry said), and in the same look: confirm the published
   `dashboard_data.js` carries no `pct` and `dashboard_detail.js` carries it for every scored stock.
 - Phase 1's next slice: `raw` - decide how My Holdings' concentration line waits (`plan/universe-expansion.md`).
+
+
+## 2026-11-27 - RETROSPECTIVE. Today's refused run and yesterday's held-back branch fixed first; gate 5's warning was a hand-kept list; two retrospectives seven days apart
+
+**Health (rule 8, all five):** last code session ran? **held back by its gates** -
+`logs/nightly-2026-11-26_130001-midday.log` (gate 1: one browser test timed out; work kept on
+`origin/nightly/2026-11-26`). Data loop published? **no** - `logs/datarun-2026-11-27_020001.log`, HEALTH:
+PASS, then **refused by the published-claims gate (1 failed)**; fixed this session, so the 18:00 retry
+publishes once this branch is merged. Evidence base at `1m`: **59 rows, newest `run_date` 2026-10-26 (32
+days ago, bound 40), 5 effective** of 8. Priority 0: `allow_auto_apply` **false**. Top open roadmap item:
+**0.13, the Factor Lab** (opened 2026-10-12, **age 46 days**; a standing programme, last advanced **2 days**
+ago, bound 21); also open 0.14 (44 d) - 0.10 closed today, below. Shipped to readers: 18 commits, 3
+methodology changes in the last 7 days.
+**Tests:** runner baseline **4564 passed / 1 skipped** (green). After merging the held-back branch and both
+test fixes: **4573 passed / 1 skipped**; final-tree figures under "Gates". No owner-session marker; no stash.
+
+### Did (before the retrospective): the refused data run and the held-back branch
+
+**1. The 02:00 run was refused for a correct page.** One failure:
+`test_context_cards_printed.py::test_a_partial_reading_marks_its_figures[partial-False-True]`. The test
+patches option fields onto the first stock and kept that stock's own `ois` (which construction its implied
+volatilities use). The 11-26 06:00 session switched `PUBLISHED_IV_CONSTRUCTION` to `own_mid`, and **today's
+run was the first one computed under it**, so the inherited `ois` became `own_mid`. The page then
+correctly left off the caveat "the figures below are the data source's own, worked from last trades".
+The test now states `ois` and covers both cases: a partial reading from the source gets the caveat, and
+one with `own_mid` does not. Commit `bf0bdb4`.
+
+**2. The 11-26 13:00 branch (the `pct` shard, -14.9% first paint) was held back by gate 1:**
+`test_sheet_round_three.py::test_a_chosen_tab_stays_lit_at_the_end_of_the_sheet` timed out under
+`-n auto`. **It was real, not a flake.** Since `pct` moved into `dashboard_detail.js`, the file's arrival
+redraws each category's workings and moves the sections. The test's `_settled` helper waited for the
+context payload's redraw but not this one. That session had fixed the same race in the unscored-tile
+test and missed the tab test. Merged `origin/nightly/2026-11-26` into this branch and made `_settled`
+call `sheet_warm.detail_loaded(page)` too (merge `7d5033d`, fix `c0273a9`). The module passes serially (18/18) and the full parallel
+suite is green (4,573). **Rehearsed against today's refused run (`4f43d5f75e77`): PASS**, with the claims
+gate at 2,443 passed.
+
+### Retrospective findings
+
+- **Sessions reviewed: 13 log entries, 2026-11-20 13:00 to 2026-11-26 13:00 - 11 scheduled, 2 owner-run**
+  (11-22 evening phone pass, 11-23 evening unjam + phone rows). **2 of 14 code slots never started**
+  (11-23 06:00 and 13:00: `git pull --ff-only` failed on a local `main` diverged by a data-run push that
+  failed). **1 session held back** (11-26 13:00, above).
+- **Genuinely valuable: 11 of 11 scheduled, 2 of 2 owner-run | Churn: 0 | Failed gates: 1** (11-26 13:00
+  gate 1, a real race). **Data loop: 2 of 6 weekday 02:00 runs refused** (11-20, 11-27), both by the
+  claims gate and **both with a correct page and a stale test**. In both, the change the run exposed
+  had shipped by day and changed what the run *computes*, and gate 5 could not see it. 11-23 was jammed
+  by an HTTP failure on the push (both runs that day), and the owner fixed it with a retry the same
+  evening. 18:00 retries: 11-20 published; today's will once this branch merges.
+
+**1. What fraction produced something valuable?** All of it. The highlights: residual momentum researched
+(11-20 13:00, nine DOIs, tables re-read), decided by a *different* session (11-21) and built with a full
+run (11-24); 0.15 answered (D, a teaching tool) and both of its page changes shipped (11-21);
+universe-expansion phase 1 took first paint from 1,125 to 693 KB gzipped over four sessions; the 11-25
+synthesis measured residual momentum against the other seven categories on its first data run; lab
+experiment 20 (11-25 13:00); our own implied volatilities recorded, then published (11-24 13:00, 11-26).
+The owner's two sessions shipped the phone pass and unjammed the loops. Nothing I would call churn.
+**What was lost was 2 sessions to a jam and 2 nights to stale tests.**
+
+**2. Which rotation day earns its place?** Wednesday (11-25 synthesis) and Thursday (11-26 build) were both
+real. Tuesday (11-24) built the week's accepted proposal rather than opening the page, which was
+correct (owner queue first). **Monday has now produced no Monday note four weeks running** (11-02 lapsed
+login, 11-09 data loop first, 11-16 no CLI, 11-23 git jam), each time for a different machine reason.
+Research is still being done, in QUEUE and weekend slots (11-20 13:00, 11-21), and to a good standard.
+So I am not changing the rotation. Friday: **today was a lab Friday lost to a retrospective that was not
+due** (finding 4).
+
+**3. Is the evidence standard holding?** Yes, and better than last fortnight. The one scoring change
+(residual momentum) cites Blitz, Huij & Martens (2011) and Gutierrez & Pirinsky (2007) with table numbers
+and the large-cap subsample. It states what the long-short evidence does *not* promise a long-only
+reader, and was decided by a session that re-read the tables rather than the one that proposed it. Both
+context changes (own IV) are marked context-only, with a measured coverage table. The new research
+notes carry DOIs (9 and 1). The 0.15 note's criteria were fixed before its measurement.
+
+**4. What keeps going wrong?**
+- **A change to what the run computes, shipped by day, is first tested by the 02:00 claims gate.** It
+  was 11-19 -> 11-20 and now 11-26 -> 11-27. The 11-20 retrospective's mitigation was a warning, `ENGINE
+  CHANGED`, which read **a hand-kept list of six files**. The 11-26 change was in `context_signals.py`,
+  the seventh, so the warning stayed silent. This is the score table's fifth lesson failing inside the
+  sixth row's own fix. Closed below by deriving the list.
+- **Two retrospectives seven days apart.** The runner had two rules: an even ISO week, or the last
+  retrospective more than 14 days old. The owed one fell on 11-20 (an odd week) and the even-week rule
+  fired again today, so the lab lost its Friday. Its minimum-sessions guard counted the whole log
+  (~170 headings), so it could never fire. Both fixed below.
+- **A test fix scoped to the test that failed, not to the cause.** On 11-26 at 13:00 the session found
+  the shard race in one test of `test_sheet_round_three` and fixed that test. The shared helper the
+  other tests used kept the race, and gate 1 caught it an hour later.
+
+**5. Closer to the place you'd look before buying or selling?** Closer on a phone and on honesty. The
+phone pass folded every long part. A ranking row is now four figures. First paint is 693 KB against
+1,547 KB in early November, which matters before phase 2 triples the universe. The home page now says
+what the ranking is for (a teaching tool, with no return claim). The honest blocker is unchanged and
+stated on the page: no measured edge. With that answer settled, phase 2 (1,500 stocks) is the product's
+next step. The `raw` shard slice is the last phase-1 prerequisite.
+
+**6. What is the routine blind to?**
+- **Anything the run computes, until 02:00.** It is narrower now that the warning is derived, but still
+  only a warning. The closure (re-score the rehearsed run's raw metrics with the branch's code) is
+  still not built (flagged 11-20; still flagged).
+- **Tests that patch a stock and inherit the rest.** Today's failure is the `premise->red` row's rule
+  ("assert your own premise") breaking in a new spot: the premise was a field the test did not know
+  the branch reads. Two modules (`test_context_cards_printed`, `test_case_against`) patch ctx fields this
+  way; the insider patches replace the whole `ins` object, which is what that branch reads. Rule added
+  to `prompts/nightly.md` section 4.
+- **The watchdog's hint text.** On 11-23 it correctly warned "no session actually ran". But its advice
+  says "Failed to authenticate" means a logged-out CLI, and the real cause was a diverged `main`. The
+  verdict is right and only the canned diagnosis is wrong. Not changed (it is outside the repo's gates
+  and harmless); noted.
+
+**Runner enumeration (step 1).** I ran `scripts/retro_artifact_coverage.py`. No artifact is unguarded and
+new since 11-20. The one with no gate-module reader of its *content* is `data/context_eval.json`: it is
+regenerated each run (not appended), derived from `data/context_log` (which 4 gate modules read), read
+only by the brief, and feeds no score. The code that writes it is tested by `tests/test_context_eval.py`
+in gate 1. So it is reviewed and judged not a hole. The claims gate is still derived from `claims.py`.
+The new hole was on the code loop's side again: gate 5's list.
+
+### Process changes made
+
+1. **Gate 5's `ENGINE CHANGED` list is derived** (`rehearse_publish.engine_modules`): every local module
+   `run_screener.py` reaches through its imports without passing through `generate_dashboard`, plus
+   `config.yaml`. That is 23 entries against the 6 before, including `context_signals.py`,
+   `options_cache.py` and `implied_vol.py`. Over-inclusion costs a warning; omission cost a night. New test
+   `test_the_engine_list_is_derived_from_what_the_run_imports`. **`prompts/nightly.md` section 4**
+   widened from "a scoring change" to anything the run computes, with one new rule: **a test that patches
+   a stock's fields states every field the branch reads.**
+2. **One retrospective rule** (`nightly-screener.ps1`): a Friday is a retrospective when the newest logged
+   one is **13 or more days old**, or none is. This replaces the ISO-week rule plus the owed rule, so
+   the schedule is still every other Friday and a missed one is still owed the next Friday. The
+   minimum-sessions guard now counts entries since the last retrospective. Next: 12-04 is a lab Friday
+   (7 days), 12-11 a retrospective. `tests/test_extra_sessions.py` updated (no `GetWeekOfYear`; the guard
+   reads line numbers). CLAUDE.md's rotation paragraph says the same. I could not parse-check the
+   `.ps1` with PowerShell here (the tool is refused in these sessions); the edit is three
+   `Select-String`/`if` blocks, and the runner's next start is its real test. **The 06:00 session on
+   12-04 should check that its log reads "not due this Friday" and that it ran the lab.**
+3. **`CLAUDE.md`: closed items no longer sit in "Open."** Seven closed items (0.8/0.9, T0a, 0.11, 0.12,
+   0.15, 0.6, and 0.10, closed today) moved under a new `### Closed - the constraints that still bind`
+   after the open items. Open now lists only open work. 0.15's narrative moved verbatim to `DECISIONS.md`
+   ("Moved out of CLAUDE.md, 2026-11-27"), and the `dashboard_detail.js` bullet was cut to its
+   constraints. **One false statement corrected:** item 3 said v1's backtest froze `jensens_alpha`, but
+   since 11-24 the metric it freezes is `residual_momentum`. Length 972 -> 964. The line count barely
+   moved because the problem was order, not volume: a session had to read six closed items before the
+   first open one. `health_numbers.open_items` still parses (it skips CLOSED headings), and the health
+   line now lists 0.13 and 0.14.
+4. **0.10 closed.** It had been open 51 days with two weight-0 metrics left (Sharpe, Sortino), which the
+   item itself called low value, and it sat on every health line as "also open". Its pattern
+   (`max_drawdown_1y`: compute the workings where the metric is computed) is kept as a constraint.
+5. **`prompts/retrospective.md`**: a seventh row in the score table, with its lesson ("a mitigation written
+   as a list is a new hole; when you add one, derive it"). The session and refusal counts became a
+   running record with a new question: *when did the change it exposed ship?* The length check is now
+   "nothing above `### Closed` says CLOSED" instead of "expect to move 100+ lines". The split is
+   recorded at 11/2.
+
+### Methodology changed
+
+- none. Two tests were brought level with changes already shipped; no weight, threshold or formula moved.
+
+### Tried and rejected
+
+- **Making `ENGINE CHANGED` fail gate 5.** Same reasoning as 11-20: it would refuse every change to the
+  run unless the session ran a second live fetch the same day. A derived warning plus a test-writing
+  rule is the defensible step.
+- **Giving Monday's focus to the 13:00 slot when the 06:00 one did not run.** All four lost Mondays lost
+  *both* slots, so it would have rescued none.
+- **Forcing 100+ lines out of CLAUDE.md.** What remains under Open is open. Cutting constraints to hit a
+  number is how a rule gets lost.
+
+### Set aside
+
+- 11-26 13:00 Next 1 (check the 11-27 02:00 run's own IV and that `pct` lives only in the detail file):
+  partly. The run was refused, so nothing published. The rehearsal against it passed with the `pct` shard
+  merged, so the check falls to the first session after the 18:00 retry publishes.
+- 11-26 13:00 Next 2 (phase 1's `raw` slice): not done. A retrospective does not work on the screener;
+  next QUEUE or weekend slot.
+- 11-25 13:00 Next (lab, EarningsSurprise): not done. Today was taken by the retrospective that should
+  not have been due; the schedule fix gives the lab 12-04.
+- 11-20 retro Next 3 (the share-count rebuild, a 06:00 session to itself): still queued.
+
+### Next
+
+1. **The 18:00 retry** (`logs/datarun-2026-11-27_180*.log` ends "Data loop complete") once the runner merges
+   this branch. If it did not merge, merging is the weekend session's first job.
+2. **Saturday/Sunday:** phase 1's `raw` slice (`plan/universe-expansion.md`), or the lab's EarningsSurprise
+   if its paper copy is in hand.
+3. **12-04 06:00:** confirm the runner logged "not due this Friday" and the session ran the lab.
+
+### Flagged for the owner
+
+- **Both refused nights this fortnight came from day-shipped changes to what the run computes.** The
+  derived warning now tells the session, but the session still cannot *see* the new page before 02:00. The
+  real fix is the 11-20 flag: an offline re-score of the rehearsed run with the branch's code (no fetch).
+  It needs `run_screener.py` split at the scoring stage. A dedicated session's work; worth queueing.
+- **Monday has produced no Monday note four weeks running**, each time for a different machine fault
+  that the Monday session inherited from the weekend. No process change proposed; worth knowing.
+- **Nothing to decide** on the watchdog: its 11-23 verdict was right. Its canned hint blames a CLI
+  login for any session that did not run.
