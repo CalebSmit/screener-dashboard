@@ -1179,7 +1179,7 @@ surface printed 13%. See below and `METHODOLOGY_CHANGELOG.md` 2026-08-28.
 
 | Key | Size (MB) | Notes |
 |---|---|---|
-| `stock_detail` | 2.81 -> ~4.3 | **84.3% of the gzipped payload** (measured 2026-11-08). All ~500 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw), 2026-09-15 with `change_driver` (+0.10 raw / +10.5 KB gz); **`about` and `industry` left for `dashboard_detail.js` on 2026-11-08** (-307 KB gz off first paint), `financials` the same afternoon, **`inp` on 2026-11-22** (-217 KB gz), `eq4` and `roe5` that afternoon (-107 KB gz), **`pct` on 2026-11-26** (-121 KB gz). Field-by-field gzipped weights: `research/measurements/2026-11-08-stock-detail-field-weights.py` |
+| `stock_detail` | 2.81 -> ~4.3 | **84.3% of the gzipped payload** (measured 2026-11-08). All ~500 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw), 2026-09-15 with `change_driver` (+0.10 raw / +10.5 KB gz); **`about` and `industry` left for `dashboard_detail.js` on 2026-11-08** (-307 KB gz off first paint), `financials` the same afternoon, **`inp` on 2026-11-22** (-217 KB gz), `eq4` and `roe5` that afternoon (-107 KB gz), **`pct` on 2026-11-26** (-121 KB gz), **`raw` on 2026-11-27** (-199 KB gz; volatility stays as `vol`). Field-by-field gzipped weights: `research/measurements/2026-11-08-stock-detail-field-weights.py` |
 | `history` | 0.27 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
 | `table_data` | 0.26 | 502 rows, 8 category scores + composite/rank/flags |
 | everything else | <0.02 | `portfolio` (0.010) and `spx_weights` removed 2026-08-26 |
@@ -1238,9 +1238,16 @@ keeping every category the reader had open. **No metric row exists before the fi
 A failed load is retried by the next sheet that opens - until that day the failure's own redraw
 re-requested it in a tight loop (`DETAIL_NO_RETRY`). A browser test that reads a metric row,
 a percentile or an unscored reason right after opening a sheet calls
-`tests/sheet_warm.detail_loaded(page)` first (`tests/test_percentiles_in_detail_shard.py`). **What
-is left in first paint that a sheet alone reads:** `raw` (25.5%) is also read by My Holdings'
-concentration line, `summary` (12.8%) by My Holdings' card. **There is no `self_metrics` since 2026-11-08**: the peer table's nine
+`tests/sheet_warm.detail_loaded(page)` first (`tests/test_percentiles_in_detail_shard.py`). **`raw`
+(each metric's value as scored) joined it on 2026-11-27 (13:00): first paint 693,214 -> 493,871 bytes
+gzipped, -28.8%.** Its two readers outside the sheet both print one figure, volatility (My Holdings'
+concentration line; the context panel's "Realised, past year"), so that figure stays in first paint
+as its own field `vol`, copied by `split_detail` (`FIRST_PAINT_RAW`) and read through `volOf`. In the
+sheet the peer table is drawn while the file is in flight - tickers and ranks are first paint - with
+every figure and the peer median "…"; the "No peer figures were published" sentence is only for a
+file that has landed with nothing for the stock (`tests/test_raw_in_detail_shard.py`). **What is left
+in first paint that a sheet alone reads:** `summary` (18.8% of the 512 KB first paint) is also read by
+My Holdings' card; `stock_detail` is now 49.3% of first paint. **There is no `self_metrics` since 2026-11-08**: the peer table's nine
 columns were built two ways - the open stock's row from that precomputed block, every peer's row
 from `buildPeerRow` in JS over `raw` + `financials` - and every stock is on both sides of that
 split, so one company's P/E could print two ways on two sheets. Measured before removing it:

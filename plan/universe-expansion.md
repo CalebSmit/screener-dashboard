@@ -124,6 +124,28 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-27 (13:00 session): `raw` leaves first paint - 693,214 -> 493,871 bytes
+gzipped, -199 KB, -28.8%.** Regenerated from the published run (`runs/c31edb9b89dc`): folded **0
+differences**. The read-site audit: in the page `raw` is read by the open sheet (the peer table's
+`buildPeerRow`, `categoryWorkings`, `peerContext`, `metricDetailHtml`, `equationHtml`, the CSV
+through the workings rows) and by **two readers outside it, both of one figure, volatility** - My
+Holdings' concentration line and the context panel's "Realised, past year" row (drawn when the
+context file lands, possibly first). The plan offered "wait, or keep volatility as its own small
+field"; the second was taken, because a first-paint surface for a reader with saved names should not
+wait on a 951 KB file for one number: `vol` (6.3 KB gzipped, 497 stocks) is copied by `split_detail`
+(`FIRST_PAINT_RAW`), equal to `raw.volatility` for every stock, read through `volOf`. The peer table
+now draws while the file is in flight with every figure and the median "…" (it had six figures from
+`raw` at first paint). Outside the page: `write_brief.context_coverage`'s earnings-variability count
+folds the shard; `test_bank_pb_roe_identity`, `test_peer_row_one_path`, `test_holdings_concentration`
+and the 2026-10-12 growth-structure measurement script gained the fold - **and
+`test_peer_row_one_path`'s empty-state premise had read `financials` as absent since 2026-11-08**,
+passing on `raw` alone; it failed loudly when `raw` moved, which is how it was found.
+`tests/test_raw_in_detail_shard.py` (8), with a read-site tripwire and a mutation-checked browser test
+of the holdings risk gap with the file held. Re-measured after: `stock_detail` is 49.3% of the 512 KB
+first paint; `summary` 18.8%, `cat_scores` 8.3%, `flags` 6.8%, `contrib` 3.9%.
+**Next in phase 1:** `summary` split into the holdings' six kinds (`HOLDINGS_FACTS`, first paint) and
+the rest (the sheet's `renderSummary` / `caseItems`); then bucketing.
+
 **Progress, 2026-11-26 (13:00 session): `pct` leaves first paint - 814,575 -> 693,214 bytes
 gzipped, -121 KB, -14.9%.** Re-measured first (`research/measurements/2026-11-08-stock-detail-
 field-weights.py` on the 11-26 payload; first paint had grown 801 -> 815 KB since 11-22): `raw`
