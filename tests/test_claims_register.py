@@ -1420,7 +1420,7 @@ DASHBOARD_SENTENCES: dict[str, str] = {
         'claim:drilldown.composite_distribution',
     "; the median is ${fmt(med, 'score')}":
         'claim:drilldown.composite_distribution',
-    "Its last close is −${gap.toFixed(gap < 0.1 ? 2 : 1)}% against its 200-day average of ${cPrice(c.s200)}${(tr ? ' (' + TREND_WORD[tr] + ')' : '')}.":
+    "Its last close is −${gap.toFixed(gapDp)}% against its 200-day average of ${cPrice(c.s200)}${(tr ? ' (' + TREND_WORD[tr] + ')' : '')}.":
         'claim:drilldown.case_against',
     "Officers and directors made ${cMoney(ins.sell_value)} of open-market sales in the last 90 days (${ins.sell_people} insider${(ins.sell_people === 1 ? '' : 's')}${plan})${(ins.buy_n ? ', against ' + cMoney(ins.buy_value) + ' of purchases.' : ' and no open-market purchases.')} The panel gives the evidence that sales have historically said less than purchases.":
         'claim:drilldown.case_against',

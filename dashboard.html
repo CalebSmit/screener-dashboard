@@ -12773,10 +12773,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 if (c.px < c.s200) {
                     const tr = trendOf(c);
                     // A gap under 0.1% takes two decimals: at one, BXP's 0.03% printed as an
-                    // unsigned "0.0%" and the 2026-10-28 data run was refused for it.
+                    // unsigned "0.0%" and the 2026-10-28 data run was refused for it. Two were
+                    // still too few for JPM's 0.004% on 2026-11-27 ("−0.00%"), so a gap under
+                    // 0.1% keeps decimals until its first significant figure shows.
                     const gap = (1 - c.px / c.s200) * 100;
+                    const gapDp = gap >= 0.1 ? 1 : Math.max(2, -Math.floor(Math.log10(gap)));
                     items.push({ k: 'trend', label: 'Trend', go: 'section-context',
-                        text: 'Its last close is −' + gap.toFixed(gap < 0.1 ? 2 : 1) + '% against its 200-day average of ' + cPrice(c.s200) + (tr ? ' (' + TREND_WORD[tr] + ')' : '') + '.' });
+                        text: 'Its last close is −' + gap.toFixed(gapDp) + '% against its 200-day average of ' + cPrice(c.s200) + (tr ? ' (' + TREND_WORD[tr] + ')' : '') + '.' });
                 } else clear.push('last close at or above its 200-day average');
             } else na.push('the 200-day average');
             const ins = c.ins;

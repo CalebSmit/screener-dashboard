@@ -219,8 +219,9 @@ EXEMPT: dict[str, str] = {
     "(Math.abs(pct - Math.round(pct)) < 0.05 ? Math.round(pct) : pct.toFixed(1))": "category weight",
     "(Math.abs(w - Math.round(w)) < 0.05 ? Math.round(w) : w.toFixed(1))": "metric weight",
     # -- already carries the rule inline, and its sentence template is pinned in claims.py
-    "'Its last close is −' + gap.toFixed(gap < 0.1 ? 2 : 1)":
-        "the case-against trend line, the 2026-10-28 fix; claim drilldown.case_against",
+    "'Its last close is −' + gap.toFixed(gapDp)":
+        "the case-against trend line: decimals until the first significant figure (2026-10-28, "
+        "2026-11-28 fixes); claim drilldown.case_against",
     # -- cannot round to zero: both branches run only when the value is above 2%
     "if (a <= 0.02) agree.push(p[1]); else differ.push": "filing check, only reached above 2%",
     "return p[1] + ' (' + (a * 100).toFixed(a < 0.1 ? 1 : 0) + '%)'":
