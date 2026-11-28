@@ -441,17 +441,18 @@ outcome.
   `CTX_LOADED` flag is closure-scoped and not visible from `page.evaluate`.
 - `dashboard_detail.js` - `window.SCREENER_DETAIL`, **the third payload file** (2026-11-08),
   written by `generate_dashboard.split_detail()`: the fields only an open sheet reads, today
-  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct", "raw")` (slice by slice,
+  `DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct", "raw", "summary")` (slice by slice,
   with first-paint sizes: `plan/universe-expansion.md` phase 1 - 1.547 MB gzipped before the first,
-  693 KB after `pct`, 494 KB after `raw`, whose volatility stays in first paint as `vol` for My Holdings). Loaded by the first sheet laid out (on an untouched page, the idle pre-warm),
+  693 KB after `pct`, 494 KB after `raw`, whose volatility stays in first paint as `vol` for My Holdings, 427 KB after `summary`, whose six holdings kinds stay as `hsum` - `FIRST_PAINT_COPIES`). Loaded by the first sheet laid out (on an untouched page, the idle pre-warm),
   after `dashboard_data.js` and `dashboard_context.js`, and merged into `D.stock_detail`. Because
   `pct` is in it, **no metric row exists until the file lands**: a browser test that reads one calls
   `tests/sheet_warm.detail_loaded(page)` first, and one that clicks through a sheet's sections waits
   for it too (its arrival redraws the workings - 2026-11-26's held-back gate 1). A Python reader of the
   published payload folds it back with `check_run_health.fold_shards`. **Membership rule: every reader
-  in the open sheet, and every panel that prints it can say it is waiting** - `raw` and `summary`
-  are read by My Holdings at first paint, so each field needs its own read-site audit before it moves.
-  `tests/test_detail_payload_split.py`, `tests/test_percentiles_in_detail_shard.py`,
+  in the open sheet, and every panel that prints it can say it is waiting** - where a first-paint
+  surface reads part of a field, that part stays behind as a copy (`vol`, `hsum`); each field needs its
+  own read-site audit before it moves.
+  `tests/test_detail_payload_split.py`, `tests/test_percentiles_in_detail_shard.py`, `tests/test_summary_in_detail_shard.py`,
   `tests/test_quarters_in_detail_shard.py`, `tests/test_inputs_in_detail_shard.py`.
 - **The Factor Lab** (2026-10-12; `plan/factor-lab.md`): `lab.html` reruns a paper the
   screener cites on public data and lets the reader change the conditions. `factor_lab.py` is

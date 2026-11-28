@@ -124,6 +124,29 @@ empty after a rebuild from the same run).
 
 **This is the next stage. It is engineering only; no decision above is re-opened here.**
 
+**Progress, 2026-11-28 (06:00 weekend session): `summary` leaves first paint, the holdings' six
+kinds stay as `hsum` - 494,961 -> 426,815 bytes gzipped, -68 KB, -13.8%.** Re-measured first
+(`logs/summary_weights.py` on the 11-27 payload): `summary` 69.6 KB gzipped, of which the six
+`HOLDINGS_FACTS` kinds 16.2 KB and the target sentence 9.0 KB. Regenerated from the published run
+(`logs/regen_summary.py`): folded **0 differences** apart from 499 new `hsum` copies, each equal to its
+summary filtered by the tuple. The read-site audit, page: `renderSummary` (every kind - says "Loading
+why it ranks here…" until the file lands), `caseItems` (five holdings kinds plus `target` - reads first
+paint's copy, and only its target line waits: "Loading the analyst-target line…") and My Holdings'
+`holdingCard` (the six kinds, first paint, reads `hsum`); all through `factsOf`, which prefers the whole
+list so hand-built payloads render as before. The page's `HOLDINGS_FACTS` is now written from
+`generate_dashboard.HOLDINGS_FACTS`, the tuple `split_detail` filters by - one list, not two. The loader
+redraws both sheet readers. Outside the page no Python reader of `summary` existed beyond tests:
+`test_case_against` (its `data` fixture now folds) and `test_drilldown_presentation` waited for the
+file; the membership and fold tests learnt `FIRST_PAINT_COPIES` (`vol`, `hsum`).
+`tests/test_summary_in_detail_shard.py` (8), with a read-site tripwire and two held-file browser tests
+(holdings notes at first paint - mutation-checked: `factsOf` ignoring `hsum` fails it - and the sheet
+waiting then filling without a reopen). Page at 375px: home 6,106px before and after; the top stock's
+sheet reads the same 12 sentences once the pre-warm has landed the file. Re-measured after:
+`stock_detail` is 41.3% of the 445 KB first paint; `cat_scores` 9.2%, `flags` 7.8%, `hsum` 6.4%,
+`contrib` 4.1% - every remaining field has a first-paint reader.
+**Next in phase 1:** bucketing the shard (one file per ~32-stock bucket keyed by a function of the
+ticker), which is what makes a 1,500-stock universe's detail cost scale with the sheets opened.
+
 **Progress, 2026-11-27 (13:00 session): `raw` leaves first paint - 693,214 -> 493,871 bytes
 gzipped, -199 KB, -28.8%.** Regenerated from the published run (`runs/c31edb9b89dc`): folded **0
 differences**. The read-site audit: in the page `raw` is read by the open sheet (the peer table's

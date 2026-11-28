@@ -59,8 +59,9 @@ it changed. That afternoon the quarterly and five-year figures behind four metri
 followed (908 -> 801 KB). **2026-11-26:** each metric's sector percentile followed too (815 -> 693
 KB, -15%); a stock's workings say "Loading…" for the moment before they arrive. **2026-11-27:** each
 metric's value as scored followed (693 -> 494 KB, -29%); the peer table shows "…" until it lands, and
-My Holdings' risk-gap line keeps the one figure it needs at first paint. **Next in phase 1:**
-`plan/universe-expansion.md`.
+My Holdings' risk-gap line keeps the one figure it needs at first paint. **2026-11-28:** the "Why it
+ranks here" sentences followed (494 -> 427 KB, -14%); My Holdings keeps the notes it prints. **Next in
+phase 1:** splitting the detail file into small per-stock bundles (`plan/universe-expansion.md`).
   History to 2026-11-19: `log-archive/OWNER_FOCUS-item-histories-2026-11-19.md`.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it

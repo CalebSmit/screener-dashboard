@@ -11319,3 +11319,102 @@ nothing there for a session.
 
 1 **4582 passed / 1 skipped** (baseline 4574; +8, `test_raw_in_detail_shard`). 2 dry run passed. 3 `index.html` 960 KB;
 `test_payload_parse_gate` 20 passed. 5 `rehearse_publish.py --changed-since main` **PASSED** against today's run. 4 clean.
+
+
+## 2026-11-28 - WEEKEND. A red baseline first (JPM's case-against line read "−0.00%"), then universe expansion phase 1: the "Why it ranks here" sentences leave first paint (494,961 -> 426,815 bytes gzipped, -13.8%), the six kinds My Holdings prints stay as `hsum`
+
+**Health (rule 8, all five):** last code session ran? yes - `logs/nightly-2026-11-27_130001-midday.log`
+(completed). Data loop published? yes - `logs/datarun-2026-11-27_180001.log` (the 18:00 retry; completed,
+HEALTH: PASS, "Data loop complete", brief published). Evidence base at `1m`: **59 rows, newest `run_date`
+2026-10-26 (33 days ago, bound 40), 5 effective** of 8 (147 rows across all horizons). Priority 0:
+`allow_auto_apply` **false**. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 47
+days**; a standing programme, last advanced **3 days** ago, bound 21); also open 0.14 (45 d). Shipped to
+readers: 20 commits, 3 methodology changes in the last 7 days.
+**Tests:** before **4581 passed / 1 failed / 1 skipped** (the runner's baseline agrees: `BASELINE main was RED
+on arrival: 1 pre-existing failure`); after: under "Gates".
+**Owner queue / rotation:** WEEKEND - the top open item. No stash, no owner-session marker, no held-back
+branch, no open proposal (`write_brief.open_proposals()` is `[]`). A red baseline outranks the focus, so
+it came first. Then the owner item "Beyond the S&P 500" (phase 1, `plan/universe-expansion.md`), carrying
+on from yesterday 13:00's Next 2. The top owner item (Search Console, a byline, analytics) is the
+owner's to decide; nothing in it for a session.
+
+### Did
+- **The red baseline, fixed (a data-driven defect, not a code change).**
+  `tests/test_every_panel_reads_clean.py` failed on arrival: the 11-27 18:00 run published JPM closing
+  **0.004%** under its 200-day average, and The case against printed "Its last close is **−0.00%**
+  against its 200-day average of $322.97" - a signed zero, the exact class the 10-28 BXP fix (one decimal
+  -> two) was meant to end. Two decimals were still too few. The gap now keeps decimals until its first
+  significant figure shows (`gap >= 0.1 ? 1 : max(2, -floor(log10(gap)))`): JPM reads −0.004%, UAL's
+  0.0098% −0.010%. The template's key moved in `test_claims_register` (claim `drilldown.case_against`) and
+  in `test_percent_near_zero`'s exemption; `test_case_against`'s near-zero test gained three cases
+  (0.004%, 0.00001%, 0.0098%). Page rebuilt with `scripts/rebuild_page.py` (payload byte-identical).
+  Commit `1cd9a88`.
+- **`summary` moved to `dashboard_detail.js`; first paint 494,961 -> 426,815 bytes gzipped (-68 KB,
+  -13.8%).** Measured first (`logs/summary_weights.py`): `summary` 69.6 KB gzipped, of which the six
+  `HOLDINGS_FACTS` kinds 16.2 KB. Regenerated from the published run (`logs/regen_summary.py`, copied from
+  11-27's): folded **0 differences** apart from 499 new `hsum` keys, each equal to its stock's summary
+  filtered by `HOLDINGS_FACTS`; the context file came out byte-identical.
+- **Read-site audit, page.** Three readers: `renderSummary` (the sheet, every kind), `caseItems` (the
+  sheet; flags, confidence, change, input_churn, earnings - five of the six - and `target`), and My
+  Holdings' `holdingCard` (first paint for a reader with saved names; the six kinds). The six stay as
+  `hsum`, copied by `split_detail` in the summary's own order. All three read through `factsOf` (whole
+  list, else `hsum`), so a hand-built payload renders as before. Why it ranks here says "Loading why it
+  ranks here…" until the file lands (or that it could not be loaded); The case against waits only for its
+  target line ("Loading the analyst-target line…", appended to the context wait rather than overwriting
+  it); the loader redraws both. **The page's `HOLDINGS_FACTS` is now written from
+  `generate_dashboard.HOLDINGS_FACTS`**, the tuple the split filters by - two hand-kept lists that had to
+  agree became one.
+- **Outside the page** (the 11-09 rule): no script or brief reads `summary`; two tests read it off the
+  published page and now fold or wait (`test_case_against`'s `data` fixture folds the shard, its page and
+  `test_drilldown_presentation`'s emphasis test wait for the file); the membership and fold tests learnt
+  `gd.FIRST_PAINT_COPIES` (`vol`, `hsum`), and `test_health_reads_every_shard` checks `hsum` equals the
+  filter. `test_earnings_date` now checks the tuple rather than a quoted literal.
+- **`tests/test_summary_in_detail_shard.py` (8):** membership, the split's order and omissions, the page's
+  tuple equals the generator's, a read-site tripwire (`.summary` as a field, outside `factsOf` /
+  `summaryPending` / `renderSummary`, fails), the published first paint carries `hsum` equal to the folded
+  filter, and two browser tests on a re-split payload with the file held: My Holdings prints exactly its
+  `hsum` notes, and the sheet waits then fills (12 sentences, the target line) without a reopen.
+  **Mutation-checked:** `factsOf` ignoring `hsum` fails the holdings test (`logs/mutant_factsof.py`,
+  file restored byte for byte).
+- **Looked at the page** (`logs/design/summary-shard/`, main vs this branch): the top stock's (EXPE) sheet
+  at 1440 and 375px reads the same 12 sentences and the same case-against items once the pre-warm has
+  landed the file. **Home page height at 375px: 6,106px before and after** (three loads each, 8 s
+  settle); 1440px 23,235-23,254px on both (the same 19px jitter appears on `main`).
+- Docs: `plan/universe-expansion.md` Progress, `plan/dashboard-inventory.md`, CLAUDE.md's `DETAIL_KEYS`
+  line and the shard membership rule (a part a first-paint surface reads stays behind as a copy), and the
+  owner item's line in `OWNER_FOCUS.md` (left open - phase 1 continues).
+
+### Evidence / research
+- None new; engineering under phase 1, whose decision is `research/2026-11-03-*` (phase 0). The evidence
+  is the measurement: first paint -13.8% gzipped, folded payload 0 differences, every reader audited and
+  tested. The baseline fix's evidence is the failing sweep that now passes.
+
+### Methodology changed
+- none. No score, rank, weight or sentence moved (folded payload 0 differences beyond the `hsum` copies;
+  the JPM line prints more digits of the same number).
+
+### Tried and rejected
+- **Keeping `summary` whole in first paint and moving only the sheet's kinds under the same key** (merge
+  by `Object.assign` would overwrite the partial list). Rejected: a partial `summary` before the file
+  lands would let `renderSummary` silently draw the holdings' six kinds as if they were the whole
+  account; a separately named copy (`hsum`, the `vol` precedent) makes the difference visible to every
+  reader and to the tripwire.
+- **Keeping the target sentence in first paint too**, so The case against never waits (+8.7 KB gzipped).
+  Rejected: its only reader is the sheet, and the pre-warm normally lands the file before a first open;
+  the wait line costs nothing on the common path.
+
+### Set aside
+- 11-27 13:00 Next 1 (check the 18:00 retry published, and that `raw`/`pct` are only in the detail file
+  and `vol` in first paint): done - it published ("Data loop complete", HEALTH: PASS), and today's
+  regeneration from that payload confirms the layout.
+- 11-27 morning Next 3 (12-04 06:00 checks the retro rule): not due.
+- 11-25 13:00 Next (the lab's EarningsSurprise): not done - the lab's day is Friday and it is not late
+  (last advanced 3 days ago, bound 21).
+- 11-20 retro Next 3 (the share-count rebuild, a 06:00 session to itself, ~2.5 h): not started - a
+  weekend session with a red baseline first could not give it the uninterrupted block it needs.
+- The offline re-score for gate 5 (flagged 11-20 and 11-27): still a dedicated session's work.
+
+### Next
+1. Phase 1's next step: **bucketing the detail shard** (`plan/universe-expansion.md` - one file per
+   ~32-stock bucket keyed by a function of the ticker); start by measuring what one sheet open costs now
+   (the whole 1.08 MB gzipped file) against a bucket.
