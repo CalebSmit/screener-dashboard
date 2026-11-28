@@ -1,9 +1,9 @@
-# Morning Brief - Friday 27 November 2026, 14:05
+# Morning Brief - Friday 27 November 2026, 18:28
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
 
-## Coming up, only you can do it: the Claude CLI login runs out 2026-12-03 09:01 (in 6 days)
+## Coming up, only you can do it: the Claude CLI login runs out 2026-12-03 09:01 (in 5 days)
 
 The code sessions run through the Claude Code CLI on this PC, and its login
 lasts about 30 days. When it runs out, every scheduled session fails within
@@ -16,22 +16,22 @@ terminal on the PC and run:
 
 | | |
 |---|---|
-| Data run (2 AM) | **refused by its publish gates (published-claims check failed)** - last ran today |
+| Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-11-26 02:00 |
+| Dashboard data from | 2026-11-27 18:00 |
 | Stocks scored | 499 |
 | With a price | 499/499 |
 | With an analyst target | 497/499 |
-| Top 5 | EXPE, VLO, APA, MPC, SNDK |
-| Ranking's lean on growth | +0.012 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
+| Top 5 | EXPE, VLO, APA, MPC, HST |
+| Ranking's lean on growth | +0.013 (within the review's +-0.05 band; 2026-10-13 read -0.009) |
 | Shipped to readers | 20 commit(s) changed what a reader sees, 3 methodology change(s), in the last 7 days |
 | Evidence for weight changes | 5 of 8 needed at the 1m horizon (59 rows, but overlapping windows are not independent; 147 rows across all horizons), newest 1m run date 2026-10-26 (32 days ago, bound 40) |
 | Context signals | up to 1 effective observations of 8 needed. Not enough for a t-statistic yet. |
-| Inputs vs SEC filings | total assets 459/459 within 0.5%; operating cash flow 445/446 within 0.5%; net income 433/457 within 0.5%; market value 452/487 within 5%; 5 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 1 days ago - **see the ATTENTION note below** |
-| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#6: net income 1.29x after-tax operating income); PSX (#10: net income 1.28x after-tax operating income); DXCM (#14: operating cash flow 36% off the filing); CF (#15: net income 15% off the filing); ES (#18: a period behind its filings); TPR (#19: equity 5.2% of assets) |
-| Data run timing | **19 min** total; slowest `fetch.tickers` 624 s, `snapshot` 152 s, `fetch.retry` 111 s; **30 tickers rate-limited** |
-| Code-session login | **runs out 2026-12-03 09:01 (in 6 days)** |
-| Context coverage | options usable 481/499 - insider from SEC 499/499 - earnings variability 440 |
+| Inputs vs SEC filings | total assets 459/459 within 0.5%; operating cash flow 445/446 within 0.5%; net income 433/457 within 0.5%; market value 452/487 within 5%; 5 scored a quarter behind a filing over 30 days old; 1 with no filing in the cache for 165 days; filings cached 2 days ago - **see the ATTENTION note below** |
+| Top 25, worth a look | EXPE (#1: equity 6.2% of assets); HST (#4: net income 1.29x after-tax operating income); PSX (#10: net income 1.28x after-tax operating income); CF (#14: net income 15% off the filing); DXCM (#16: operating cash flow 36% off the filing); TPR (#18: equity 5.2% of assets); ES (#22: a period behind its filings) |
+| Data run timing | **21 min** total; slowest `fetch.tickers` 608 s, `context.options_pass` 190 s, `snapshot` 172 s; 0 tickers rate-limited |
+| Code-session login | **runs out 2026-12-03 09:01 (in 5 days)** |
+| Context coverage | options usable 447/499 - insider from SEC 499/499 - earnings variability 440 |
 
 ## Coming up
 
@@ -43,13 +43,12 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 
 ## Things that needed attention
 
-- ATTENTION - CLI LOGIN EXPIRES 2026-12-03 09:01 (in 6 days) - after that every scheduled code session fails until the owner runs `claude.cmd auth login` in a terminal and signs in; doing it before then loses nothing.
-- The regenerated artifacts contradict claims this project asserts about them.
-- Refusing to publish. The live site keeps the last good version.
-- Run discarded: published-claims check failed - fix the generator, not the file.
+- ATTENTION - CLI LOGIN EXPIRES 2026-12-03 09:01 (in 5 days) - after that every scheduled code session fails until the owner runs `claude.cmd auth login` in a terminal and signs in; doing it before then loses nothing.
 
 ## What changed in the repo
 
+- `ad76458 data: screener run 2026-11-27 - 499 scored, top: EXPE VLO APA MPC HST`
+- `a6665cf brief: code session 2026-11-27-midday`
 - `150020b NIGHTLY_LOG 2026-11-27 (13:00): gate results`
 - `a530971 NIGHTLY_LOG 2026-11-27 (13:00): raw shard`
 - `91134ab docs: raw shard - plan progress, inventory, owner item, CLAUDE.md DETAIL_KEYS`
@@ -63,8 +62,6 @@ does it deletes it from `COMING_UP` in `scripts/write_brief.py`.
 - `16a71f4 Retrospective schedule: one rule, keyed to the last retrospective that ran`
 - `42e9ef6 Gate 5's ENGINE CHANGED list is derived from what the run imports, not hand-kept`
 - `c0273a9 Sheet tests settle on the detail shard too: its pct redraw moves the sections the tab test clicks`
-- `bf0bdb4 Test states the reading's IV construction instead of inheriting it: the 02:00 run was refused for a correct page`
-- `d1ea09c brief: data run 2026-11-27`
 
 ## The session's own account
 
