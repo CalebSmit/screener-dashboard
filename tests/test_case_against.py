@@ -57,7 +57,10 @@ def _payload(name: str) -> dict:
 
 @pytest.fixture(scope="module")
 def data():
-    return _payload("dashboard_data.js")
+    # folded: the summary sentences are in dashboard_detail.js since 2026-11-28
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as h
+    return h.fold_shards(_payload("dashboard_data.js"), h._dir_reader(ROOT))
 
 
 @pytest.fixture(scope="module")
@@ -104,6 +107,9 @@ def page(browser, site):
     pg.goto((site / "index.html").as_uri(), wait_until="load", timeout=60000)
     pg.wait_for_function("typeof caseItems === 'function' && typeof D !== 'undefined' && "
                          "Object.values(D.stock_detail).some(s => s.ctx)", timeout=60000)
+    # the summary's target sentence is in dashboard_detail.js since 2026-11-28
+    from tests import sheet_warm
+    sheet_warm.detail_loaded(pg)
     yield pg
     pg.close()
     assert not errors, errors
@@ -356,10 +362,14 @@ def test_context_lines_wait_for_the_context_file(browser, site):
 def test_a_close_just_below_its_200_day_average_still_reads_as_below(page, data):
     """2026-10-28: BXP closed 0.03% under its 200-day average, the line read "Its last close is
     0.0% against...", with no sign, and the data loop's claims gate refused the whole run. A gap
-    too small for one decimal takes two, and the line is always signed."""
+    too small for one decimal takes two, and the line is always signed.
+    2026-11-27: JPM closed 0.004% under it and two decimals printed "−0.00%" - a gap under 0.1%
+    keeps decimals until its first significant figure shows."""
     t = next(iter(data["stock_detail"]))
     for px, s200, want in ((60.889999, 60.909738, "−0.03%"), (99.0, 100.0, "−1.0%"),
-                           (99.95, 100.0, "−0.05%"), (99.8, 100.0, "−0.2%")):
+                           (99.95, 100.0, "−0.05%"), (99.8, 100.0, "−0.2%"),
+                           (99.996, 100.0, "−0.004%"), (99.99999, 100.0, "−0.00001%"),
+                           (99.9902, 100.0, "−0.010%")):
         r = page.evaluate("([t, px, s200]) => caseItems(Object.assign({}, D.stock_detail[t], "
                           "{ctx: {px: px, s200: s200}}))", [t, px, s200])
         line = next(x["text"] for x in r["items"] if x["k"] == "trend")

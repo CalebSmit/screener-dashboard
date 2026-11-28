@@ -923,11 +923,25 @@ DETAIL_FILE = "dashboard_detail.js"
 # Outside the page: `write_brief`'s earnings-variability count now folds the shard; the build's own
 # uses (calc_trace, stock_summary, ranking_audit, the input-mismatch checks) run before split_detail.
 #
-# What is *not* in the shard, and why: `summary` is read by My Holdings' card (`HOLDINGS_FACTS`);
-# it needs splitting into the holdings' six kinds and the rest first.
-DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct", "raw")
+#
+# `summary` (2026-11-28, weekend) - the "Why it ranks here" sentences, 69.6 KB gzipped (14.1% of
+# that morning's first paint). Read-site audit, page: the sheet's renderSummary (every kind) and
+# "The case against" (caseItems: flags, confidence, change, input_churn, earnings and target) -
+# both the open sheet - plus **one reader outside it, My Holdings' card**, live at first paint for
+# a reader with saved names, which prints six kinds (`HOLDINGS_FACTS`). Those six stay in first
+# paint as their own field, `hsum` (16.2 KB gzipped), copied here in the summary's own order and
+# never rebuilt; the whole list moves. The holdings card and caseItems read `hsum` until the file
+# lands (`factsOf`); renderSummary says it is loading and caseItems waits only for its one kind
+# outside the six, the analyst-target sentence; the loader redraws both. Outside the page every
+# reader of the published payload folds the shard back; the build's own uses run before this.
+DETAIL_KEYS = ("about", "industry", "financials", "inp", "eq4", "roe5", "pct", "raw", "summary")
 # The one figure of `raw` read outside the sheet, kept in first paint under its own key.
 FIRST_PAINT_RAW = {"volatility": "vol"}
+# The summary's sentence kinds My Holdings prints (the page's HOLDINGS_FACTS is written from this
+# tuple), kept in first paint as `hsum`.
+HOLDINGS_FACTS = ("change", "change_driver", "input_churn", "flags", "confidence", "earnings")
+# Every key split_detail writes into first paint: copies of part of a moved field, never new data.
+FIRST_PAINT_COPIES = tuple(FIRST_PAINT_RAW.values()) + ("hsum",)
 # The subset that is provider prose. The scoring-freedom rule applies to every key above; being
 # a string applies only to these (`tests/test_detail_payload_split.py`).
 PROSE_KEYS = ("about", "industry")
@@ -994,6 +1008,11 @@ def split_detail(data: dict) -> dict:
             v = (part.get("raw") or {}).get(metric)
             if v is not None:
                 s[key] = v
+        # The summary sentences My Holdings prints stay behind too, as `hsum`, in the summary's
+        # own order (2026-11-28; see HOLDINGS_FACTS). A stock with none carries no key.
+        hsum = [f for f in (part.get("summary") or []) if isinstance(f, dict) and f.get("k") in HOLDINGS_FACTS]
+        if hsum:
+            s["hsum"] = hsum
         # Per key, not per stock: a stock with a description and no figures should carry the
         # description and not an empty block beside it. Every reader treats a missing key and
         # an empty one the same (``renderAbout`` hides the block, ``renderCompanySnapshot``
@@ -3963,7 +3982,20 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // at: announcement-day sells are the only sells in Akepanidtaworn et al.
     // (2023) that beat their counterfactual, by more than +150 bp/year. The
     // order is the summary's, not this array's - the filter below preserves it.
-    const HOLDINGS_FACTS = ['change', 'change_driver', 'input_churn', 'flags', 'confidence', 'earnings'];
+    // Written from generate_dashboard.HOLDINGS_FACTS, the same tuple split_detail keeps in first
+    // paint as `hsum` (2026-11-28).
+    const HOLDINGS_FACTS = {json.dumps(list(HOLDINGS_FACTS))};
+    // A stock's summary sentences: the whole list once dashboard_detail.js has landed (or a payload
+    // built by hand carries it inline), else the holdings' six kinds first paint keeps (`hsum`).
+    function factsOf(s) {{
+        if (!s) return [];
+        if (Array.isArray(s.summary)) return s.summary;
+        return Array.isArray(s.hsum) ? s.hsum : [];
+    }}
+    // Is the whole list still to come? Only while the detail file is unloaded and the stock has none.
+    function summaryPending(s) {{
+        return !!s && !Array.isArray(s.summary) && typeof DETAIL_LOADED !== 'undefined' && !DETAIL_LOADED;
+    }}
 
     let holdings = [];
 
@@ -4402,7 +4434,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 + '<span class="holding-cat-val">' + v.toFixed(0) + move + '</span></div>';
         }}).join('');
 
-        const facts = Array.isArray(s.summary) ? s.summary : [];
+        const facts = factsOf(s);
         const notes = facts
             .filter(function(f) {{ return HOLDINGS_FACTS.indexOf(f.k) !== -1; }})
             .map(function(f) {{
@@ -4658,6 +4690,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const box = document.getElementById('modal-summary');
         const body = document.getElementById('modal-summary-body');
         if (!box || !body) return;
+        // The sentences are in dashboard_detail.js since 2026-11-28; until it lands the block says
+        // so rather than showing the holdings' six kinds as if they were the whole account.
+        if (summaryPending(s)) {{
+            box.style.display = '';
+            body.innerHTML = '<p class="summary-fact summary-lead summary-wait">' + (DETAIL_FAILED
+                ? 'Why it ranks here could not be shown: the detail data could not be loaded.'
+                : 'Loading why it ranks here…') + '</p>';
+            const more0 = document.getElementById('summary-more-m');
+            if (more0) more0.hidden = true;
+            return;
+        }}
         let facts = (s && Array.isArray(s.summary)) ? s.summary : [];
         if (!facts.length) {{
             box.style.display = 'none';
@@ -12188,6 +12231,9 @@ def _js_context() -> str:
                 // may redraw.
                 if (typeof redrawPercentileSurfaces === 'function') redrawPercentileSurfaces();
                 if (typeof redrawOpenMetricDetails === 'function') redrawOpenMetricDetails();
+                // `summary` (2026-11-28): Why it ranks here and The case against's target line.
+                if (typeof renderSummary === 'function') renderSummary(s);
+                if (typeof renderCaseAgainst === 'function') renderCaseAgainst(s);
             }
             // `eq4` (2026-11-22, 13:00): the reporting calendar's "Last quarter" column is the
             // one reader outside the sheet; redraw it if it has been drawn.
@@ -14297,7 +14343,10 @@ def _js_drilldown() -> str:
         const items = [], clear = [], na = [];
         let wait = '';
         const sm = {};
-        (Array.isArray(s.summary) ? s.summary : []).forEach(f => { if (f && f.k && !(f.k in sm)) sm[f.k] = f.t || ''; });
+        // The holdings' six kinds are in first paint (`hsum`); the target sentence is in
+        // dashboard_detail.js since 2026-11-28, so its line waits for the file (3 below).
+        const smPending = summaryPending(s);
+        factsOf(s).forEach(f => { if (f && f.k && !(f.k in sm)) sm[f.k] = f.t || ''; });
         const scores = s.cat_scores || {}, contrib = s.contrib || {}, fl = s.flags || {};
 
         // 1. The two weakest weighted categories, with the score and points the score tiles print.
@@ -14319,25 +14368,33 @@ def _js_drilldown() -> str:
 
         // 3. The average analyst target below the last price: the summary's own sentence.
         if (caseNum(s.price) && s.price > 0 && caseNum(s.pt_mean)) {
-            if (s.pt_mean < s.price) { if (sm.target) items.push({ k: 'target', label: 'Analyst targets', go: 'section-price-targets', text: sm.target }); }
+            if (s.pt_mean < s.price) {
+                if (sm.target) items.push({ k: 'target', label: 'Analyst targets', go: 'section-price-targets', text: sm.target });
+                else if (smPending) wait = DETAIL_FAILED ? 'The analyst-target line could not be shown: the detail data could not be loaded.'
+                                                         : 'Loading the analyst-target line…';
+            }
             else clear.push('average analyst target at or above the price');
         } else na.push('analyst targets');
 
         // 4-5. Context, from dashboard_context.js once it has loaded.
         const c = s.ctx;
         if (!c) {
-            if (!CTX_LOADED) wait = 'Loading the price trend and insider trades…';
-            else if (CTX_FAILED) wait = 'The price trend and insider trades could not be shown: the context data could not be loaded.';
+            // appended, so a target line still waiting on the detail file keeps its note
+            if (!CTX_LOADED) wait = (wait ? wait + ' ' : '') + 'Loading the price trend and insider trades…';
+            else if (CTX_FAILED) wait = (wait ? wait + ' ' : '') + 'The price trend and insider trades could not be shown: the context data could not be loaded.';
             else na.push('the price trend', 'insider trades');
         } else {
             if (caseNum(c.px) && caseNum(c.s200) && c.s200 > 0) {
                 if (c.px < c.s200) {
                     const tr = trendOf(c);
                     // A gap under 0.1% takes two decimals: at one, BXP's 0.03% printed as an
-                    // unsigned "0.0%" and the 2026-10-28 data run was refused for it.
+                    // unsigned "0.0%" and the 2026-10-28 data run was refused for it. Two were
+                    // still too few for JPM's 0.004% on 2026-11-27 ("−0.00%"), so a gap under
+                    // 0.1% keeps decimals until its first significant figure shows.
                     const gap = (1 - c.px / c.s200) * 100;
+                    const gapDp = gap >= 0.1 ? 1 : Math.max(2, -Math.floor(Math.log10(gap)));
                     items.push({ k: 'trend', label: 'Trend', go: 'section-context',
-                        text: 'Its last close is −' + gap.toFixed(gap < 0.1 ? 2 : 1) + '% against its 200-day average of ' + cPrice(c.s200) + (tr ? ' (' + TREND_WORD[tr] + ')' : '') + '.' });
+                        text: 'Its last close is −' + gap.toFixed(gapDp) + '% against its 200-day average of ' + cPrice(c.s200) + (tr ? ' (' + TREND_WORD[tr] + ')' : '') + '.' });
                 } else clear.push('last close at or above its 200-day average');
             } else na.push('the 200-day average');
             const ins = c.ins;
