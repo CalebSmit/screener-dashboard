@@ -115,6 +115,8 @@ def test_the_fields_leave_the_first_paint_payload(built):
 
 def test_the_fields_arrive_in_the_detail_payload(built):
     _, detail = built
+    # every stock carries its summary sentences since 2026-11-28 (tests/test_summary_in_detail_shard.py)
+    assert detail["detail"]["AAA"].pop("summary"), "AAA's summary did not arrive"
     assert detail["detail"]["AAA"] == {"about": "Alpha Inc designs and sells things worldwide.",
                                        "industry": "Software - Infrastructure"}
     assert detail["detail"]["CCC"]["about"].startswith("Gamma Ltd explores")
@@ -126,8 +128,12 @@ def test_a_stock_with_nothing_to_say_is_omitted_rather_than_carried_empty(built)
     ~10 KB of nothing, and since 2026-11-08 (13:00) the emptiness is judged **per key**: a stock
     with a description and no figures carries the description and not an empty block beside it."""
     _, detail = built
-    assert "DDD" not in detail["detail"]
-    assert detail["detail"]["BBB"] == {"industry": "Banks - Diversified"}
+    # Since 2026-11-28 every stock carries its summary sentences, so DDD is carried by those alone
+    # and its two empty strings are still left out.
+    prose = {t: {k: v for k, v in p.items() if k != "summary"} for t, p in detail["detail"].items()}
+    assert set(detail["detail"]["DDD"]) == {"summary"}
+    assert prose["DDD"] == {}
+    assert prose["BBB"] == {"industry": "Banks - Diversified"}
 
 
 def test_the_split_is_in_place_so_the_two_halves_cannot_both_be_published(built):

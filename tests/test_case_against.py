@@ -57,7 +57,10 @@ def _payload(name: str) -> dict:
 
 @pytest.fixture(scope="module")
 def data():
-    return _payload("dashboard_data.js")
+    # folded: the summary sentences are in dashboard_detail.js since 2026-11-28
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_run_health as h
+    return h.fold_shards(_payload("dashboard_data.js"), h._dir_reader(ROOT))
 
 
 @pytest.fixture(scope="module")
@@ -104,6 +107,9 @@ def page(browser, site):
     pg.goto((site / "index.html").as_uri(), wait_until="load", timeout=60000)
     pg.wait_for_function("typeof caseItems === 'function' && typeof D !== 'undefined' && "
                          "Object.values(D.stock_detail).some(s => s.ctx)", timeout=60000)
+    # the summary's target sentence is in dashboard_detail.js since 2026-11-28
+    from tests import sheet_warm
+    sheet_warm.detail_loaded(pg)
     yield pg
     pg.close()
     assert not errors, errors

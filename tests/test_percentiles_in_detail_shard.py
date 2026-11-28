@@ -63,8 +63,10 @@ READERS = {"unscoredWhy", "weightProfile", "categoryWorkings", "renderCategoryDe
 def test_pct_is_in_the_shard_and_raw_and_summary_are_not():
     assert "pct" in gd.DETAIL_KEYS
     # each has a first-paint reader outside the sheet (My Holdings). `raw` followed on 2026-11-27
-    # with its one such figure kept behind as `vol` (tests/test_raw_in_detail_shard.py).
-    for k in ("summary", "cat_scores", "contrib", "flags", "wp"):
+    # with its one such figure kept behind as `vol` (tests/test_raw_in_detail_shard.py), and
+    # `summary` on 2026-11-28 with the holdings' six kinds kept as `hsum`
+    # (tests/test_summary_in_detail_shard.py).
+    for k in ("cat_scores", "contrib", "flags", "wp"):
         assert k not in gd.DETAIL_KEYS, k
 
 

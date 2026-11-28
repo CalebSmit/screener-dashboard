@@ -142,7 +142,12 @@ def test_load_payload_gives_back_the_payload_the_generator_built(run_dir: Path):
                 dropped += 1
                 continue
             assert back[k] == v, f"{t}'s {k} came back from the shards changed"
-        assert not set(back) - set(s), f"{t} came back with keys the generator never wrote"
+        # the one exception: the first-paint copies split_detail keeps of part of a moved field
+        # (`vol`, `hsum`), each equal to what it was copied from
+        extra = set(back) - set(s)
+        assert extra <= set(gd.FIRST_PAINT_COPIES), f"{t} came back with keys the generator never wrote: {extra}"
+        if "hsum" in back:
+            assert back["hsum"] == [f for f in s["summary"] if f["k"] in gd.HOLDINGS_FACTS], t
     assert dropped == 1, f"expected exactly BBB's empty description to be dropped, got {dropped}"
     for k in whole:
         assert k in loaded, f"the gate cannot see top-level {k}"

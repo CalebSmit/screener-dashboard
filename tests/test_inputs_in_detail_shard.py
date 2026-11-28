@@ -67,8 +67,9 @@ def test_inp_is_in_the_sheet_only_shard():
     assert "inp" in gd.DETAIL_KEYS
     # the small fields the category table itself reads stay in first paint
     # (`pct` joined the shard 2026-11-26 and `raw` 2026-11-27, each with its own audit:
-    # tests/test_percentiles_in_detail_shard.py, tests/test_raw_in_detail_shard.py)
-    for k in ("inp_bad", "xcap", "pio", "summary"):
+    # tests/test_percentiles_in_detail_shard.py, tests/test_raw_in_detail_shard.py; `summary`
+    # 2026-11-28, tests/test_summary_in_detail_shard.py)
+    for k in ("inp_bad", "xcap", "pio"):
         assert k not in gd.DETAIL_KEYS, k
 
 

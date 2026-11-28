@@ -423,7 +423,11 @@ def test_holdings_rows_render_the_earnings_note():
     idx = src.find("const HOLDINGS_FACTS")
     assert idx != -1
     line = src[idx:src.find("\n", idx)]
-    assert "'earnings'" in line
+    # written from generate_dashboard.HOLDINGS_FACTS since 2026-11-28, which split_detail also keeps
+    # in first paint as `hsum`
+    import generate_dashboard as gd
+    assert "json.dumps(list(HOLDINGS_FACTS))" in line
+    assert "earnings" in gd.HOLDINGS_FACTS
 
 
 def test_the_footnote_sources_the_claim():

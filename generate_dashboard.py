@@ -940,6 +940,8 @@ FIRST_PAINT_RAW = {"volatility": "vol"}
 # The summary's sentence kinds My Holdings prints (the page's HOLDINGS_FACTS is written from this
 # tuple), kept in first paint as `hsum`.
 HOLDINGS_FACTS = ("change", "change_driver", "input_churn", "flags", "confidence", "earnings")
+# Every key split_detail writes into first paint: copies of part of a moved field, never new data.
+FIRST_PAINT_COPIES = tuple(FIRST_PAINT_RAW.values()) + ("hsum",)
 # The subset that is provider prose. The scoring-freedom rule applies to every key above; being
 # a string applies only to these (`tests/test_detail_payload_split.py`).
 PROSE_KEYS = ("about", "industry")

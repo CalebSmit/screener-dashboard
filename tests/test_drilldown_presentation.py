@@ -67,6 +67,9 @@ def test_figure_emphasis_never_changes_a_sentence(browser):
     """Every stock's rendered sentences are exactly its published ``summary`` texts."""
     ctx, page, errors = _open(browser)
     try:
+        # the sentences are in dashboard_detail.js since 2026-11-28
+        from tests import sheet_warm
+        sheet_warm.detail_loaded(page)
         bad = page.evaluate("""() => {
             const out = [];
             Object.keys(D.stock_detail).forEach(t => {
