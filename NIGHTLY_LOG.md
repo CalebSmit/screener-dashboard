@@ -11418,3 +11418,8 @@ owner's to decide; nothing in it for a session.
 1. Phase 1's next step: **bucketing the detail shard** (`plan/universe-expansion.md` - one file per
    ~32-stock bucket keyed by a function of the ticker); start by measuring what one sheet open costs now
    (the whole 1.08 MB gzipped file) against a bucket.
+
+### Gates (final tree)
+
+1 **4590 passed / 1 skipped** (baseline 4581 passed + 1 red; the red fixed, +8 `test_summary_in_detail_shard`). 2 dry run passed. 3 `index.html` ~962 KB;
+`test_payload_parse_gate` 20 passed. 5 `rehearse_publish.py --changed-since main` **PASSED** against the 11-27 18:00 run. 4 clean.
